@@ -71,3 +71,12 @@ Route::post('mercadopago/webhook', [App\Http\Controllers\Api\MercadoPagoControll
     });
 
 Route::post('tiendanube/webhook', [App\Http\Controllers\Api\TiendanubeController::class, 'webhook']);
+
+    // Tiendanube
+    Route::prefix('tiendanube')->group(function () {
+        Route::post('configure',   [App\Http\Controllers\Api\TiendanubeController::class, 'configure']);
+        Route::post('sync-orders', [App\Http\Controllers\Api\TiendanubeController::class, 'syncOrders']);
+        Route::post('sync-stock',  [App\Http\Controllers\Api\TiendanubeController::class, 'syncStock']);
+    });
+
+Route::post('tiendanube/webhook', [App\Http\Controllers\Api\TiendanubeController::class, 'webhook']);
