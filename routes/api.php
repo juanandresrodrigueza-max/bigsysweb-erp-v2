@@ -42,3 +42,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('customers',    [ReportController::class, 'customerStats']);
     });
 });
+
+    // AFIP / Facturación
+    Route::prefix('invoices')->group(function () {
+        Route::get('{sale}/preview',        [App\Http\Controllers\Api\InvoiceController::class, 'preview']);
+        Route::post('{sale}/issue',         [App\Http\Controllers\Api\InvoiceController::class, 'issue']);
+        Route::post('upload-certificate',   [App\Http\Controllers\Api\InvoiceController::class, 'uploadCertificate']);
+    });
