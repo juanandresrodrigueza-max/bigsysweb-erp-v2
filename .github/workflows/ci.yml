@@ -1,0 +1,63 @@
+name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: erp_test
+          POSTGRES_USER: erp_user
+          POSTGRES_PASSWORD: secret
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: bcmath,exif,gd,mbstring,opcache,pdo,pdo_pgsql,pcntl,redis,zip
+          coverage: xdebug
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('**/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --optimize-autoloader
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan migrate --force
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: erp_test
+          DB_USERNAME: erp_user
+          DB_PASSWORD: secret
+      - run: php artisan test --parallel
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: erp_test
+          DB_USERNAME: erp_user
+          DB_PASSWORD: secret
+          REDIS_HOST: 127.0.0.1
+          CACHE_DRIVER: redis
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: array
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: pint
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/pint --test
