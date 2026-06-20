@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9aca8a4fe9ad23dc14c450e6d72e9731",
+    "content-hash": "767ea7f87661c5cf9cbac2030c861162",
     "packages": [
         {
             "name": "brick/math",
@@ -134,6 +134,56 @@
                 }
             ],
             "time": "2024-02-09T16:56:22+00:00"
+        },
+        {
+            "name": "consultora-grada/afip.php",
+            "version": "v0.6.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/consultora-grada/afip.php.git",
+                "reference": "f7c99bad58fc22ec374e7648648b996794b73caf"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/consultora-grada/afip.php/zipball/f7c99bad58fc22ec374e7648648b996794b73caf",
+                "reference": "f7c99bad58fc22ec374e7648648b996794b73caf",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.3"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/Afip.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Afip SDK",
+                    "email": "afipsdk@gmail.com"
+                }
+            ],
+            "description": "Libreria para usar los Web Services de AFIP (Argentina) ",
+            "homepage": "https://github.com/afipsdk/afip.php",
+            "keywords": [
+                "afip",
+                "cae",
+                "contribuyente",
+                "facturacion-electronica",
+                "gratis",
+                "libreria",
+                "padron",
+                "soap"
+            ],
+            "support": {
+                "source": "https://github.com/consultora-grada/afip.php/tree/v0.6.1"
+            },
+            "time": "2019-09-09T23:26:35+00:00"
         },
         {
             "name": "dflydev/dot-access-data",
