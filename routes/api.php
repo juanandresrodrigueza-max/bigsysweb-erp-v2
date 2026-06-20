@@ -53,3 +53,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('customers',    [ReportController::class, 'customerStats']);
     });
 });
+
+    // MercadoPago
+    Route::prefix('mercadopago')->group(function () {
+        Route::post('configure',                    [App\Http\Controllers\Api\MercadoPagoController::class, 'configure']);
+        Route::post('sales/{sale}/preference',      [App\Http\Controllers\Api\MercadoPagoController::class, 'createPreference']);
+        Route::get('payments/{paymentId}/status',   [App\Http\Controllers\Api\MercadoPagoController::class, 'paymentStatus']);
+    });
+
+Route::post('mercadopago/webhook', [App\Http\Controllers\Api\MercadoPagoController::class, 'webhook']);
