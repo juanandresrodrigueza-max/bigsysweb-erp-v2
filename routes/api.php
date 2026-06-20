@@ -1,6 +1,8 @@
 <?php
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BusinessController;
+use App\Http\Controllers\Api\CashRegisterController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReportController;
@@ -18,13 +20,20 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('business',    [BusinessController::class, 'show']);
-    Route::put('business',    [BusinessController::class, 'update']);
+    Route::get('business', [BusinessController::class, 'show']);
+    Route::put('business', [BusinessController::class, 'update']);
 
-    Route::apiResource('customers',       CustomerController::class);
-    Route::apiResource('products',        ProductController::class);
-    Route::apiResource('sales',           SaleController::class);
+    Route::apiResource('contacts',  ContactController::class);
+    Route::apiResource('customers', CustomerController::class);
+    Route::apiResource('products',  ProductController::class);
+    Route::apiResource('sales',     SaleController::class);
     Route::apiResource('stock-movements', StockMovementController::class)->only(['index', 'store']);
+
+    Route::prefix('cash-registers')->group(function () {
+        Route::get('/',                              [CashRegisterController::class, 'index']);
+        Route::post('{cashRegister}/open',           [CashRegisterController::class, 'open']);
+        Route::post('{cashRegister}/close',          [CashRegisterController::class, 'close']);
+    });
 
     Route::prefix('reports')->group(function () {
         Route::get('sales',        [ReportController::class, 'salesSummary']);
