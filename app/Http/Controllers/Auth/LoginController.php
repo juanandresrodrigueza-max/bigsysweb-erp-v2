@@ -17,9 +17,7 @@ class LoginController extends Controller
         return back()->withErrors(['email'=>'Credenciales incorrectas.']);
     }
     public function destroy(Request $request)
-    {
-        Auth::logout();
-        $request->session()->invalidate();
+    {        $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
     }
