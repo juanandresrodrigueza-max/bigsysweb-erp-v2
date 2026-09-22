@@ -13,9 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
+            \App\Http\Middleware\ResolverSucursal::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+        $middleware->alias([
+            'permiso'    => \App\Http\Middleware\Permiso::class,
+            'superadmin' => \App\Http\Middleware\SuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
-     })->create();
+    })->create();

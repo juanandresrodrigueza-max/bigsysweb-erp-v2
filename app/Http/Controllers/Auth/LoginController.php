@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -21,12 +22,21 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            return redirect()->intended('/dashboard');
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            return back()->withErrors(['email' => 'Email o contraseña incorrectos.'])->onlyInput('email');
         }
 
-        return back()->withErrors(['email' => 'Credenciales incorrectas.']);
+        $user = Auth::user();
+        if ($user->status !== 'active') {
+            Auth::logout();
+            return back()->withErrors(['email' => 'Tu usuario está inactivo. Hablá con el administrador de tu empresa.']);
+        }
+
+        $request->session()->regenerate();
+        $user->forceFill(['last_login_at' => now()])->save();
+        AuditLog::registrar('login', $user, 'Inicio de sesión');
+
+        return redirect()->intended('/dashboard');
     }
 
     public function destroy(Request $request)

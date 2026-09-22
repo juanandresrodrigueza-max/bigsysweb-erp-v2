@@ -1,14 +1,26 @@
 <template>
-  <div class="bg-white rounded-xl shadow p-6">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-2xl">{{ icono }}</span>
-      <span class="text-xs font-medium px-2 py-1 rounded-full" :class="colorClass">{{ titulo }}</span>
-    </div>
-    <div class="text-3xl font-bold text-gray-800">{{ valor }}</div>
-  </div>
+  <component :is="url ? Link : 'div'" :href="url" class="card flex flex-col gap-1 hover:border-carmin/40 transition">
+    <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ label }}</p>
+    <p class="text-xl font-extrabold tracking-tight tabular-nums whitespace-nowrap">{{ valorFormateado }}</p>
+    <p v-if="tendencia !== null && tendencia !== undefined" class="text-xs flex items-center gap-1" :class="positiva ? 'text-emerald-600' : 'text-carmin'">
+      <Icono :nombre="tendencia >= 0 ? 'trendUp' : 'trendDown'" clase="w-3.5 h-3.5" />
+      {{ Math.abs(tendencia) }}% vs período anterior
+    </p>
+  </component>
 </template>
+
 <script setup>
 import { computed } from 'vue'
-const props = defineProps({ titulo: String, valor: [String, Number], icono: String, color: { type: String, default: 'blue' } })
-const colorClass = computed(() => ({ blue: 'bg-blue-100 text-blue-700', green: 'bg-green-100 text-green-700', purple: 'bg-purple-100 text-purple-700', red: 'bg-red-100 text-red-700' }[props.color] || 'bg-gray-100 text-gray-700'))
+import { Link } from '@inertiajs/vue3'
+import Icono from '@/Components/Icono.vue'
+
+const props = defineProps({
+  label: String, valor: [Number, String], formato: { type: String, default: 'moneda' },
+  tendencia: { type: Number, default: null }, invertida: Boolean, url: String,
+})
+const valorFormateado = computed(() => {
+  if (props.formato === 'moneda') return '$ ' + Number(props.valor ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+  return Number(props.valor ?? 0).toLocaleString('es-AR')
+})
+const positiva = computed(() => props.invertida ? props.tendencia <= 0 : props.tendencia >= 0)
 </script>

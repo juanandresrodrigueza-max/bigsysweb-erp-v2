@@ -1,13 +1,16 @@
 <?php
 namespace App\Models;
 
+use App\Traits\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class StockMovement extends Model
 {
-    protected $fillable = ['product_id', 'user_id', 'type', 'quantity', 'stock_before', 'stock_after', 'reason', 'movable_id', 'movable_type'];
+    use BelongsToBusiness;
+
+    protected $fillable = ['business_id', 'business_location_id', 'product_id', 'user_id', 'type', 'quantity', 'stock_before', 'stock_after', 'reason', 'movable_id', 'movable_type'];
 
     public function product(): BelongsTo
     {

@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Alerta;
+use App\Models\Contact;
+use App\Models\Product;
+use App\Models\Sale;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+// Agente IA flotante: responde dudas del sistema y del negocio con contexto real de la empresa.
+class AgenteController extends Controller
+{
+    public function chat(Request $request)
+    {
+        $data = $request->validate([
+            'mensaje'   => 'required|string|max:4000',
+            'historial' => 'nullable|array|max:20',
+            'historial.*.rol'   => 'required_with:historial|in:user,assistant',
+            'historial.*.texto' => 'required_with:historial|string|max:4000',
+            'pantalla'  => 'nullable|string|max:200',
+        ]);
+
+        $user     = $request->user();
+        $contexto = $this->contexto($user);
+        $apiKey   = config('services.anthropic.api_key');
+
+        if (! $apiKey) {
+            return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
+        }
+
+        $mensajes = collect($data['historial'] ?? [])
+            ->map(fn($m) => ['role' => $m['rol'], 'content' => $m['texto']])
+            ->push(['role' => 'user', 'content' => $data['mensaje']])
+            ->values()->all();
+
+        try {
+            $res = Http::withHeaders([
+                'x-api-key'         => $apiKey,
+                'anthropic-version' => '2023-06-01',
+            ])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
+                'model'      => config('services.anthropic.model'),
+                'max_tokens' => 800,
+                'system'     => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null),
+                'messages'   => $mensajes,
+            ]);
+
+            if (! $res->successful()) {
+                Log::warning('Agente IA: respuesta no exitosa', ['status' => $res->status(), 'body' => $res->body()]);
+                return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
+            }
+
+            $texto = collect($res->json('content', []))->where('type', 'text')->pluck('text')->implode("\n");
+            return response()->json(['respuesta' => $texto ?: 'No pude generar una respuesta. Probá de nuevo.', 'modo' => 'ia']);
+        } catch (\Throwable $e) {
+            Log::error('Agente IA: error', ['e' => $e->getMessage()]);
+            return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
+        }
+    }
+
+    private function contexto($user): array
+    {
+        $hoy = now();
+        return [
+            'empresa'        => $user->business?->name,
+            'sucursal'       => $user->currentLocation?->name,
+            'rol'            => $user->rolActual()?->nombre ?? 'Dueño',
+            'ventas_mes'     => (float) Sale::whereMonth('created_at', $hoy->month)->whereYear('created_at', $hoy->year)->where('status', '!=', 'cancelled')->sum('total'),
+            'ventas_hoy'     => (float) Sale::whereDate('created_at', $hoy)->where('status', '!=', 'cancelled')->sum('total'),
+            'por_cobrar'     => (float) Contact::where('balance', '>', 0)->sum('balance'),
+            'clientes'       => Contact::where('type', '!=', 'supplier')->count(),
+            'productos'      => Product::where('active', true)->count(),
+            'bajo_minimo'    => Product::where('active', true)->whereColumn('stock', '<=', 'stock_min')->count(),
+            'alertas'        => Alerta::visiblesPara($user)->activas()->latest()->limit(5)->pluck('titulo')->all(),
+            'modulos'        => $user->modulosVisibles(),
+        ];
+    }
+
+    private function systemPrompt($user, array $c, ?string $pantalla): string
+    {
+        $modulos = implode(', ', $c['modulos']);
+        $alertas = $c['alertas'] ? '- ' . implode("\n- ", $c['alertas']) : 'ninguna';
+        $fmt = fn($n) => '$ ' . number_format($n, 0, ',', '.');
+
+        return <<<TXT
+Sos el asistente de BigSysWeb ERP, un sistema de gestión para PyMEs argentinas (facturación AFIP, clientes, proveedores, stock, producción, fondos, contabilidad).
+Respondés en español rioplatense, claro y breve (máximo 6 líneas salvo que pidan detalle). Usás voseo. Sin emojis.
+Cuando te preguntan cómo hacer algo en el sistema, das los pasos concretos: menú, botón, campo. Si el módulo todavía no está disponible, lo decís sin inventar.
+Cuando te preguntan por datos del negocio, usás los números de abajo; si el dato no está, decís que todavía no lo tenés y en qué pantalla se vería.
+Nunca inventás importes ni comprobantes.
+
+Usuario: {$user->name}, rol {$c['rol']}, empresa {$c['empresa']}, sucursal {$c['sucursal']}.
+Pantalla actual: {$pantalla}.
+Módulos habilitados: {$modulos}.
+
+Datos del negocio (sucursal y empresa del usuario):
+- Ventas de hoy: {$fmt($c['ventas_hoy'])}
+- Ventas del mes: {$fmt($c['ventas_mes'])}
+- Saldo por cobrar a clientes: {$fmt($c['por_cobrar'])}
+- Clientes: {$c['clientes']}
+- Productos activos: {$c['productos']}, bajo mínimo: {$c['bajo_minimo']}
+Alertas activas:
+{$alertas}
+
+Menú del sistema: Inicio (dashboard), Comprobantes, Clientes, Proveedores, Stock, Producción, Fondos, Contable, Estadísticas, Alertas, Configuración (empresa, sucursales, usuarios, roles).
+Para cambiar de sucursal: selector arriba a la izquierda del encabezado. Para ver alertas: campana arriba a la derecha.
+TXT;
+    }
+
+    private function respuestaLocal(string $mensaje, array $c): string
+    {
+        $m = mb_strtolower($mensaje);
+        $fmt = fn($n) => '$ ' . number_format($n, 0, ',', '.');
+
+        return match (true) {
+            str_contains($m, 'venta') && str_contains($m, 'hoy') => "Hoy llevás {$fmt($c['ventas_hoy'])} en ventas.",
+            str_contains($m, 'venta')                            => "Este mes llevás {$fmt($c['ventas_mes'])} en ventas; hoy {$fmt($c['ventas_hoy'])}.",
+            str_contains($m, 'cobrar') || str_contains($m, 'deben') => "Tenés {$fmt($c['por_cobrar'])} por cobrar a clientes.",
+            str_contains($m, 'stock')                            => "Hay {$c['bajo_minimo']} productos bajo el mínimo de {$c['productos']} activos. Lo ves en Stock.",
+            str_contains($m, 'alerta')                           => $c['alertas'] ? "Alertas activas:\n- " . implode("\n- ", $c['alertas']) : 'No tenés alertas activas.',
+            str_contains($m, 'sucursal')                         => 'Para cambiar de sucursal usá el selector del encabezado, a la izquierda. Solo ves las sucursales a las que tenés acceso.',
+            str_contains($m, 'usuario') || str_contains($m, 'permiso') || str_contains($m, 'rol') => 'Los usuarios y roles se administran en Configuración > Usuarios y Configuración > Roles. Cada rol define qué módulos ve y qué puede hacer.',
+            default => "Todavía no tengo conectada la IA (falta ANTHROPIC_API_KEY). Puedo responder sobre ventas, cobros, stock, alertas, sucursales y usuarios con los datos actuales de {$c['empresa']}.",
+        };
+    }
+}

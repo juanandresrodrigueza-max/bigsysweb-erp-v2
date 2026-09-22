@@ -20,7 +20,7 @@ class PlanSeeder extends Seeder
                 'max_products'   => 50,
                 'is_free'        => true,
                 'is_active'      => true,
-                'features'       => ['ventas', 'stock', 'clientes'],
+                'features'       => ['comprobantes', 'clientes', 'stock'],
             ],
             [
                 'name'           => 'Starter',
@@ -33,7 +33,7 @@ class PlanSeeder extends Seeder
                 'max_products'   => 500,
                 'is_free'        => false,
                 'is_active'      => true,
-                'features'       => ['ventas', 'stock', 'clientes', 'compras', 'reportes', 'afip'],
+                'features'       => ['comprobantes', 'clientes', 'proveedores', 'stock', 'fondos', 'estadisticas', 'afip'],
             ],
             [
                 'name'           => 'Pro',
@@ -46,7 +46,7 @@ class PlanSeeder extends Seeder
                 'max_products'   => 5000,
                 'is_free'        => false,
                 'is_active'      => true,
-                'features'       => ['ventas', 'stock', 'clientes', 'compras', 'reportes', 'afip', 'crm', 'mercadopago', 'tiendanube'],
+                'features'       => ['comprobantes', 'clientes', 'proveedores', 'stock', 'produccion', 'fondos', 'contable', 'estadisticas', 'afip', 'crm', 'mercadopago', 'tiendanube'],
             ],
             [
                 'name'           => 'Enterprise',
@@ -59,7 +59,7 @@ class PlanSeeder extends Seeder
                 'max_products'   => -1,
                 'is_free'        => false,
                 'is_active'      => true,
-                'features'       => ['ventas', 'stock', 'clientes', 'compras', 'reportes', 'afip', 'crm', 'mercadopago', 'tiendanube', 'manufactura', 'reservas', 'api', 'soporte_prioritario'],
+                'features'       => ['ventas', 'stock', 'clientes', 'compras', 'reportes', 'afip', 'crm', 'mercadopago', 'tiendanube', 'gastronomia', 'retail', 'minimarket', 'manufactura', 'reservas', 'api', 'soporte_prioritario', '*'],
             ],
         ];
 

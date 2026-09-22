@@ -1,15 +1,16 @@
 <?php
 namespace App\Models;
 
+use App\Traits\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use BelongsToBusiness, SoftDeletes;
 
-    protected $fillable = ['name', 'sku', 'description', 'price', 'cost', 'stock', 'stock_min', 'unit', 'active'];
+    protected $fillable = ['business_id', 'business_location_id', 'name', 'sku', 'description', 'price', 'cost', 'stock', 'stock_min', 'unit', 'active'];
 
     protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'active' => 'boolean'];
 

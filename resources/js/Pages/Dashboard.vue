@@ -1,34 +1,87 @@
 <template>
-  <AppLayout>
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">Dashboard</h2>
-      <p class="text-gray-500">Resumen del dia</p>
+  <AppLayout titulo="Inicio">
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
+      <div>
+        <h1 class="page-title">Hola, {{ nombre }}</h1>
+        <p class="page-subtitle">Así va {{ $page.props.sucursales?.actual?.nombre ?? 'tu negocio' }} {{ etiquetaPeriodo }}.</p>
+      </div>
+      <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1">
+        <button v-for="p in periodos" :key="p.key" @click="cambiar(p.key)" class="px-3 py-1 rounded-full text-xs font-semibold transition" :class="periodo === p.key ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">{{ p.label }}</button>
+      </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <StatCard titulo="Ventas Hoy" :valor="stats.ventas_hoy" icono="💰" color="blue" />
-      <StatCard titulo="Compras Mes" :valor="stats.compras_mes" icono="🛍" color="green" />
-      <StatCard titulo="Clientes" :valor="stats.clientes" icono="👥" color="purple" />
-      <StatCard titulo="Alertas Stock" :valor="stats.alertas_stock" icono="⚠" color="red" />
+
+    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+      <StatCard v-for="k in kpis" :key="k.key" v-bind="k" />
     </div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Link href="/ventas/nueva" class="bg-white rounded-xl shadow p-6 hover:shadow-md transition flex items-center gap-4">
-        <span class="text-4xl">🛒</span>
-        <div><h3 class="font-semibold text-gray-800">Nueva Venta</h3><p class="text-sm text-gray-500">Registrar una venta</p></div>
-      </Link>
-      <Link href="/compras/nueva" class="bg-white rounded-xl shadow p-6 hover:shadow-md transition flex items-center gap-4">
-        <span class="text-4xl">🛍</span>
-        <div><h3 class="font-semibold text-gray-800">Nueva Compra</h3><p class="text-sm text-gray-500">Registrar una compra</p></div>
-      </Link>
-      <Link href="/productos/nuevo" class="bg-white rounded-xl shadow p-6 hover:shadow-md transition flex items-center gap-4">
-        <span class="text-4xl">📦</span>
-        <div><h3 class="font-semibold text-gray-800">Nuevo Producto</h3><p class="text-sm text-gray-500">Agregar al catalogo</p></div>
-      </Link>
+
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold">Ventas por día</h2>
+          <span class="text-xs text-marca-muted">Total {{ moneda(totalSerie) }}</span>
+        </div>
+        <div v-if="serie.length" class="h-48 flex items-stretch gap-1">
+          <div v-for="(d, i) in serie" :key="d.fecha" class="flex-1 flex flex-col justify-end items-center gap-1 group min-w-0" :title="`${d.label}: ${moneda(d.monto)}`">
+            <div class="w-full rounded-t-md bg-marca-grad transition group-hover:opacity-80" :style="{ height: `${Math.max(3, d.monto / maxSerie * 100)}%` }"></div>
+            <span class="text-[9px] text-marca-muted h-3 leading-3">{{ serie.length <= 16 || i % 3 === 0 ? d.label : '' }}</span>
+          </div>
+        </div>
+        <p v-else class="text-sm text-marca-muted py-12 text-center">Sin ventas en este período.</p>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-bold">Alertas</h2>
+          <Link href="/alertas" class="text-xs text-carmin font-semibold">Ver todas</Link>
+        </div>
+        <div v-if="destacadas.length" class="space-y-2">
+          <Link v-for="a in destacadas" :key="a.id" :href="a.url || '/alertas'" class="flex gap-3 p-2 -mx-2 rounded-xl hover:bg-marca-fondo">
+            <span class="mt-1.5 w-2 h-2 rounded-full shrink-0" :class="{ critica: 'bg-carmin', aviso: 'bg-amber-500', info: 'bg-violeta' }[a.severidad]"></span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold leading-snug">{{ a.titulo }}</p>
+              <p v-if="a.detalle" class="text-xs text-marca-muted line-clamp-2">{{ a.detalle }}</p>
+            </div>
+          </Link>
+        </div>
+        <p v-else class="text-sm text-marca-muted py-6 text-center">Todo en orden.</p>
+      </div>
+
+      <div class="card lg:col-span-3">
+        <h2 class="font-bold mb-3">Últimas ventas</h2>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead><tr><th>#</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th class="text-right">Total</th></tr></thead>
+            <tbody>
+              <tr v-for="v in ultimas" :key="v.id">
+                <td class="text-marca-muted">{{ v.id }}</td>
+                <td class="font-medium">{{ v.cliente }}</td>
+                <td class="text-marca-muted">{{ v.fecha }}</td>
+                <td><span class="badge" :class="v.estado === 'confirmed' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ estado(v.estado) }}</span></td>
+                <td class="text-right font-semibold">{{ moneda(v.total) }}</td>
+              </tr>
+              <tr v-if="!ultimas.length"><td colspan="5" class="text-center text-marca-muted py-6">Todavía no hay ventas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </AppLayout>
 </template>
+
 <script setup>
+import { computed } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
-import { Link } from '@inertiajs/vue3'
-defineProps({ stats: { type: Object, default: () => ({ ventas_hoy: 0, compras_mes: 0, clientes: 0, alertas_stock: 0 }) } })
+
+const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String })
+const page = usePage()
+const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0])
+const periodos = [{ key: 'hoy', label: 'Hoy' }, { key: 'semana', label: 'Semana' }, { key: 'mes', label: 'Mes' }, { key: 'trimestre', label: 'Trimestre' }, { key: 'anio', label: 'Año' }]
+const etiquetaPeriodo = computed(() => ({ hoy: 'hoy', semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este año' }[props.periodo]))
+const maxSerie = computed(() => Math.max(1, ...props.serie.map(d => d.monto)))
+const totalSerie = computed(() => props.serie.reduce((a, d) => a + d.monto, 0))
+const moneda = n => '$ ' + Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+const estado = e => ({ confirmed: 'Confirmada', pending: 'Pendiente', cancelled: 'Anulada' }[e] ?? e)
+function cambiar(p) { router.get('/dashboard', { periodo: p }, { preserveState: true, preserveScroll: true, replace: true }) }
 </script>

@@ -1,30 +1,46 @@
 <template>
-  <div class="min-h-screen bg-gray-100 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-blue-600">BigSysWeb ERP</h1>
-        <p class="text-gray-500 mt-1">Ingresa a tu cuenta</p>
+  <Head title="Ingresar" />
+  <div class="min-h-screen grid lg:grid-cols-2">
+    <div class="hidden lg:flex flex-col justify-between p-12 text-white" style="background: linear-gradient(150deg,#e4003f 0%,#a42785 100%)">
+      <Logo negativo clase="h-10" />
+      <div>
+        <h2 class="text-5xl font-light leading-[1.05] max-w-md">«Hacemos <span class="font-extrabold italic">crecer</span><br>tu negocio»</h2>
+        <p class="mt-5 text-white/85 max-w-md">Facturación AFIP, clientes, proveedores, stock, fondos y contabilidad. Multi-sucursal, con permisos por usuario y un asistente que conoce tus números.</p>
       </div>
-      <form @submit.prevent="submit">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input v-model="form.email" type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="tu@email.com" />
-          <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
+      <p class="text-xs text-white/70">© {{ new Date().getFullYear() }} BigSys · Sistemas de gestión desde 1999</p>
+    </div>
+
+    <div class="flex items-center justify-center p-6 bg-marca-fondo">
+      <div class="w-full max-w-sm">
+        <div class="lg:hidden mb-8"><Logo clase="h-9" /></div>
+        <h1 class="text-2xl font-black tracking-tight">Ingresar</h1>
+        <p class="text-sm text-marca-muted mt-1 mb-6">Usá el email y la contraseña de tu empresa.</p>
+
+        <form @submit.prevent="form.post('/login')" class="space-y-4">
+          <div>
+            <label class="label">Email</label>
+            <input v-model="form.email" type="email" class="input" autocomplete="username" autofocus />
+          </div>
+          <div>
+            <label class="label">Contraseña</label>
+            <input v-model="form.password" type="password" class="input" autocomplete="current-password" />
+            <p v-if="form.errors.email" class="text-carmin text-xs mt-1.5">{{ form.errors.email }}</p>
+          </div>
+          <label class="flex items-center gap-2 text-sm text-marca-muted"><input v-model="form.remember" type="checkbox" class="accent-carmin" /> Recordarme</label>
+          <button type="submit" class="btn-primary w-full" :disabled="form.processing">{{ form.processing ? 'Ingresando…' : 'Ingresar' }}</button>
+        </form>
+
+        <div class="mt-8 p-4 rounded-xl bg-white border border-marca-borde text-xs text-marca-muted">
+          <p class="font-semibold text-marca-texto mb-1">Demo</p>
+          <p>demo@bigsys.com.ar / password (dueño). También: admin@, vendedor@, cajero@, contador@, deposito@ con la misma clave.</p>
         </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Contrasena</label>
-          <input v-model="form.password" type="password" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <p v-if="form.errors.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</p>
-        </div>
-        <button type="submit" :disabled="form.processing" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition">
-          {{ form.processing ? 'Ingresando...' : 'Ingresar' }}
-        </button>
-      </form>
+      </div>
     </div>
   </div>
 </template>
+
 <script setup>
-import { useForm } from '@inertiajs/vue3'
-const form = useForm({ email: '', password: '' })
-function submit() { form.post('/login') }
+import { Head, useForm } from '@inertiajs/vue3'
+import Logo from '@/Components/Logo.vue'
+const form = useForm({ email: '', password: '', remember: false })
 </script>
