@@ -7,8 +7,8 @@ return [
 
     'modulos' => [
         'dashboard'     => ['label' => 'Inicio',         'icono' => 'home',      'grupo' => null,        'ruta' => '/dashboard',     'core' => true,  'disponible' => true],
-        'comprobantes'  => ['label' => 'Comprobantes',   'icono' => 'receipt',   'grupo' => 'Comercial', 'ruta' => '/comprobantes',  'core' => true,  'disponible' => false],
-        'clientes'      => ['label' => 'Clientes',       'icono' => 'users',     'grupo' => 'Comercial', 'ruta' => '/clientes',      'core' => true,  'disponible' => false],
+        'comprobantes'  => ['label' => 'Comprobantes',   'icono' => 'receipt',   'grupo' => 'Comercial', 'ruta' => '/comprobantes',  'core' => true,  'disponible' => true],
+        'clientes'      => ['label' => 'Clientes',       'icono' => 'users',     'grupo' => 'Comercial', 'ruta' => '/clientes',      'core' => true,  'disponible' => true],
         'proveedores'   => ['label' => 'Proveedores',    'icono' => 'truck',     'grupo' => 'Compras',   'ruta' => '/proveedores',   'core' => true,  'disponible' => false],
         'stock'         => ['label' => 'Stock',          'icono' => 'boxes',     'grupo' => 'Operación', 'ruta' => '/stock',         'core' => true,  'disponible' => false],
         'produccion'    => ['label' => 'Producción',     'icono' => 'factory',   'grupo' => 'Operación', 'ruta' => '/produccion',    'core' => false, 'disponible' => false],

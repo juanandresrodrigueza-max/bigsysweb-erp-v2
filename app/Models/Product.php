@@ -10,9 +10,18 @@ class Product extends Model
 {
     use BelongsToBusiness, SoftDeletes;
 
-    protected $fillable = ['business_id', 'business_location_id', 'name', 'sku', 'description', 'price', 'cost', 'stock', 'stock_min', 'unit', 'active'];
+    protected $fillable = ['business_id', 'business_location_id', 'name', 'sku', 'description', 'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active'];
 
-    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'active' => 'boolean'];
+    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean'];
+
+    public function precioLista(int $lista = 1): float
+    {
+        if ($lista <= 1) {
+            return (float) $this->price;
+        }
+        $p = $this->prices[(string) $lista] ?? $this->prices[$lista] ?? null;
+        return $p !== null && $p !== '' ? (float) $p : (float) $this->price;
+    }
 
     public function saleItems(): HasMany
     {

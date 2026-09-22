@@ -2,6 +2,12 @@
 
 use App\Http\Controllers\AgenteController;
 use App\Http\Controllers\AlertasController;
+use App\Http\Controllers\Clientes\AcopiosController;
+use App\Http\Controllers\Clientes\ClientesController;
+use App\Http\Controllers\Clientes\CobrosController;
+use App\Http\Controllers\Comprobantes\ComprobantesController;
+use App\Http\Controllers\Comprobantes\PresupuestoIAController;
+use App\Http\Controllers\Configuracion\PuntosVentaController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Configuracion\AuditoriaController;
 use App\Http\Controllers\Configuracion\EmpresaController;
@@ -31,6 +37,37 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/agente/chat', [AgenteController::class, 'chat'])->name('agente.chat');
 
+    // Comprobantes
+    Route::prefix('comprobantes')->middleware('permiso:comprobantes')->group(function () {
+        Route::get('/',                    [ComprobantesController::class, 'index']);
+        Route::get('/nuevo',               [ComprobantesController::class, 'create'])->middleware('permiso:comprobantes,crear');
+        Route::post('/',                   [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,crear');
+        Route::get('/lote',                [ComprobantesController::class, 'lote'])->middleware('permiso:comprobantes,crear');
+        Route::post('/lote',               [ComprobantesController::class, 'facturarLote'])->middleware('permiso:comprobantes,crear');
+        Route::post('/ia/interpretar',     [PresupuestoIAController::class, 'interpretar'])->middleware('permiso:comprobantes,crear');
+        Route::get('/{id}',                [ComprobantesController::class, 'show'])->whereNumber('id');
+        Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
+        Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
+        Route::post('/{id}/emitir',        [ComprobantesController::class, 'emitir'])->middleware('permiso:comprobantes,crear');
+        Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
+        Route::post('/{id}/convertir',     [ComprobantesController::class, 'convertir'])->middleware('permiso:comprobantes,crear');
+        Route::get('/{id}/imprimir',       [ComprobantesController::class, 'imprimir']);
+    });
+
+    // Clientes
+    Route::prefix('clientes')->middleware('permiso:clientes')->group(function () {
+        Route::get('/',                        [ClientesController::class, 'index']);
+        Route::post('/',                       [ClientesController::class, 'guardar'])->middleware('permiso:clientes,crear');
+        Route::post('/tipos/{id?}',            [ClientesController::class, 'guardarTipo'])->middleware('permiso:clientes,editar');
+        Route::delete('/tipos/{id}',           [ClientesController::class, 'eliminarTipo'])->middleware('permiso:clientes,anular');
+        Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}',                   [ClientesController::class, 'guardar'])->middleware('permiso:clientes,editar');
+        Route::post('/{id}/cobros',            [CobrosController::class, 'store'])->middleware('permiso:clientes,crear');
+        Route::post('/cobros/{id}/anular',     [CobrosController::class, 'anular'])->middleware('permiso:clientes,anular');
+        Route::get('/cobros/{id}/imprimir',    [CobrosController::class, 'imprimir']);
+        Route::post('/acopios/{id}/retiros',   [AcopiosController::class, 'retirar'])->middleware('permiso:clientes,crear');
+    });
+
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
         Route::post('/empresa',    [EmpresaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('empresa.guardar');
@@ -46,6 +83,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/roles/{id}',         [RolesController::class, 'eliminar'])->middleware('permiso:configuracion,anular')->name('roles.eliminar');
 
         Route::get('/auditoria',             [AuditoriaController::class, 'index'])->name('auditoria');
+
+        Route::get('/puntos-venta',          [PuntosVentaController::class, 'index'])->name('puntos');
+        Route::post('/puntos-venta/{id?}',   [PuntosVentaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('puntos.guardar');
+        Route::post('/afip/certificados',    [PuntosVentaController::class, 'certificados'])->middleware('permiso:configuracion,editar')->name('afip.certificados');
     });
 
     // Módulos en construcción: pantalla "próximamente" para que el menú no rompa.

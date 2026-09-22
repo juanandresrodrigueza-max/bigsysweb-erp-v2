@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Alerta;
 use App\Models\Contact;
 use App\Models\Product;
-use App\Models\Sale;
+use App\Models\Comprobante;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -67,10 +67,12 @@ class AgenteController extends Controller
             'empresa'        => $user->business?->name,
             'sucursal'       => $user->currentLocation?->name,
             'rol'            => $user->rolActual()?->nombre ?? 'Dueño',
-            'ventas_mes'     => (float) Sale::whereMonth('created_at', $hoy->month)->whereYear('created_at', $hoy->year)->where('status', '!=', 'cancelled')->sum('total'),
-            'ventas_hoy'     => (float) Sale::whereDate('created_at', $hoy)->where('status', '!=', 'cancelled')->sum('total'),
-            'por_cobrar'     => (float) Contact::where('balance', '>', 0)->sum('balance'),
-            'clientes'       => Contact::where('type', '!=', 'supplier')->count(),
+            'ventas_mes'     => (float) Comprobante::ventas()->emitidos()->facturas()->whereMonth('fecha', $hoy->month)->whereYear('fecha', $hoy->year)->sum('total'),
+            'ventas_hoy'     => (float) Comprobante::ventas()->emitidos()->facturas()->whereDate('fecha', $hoy)->sum('total'),
+            'por_cobrar'     => (float) Contact::customers()->where('balance', '>', 0)->sum('balance'),
+            'vencido'        => (float) Comprobante::ventas()->pendientesCobro()->whereDate('fecha_vto', '<', today())->sum('saldo'),
+            'presupuestos_abiertos' => Comprobante::ventas()->emitidos()->where('tipo', 'PRE')->whereDoesntHave('derivados')->count(),
+            'clientes'       => Contact::customers()->count(),
             'productos'      => Product::where('active', true)->count(),
             'bajo_minimo'    => Product::where('active', true)->whereColumn('stock', '<=', 'stock_min')->count(),
             'alertas'        => Alerta::visiblesPara($user)->activas()->latest()->limit(5)->pluck('titulo')->all(),
@@ -98,13 +100,21 @@ Módulos habilitados: {$modulos}.
 Datos del negocio (sucursal y empresa del usuario):
 - Ventas de hoy: {$fmt($c['ventas_hoy'])}
 - Ventas del mes: {$fmt($c['ventas_mes'])}
-- Saldo por cobrar a clientes: {$fmt($c['por_cobrar'])}
+- Saldo por cobrar a clientes: {$fmt($c['por_cobrar'])}, de los cuales vencido: {$fmt($c['vencido'])}
+- Presupuestos sin respuesta: {$c['presupuestos_abiertos']}
 - Clientes: {$c['clientes']}
 - Productos activos: {$c['productos']}, bajo mínimo: {$c['bajo_minimo']}
 Alertas activas:
 {$alertas}
 
-Menú del sistema: Inicio (dashboard), Comprobantes, Clientes, Proveedores, Stock, Producción, Fondos, Contable, Estadísticas, Alertas, Configuración (empresa, sucursales, usuarios, roles).
+Menú del sistema: Inicio (dashboard), Comprobantes, Clientes, Proveedores, Stock, Producción, Fondos, Contable, Estadísticas, Alertas, Configuración (empresa, sucursales, usuarios, roles, puntos de venta y AFIP).
+Cómo se hacen las cosas:
+- Nueva factura/presupuesto/remito: Comprobantes > Nuevo. Elegís tipo, cliente, cargás ítems (o pegás un mensaje de WhatsApp / subís una foto y la IA arma los ítems) y apretás Emitir. La letra A/B/C sale sola según el cliente.
+- Nota de crédito: abrís la factura y tocás "Nota de crédito".
+- Cobrar: Clientes > ficha del cliente > "Registrar cobro"; podés combinar efectivo, transferencia, cheque, MercadoPago y elegir qué facturas cancela.
+- Acopio: al emitir una factura marcás "Es acopio"; el cliente paga todo y retira de a poco desde su ficha > Acopios > "Registrar retiro" (genera remito).
+- Facturar varios presupuestos o remitos juntos: Comprobantes > Facturación por lote.
+- Sin certificado AFIP las facturas se emiten simuladas (sin CAE). Se carga en Configuración > Puntos de venta y AFIP.
 Para cambiar de sucursal: selector arriba a la izquierda del encabezado. Para ver alertas: campana arriba a la derecha.
 TXT;
     }
@@ -117,7 +127,9 @@ TXT;
         return match (true) {
             str_contains($m, 'venta') && str_contains($m, 'hoy') => "Hoy llevás {$fmt($c['ventas_hoy'])} en ventas.",
             str_contains($m, 'venta')                            => "Este mes llevás {$fmt($c['ventas_mes'])} en ventas; hoy {$fmt($c['ventas_hoy'])}.",
-            str_contains($m, 'cobrar') || str_contains($m, 'deben') => "Tenés {$fmt($c['por_cobrar'])} por cobrar a clientes.",
+            str_contains($m, 'cobrar') || str_contains($m, 'deben') => "Tenés {$fmt($c['por_cobrar'])} por cobrar a clientes; vencido: {$fmt($c['vencido'])}. Lo ves en Clientes con el filtro Deudores.",
+            str_contains($m, 'factur') || str_contains($m, 'presupuesto') => 'Comprobantes > Nuevo: elegís tipo y cliente, cargás ítems (o pegás el pedido de WhatsApp y la IA los arma) y apretás Emitir. La letra A/B/C sale sola.',
+            str_contains($m, 'acopio') => 'Marcá "Es acopio" al facturar. Después, en la ficha del cliente, pestaña Acopios, registrás cada retiro y sale el remito.',
             str_contains($m, 'stock')                            => "Hay {$c['bajo_minimo']} productos bajo el mínimo de {$c['productos']} activos. Lo ves en Stock.",
             str_contains($m, 'alerta')                           => $c['alertas'] ? "Alertas activas:\n- " . implode("\n- ", $c['alertas']) : 'No tenés alertas activas.',
             str_contains($m, 'sucursal')                         => 'Para cambiar de sucursal usá el selector del encabezado, a la izquierda. Solo ves las sucursales a las que tenés acceso.',

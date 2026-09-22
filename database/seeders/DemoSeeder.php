@@ -6,18 +6,21 @@ use App\Models\Alerta;
 use App\Models\Business;
 use App\Models\BusinessLocation;
 use App\Models\Contact;
-use App\Models\Customer;
 use App\Models\Plan;
 use App\Models\Product;
+use App\Models\PuntoVenta;
 use App\Models\Role;
-use App\Models\Sale;
-use App\Models\SaleItem;
 use App\Models\Subscription;
+use App\Models\TipoCliente;
 use App\Models\User;
+use App\Services\Comprobantes\CobroService;
+use App\Services\Comprobantes\ComprobanteService;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-// Empresa demo con dos sucursales, un usuario por rol y datos para ver el dashboard con vida.
+// Empresa demo (corralón) con dos sucursales, un usuario por rol y un mes de facturas, cobros y acopios reales.
 class DemoSeeder extends Seeder
 {
     public function run(): void
@@ -47,67 +50,108 @@ class DemoSeeder extends Seeder
             $dueno->forceFill(['business_id' => $empresa->id, 'role_id' => $roles['dueno'], 'current_location_id' => $central->id])->save();
             $dueno->locations()->sync([$central->id => ['role_id' => $roles['dueno']], $norte->id => ['role_id' => $roles['dueno']]]);
 
-            $otros = [
-                ['name' => 'Ana Admin',     'email' => 'admin@bigsys.com.ar',    'rol' => 'administrador', 'sucursales' => [$central, $norte]],
-                ['name' => 'Carla Contable','email' => 'contador@bigsys.com.ar', 'rol' => 'contador',      'sucursales' => [$central]],
-                ['name' => 'Vito Vendedor', 'email' => 'vendedor@bigsys.com.ar', 'rol' => 'vendedor',      'sucursales' => [$norte]],
-                ['name' => 'Caro Cajera',   'email' => 'cajero@bigsys.com.ar',   'rol' => 'cajero',        'sucursales' => [$central]],
-                ['name' => 'Dario Depósito','email' => 'deposito@bigsys.com.ar', 'rol' => 'deposito',      'sucursales' => [$central, $norte]],
-            ];
-            foreach ($otros as $o) {
-                $u = User::create(['business_id' => $empresa->id, 'name' => $o['name'], 'email' => $o['email'], 'password' => 'password', 'status' => 'active', 'role_id' => $roles[$o['rol']], 'current_location_id' => $o['sucursales'][0]->id]);
-                $u->locations()->sync(collect($o['sucursales'])->mapWithKeys(fn($s) => [$s->id => ['role_id' => $roles[$o['rol']]]])->all());
+            foreach ([
+                ['Ana Admin', 'admin@bigsys.com.ar', 'administrador', [$central, $norte]],
+                ['Carla Contable', 'contador@bigsys.com.ar', 'contador', [$central]],
+                ['Vito Vendedor', 'vendedor@bigsys.com.ar', 'vendedor', [$norte]],
+                ['Caro Cajera', 'cajero@bigsys.com.ar', 'cajero', [$central]],
+                ['Dario Depósito', 'deposito@bigsys.com.ar', 'deposito', [$central, $norte]],
+            ] as [$n, $e, $rol, $sucs]) {
+                $u = User::create(['business_id' => $empresa->id, 'name' => $n, 'email' => $e, 'password' => 'password', 'status' => 'active', 'role_id' => $roles[$rol], 'current_location_id' => $sucs[0]->id]);
+                $u->locations()->sync(collect($sucs)->mapWithKeys(fn($s) => [$s->id => ['role_id' => $roles[$rol]]])->all());
             }
 
+            PuntoVenta::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'numero' => 1, 'modo' => 'electronico']);
+            PuntoVenta::create(['business_id' => $empresa->id, 'business_location_id' => $norte->id, 'numero' => 2, 'modo' => 'electronico']);
+
+            $tipos = collect([
+                ['Mayorista', 2, 30, 5, 2000000, '#4f3089'], ['Minorista', 1, 0, 0, 0, '#e4003f'], ['Obra', 3, 15, 8, 1000000, '#a42785'], ['Revendedor', 4, 7, 10, 500000, '#1f9d5b'],
+            ])->mapWithKeys(fn($t) => [$t[0] => TipoCliente::create(['business_id' => $empresa->id, 'nombre' => $t[0], 'lista_precios' => $t[1], 'dias_pago' => $t[2], 'descuento' => $t[3], 'limite_credito' => $t[4], 'color' => $t[5]])]);
+
             $productos = collect([
-                ['Cemento x 50 kg', 'CEM50', 9800, 7200, 120, 40, 'un'],
-                ['Hierro 8 mm x 12 m', 'HIE08', 6500, 4900, 18, 30, 'un'],
-                ['Arena fina m³', 'ARE01', 28000, 21000, 9, 5, 'm3'],
-                ['Ladrillo hueco 12x18x33', 'LAD12', 520, 380, 2400, 1000, 'un'],
-                ['Cal hidratada x 25 kg', 'CAL25', 4100, 3000, 6, 20, 'un'],
-                ['Piedra partida m³', 'PIE01', 32000, 24500, 4, 5, 'm3'],
+                ['Cemento x 50 kg', 'CEM50', 9800, 7200, 1400, 200, 'un'], ['Hierro 8 mm x 12 m', 'HIE08', 6500, 4900, 260, 60, 'un'],
+                ['Arena fina m³', 'ARE01', 28000, 21000, 140, 20, 'm3'], ['Ladrillo hueco 12x18x33', 'LAD12', 520, 380, 9000, 2000, 'un'],
+                ['Cal hidratada x 25 kg', 'CAL25', 4100, 3000, 90, 40, 'un'], ['Piedra partida m³', 'PIE01', 32000, 24500, 12, 15, 'm3'],
+                ['Hierro 10 mm x 12 m', 'HIE10', 9900, 7600, 300, 60, 'un'], ['Malla sima 15x15 6mm', 'MAL15', 38000, 29000, 180, 30, 'un'],
             ])->map(fn($p) => Product::create([
-                'business_id' => $empresa->id, 'business_location_id' => $central->id,
-                'name' => $p[0], 'sku' => $p[1], 'price' => $p[2], 'cost' => $p[3], 'stock' => $p[4], 'stock_min' => $p[5], 'unit' => $p[6], 'active' => true,
+                'business_id' => $empresa->id, 'business_location_id' => $central->id, 'name' => $p[0], 'sku' => $p[1],
+                'price' => $p[2], 'prices' => ['2' => round($p[2] * 0.93), '3' => round($p[2] * 0.9), '4' => round($p[2] * 0.88), '5' => round($p[2] * 0.85)],
+                'cost' => $p[3], 'iva' => 21, 'stock' => $p[4], 'stock_min' => $p[5], 'unit' => $p[6], 'active' => true,
             ]));
 
             $clientes = collect([
-                ['Constructora Del Valle S.A.', '30-70012345-6', 'Responsable Inscripto', 1250000],
-                ['Marcelo Giménez (obra Nueva Córdoba)', '20-28765432-1', 'Monotributista', 84000],
-                ['Ferretería El Tornillo', '30-65432109-8', 'Responsable Inscripto', 0],
-                ['Consumidor Final', null, 'Consumidor Final', 0],
-            ])->map(fn($c) => Contact::create(['business_id' => $empresa->id, 'type' => 'customer', 'name' => $c[0], 'cuit' => $c[1], 'condicion_iva' => $c[2], 'balance' => $c[3], 'is_active' => true]));
+                ['Constructora Del Valle S.A.', '30-70012345-6', 'Responsable Inscripto', 'Mayorista', 'Av. Vélez Sarsfield 2200', 'Córdoba'],
+                ['Marcelo Giménez (obra Nueva Córdoba)', '20-28765432-1', 'Monotributista', 'Obra', 'Obispo Trejo 850', 'Córdoba'],
+                ['Ferretería El Tornillo', '30-65432109-8', 'Responsable Inscripto', 'Revendedor', 'Ruta 9 km 12', 'Juárez Celman'],
+                ['Consumidor Final', null, 'Consumidor Final', 'Minorista', null, null],
+                ['Estudio Arq. Pereyra', '27-30111222-3', 'Responsable Inscripto', 'Obra', 'Chacabuco 120', 'Córdoba'],
+                ['Lucía Fernández', '27-33444555-6', 'Consumidor Final', 'Minorista', 'Los Nogales 45', 'Villa Allende'],
+            ])->map(fn($c) => Contact::create([
+                'business_id' => $empresa->id, 'type' => 'customer', 'name' => $c[0], 'cuit' => $c[1], 'condicion_iva' => $c[2], 'tipo_cliente_id' => $tipos[$c[3]]->id,
+                'lista_precios' => $tipos[$c[3]]->lista_precios, 'dias_pago' => $tipos[$c[3]]->dias_pago, 'descuento' => $tipos[$c[3]]->descuento, 'credit_limit' => $tipos[$c[3]]->limite_credito,
+                'address' => $c[4], 'city' => $c[5], 'is_active' => true, 'email' => strtolower(preg_replace('/[^a-z]/i', '', explode(' ', $c[0])[0])) . '@cliente.com.ar',
+            ]));
 
             Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Loma Negra S.A.', 'cuit' => '30-50000000-1', 'condicion_iva' => 'Responsable Inscripto', 'balance' => -640000, 'is_active' => true]);
             Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Acindar Distribuidora', 'cuit' => '30-50000000-2', 'condicion_iva' => 'Responsable Inscripto', 'balance' => -215000, 'is_active' => true]);
 
-            $customers = $clientes->map(fn($c) => Customer::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'name' => $c->name, 'email' => 'cliente' . $c->id . '@demo.com.ar', 'document' => $c->cuit, 'active' => true]));
+            // Un mes de facturas, algunas cobradas, dos presupuestos y un acopio, pasando por el servicio real.
+            Auth::login($dueno);
+            $comprobantes = app(ComprobanteService::class);
+            $cobros = app(CobroService::class);
+            mt_srand(7);
 
+            $facturas = [];
             foreach (range(0, 29) as $i) {
-                $fecha = now()->subDays(29 - $i)->setTime(rand(9, 18), rand(0, 59));
-                foreach (range(1, rand(1, 4)) as $n) {
-                    $sucursal = rand(0, 3) ? $central : $norte;
-                    $sale = Sale::create([
-                        'business_id' => $empresa->id, 'business_location_id' => $sucursal->id, 'customer_id' => $customers->random()->id,
-                        'user_id' => $dueno->id, 'status' => 'confirmed', 'subtotal' => 0, 'discount' => 0, 'tax' => 0, 'total' => 0,
-                        'confirmed_at' => $fecha, 'created_at' => $fecha, 'updated_at' => $fecha,
-                    ]);
-                    $subtotal = 0;
-                    foreach ($productos->random(rand(1, 3)) as $p) {
-                        $qty = rand(1, 12);
-                        SaleItem::create(['sale_id' => $sale->id, 'product_id' => $p->id, 'quantity' => $qty, 'unit_price' => $p->price, 'discount' => 0, 'subtotal' => $qty * $p->price]);
-                        $subtotal += $qty * $p->price;
+                $fecha = today()->subDays(29 - $i);
+                foreach (range(1, mt_rand(1, 3)) as $n) {
+                    $suc = mt_rand(0, 3) ? $central : $norte;
+                    $dueno->forceFill(['current_location_id' => $suc->id])->save();
+                    $cliente = $clientes->random();
+                    $items = $productos->random(mt_rand(1, 3))->map(fn($p) => ['product_id' => $p->id, 'descripcion' => $p->name, 'cantidad' => mt_rand(1, 12), 'precio_unit' => $p->precioLista($cliente->lista_precios), 'descuento' => $cliente->descuento, 'alicuota_iva' => 21])->values()->all();
+                    $condicion = $cliente->dias_pago > 0 && mt_rand(0, 2) ? 'cta_cte' : 'contado';
+                    $f = $comprobantes->guardarBorrador(['contact_id' => $cliente->id, 'tipo' => 'FX', 'fecha' => $fecha->toDateString(), 'condicion' => $condicion, 'items' => $items]);
+                    $cliente->refresh();
+                    if ($condicion === 'cta_cte' && (float) $cliente->credit_limit > 0 && (float) $cliente->balance + (float) $f->total > (float) $cliente->credit_limit) {
+                        $condicion = 'contado';
+                        $f = $comprobantes->guardarBorrador(['contact_id' => $cliente->id, 'tipo' => 'FX', 'fecha' => $fecha->toDateString(), 'condicion' => 'contado', 'items' => $items], $f);
                     }
-                    $sale->update(['subtotal' => $subtotal, 'tax' => round($subtotal * 0.21, 2), 'total' => round($subtotal * 1.21, 2)]);
+                    $f = $comprobantes->emitir($f);
+                    $f->forceFill(['created_at' => $fecha->setTime(mt_rand(9, 18), mt_rand(0, 59)), 'emitido_en' => $fecha])->save();
+                    if ($condicion === 'contado' || mt_rand(0, 3) === 0) {
+                        $cobros->registrar($cliente, ['fecha' => $fecha->toDateString(), 'medios' => [['medio' => mt_rand(0, 1) ? 'efectivo' : 'transferencia', 'monto' => (float) $f->total]], 'imputaciones' => [['comprobante_id' => $f->id, 'monto' => (float) $f->total]]]);
+                    }
+                    $facturas[] = $f;
                 }
             }
+            $dueno->forceFill(['current_location_id' => $central->id])->save();
 
-            foreach ($productos->filter(fn($p) => $p->stock <= $p->stock_min) as $p) {
-                Alerta::emitir(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'modulo' => 'stock', 'tipo' => 'stock_minimo', 'severidad' => $p->stock == 0 ? 'critica' : 'aviso', 'titulo' => "{$p->name} bajo mínimo", 'detalle' => "Stock {$p->stock} {$p->unit}, mínimo {$p->stock_min}.", 'url' => '/stock', 'modelo' => 'Product', 'modelo_id' => $p->id]);
+            // Factura vencida hace 40 días para que haya mora
+            $delValle = $clientes[0];
+            $delValle->update(['credit_limit' => 5000000]);
+            $vieja = $comprobantes->guardarBorrador(['contact_id' => $delValle->id, 'tipo' => 'FX', 'fecha' => today()->subDays(70)->toDateString(), 'condicion' => 'cta_cte', 'items' => [['product_id' => $productos[0]->id, 'descripcion' => $productos[0]->name, 'cantidad' => 120, 'precio_unit' => $productos[0]->precioLista(2), 'alicuota_iva' => 21]]]);
+            $comprobantes->emitir($vieja);
+
+            // Acopio: obra paga 200 bolsas de cemento y retira de a poco
+            $obra = $clientes[1];
+            $acopio = $comprobantes->guardarBorrador(['contact_id' => $obra->id, 'tipo' => 'FX', 'fecha' => today()->subDays(12)->toDateString(), 'condicion' => 'contado', 'es_acopio' => true, 'items' => [
+                ['product_id' => $productos[0]->id, 'descripcion' => $productos[0]->name, 'cantidad' => 200, 'precio_unit' => $productos[0]->precioLista(3), 'alicuota_iva' => 21],
+                ['product_id' => $productos[3]->id, 'descripcion' => $productos[3]->name, 'cantidad' => 3000, 'precio_unit' => $productos[3]->precioLista(3), 'alicuota_iva' => 21],
+            ]]);
+            $acopio = $comprobantes->emitir($acopio);
+            $cobros->registrar($obra, ['fecha' => today()->subDays(12)->toDateString(), 'medios' => [['medio' => 'transferencia', 'monto' => (float) $acopio->total, 'referencia' => 'TRF 88213']], 'imputaciones' => [['comprobante_id' => $acopio->id, 'monto' => (float) $acopio->total]]]);
+            app(\App\Services\Comprobantes\AcopioService::class)->retirar($acopio->fresh()->acopio, ['fecha' => today()->subDays(8)->toDateString(), 'retirado_por' => 'Camión propio', 'items' => [['acopio_item_id' => $acopio->acopio->items[0]->id, 'cantidad' => 60], ['acopio_item_id' => $acopio->acopio->items[1]->id, 'cantidad' => 1000]]]);
+
+            // Presupuestos: uno reciente y uno viejo sin respuesta
+            foreach ([[2, $clientes[4]], [12, $clientes[2]]] as [$dias, $cli]) {
+                $p = $comprobantes->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'PRE', 'fecha' => today()->subDays($dias)->toDateString(), 'condicion' => 'cta_cte', 'items' => $productos->random(3)->map(fn($x) => ['product_id' => $x->id, 'descripcion' => $x->name, 'cantidad' => mt_rand(5, 40), 'precio_unit' => $x->precioLista($cli->lista_precios), 'alicuota_iva' => 21])->values()->all()]);
+                $comprobantes->emitir($p);
             }
-            Alerta::emitir(['business_id' => $empresa->id, 'modulo' => 'clientes', 'tipo' => 'mora', 'severidad' => 'critica', 'titulo' => 'Constructora Del Valle con saldo vencido', 'detalle' => 'Debe $ 1.250.000; última factura venció hace 12 días.', 'url' => '/clientes', 'modelo' => 'Contact', 'modelo_id' => $clientes[0]->id]);
-            Alerta::emitir(['business_id' => $empresa->id, 'modulo' => 'proveedores', 'tipo' => 'op_vence', 'severidad' => 'aviso', 'titulo' => 'Orden de pago a Loma Negra vence en 3 días', 'detalle' => '$ 640.000 con vencimiento el ' . now()->addDays(3)->format('d/m') . '.', 'url' => '/proveedores']);
-            Alerta::emitir(['business_id' => $empresa->id, 'modulo' => 'configuracion', 'tipo' => 'afip_cert', 'severidad' => 'info', 'titulo' => 'Certificado AFIP sin cargar', 'detalle' => 'Cargá el certificado y la clave para emitir facturas electrónicas.', 'url' => '/configuracion']);
+
+            Alerta::emitir(['business_id' => $empresa->id, 'modulo' => 'configuracion', 'tipo' => 'afip_cert', 'severidad' => 'info', 'titulo' => 'Certificado AFIP sin cargar', 'detalle' => 'Las facturas salen simuladas hasta que cargues certificado y clave en Configuración > Puntos de venta y AFIP.', 'url' => '/configuracion/puntos-venta']);
+            Auth::logout();
         });
+
+        Artisan::call('alertas:generar');
     }
 }

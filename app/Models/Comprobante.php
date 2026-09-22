@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\BelongsToBusiness;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Comprobante extends Model
+{
+    use BelongsToBusiness, SoftDeletes;
+
+    // tipo => [nombre, letra, afip_id (null = no fiscal), signo en CC (+1 debe, -1 haber, 0 no impacta), mueve_stock]
+    public const TIPOS = [
+        'FA'  => ['nombre' => 'Factura A',          'letra' => 'A', 'afip' => 1,    'cc' => 1,  'stock' => true,  'grupo' => 'factura'],
+        'FB'  => ['nombre' => 'Factura B',          'letra' => 'B', 'afip' => 6,    'cc' => 1,  'stock' => true,  'grupo' => 'factura'],
+        'FC'  => ['nombre' => 'Factura C',          'letra' => 'C', 'afip' => 11,   'cc' => 1,  'stock' => true,  'grupo' => 'factura'],
+        'FE'  => ['nombre' => 'Factura E',          'letra' => 'E', 'afip' => 19,   'cc' => 1,  'stock' => true,  'grupo' => 'factura'],
+        'NDA' => ['nombre' => 'Nota de Débito A',   'letra' => 'A', 'afip' => 2,    'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
+        'NDB' => ['nombre' => 'Nota de Débito B',   'letra' => 'B', 'afip' => 7,    'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
+        'NDC' => ['nombre' => 'Nota de Débito C',   'letra' => 'C', 'afip' => 12,   'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
+        'NCA' => ['nombre' => 'Nota de Crédito A',  'letra' => 'A', 'afip' => 3,    'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
+        'NCB' => ['nombre' => 'Nota de Crédito B',  'letra' => 'B', 'afip' => 8,    'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
+        'NCC' => ['nombre' => 'Nota de Crédito C',  'letra' => 'C', 'afip' => 13,   'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
+        'REM' => ['nombre' => 'Remito',             'letra' => 'R', 'afip' => null, 'cc' => 0,  'stock' => true,  'grupo' => 'remito'],
+        'PRE' => ['nombre' => 'Presupuesto',        'letra' => 'P', 'afip' => null, 'cc' => 0,  'stock' => false, 'grupo' => 'presupuesto'],
+    ];
+
+    protected $fillable = [
+        'business_id', 'business_location_id', 'contact_id', 'user_id', 'punto_venta_id', 'origen_id',
+        'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
+        'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
+        'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en',
+    ];
+
+    protected $casts = [
+        'fecha' => 'date', 'fecha_vto' => 'date', 'cae_vto' => 'date', 'emitido_en' => 'datetime', 'anulado_en' => 'datetime',
+        'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean',
+        'neto' => 'decimal:2', 'exento' => 'decimal:2', 'iva' => 'decimal:2', 'percepciones' => 'decimal:2',
+        'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4',
+    ];
+
+    public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }
+    public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function location(): BelongsTo { return $this->belongsTo(BusinessLocation::class, 'business_location_id'); }
+    public function puntoVenta(): BelongsTo { return $this->belongsTo(PuntoVenta::class); }
+    public function origen(): BelongsTo { return $this->belongsTo(Comprobante::class, 'origen_id'); }
+    public function derivados(): HasMany { return $this->hasMany(Comprobante::class, 'origen_id'); }
+    public function items(): HasMany { return $this->hasMany(ComprobanteItem::class)->orderBy('orden'); }
+    public function impuestos(): HasMany { return $this->hasMany(ComprobanteImpuesto::class); }
+    public function imputaciones(): HasMany { return $this->hasMany(CobroImputacion::class); }
+    public function acopio(): HasOne { return $this->hasOne(Acopio::class); }
+    public function adjuntos(): HasMany { return $this->hasMany(ComprobanteAdjunto::class); }
+
+    public function scopeVentas(Builder $q): Builder { return $q->where('direccion', 'venta'); }
+    public function scopeEmitidos(Builder $q): Builder { return $q->where('estado', 'emitido'); }
+    public function scopeFacturas(Builder $q): Builder { return $q->whereIn('tipo', ['FA', 'FB', 'FC', 'FE']); }
+    public function scopePendientesCobro(Builder $q): Builder { return $q->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005); }
+
+    public function def(): array { return self::TIPOS[$this->tipo] ?? ['nombre' => $this->tipo, 'letra' => '', 'afip' => null, 'cc' => 0, 'stock' => false, 'grupo' => 'otro']; }
+    public function esFiscal(): bool { return $this->def()['afip'] !== null; }
+    public function esFactura(): bool { return $this->def()['grupo'] === 'factura'; }
+    public function esNotaCredito(): bool { return $this->def()['grupo'] === 'nc'; }
+    public function nombreTipo(): string { return $this->def()['nombre']; }
+
+    public function numeroFormateado(): ?string
+    {
+        if (! $this->numero) {
+            return null;
+        }
+        return sprintf('%04d-%08d', $this->punto_venta ?? 0, $this->numero);
+    }
+
+    public function estadoCobro(): string
+    {
+        if ($this->def()['cc'] <= 0 || $this->estado !== 'emitido') {
+            return 'na';
+        }
+        if ((float) $this->saldo <= 0.005) {
+            return 'cobrado';
+        }
+        return (float) $this->saldo < (float) $this->total ? 'parcial' : 'pendiente';
+    }
+
+    public function vencido(): bool
+    {
+        return $this->estadoCobro() === 'pendiente' && $this->fecha_vto && $this->fecha_vto->isPast();
+    }
+
+    public function recalcularTotales(): void
+    {
+        $items = $this->items()->get();
+        $neto = $items->sum(fn($i) => (float) $i->neto);
+        $iva  = $items->sum(fn($i) => (float) $i->iva);
+        $percep = (float) $this->impuestos()->where('tipo', 'like', 'iibb%')->sum('monto');
+        $total = round($neto + $iva + $percep, 2);
+        $this->forceFill([
+            'neto' => round($neto, 2), 'iva' => round($iva, 2), 'percepciones' => $percep, 'total' => $total,
+            'saldo' => $this->estado === 'emitido' && $this->def()['cc'] > 0 ? round($total - (float) $this->imputaciones()->sum('monto'), 2) : ($this->def()['cc'] > 0 ? $total : 0),
+        ])->save();
+    }
+}

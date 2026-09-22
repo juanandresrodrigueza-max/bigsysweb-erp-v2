@@ -47,17 +47,17 @@
       </div>
 
       <div class="card lg:col-span-3">
-        <h2 class="font-bold mb-3">Últimas ventas</h2>
+        <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Últimos comprobantes</h2><Link href="/comprobantes" class="text-xs text-carmin font-semibold">Ver todos</Link></div>
         <div class="overflow-x-auto">
           <table class="table">
-            <thead><tr><th>#</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th class="text-right">Total</th></tr></thead>
+            <thead><tr><th>Comprobante</th><th>Cliente</th><th>Fecha</th><th>Cobro</th><th class="text-right">Total</th></tr></thead>
             <tbody>
-              <tr v-for="v in ultimas" :key="v.id">
-                <td class="text-marca-muted">{{ v.id }}</td>
+              <tr v-for="v in ultimas" :key="v.id" class="cursor-pointer" @click="router.visit(`/comprobantes/${v.id}`)">
+                <td class="font-semibold">{{ v.tipo }} <span class="tabular-nums text-marca-muted">{{ v.numero }}</span></td>
                 <td class="font-medium">{{ v.cliente }}</td>
                 <td class="text-marca-muted">{{ v.fecha }}</td>
-                <td><span class="badge" :class="v.estado === 'confirmed' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ estado(v.estado) }}</span></td>
-                <td class="text-right font-semibold">{{ moneda(v.total) }}</td>
+                <td><span v-if="v.estado_cobro !== 'na'" class="badge" :class="estadoCobro[v.estado_cobro].clase">{{ estadoCobro[v.estado_cobro].label }}</span></td>
+                <td class="text-right font-semibold tabular-nums">{{ moneda(v.total) }}</td>
               </tr>
               <tr v-if="!ultimas.length"><td colspan="5" class="text-center text-marca-muted py-6">Todavía no hay ventas.</td></tr>
             </tbody>
@@ -73,6 +73,7 @@ import { computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
+import { estadoCobro } from '@/util/formato'
 
 const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String })
 const page = usePage()
@@ -82,6 +83,5 @@ const etiquetaPeriodo = computed(() => ({ hoy: 'hoy', semana: 'esta semana', mes
 const maxSerie = computed(() => Math.max(1, ...props.serie.map(d => d.monto)))
 const totalSerie = computed(() => props.serie.reduce((a, d) => a + d.monto, 0))
 const moneda = n => '$ ' + Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
-const estado = e => ({ confirmed: 'Confirmada', pending: 'Pendiente', cancelled: 'Anulada' }[e] ?? e)
 function cambiar(p) { router.get('/dashboard', { periodo: p }, { preserveState: true, preserveScroll: true, replace: true }) }
 </script>

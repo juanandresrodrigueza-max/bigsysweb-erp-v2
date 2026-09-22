@@ -16,6 +16,7 @@ const tabs = [
   { href: '/configuracion/sucursales', label: 'Sucursales' },
   { href: '/configuracion/usuarios', label: 'Usuarios' },
   { href: '/configuracion/roles', label: 'Roles y permisos' },
+  { href: '/configuracion/puntos-venta', label: 'Puntos de venta y AFIP' },
   { href: '/configuracion/auditoria', label: 'Auditoría' },
 ]
 const activa = t => page.url.split('?')[0] === t.href
