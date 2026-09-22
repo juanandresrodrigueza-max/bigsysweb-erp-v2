@@ -16,11 +16,14 @@ class Business extends Model
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
         'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
-        'mercadopago_settings', 'tiendanube_settings',
+        'mercadopago_settings', 'tiendanube_settings', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por',
     ];
+
+    public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'otro' => 'Otro'];
 
     protected $casts = [
         'is_active'            => 'boolean',
+        'suspended_at'         => 'datetime',
         'afip_produccion'      => 'boolean',
         'mercadopago_settings' => 'array',
         'tiendanube_settings'  => 'array',
@@ -58,14 +61,42 @@ class Business extends Model
         return $this->hasMany(Subscription::class);
     }
 
+    // Suscripción vigente: en prueba, activa o en gracia (todavía puede operar).
     public function activeSubscription(): HasOne
     {
-        return $this->hasOne(Subscription::class)->where('status', 'active')->latestOfMany();
+        return $this->hasOne(Subscription::class)->whereIn('status', Subscription::VIGENTES)->latestOfMany();
+    }
+
+    public function pagosSuscripcion(): HasMany
+    {
+        return $this->hasMany(PagoSuscripcion::class);
     }
 
     public function isSubscriptionActive(): bool
     {
         return $this->activeSubscription()->exists();
+    }
+
+    // La empresa no puede operar: dada de baja, suspendida a mano o sin suscripción vigente.
+    public function bloqueada(): bool
+    {
+        return ! $this->is_active || $this->suspended_at !== null || ! $this->isSubscriptionActive();
+    }
+
+    public function motivoBloqueo(): string
+    {
+        if (! $this->is_active) {
+            return 'La empresa fue dada de baja.';
+        }
+        if ($this->suspended_at) {
+            return $this->suspension_motivo ?: 'La empresa está suspendida.';
+        }
+        $ultima = $this->subscription;
+        return match ($ultima?->status) {
+            'suspended' => 'La suscripción está suspendida por falta de pago.',
+            'cancelled' => 'La suscripción fue cancelada.',
+            default => 'La empresa no tiene una suscripción vigente.',
+        };
     }
 
     // Módulos habilitados por el plan vigente; sin plan, solo el core.

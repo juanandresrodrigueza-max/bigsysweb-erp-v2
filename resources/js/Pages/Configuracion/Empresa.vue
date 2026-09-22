@@ -35,6 +35,7 @@
             </div>
           </template>
           <p v-else class="text-sm text-marca-muted">Sin suscripción activa.</p>
+          <Link href="/suscripcion" class="btn-secondary w-full mt-4 !py-1.5 text-xs">Ver suscripción y renovar</Link>
         </div>
         <div class="card">
           <h2 class="font-bold mb-3">Módulos</h2>
@@ -52,7 +53,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 

@@ -63,9 +63,21 @@
 
         <div class="flex-1"></div>
 
-        <span v-if="empresa?.plan" class="hidden sm:inline badge bg-lavanda-light text-violeta">Plan {{ empresa.plan }}</span>
+        <Link v-if="empresa?.plan" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
         <CampanaAlertas :alertas="alertas" />
       </header>
+
+      <!-- Superadmin dando soporte dentro de una empresa -->
+      <div v-if="impersonando" class="px-4 md:px-6 py-2 bg-violeta text-white text-sm flex items-center gap-3">
+        <Icono nombre="shield" clase="w-4 h-4" /><span>Estás dentro de <b>{{ impersonando.empresa }}</b> como superadmin. Todo lo que hagas queda auditado.</span>
+        <Link href="/admin/volver" method="post" as="button" class="ml-auto px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-xs font-semibold">Volver al panel</Link>
+      </div>
+      <div v-if="mensajeGlobal" class="px-4 md:px-6 py-2 bg-lavanda-light text-violeta text-sm flex items-center gap-2"><Icono nombre="info" clase="w-4 h-4 shrink-0" /><span>{{ mensajeGlobal }}</span></div>
+      <!-- Aviso de suscripción: solo a quien puede renovarla -->
+      <div v-if="suscripcion?.aviso && suscripcion.puede" class="px-4 md:px-6 py-2 text-sm flex items-center gap-2" :class="{ info: 'bg-lavanda-light text-violeta', warn: 'bg-amber-50 text-amber-800', error: 'bg-carmin text-white' }[suscripcion.aviso.nivel]">
+        <Icono :nombre="suscripcion.aviso.nivel === 'info' ? 'info' : 'alert'" clase="w-4 h-4 shrink-0" /><span>{{ suscripcion.aviso.texto }}</span>
+        <Link href="/suscripcion" class="ml-auto text-xs font-bold underline whitespace-nowrap">{{ suscripcion.estado === 'trial' ? 'Contratar plan' : 'Renovar' }}</Link>
+      </div>
 
       <div v-if="flash?.success" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">{{ flash.success }}</div>
       <div v-if="flash?.error" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-carmin-light border border-carmin/30 text-carmin-dark text-sm">{{ flash.error }}</div>
@@ -112,6 +124,9 @@ const sucursales = computed(() => page.props.sucursales)
 const nav = computed(() => page.props.nav ?? [])
 const alertas = computed(() => page.props.alertas)
 const flash = computed(() => page.props.flash)
+const suscripcion = computed(() => page.props.suscripcion)
+const impersonando = computed(() => page.props.impersonando)
+const mensajeGlobal = computed(() => page.props.mensajeGlobal)
 
 const abierto = ref(true)
 const movil = ref(false)

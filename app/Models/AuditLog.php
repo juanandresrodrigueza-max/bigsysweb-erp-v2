@@ -29,7 +29,8 @@ class AuditLog extends Model
     {
         $user = Auth::user();
         return static::create([
-            'business_id'          => $user?->business_id,
+            // El superadmin no tiene empresa: el registro queda en la empresa del modelo que tocó.
+            'business_id'          => $user?->business_id ?? ($modelo instanceof Business ? $modelo->id : ($modelo?->business_id ?? null)),
             'business_location_id' => $user?->current_location_id,
             'user_id'              => $user?->id,
             'accion'               => $accion,

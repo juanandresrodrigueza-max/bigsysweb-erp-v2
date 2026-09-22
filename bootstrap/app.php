@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permiso'    => \App\Http\Middleware\Permiso::class,
             'superadmin' => \App\Http\Middleware\SuperAdmin::class,
+            'suscripcion' => \App\Http\Middleware\SuscripcionActiva::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

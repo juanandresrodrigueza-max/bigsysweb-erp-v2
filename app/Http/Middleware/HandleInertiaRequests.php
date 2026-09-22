@@ -44,6 +44,9 @@ class HandleInertiaRequests extends Middleware
                 'lista'  => $user->sucursalesAccesibles()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'ciudad' => $l->city])->values(),
             ] : null,
             'nav' => fn() => $user ? $this->nav($user) : [],
+            'suscripcion' => fn() => $user?->business ? $this->suscripcion($user) : null,
+            'impersonando' => fn() => $request->session()->has('impersonando_desde') ? ['empresa' => $user?->business?->name] : null,
+            'mensajeGlobal' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('mensaje_global') : null,
             'alertas' => fn() => $user?->business_id ? [
                 'sin_leer' => Alerta::visiblesPara($user)->noLeidasPor($user->id)->count(),
                 'ultimas'  => Alerta::visiblesPara($user)->activas()->latest()->limit(6)->get()
@@ -58,6 +61,16 @@ class HandleInertiaRequests extends Middleware
                 'error'   => fn() => $request->session()->get('error'),
             ],
         ];
+    }
+
+    // Estado de la suscripción para el banner: solo lo ve quien puede resolverlo (dueño o quien edita configuración).
+    private function suscripcion($user): ?array
+    {
+        $sub = $user->business->subscription;
+        if (! $sub) {
+            return ['estado' => 'sin_plan', 'aviso' => ['nivel' => 'error', 'texto' => 'La empresa no tiene un plan asignado.'], 'puede' => $user->esDueno()];
+        }
+        return ['estado' => $sub->status, 'plan' => $sub->plan?->name, 'dias' => $sub->diasRestantes(), 'aviso' => $sub->aviso(), 'puede' => $user->esDueno() || $user->puede('configuracion', 'editar')];
     }
 
     private function nav($user): array

@@ -32,6 +32,7 @@ Route::prefix('auth')->group(function () {
 // Webhooks (público)
 Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook']);
 Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook']);
+Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\SuscripcionController::class, 'webhook']);
 
 // Todo lo demás requiere autenticación
 Route::middleware('auth:sanctum')->group(function () {

@@ -21,6 +21,7 @@ use App\Http\Controllers\Configuracion\SucursalesController;
 use App\Http\Controllers\Configuracion\UsuariosController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SucursalController;
+use App\Http\Controllers\SuscripcionController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -29,8 +30,46 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
+// Suscripción: accesible aunque la empresa esté bloqueada (es donde se renueva).
 Route::middleware('auth')->group(function () {
-    Route::get('/', fn() => redirect('/dashboard'));
+    Route::get('/suscripcion',          [SuscripcionController::class, 'index'])->name('suscripcion');
+    Route::post('/suscripcion/pagar',   [SuscripcionController::class, 'pagar']);
+    Route::get('/suscripcion/retorno',  [SuscripcionController::class, 'retorno']);
+    Route::post('/admin/volver',        [\App\Http\Controllers\Superadmin\EmpresasController::class, 'volver']);
+});
+
+// Panel superadmin (BigSys): empresas, planes, cobros, usuarios, sistema.
+Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
+    Route::get('/',                                   [\App\Http\Controllers\Superadmin\PanelController::class, 'index']);
+    Route::get('/empresas',                           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'index']);
+    Route::post('/empresas',                          [\App\Http\Controllers\Superadmin\EmpresasController::class, 'store']);
+    Route::get('/empresas/{id}',                      [\App\Http\Controllers\Superadmin\EmpresasController::class, 'show'])->whereNumber('id');
+    Route::post('/empresas/{id}',                     [\App\Http\Controllers\Superadmin\EmpresasController::class, 'update']);
+    Route::post('/empresas/{id}/suspender',           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'suspender']);
+    Route::post('/empresas/{id}/reactivar',           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'reactivar']);
+    Route::post('/empresas/{id}/baja',                [\App\Http\Controllers\Superadmin\EmpresasController::class, 'baja']);
+    Route::post('/empresas/{id}/restaurar',           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'restaurar']);
+    Route::post('/empresas/{id}/plan',                [\App\Http\Controllers\Superadmin\EmpresasController::class, 'cambiarPlan']);
+    Route::post('/empresas/{id}/extender-prueba',     [\App\Http\Controllers\Superadmin\EmpresasController::class, 'extenderPrueba']);
+    Route::post('/empresas/{id}/pagos',               [\App\Http\Controllers\Superadmin\EmpresasController::class, 'registrarPago']);
+    Route::post('/empresas/{id}/pagos/{pago}/aprobar',  [\App\Http\Controllers\Superadmin\EmpresasController::class, 'aprobarPago']);
+    Route::post('/empresas/{id}/pagos/{pago}/rechazar', [\App\Http\Controllers\Superadmin\EmpresasController::class, 'rechazarPago']);
+    Route::post('/empresas/{id}/entrar',              [\App\Http\Controllers\Superadmin\EmpresasController::class, 'impersonar']);
+    Route::post('/empresas/{id}/usuarios/{user}',     [\App\Http\Controllers\Superadmin\EmpresasController::class, 'usuario']);
+    Route::get('/planes',                             [\App\Http\Controllers\Superadmin\PlanesController::class, 'index']);
+    Route::post('/planes/{id?}',                      [\App\Http\Controllers\Superadmin\PlanesController::class, 'guardar']);
+    Route::get('/cobros',                             [\App\Http\Controllers\Superadmin\SistemaController::class, 'cobros']);
+    Route::get('/usuarios',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'usuarios']);
+    Route::post('/usuarios',                          [\App\Http\Controllers\Superadmin\SistemaController::class, 'nuevoSuperadmin']);
+    Route::post('/usuarios/{id}',                     [\App\Http\Controllers\Superadmin\SistemaController::class, 'usuario']);
+    Route::get('/sistema',                            [\App\Http\Controllers\Superadmin\SistemaController::class, 'configuracion']);
+    Route::post('/sistema',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'guardarConfiguracion']);
+    Route::post('/sistema/revisar',                   [\App\Http\Controllers\Superadmin\SistemaController::class, 'revisarAhora']);
+    Route::get('/auditoria',                          [\App\Http\Controllers\Superadmin\SistemaController::class, 'auditoria']);
+});
+
+Route::middleware(['auth', 'suscripcion'])->group(function () {
+    Route::get('/', fn() => redirect(request()->user()?->is_superadmin && ! request()->user()->business_id ? '/admin' : '/dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permiso:dashboard')->name('dashboard');
 
     Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->name('sucursal.cambiar');
