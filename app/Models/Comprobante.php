@@ -35,6 +35,7 @@ class Comprobante extends Model
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en',
+        'numero_proveedor', 'cae_proveedor', 'origen_carga',
     ];
 
     protected $casts = [
@@ -57,6 +58,9 @@ class Comprobante extends Model
     public function adjuntos(): HasMany { return $this->hasMany(ComprobanteAdjunto::class); }
 
     public function scopeVentas(Builder $q): Builder { return $q->where('direccion', 'venta'); }
+    public function scopeCompras(Builder $q): Builder { return $q->where('direccion', 'compra'); }
+    public function pagosImputados(): HasMany { return $this->hasMany(PagoImputacion::class); }
+    public function scopePendientesPago(Builder $q): Builder { return $q->compras()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005); }
     public function scopeEmitidos(Builder $q): Builder { return $q->where('estado', 'emitido'); }
     public function scopeFacturas(Builder $q): Builder { return $q->whereIn('tipo', ['FA', 'FB', 'FC', 'FE']); }
     public function scopePendientesCobro(Builder $q): Builder { return $q->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005); }
@@ -69,6 +73,9 @@ class Comprobante extends Model
 
     public function numeroFormateado(): ?string
     {
+        if ($this->direccion === 'compra') {
+            return $this->numero_proveedor ?: ($this->numero ? sprintf('%04d-%08d', $this->punto_venta ?? 0, $this->numero) : null);
+        }
         if (! $this->numero) {
             return null;
         }
@@ -88,7 +95,7 @@ class Comprobante extends Model
 
     public function vencido(): bool
     {
-        return $this->estadoCobro() === 'pendiente' && $this->fecha_vto && $this->fecha_vto->isPast();
+        return $this->estadoCobro() === 'pendiente' && $this->fecha_vto && $this->fecha_vto->lt(today());
     }
 
     public function recalcularTotales(): void

@@ -8,6 +8,11 @@ use App\Http\Controllers\Clientes\CobrosController;
 use App\Http\Controllers\Comprobantes\ComprobantesController;
 use App\Http\Controllers\Comprobantes\PresupuestoIAController;
 use App\Http\Controllers\Configuracion\PuntosVentaController;
+use App\Http\Controllers\Fondos\ChequesController;
+use App\Http\Controllers\Fondos\FondosController;
+use App\Http\Controllers\Proveedores\ComprasController;
+use App\Http\Controllers\Proveedores\PagosController;
+use App\Http\Controllers\Proveedores\ProveedoresController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Configuracion\AuditoriaController;
 use App\Http\Controllers\Configuracion\EmpresaController;
@@ -66,6 +71,44 @@ Route::middleware('auth')->group(function () {
         Route::post('/cobros/{id}/anular',     [CobrosController::class, 'anular'])->middleware('permiso:clientes,anular');
         Route::get('/cobros/{id}/imprimir',    [CobrosController::class, 'imprimir']);
         Route::post('/acopios/{id}/retiros',   [AcopiosController::class, 'retirar'])->middleware('permiso:clientes,crear');
+    });
+
+    // Proveedores y compras
+    Route::prefix('proveedores')->middleware('permiso:proveedores')->group(function () {
+        Route::get('/',                         [ProveedoresController::class, 'index']);
+        Route::post('/',                        [ProveedoresController::class, 'guardar'])->middleware('permiso:proveedores,crear');
+        Route::get('/compras',                  [ComprasController::class, 'index']);
+        Route::get('/compras/nueva',            [ComprasController::class, 'create'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras',                 [ComprasController::class, 'store'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras/ocr',             [ComprasController::class, 'ocr'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras/importar-afip',   [ComprasController::class, 'importarAfip'])->middleware('permiso:proveedores,crear');
+        Route::get('/compras/{id}',             [ComprasController::class, 'show'])->whereNumber('id');
+        Route::get('/compras/{id}/editar',      [ComprasController::class, 'edit'])->middleware('permiso:proveedores,editar');
+        Route::post('/compras/{id}',            [ComprasController::class, 'store'])->middleware('permiso:proveedores,editar');
+        Route::post('/compras/{id}/registrar',  [ComprasController::class, 'registrar'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras/{id}/anular',     [ComprasController::class, 'anular'])->middleware('permiso:proveedores,anular');
+        Route::post('/compras/{id}/nota-credito', [ComprasController::class, 'notaCredito'])->middleware('permiso:proveedores,crear');
+        Route::post('/pagos/{id}/anular',       [PagosController::class, 'anular'])->middleware('permiso:proveedores,anular');
+        Route::get('/pagos/{id}/imprimir',      [PagosController::class, 'imprimir']);
+        Route::get('/{id}',                     [ProveedoresController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}',                    [ProveedoresController::class, 'guardar'])->middleware('permiso:proveedores,editar');
+        Route::post('/{id}/pagos',              [PagosController::class, 'store'])->middleware('permiso:proveedores,crear');
+    });
+
+    // Fondos
+    Route::prefix('fondos')->middleware('permiso:fondos')->group(function () {
+        Route::get('/',                        [FondosController::class, 'index']);
+        Route::post('/cuentas/{id?}',          [FondosController::class, 'guardarCuenta'])->middleware('permiso:fondos,editar');
+        Route::post('/movimiento',             [FondosController::class, 'movimiento'])->middleware('permiso:fondos,crear');
+        Route::post('/transferir',             [FondosController::class, 'transferir'])->middleware('permiso:fondos,crear');
+        Route::post('/categorias',             [FondosController::class, 'guardarCategoria'])->middleware('permiso:fondos,crear');
+        Route::post('/cuentas/{id}/abrir-turno', [FondosController::class, 'abrirTurno'])->middleware('permiso:fondos,crear');
+        Route::post('/turnos/{id}/cerrar',     [FondosController::class, 'cerrarTurno'])->middleware('permiso:fondos,crear');
+        Route::get('/cheques',                 [ChequesController::class, 'index']);
+        Route::post('/cheques/{id}/depositar', [ChequesController::class, 'depositar'])->middleware('permiso:fondos,crear');
+        Route::post('/cheques/{id}/rechazar',  [ChequesController::class, 'rechazar'])->middleware('permiso:fondos,editar');
+        Route::post('/cheques/{id}/cobrado',   [ChequesController::class, 'cobrado'])->middleware('permiso:fondos,editar');
+        Route::post('/cheques/{id}/debitar',   [ChequesController::class, 'debitar'])->middleware('permiso:fondos,editar');
     });
 
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {

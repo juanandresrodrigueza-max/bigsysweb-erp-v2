@@ -73,6 +73,11 @@ class AgenteController extends Controller
             'vencido'        => (float) Comprobante::ventas()->pendientesCobro()->whereDate('fecha_vto', '<', today())->sum('saldo'),
             'presupuestos_abiertos' => Comprobante::ventas()->emitidos()->where('tipo', 'PRE')->whereDoesntHave('derivados')->count(),
             'clientes'       => Contact::customers()->count(),
+            'por_pagar'      => (float) Contact::suppliers()->where('balance', '>', 0)->sum('balance'),
+            'pagos_vencidos' => (float) Comprobante::compras()->pendientesPago()->whereDate('fecha_vto', '<', today())->sum('saldo'),
+            'disponible'     => (float) \App\Models\CuentaFondos::where('activa', true)->sum('saldo'),
+            'cheques_cartera' => (float) \App\Models\Cheque::enCartera()->sum('monto'),
+            'cheques_propios' => (float) \App\Models\Cheque::propiosPendientes()->sum('monto'),
             'productos'      => Product::where('active', true)->count(),
             'bajo_minimo'    => Product::where('active', true)->whereColumn('stock', '<=', 'stock_min')->count(),
             'alertas'        => Alerta::visiblesPara($user)->activas()->latest()->limit(5)->pluck('titulo')->all(),
@@ -102,6 +107,9 @@ Datos del negocio (sucursal y empresa del usuario):
 - Ventas del mes: {$fmt($c['ventas_mes'])}
 - Saldo por cobrar a clientes: {$fmt($c['por_cobrar'])}, de los cuales vencido: {$fmt($c['vencido'])}
 - Presupuestos sin respuesta: {$c['presupuestos_abiertos']}
+- Deuda con proveedores: {$fmt($c['por_pagar'])}, de la cual vencida: {$fmt($c['pagos_vencidos'])}
+- Dinero disponible en cajas, bancos y billeteras: {$fmt($c['disponible'])}
+- Cheques de terceros en cartera: {$fmt($c['cheques_cartera'])}; cheques propios entregados a debitar: {$fmt($c['cheques_propios'])}
 - Clientes: {$c['clientes']}
 - Productos activos: {$c['productos']}, bajo mínimo: {$c['bajo_minimo']}
 Alertas activas:
@@ -114,6 +122,9 @@ Cómo se hacen las cosas:
 - Cobrar: Clientes > ficha del cliente > "Registrar cobro"; podés combinar efectivo, transferencia, cheque, MercadoPago y elegir qué facturas cancela.
 - Acopio: al emitir una factura marcás "Es acopio"; el cliente paga todo y retira de a poco desde su ficha > Acopios > "Registrar retiro" (genera remito).
 - Facturar varios presupuestos o remitos juntos: Comprobantes > Facturación por lote.
+- Cargar una factura de proveedor: Proveedores > Compras > "Cargar factura" (a mano, con foto/PDF leído por IA, o "Importar de AFIP" con el CSV de Mis Comprobantes). Al registrar impacta cuenta corriente y stock.
+- Pagar a un proveedor: Proveedores > ficha > "Registrar pago": transferencia, efectivo, cheque propio, endoso de cheque de tercero o retención; se imputa a facturas y se imprime la orden de pago.
+- Fondos: cajas, bancos y billeteras con saldo en tiempo real. Gasto, Ingreso y Transferir desde Fondos; turnos de caja con apertura y cierre; cartera de cheques en Fondos > Cheques (depositar, acreditar, rechazar).
 - Sin certificado AFIP las facturas se emiten simuladas (sin CAE). Se carga en Configuración > Puntos de venta y AFIP.
 Para cambiar de sucursal: selector arriba a la izquierda del encabezado. Para ver alertas: campana arriba a la derecha.
 TXT;

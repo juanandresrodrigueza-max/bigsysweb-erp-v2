@@ -125,15 +125,24 @@
       <div class="grid md:grid-cols-2 gap-5">
         <div>
           <p class="label">Medios de pago</p>
-          <div v-for="(m, i) in cobro.medios" :key="i" class="grid grid-cols-[1fr_110px_28px] gap-2 mb-2">
-            <div>
-              <select v-model="m.medio" class="input"><option v-for="(lbl, k) in medios" :key="k" :value="k">{{ lbl }}</option></select>
-              <input v-if="m.medio !== 'efectivo'" v-model="m.referencia" class="input mt-1 !py-1 text-xs" :placeholder="m.medio === 'cheque' ? 'N° cheque · banco · fecha de pago' : 'Referencia / comprobante'" />
+          <div v-for="(m, i) in cobro.medios" :key="i" class="rounded-xl border border-marca-borde p-2 mb-2 space-y-1.5">
+            <div class="grid grid-cols-[1fr_110px_28px] gap-2">
+              <select v-model="m.medio" class="input" @change="cambiarMedio(m)"><option v-for="(lbl, k) in medios" :key="k" :value="k">{{ lbl }}</option></select>
+              <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right" placeholder="0" />
+              <button @click="cobro.medios.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
-            <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right" placeholder="0" />
-            <button @click="cobro.medios.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+            <select v-if="!['cheque','retencion'].includes(m.medio)" v-model="m.cuenta_fondos_id" class="input !py-1 text-xs">
+              <option :value="null">Entra en: la cuenta predeterminada</option><option v-for="c in cuentasPara(m.medio)" :key="c.id" :value="c.id">{{ c.nombre }} · {{ moneda(c.saldo, 0) }}</option>
+            </select>
+            <div v-if="m.medio === 'cheque'" class="grid grid-cols-2 gap-2">
+              <input v-model="m.datos.numero" class="input !py-1 text-xs" placeholder="N° cheque" /><input v-model="m.datos.banco" class="input !py-1 text-xs" placeholder="Banco" />
+              <div><label class="text-[10px] text-marca-muted">Fecha de pago</label><input v-model="m.datos.fecha_pago" type="date" class="input !py-1 text-xs" /></div>
+              <div><label class="text-[10px] text-marca-muted">Emisor (si no es el cliente)</label><input v-model="m.datos.emisor" class="input !py-1 text-xs" :placeholder="cliente.name" /></div>
+              <label class="flex items-center gap-1.5 text-xs col-span-2"><input v-model="m.datos.echeq" type="checkbox" class="accent-carmin" /> Es eCheq</label>
+            </div>
+            <input v-if="!['efectivo','cheque'].includes(m.medio)" v-model="m.referencia" class="input !py-1 text-xs" placeholder="Referencia / N° operación" />
           </div>
-          <button @click="cobro.medios.push({ medio: 'transferencia', monto: 0, referencia: '' })" class="btn-ghost !px-2 text-xs">+ Otro medio</button>
+          <button @click="cobro.medios.push({ medio: 'transferencia', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {} })" class="btn-ghost !px-2 text-xs">+ Otro medio</button>
           <div class="mt-4 grid grid-cols-2 gap-2"><div><label class="label">Fecha</label><input v-model="cobro.fecha" type="date" class="input" /></div><div><label class="label">Notas</label><input v-model="cobro.notas" class="input" /></div></div>
           <p v-if="cobro.errors.medios" class="text-carmin text-xs mt-2">{{ cobro.errors.medios }}</p>
         </div>
@@ -188,7 +197,9 @@ import Modal from '@/Components/Modal.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
-const props = defineProps({ cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array })
+const props = defineProps({ cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] } })
+const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
+function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : {} }
 const tab = ref('cc')
 const tabs = computed(() => [
   { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },
@@ -201,7 +212,7 @@ function abrirMov(m) { if (m.comprobante_id) router.visit(`/comprobantes/${m.com
 
 // Cobro
 const cobroAbierto = ref(false)
-const cobro = useForm({ fecha: hoyISO(), notas: '', medios: [{ medio: 'efectivo', monto: 0, referencia: '' }], imputaciones: [] })
+const cobro = useForm({ fecha: hoyISO(), notas: '', medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {} }], imputaciones: [] })
 const imput = reactive({})
 const totalCobro = computed(() => cobro.medios.reduce((a, m) => a + (Number(m.monto) || 0), 0))
 const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (Number(v) || 0), 0))

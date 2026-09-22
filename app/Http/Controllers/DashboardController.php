@@ -38,7 +38,8 @@ class DashboardController extends Controller
 
         $porCobrar = (float) Contact::customers()->where('balance', '>', 0)->sum('balance');
         $vencido   = (float) Comprobante::ventas()->pendientesCobro()->whereDate('fecha_vto', '<', today())->sum('saldo');
-        $porPagar  = abs((float) Contact::suppliers()->where('balance', '<', 0)->sum('balance'));
+        $porPagar  = (float) Contact::suppliers()->where('balance', '>', 0)->sum('balance');
+        $fondos    = (float) \App\Models\CuentaFondos::where('activa', true)->sum('saldo');
         $sinStock  = Product::where('active', true)->whereColumn('stock', '<=', 'stock_min')->count();
 
         $kpis = [
@@ -46,7 +47,8 @@ class DashboardController extends Controller
             ['key' => 'ticket',  'label' => 'Ticket promedio', 'valor' => $ticket,      'formato' => 'moneda', 'tendencia' => $this->tendencia($ticket, $ticketPrev)],
             ['key' => 'cobrar',  'label' => 'Por cobrar',      'valor' => $porCobrar,   'formato' => 'moneda', 'url' => '/clientes?estado=deudores'],
             ['key' => 'vencido', 'label' => 'Vencido',         'valor' => $vencido,     'formato' => 'moneda', 'url' => '/comprobantes?estado=vencido', 'alerta' => $vencido > 0],
-            ['key' => 'pagar',   'label' => 'Por pagar',       'valor' => $porPagar,    'formato' => 'moneda'],
+            ['key' => 'pagar',   'label' => 'Por pagar',       'valor' => $porPagar,    'formato' => 'moneda', 'url' => '/proveedores?estado=deudores'],
+            ['key' => 'fondos',  'label' => 'Disponible',      'valor' => $fondos,      'formato' => 'moneda', 'url' => '/fondos'],
             ['key' => 'stock',   'label' => 'Bajo mínimo',     'valor' => $sinStock,    'formato' => 'entero', 'url' => '/stock', 'alerta' => $sinStock > 0],
         ];
 

@@ -3,17 +3,21 @@
 namespace App\Services\Comprobantes;
 
 use App\Models\AuditLog;
+use App\Models\Cheque;
 use App\Models\Cobro;
 use App\Models\Comprobante;
 use App\Models\Contact;
 use App\Models\CuentaCorriente;
+use App\Services\Fondos\FondosService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CobroService
 {
-    // Registra un cobro con uno o más medios e imputa a comprobantes (o queda a cuenta).
+    public function __construct(private FondosService $fondos) {}
+
+    // Registra un cobro con uno o más medios, impacta fondos/cheques e imputa a comprobantes (o queda a cuenta).
     public function registrar(Contact $contact, array $data): Cobro
     {
         return DB::transaction(function () use ($contact, $data) {
@@ -37,7 +41,24 @@ class CobroService
             ]);
 
             foreach ($medios as $m) {
-                $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null]);
+                $chequeId = null; $cuentaId = null;
+                if ($m['medio'] === 'cheque') {
+                    $d = $m['datos'] ?? [];
+                    $cheque = Cheque::create([
+                        'business_id' => $user->business_id, 'tipo' => 'tercero', 'numero' => $d['numero'] ?? ($m['referencia'] ?? 's/n'), 'banco' => $d['banco'] ?? null,
+                        'emisor' => $d['emisor'] ?? $contact->name, 'cuit_emisor' => $d['cuit'] ?? $contact->cuit, 'fecha_emision' => $d['fecha_emision'] ?? ($data['fecha'] ?? today()),
+                        'fecha_pago' => $d['fecha_pago'] ?? ($data['fecha'] ?? today()), 'monto' => $m['monto'], 'echeq' => (bool) ($d['echeq'] ?? false), 'estado' => 'cartera',
+                        'cobro_id' => $cobro->id, 'contact_id' => $contact->id,
+                    ]);
+                    $chequeId = $cheque->id;
+                } elseif ($m['medio'] !== 'retencion') {
+                    $cuenta = $this->fondos->cuentaPara($m['medio'], $user, $m['cuenta_fondos_id'] ?? null);
+                    if ($cuenta) {
+                        $cuentaId = $cuenta->id;
+                        $this->fondos->registrar($cuenta, ['fecha' => $cobro->fecha, 'origen' => 'cobro', 'origen_id' => $cobro->id, 'concepto' => "Cobro {$cobro->numeroFormateado()} · {$contact->name}", 'ingreso' => (float) $m['monto'], 'referencia' => $m['referencia'] ?? null]);
+                    }
+                }
+                $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null]);
             }
 
             foreach ($imputaciones as $i) {
@@ -70,6 +91,12 @@ class CobroService
                 Comprobante::where('id', $i->comprobante_id)->increment('saldo', (float) $i->monto);
             }
             $cobro->imputaciones()->delete();
+            foreach ($cobro->medios()->whereNotNull('cheque_id')->get() as $m) {
+                $ch = Cheque::find($m->cheque_id);
+                abort_if($ch && ! in_array($ch->estado, ['cartera', 'rechazado'], true), 422, "El cheque {$ch->numero} ya fue depositado o entregado; no se puede anular el cobro.");
+                $ch?->update(['estado' => 'anulado', 'fecha_estado' => today()]);
+            }
+            $this->fondos->revertir('cobro', $cobro->id);
             CuentaCorriente::where('cobro_id', $cobro->id)->delete();
             $cobro->update(['estado' => 'anulado', 'notas' => trim(($cobro->notas ?? '') . "\nAnulado: {$motivo}")]);
             CuentaCorriente::recalcularSaldo($cobro->contact_id);

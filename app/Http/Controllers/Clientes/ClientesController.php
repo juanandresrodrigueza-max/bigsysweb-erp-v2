@@ -67,6 +67,7 @@ class ClientesController extends Controller
             'cobros' => Cobro::where('contact_id', $c->id)->with('medios')->orderByDesc('fecha')->orderByDesc('id')->limit(20)->get()->map(fn($x) => ['id' => $x->id, 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'a_cuenta' => (float) $x->a_cuenta, 'estado' => $x->estado, 'medios' => $x->medios->map(fn($m) => Cobro::MEDIOS[$m->medio] . ' $ ' . number_format((float) $m->monto, 0, ',', '.'))->implode(', ')]),
             'acopios' => $c->acopios()->with('items', 'comprobante')->whereIn('estado', ['abierto', 'parcial', 'vencido'])->get()->map(fn($a) => ['id' => $a->id, 'estado' => $a->estado, 'fecha' => $a->fecha->format('d/m/Y'), 'fecha_limite' => $a->fecha_limite?->format('d/m/Y'), 'factura' => $a->comprobante?->numeroFormateado(), 'comprobante_id' => $a->comprobante_id, 'items' => $a->items->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'facturada' => (float) $i->cantidad_facturada, 'retirada' => (float) $i->cantidad_retirada, 'pendiente' => $i->pendiente()])]),
             'medios' => Cobro::MEDIOS, 'tipos' => TipoCliente::orderBy('nombre')->get(['id', 'nombre']), 'condicionesIva' => Contact::CONDICIONES_IVA,
+            'cuentas' => \App\Models\CuentaFondos::where('activa', true)->orderBy('tipo')->orderBy('nombre')->get(['id', 'tipo', 'nombre', 'saldo']),
         ]);
     }
 

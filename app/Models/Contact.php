@@ -31,6 +31,13 @@ class Contact extends Model
     public function cobros(): HasMany { return $this->hasMany(Cobro::class); }
     public function cuentaCorriente(): HasMany { return $this->hasMany(CuentaCorriente::class); }
     public function acopios(): HasMany { return $this->hasMany(Acopio::class); }
+    public function pagos(): HasMany { return $this->hasMany(Pago::class); }
+    public function retenciones(): HasMany { return $this->hasMany(Retencion::class); }
+
+    public function deudaVencidaProveedor(): float
+    {
+        return (float) $this->comprobantes()->pendientesPago()->whereDate('fecha_vto', '<', today())->sum('saldo');
+    }
 
     public function scopeCustomers(Builder $q): Builder { return $q->whereIn('type', ['customer', 'both']); }
     public function scopeSuppliers(Builder $q): Builder { return $q->whereIn('type', ['supplier', 'both']); }

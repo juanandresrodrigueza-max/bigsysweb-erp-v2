@@ -16,7 +16,7 @@ class CobrosController extends Controller
         $data = $request->validate([
             'fecha' => 'required|date', 'notas' => 'nullable|string|max:500',
             'medios' => 'required|array|min:1', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)),
-            'medios.*.monto' => 'required|numeric|min:0', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array',
+            'medios.*.monto' => 'required|numeric|min:0', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array', 'medios.*.cuenta_fondos_id' => 'nullable|integer',
             'imputaciones' => 'nullable|array', 'imputaciones.*.comprobante_id' => 'required|integer', 'imputaciones.*.monto' => 'required|numeric|min:0',
         ]);
         $cobro = $service->registrar($contact, $data);

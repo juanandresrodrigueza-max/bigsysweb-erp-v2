@@ -13,7 +13,12 @@ use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\TipoCliente;
 use App\Models\User;
+use App\Models\CuentaFondos;
+use App\Models\ExpenseCategory;
 use App\Services\Comprobantes\CobroService;
+use App\Services\Compras\CompraService;
+use App\Services\Compras\PagoService;
+use App\Services\Fondos\FondosService;
 use App\Services\Comprobantes\ComprobanteService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -71,7 +76,7 @@ class DemoSeeder extends Seeder
             $productos = collect([
                 ['Cemento x 50 kg', 'CEM50', 9800, 7200, 1400, 200, 'un'], ['Hierro 8 mm x 12 m', 'HIE08', 6500, 4900, 260, 60, 'un'],
                 ['Arena fina m³', 'ARE01', 28000, 21000, 140, 20, 'm3'], ['Ladrillo hueco 12x18x33', 'LAD12', 520, 380, 9000, 2000, 'un'],
-                ['Cal hidratada x 25 kg', 'CAL25', 4100, 3000, 90, 40, 'un'], ['Piedra partida m³', 'PIE01', 32000, 24500, 12, 15, 'm3'],
+                ['Cal hidratada x 25 kg', 'CAL25', 4100, 3000, 90, 40, 'un'], ['Piedra partida m³', 'PIE01', 32000, 24500, 82, 15, 'm3'],
                 ['Hierro 10 mm x 12 m', 'HIE10', 9900, 7600, 300, 60, 'un'], ['Malla sima 15x15 6mm', 'MAL15', 38000, 29000, 180, 30, 'un'],
             ])->map(fn($p) => Product::create([
                 'business_id' => $empresa->id, 'business_location_id' => $central->id, 'name' => $p[0], 'sku' => $p[1],
@@ -92,14 +97,53 @@ class DemoSeeder extends Seeder
                 'address' => $c[4], 'city' => $c[5], 'is_active' => true, 'email' => strtolower(preg_replace('/[^a-z]/i', '', explode(' ', $c[0])[0])) . '@cliente.com.ar',
             ]));
 
-            Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Loma Negra S.A.', 'cuit' => '30-50000000-1', 'condicion_iva' => 'Responsable Inscripto', 'balance' => -640000, 'is_active' => true]);
-            Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Acindar Distribuidora', 'cuit' => '30-50000000-2', 'condicion_iva' => 'Responsable Inscripto', 'balance' => -215000, 'is_active' => true]);
+            $loma = Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Loma Negra S.A.', 'cuit' => '30-50000000-1', 'condicion_iva' => 'Responsable Inscripto', 'dias_pago' => 30, 'is_active' => true]);
+            $acindar = Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Acindar Distribuidora', 'cuit' => '30-50000000-2', 'condicion_iva' => 'Responsable Inscripto', 'dias_pago' => 15, 'is_active' => true]);
+            $arenera = Contact::create(['business_id' => $empresa->id, 'type' => 'supplier', 'name' => 'Arenera del Suquía', 'cuit' => '20-22333444-5', 'condicion_iva' => 'Monotributista', 'dias_pago' => 0, 'is_active' => true]);
+
+            // Cuentas de fondos (antes de facturar, para que los cobros impacten)
+            $cajaCentral = CuentaFondos::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'tipo' => 'caja', 'nombre' => 'Caja Casa Central', 'es_default' => true, 'saldo_minimo' => 50000]);
+            $cajaNorte   = CuentaFondos::create(['business_id' => $empresa->id, 'business_location_id' => $norte->id, 'tipo' => 'caja', 'nombre' => 'Caja Sucursal Norte']);
+            $banco       = CuentaFondos::create(['business_id' => $empresa->id, 'tipo' => 'banco', 'nombre' => 'Banco Galicia CC', 'banco' => 'Galicia', 'cbu' => '0070000000000000000001', 'alias' => 'corralon.demo', 'es_default' => true, 'saldo_minimo' => 500000]);
+            $mp          = CuentaFondos::create(['business_id' => $empresa->id, 'tipo' => 'billetera', 'nombre' => 'MercadoPago', 'es_default' => true]);
+            foreach (['Sueldos' => '#4f3089', 'Alquiler' => '#a42785', 'Servicios' => '#e4003f', 'Fletes' => '#1f9d5b', 'Impuestos' => '#c77d00'] as $n => $col) {
+                ExpenseCategory::create(['business_id' => $empresa->id, 'name' => $n, 'color' => $col]);
+            }
 
             // Un mes de facturas, algunas cobradas, dos presupuestos y un acopio, pasando por el servicio real.
             Auth::login($dueno);
             $comprobantes = app(ComprobanteService::class);
             $cobros = app(CobroService::class);
+            $compras = app(CompraService::class);
+            $pagos = app(PagoService::class);
+            $fondos = app(FondosService::class);
             mt_srand(7);
+
+            $fondos->registrar($banco, ['fecha' => today()->subDays(35)->toDateString(), 'origen' => 'ajuste', 'concepto' => 'Saldo inicial', 'ingreso' => 3200000]);
+            $fondos->registrar($cajaCentral, ['fecha' => today()->subDays(35)->toDateString(), 'origen' => 'ajuste', 'concepto' => 'Saldo inicial', 'ingreso' => 180000]);
+            $fondos->registrar($cajaNorte, ['fecha' => today()->subDays(35)->toDateString(), 'origen' => 'ajuste', 'concepto' => 'Saldo inicial', 'ingreso' => 60000]);
+
+            // Compras del mes: Loma Negra (cemento y cal), Acindar (hierros), arenera (contado)
+            $compraDe = function ($prov, $dias, $tipo, $num, $items, $registrar = true) use ($compras, $empresa) {
+                $c = $compras->guardarBorrador(['contact_id' => $prov->id, 'tipo' => $tipo, 'numero_proveedor' => $num, 'fecha' => today()->subDays($dias)->toDateString(), 'condicion' => $prov->dias_pago ? 'cta_cte' : 'contado', 'origen_carga' => 'manual', 'items' => $items]);
+                return $registrar ? $compras->registrar($c) : $c;
+            };
+            $c1 = $compraDe($loma, 40, 'FA', '0012-00045871', [['product_id' => $productos[0]->id, 'descripcion' => $productos[0]->name, 'cantidad' => 600, 'precio_unit' => 7100, 'alicuota_iva' => 21], ['product_id' => $productos[4]->id, 'descripcion' => $productos[4]->name, 'cantidad' => 80, 'precio_unit' => 2950, 'alicuota_iva' => 21]]);
+            $c2 = $compraDe($loma, 12, 'FA', '0012-00046120', [['product_id' => $productos[0]->id, 'descripcion' => $productos[0]->name, 'cantidad' => 400, 'precio_unit' => 7250, 'alicuota_iva' => 21]]);
+            $c3 = $compraDe($acindar, 20, 'FA', '0003-00009915', [['product_id' => $productos[1]->id, 'descripcion' => $productos[1]->name, 'cantidad' => 150, 'precio_unit' => 4850, 'alicuota_iva' => 21], ['product_id' => $productos[6]->id, 'descripcion' => $productos[6]->name, 'cantidad' => 120, 'precio_unit' => 7500, 'alicuota_iva' => 21], ['product_id' => $productos[7]->id, 'descripcion' => $productos[7]->name, 'cantidad' => 60, 'precio_unit' => 28800, 'alicuota_iva' => 21]]);
+            $c4 = $compraDe($arenera, 6, 'FC', '0001-00000318', [['product_id' => $productos[2]->id, 'descripcion' => $productos[2]->name, 'cantidad' => 40, 'precio_unit' => 20500, 'alicuota_iva' => 0], ['product_id' => $productos[5]->id, 'descripcion' => $productos[5]->name, 'cantidad' => 10, 'precio_unit' => 24000, 'alicuota_iva' => 0]]);
+            $compraDe($acindar, 1, 'FA', '0003-00010102', [['product_id' => $productos[1]->id, 'descripcion' => $productos[1]->name, 'cantidad' => 100, 'precio_unit' => 4900, 'alicuota_iva' => 21]], false);
+
+            // Pagos: la primera de Loma con transferencia y cheque propio; arenera al contado en efectivo; Acindar parcial con retención
+            $pagos->registrar($loma, ['fecha' => today()->subDays(9)->toDateString(), 'medios' => [['medio' => 'transferencia', 'monto' => 3000000, 'cuenta_fondos_id' => $banco->id, 'referencia' => 'TRF 55120'], ['medio' => 'cheque_propio', 'monto' => (float) $c1->total - 3000000, 'cuenta_fondos_id' => $banco->id, 'datos' => ['numero' => '00458812', 'fecha_pago' => today()->addDays(12)->toDateString()]]], 'imputaciones' => [['comprobante_id' => $c1->id, 'monto' => (float) $c1->total]]]);
+            $pagos->registrar($arenera, ['fecha' => today()->subDays(6)->toDateString(), 'medios' => [['medio' => 'efectivo', 'monto' => (float) $c4->total, 'cuenta_fondos_id' => $cajaCentral->id]], 'imputaciones' => [['comprobante_id' => $c4->id, 'monto' => (float) $c4->total]]]);
+            $pagos->registrar($acindar, ['fecha' => today()->subDays(3)->toDateString(), 'medios' => [['medio' => 'transferencia', 'monto' => 1500000, 'cuenta_fondos_id' => $banco->id], ['medio' => 'retencion', 'monto' => 42000, 'datos' => ['tipo' => 'ganancias', 'base' => 2100000, 'alicuota' => 2, 'certificado' => 'RG-2026-0001']]], 'imputaciones' => [['comprobante_id' => $c3->id, 'monto' => 1542000]]]);
+
+            // Gastos varios
+            $cats = ExpenseCategory::pluck('id', 'name');
+            $fondos->registrar($banco, ['fecha' => today()->subDays(15)->toDateString(), 'origen' => 'gasto', 'expense_category_id' => $cats['Alquiler'], 'concepto' => 'Alquiler galpón septiembre', 'egreso' => 480000]);
+            $fondos->registrar($cajaCentral, ['fecha' => today()->subDays(4)->toDateString(), 'origen' => 'gasto', 'expense_category_id' => $cats['Fletes'], 'concepto' => 'Flete reparto zona norte', 'egreso' => 35000]);
+            $fondos->registrar($banco, ['fecha' => today()->subDays(2)->toDateString(), 'origen' => 'gasto', 'expense_category_id' => $cats['Servicios'], 'concepto' => 'EPEC + internet', 'egreso' => 92000]);
 
             $facturas = [];
             foreach (range(0, 29) as $i) {
@@ -139,7 +183,8 @@ class DemoSeeder extends Seeder
                 ['product_id' => $productos[3]->id, 'descripcion' => $productos[3]->name, 'cantidad' => 3000, 'precio_unit' => $productos[3]->precioLista(3), 'alicuota_iva' => 21],
             ]]);
             $acopio = $comprobantes->emitir($acopio);
-            $cobros->registrar($obra, ['fecha' => today()->subDays(12)->toDateString(), 'medios' => [['medio' => 'transferencia', 'monto' => (float) $acopio->total, 'referencia' => 'TRF 88213']], 'imputaciones' => [['comprobante_id' => $acopio->id, 'monto' => (float) $acopio->total]]]);
+            $cobros->registrar($obra, ['fecha' => today()->subDays(12)->toDateString(), 'medios' => [['medio' => 'transferencia', 'monto' => round((float) $acopio->total - 900000, 2), 'referencia' => 'TRF 88213'], ['medio' => 'cheque', 'monto' => 500000, 'datos' => ['numero' => '11223344', 'banco' => 'Banco Nación', 'fecha_pago' => today()->addDays(10)->toDateString()]], ['medio' => 'cheque', 'monto' => 400000, 'datos' => ['numero' => '11223345', 'banco' => 'Banco Nación', 'fecha_pago' => today()->addDays(40)->toDateString()]]], 'imputaciones' => [['comprobante_id' => $acopio->id, 'monto' => (float) $acopio->total]]]);
+            $fondos->abrirTurno($cajaCentral, (float) $cajaCentral->fresh()->saldo);
             app(\App\Services\Comprobantes\AcopioService::class)->retirar($acopio->fresh()->acopio, ['fecha' => today()->subDays(8)->toDateString(), 'retirado_por' => 'Camión propio', 'items' => [['acopio_item_id' => $acopio->acopio->items[0]->id, 'cantidad' => 60], ['acopio_item_id' => $acopio->acopio->items[1]->id, 'cantidad' => 1000]]]);
 
             // Presupuestos: uno reciente y uno viejo sin respuesta
