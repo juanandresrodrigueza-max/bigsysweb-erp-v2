@@ -10,6 +10,7 @@
         <Link href="/fondos/cheques" class="btn-secondary">Cheques</Link>
         <Link href="/fondos/valores" class="btn-secondary" title="De dónde vino y a dónde fue cada cheque o cupón">Valores</Link>
         <Link href="/fondos/moneda" class="btn-secondary" title="Cuentas en dólares, cotización y diferencia de cambio">Dólares</Link>
+        <Link href="/fondos/cierres" class="btn-secondary" title="Historial de cierres, diferencias por cajero y por caja">Cierres</Link>
         <button v-if="puede('fondos','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('egreso')" class="btn-secondary">Gasto</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('ingreso')" class="btn-secondary">Ingreso</button>
@@ -39,7 +40,7 @@
             <input v-model="f.desde" @change="filtrar" type="date" class="input !py-1 w-auto text-xs" /><input v-model="f.hasta" @change="filtrar" type="date" class="input !py-1 w-auto text-xs" />
             <template v-if="cuenta?.tipo === 'caja' && puede('fondos','crear')">
               <button v-if="!cuenta.turno" @click="turnoAbierto = true" class="btn-primary !py-1 text-xs">Abrir turno</button>
-              <button v-else @click="cierreAbierto = true" class="btn-violeta !py-1 text-xs">Cerrar turno</button>
+              <template v-else><button @click="arqueoAbierto = true" class="btn-secondary !py-1 text-xs" title="Contar la caja sin cerrar el turno">Arqueo</button><button @click="retiroAbierto = true" class="btn-secondary !py-1 text-xs" title="Sacar efectivo a tesorería o banco">Retiro</button><button @click="cierreAbierto = true" class="btn-violeta !py-1 text-xs">Cerrar turno</button></template>
             </template>
             <button v-if="cuenta && puede('fondos','editar')" @click="abrirCuenta(cuenta)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button>
           </div>
@@ -128,6 +129,17 @@
       <label class="label">Efectivo inicial</label><input v-model.number="ta.saldo_inicial" type="number" step="any" min="0" class="input" />
       <template #pie><button class="btn-secondary" @click="turnoAbierto = false">Cancelar</button><button class="btn-primary" :disabled="ta.processing" @click="ta.post(`/fondos/cuentas/${cuenta.id}/abrir-turno`, { preserveScroll: true, onSuccess: () => (turnoAbierto = false) })">Abrir</button></template>
     </Modal>
+    <Modal :abierto="arqueoAbierto" :titulo="`Arqueo · ${cuenta?.nombre}`" @cerrar="arqueoAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Contá el efectivo ahora. El sistema espera <b class="tabular-nums text-marca-texto">{{ moneda(cuenta?.saldo ?? 0) }}</b>. Queda registrado sin cerrar el turno.</p>
+      <div class="grid grid-cols-2 gap-3"><div><label class="label">Contado</label><input v-model.number="aq.contado" type="number" step="any" min="0" class="input text-right" /></div><div><label class="label">Notas</label><input v-model="aq.notas" class="input" /></div></div>
+      <p v-if="aq.contado !== null && aq.contado !== ''" class="text-sm mt-2 font-semibold" :class="Math.abs(aq.contado - (cuenta?.saldo ?? 0)) < 0.005 ? 'text-emerald-700' : 'text-carmin'">Diferencia: {{ moneda(aq.contado - (cuenta?.saldo ?? 0)) }}</p>
+      <template #pie><button class="btn-secondary" @click="arqueoAbierto = false">Cancelar</button><button class="btn-primary" :disabled="aq.processing || aq.contado === null || aq.contado === ''" @click="aq.post(`/fondos/turnos/${cuenta.turno.id}/arqueo`, { preserveScroll: true, onSuccess: () => { arqueoAbierto = false; aq.reset() } })">Registrar arqueo</button></template>
+    </Modal>
+    <Modal :abierto="retiroAbierto" :titulo="`Retiro de caja · ${cuenta?.nombre}`" @cerrar="retiroAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Sacar efectivo de la caja a tesorería o al banco en medio del turno. Baja lo esperado al cierre.</p>
+      <div class="grid grid-cols-2 gap-3"><div><label class="label">Importe</label><input v-model.number="rt.monto" type="number" step="any" min="0" class="input text-right" /></div><div><label class="label">Va a</label><select v-model="rt.destino_id" class="input"><option v-for="c in cuentas.filter(x => x.id !== cuentaActual && ['banco', 'caja'].includes(x.tipo))" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div><div class="col-span-2"><label class="label">Referencia</label><input v-model="rt.referencia" class="input" placeholder="Depósito, sobre N°…" /></div></div>
+      <template #pie><button class="btn-secondary" @click="retiroAbierto = false">Cancelar</button><button class="btn-primary" :disabled="rt.processing || !rt.monto || !rt.destino_id" @click="rt.post(`/fondos/turnos/${cuenta.turno.id}/retiro`, { preserveScroll: true, onSuccess: () => { retiroAbierto = false; rt.reset() } })">Retirar</button></template>
+    </Modal>
     <Modal :abierto="cierreAbierto" :titulo="`Cerrar turno · ${cuenta?.nombre}`" ancho="max-w-2xl" @cerrar="cierreAbierto = false">
       <p class="text-sm text-marca-muted mb-3">Contá lo que hay por cada medio de pago. El sistema compara con lo que registró en el turno y deja asentada la diferencia. Lo que no completes no se controla.</p>
       <div class="rounded-xl border border-marca-borde divide-y divide-marca-borde/60">
@@ -180,7 +192,9 @@ function abrirMov(tipo) { mv.tipo = tipo; mv.cuenta_fondos_id = props.cuentaActu
 
 const transfAbierto = ref(false)
 const tf = useForm({ desde: props.cuentaActual, hasta: null, monto: null, fecha: hoyISO(), referencia: '' })
-const turnoAbierto = ref(false), cierreAbierto = ref(false), catAbierto = ref(false)
+const turnoAbierto = ref(false), cierreAbierto = ref(false), catAbierto = ref(false), arqueoAbierto = ref(false), retiroAbierto = ref(false)
+const aq = useForm({ contado: null, notas: '' })
+const rt = useForm({ monto: null, destino_id: props.cuentas.find(c => c.tipo === 'banco')?.id ?? null, referencia: '' })
 const ta = useForm({ saldo_inicial: 0 })
 const tc = useForm({ saldo_contado: null, notas: '', rendicion: {} })
 const cat = useForm({ name: '', color: '#4f3089' })

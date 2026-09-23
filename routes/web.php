@@ -222,6 +222,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cuentas/{id}/abrir-turno', [FondosController::class, 'abrirTurno'])->middleware('permiso:fondos,crear');
         Route::post('/turnos/{id}/cerrar',     [FondosController::class, 'cerrarTurno'])->middleware('permiso:fondos,crear');
         Route::get('/turnos/{id}/rendicion',   [FondosController::class, 'rendicion']);
+        Route::get('/cierres',                 [\App\Http\Controllers\Fondos\CierresController::class, 'index']);
+        Route::post('/turnos/{id}/arqueo',     [\App\Http\Controllers\Fondos\CierresController::class, 'arqueo'])->middleware('permiso:fondos,crear');
+        Route::post('/turnos/{id}/retiro',     [\App\Http\Controllers\Fondos\CierresController::class, 'retiro'])->middleware('permiso:fondos,crear');
         Route::get('/valores',                 [\App\Http\Controllers\Fondos\ValoresController::class, 'index']);
         Route::get('/tarjetas',                [\App\Http\Controllers\Fondos\TarjetasController::class, 'index']);
         Route::post('/tarjetas/liquidar',      [\App\Http\Controllers\Fondos\TarjetasController::class, 'liquidar'])->middleware('permiso:fondos,crear');
