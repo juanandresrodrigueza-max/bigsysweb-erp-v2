@@ -2,6 +2,12 @@
   <AppLayout :titulo="vertical === 'minimarket' ? 'Caja' : 'Punto de venta'">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div><h1 class="page-title">{{ vertical === 'minimarket' ? 'Caja rápida' : 'Punto de venta' }}</h1><p class="page-subtitle">Escaneá o buscá, cobrá y sale el ticket. <kbd class="px-1 rounded bg-marca-fondo text-[11px]">F2</kbd> buscar · <kbd class="px-1 rounded bg-marca-fondo text-[11px]">F9</kbd> cobrar</p></div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span class="badge" :class="online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-carmin'"><Icono nombre="wifi" clase="w-3.5 h-3.5 inline" /> {{ online ? 'Con conexión' : 'Sin conexión: las ventas se guardan acá' }}</span>
+        <button v-if="cola.length" class="badge bg-amber-50 text-amber-700" :disabled="!online || sincronizando" @click="sincronizar">{{ sincronizando ? 'Sincronizando…' : `${cola.length} venta${cola.length > 1 ? 's' : ''} por sincronizar` }}</button>
+        <button v-if="posConfig.impresora === 'serial' && tieneSerial" class="badge" :class="impresoraOk ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'" @click="conectarImpresora"><Icono nombre="printer" clase="w-3.5 h-3.5 inline" /> {{ impresoraOk ? 'Impresora conectada' : 'Conectar impresora' }}</button>
+        <button v-if="ultimaVenta?.comprobante_id" class="badge bg-lavanda-light text-violeta" @click="imprimirTicket(ultimaVenta.comprobante_id)"><Icono nombre="printer" clase="w-3.5 h-3.5 inline" /> Imprimir último ticket</button>
+      </div>
       <div class="flex flex-wrap items-center gap-2 text-sm">
         <span v-if="caja" class="badge" :class="caja.turno ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ caja.nombre }} · {{ caja.turno ? `turno abierto ${caja.turno.desde}` : 'sin turno abierto' }}</span>
         <Link v-if="caja && !caja.turno" href="/fondos" class="btn-secondary !py-1 text-xs">Abrir turno</Link>
@@ -96,7 +102,7 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 
-const props = defineProps({ vertical: String, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean })
+const props = defineProps({ vertical: String, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) } })
 const page = usePage()
 const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mercadopago: 'MercadoPago', billetera: 'Billetera' }
 const q = ref(''), rubroSel = ref(null), buscador = ref(null)
@@ -116,8 +122,19 @@ function agregar(p, cant = 1) {
   if (ex) ex.cantidad += cant; else ticket.value.push({ product_id: p.id, descripcion: p.name, cantidad: cant, precio_unit: precioDe(p), descuento: Number(cliente.value?.descuento ?? 0), alicuota_iva: p.iva })
   q.value = ''; nextTick(() => buscador.value?.focus())
 }
+// Balanza: EAN-13 de peso variable (prefijo + 5 dígitos de artículo + 5 de peso/importe + verificador).
+function balanza(t) {
+  const cfg = props.posConfig; const pre = cfg.balanza_prefijo || '2'
+  if (!/^\d{13}$/.test(t) || !t.startsWith(pre)) return null
+  const cod = t.slice(pre.length, pre.length + 5); const val = Number(t.slice(pre.length + 5, pre.length + 10)); const dec = Number(cfg.balanza_decimales ?? 3)
+  const p = props.productos.find(x => x.sku === cod || x.barcode === cod || Number(x.sku) === Number(cod) || (x.barcode && x.barcode.endsWith(cod)))
+  if (!p) return null
+  const cant = cfg.balanza_modo === 'importe' ? Math.round(val / Math.pow(10, 2) / precioDe(p) * 1000) / 1000 : val / Math.pow(10, dec)
+  return { p, cant }
+}
 function enterBuscar() {
   const t = q.value.trim(); if (!t) return
+  const bz = balanza(t); if (bz) { agregar(bz.p, bz.cant); return }
   const porBarra = props.productos.find(p => p.barcode === t) ?? props.productos.find(p => norm(p.sku) === norm(t))
   const p = porBarra ?? visibles.value[0]
   if (p) agregar(p); else { error.value = null }
@@ -133,17 +150,57 @@ const billetes = computed(() => { const t = aCobrar.value; const base = [1000, 2
 function abrirCobro() { if (!ticket.value.length) return; medios.value = [{ medio: 'efectivo', monto: aCobrar.value }]; aCuenta.value = false; error.value = null; cobroAbierto.value = true; nextTick(() => { montoInputs.value?.[0]?.select?.() }) }
 function soloMedio(m) { medios.value = [{ medio: m, monto: aCobrar.value }]; nextTick(() => montoInputs.value?.[0]?.select?.()) }
 function ponerEfectivo(b) { const ef = medios.value.find(m => m.medio === 'efectivo'); if (ef) ef.monto = b }
+// --- Sin conexión: la venta se guarda en el navegador y se sincroniza cuando vuelve internet ---
+const online = ref(navigator.onLine)
+const cola = ref([]); try { cola.value = JSON.parse(localStorage.getItem('pos_cola') || '[]') } catch (e) {}
+const guardarCola = () => { try { localStorage.setItem('pos_cola', JSON.stringify(cola.value)) } catch (e) {} }
+const sincronizando = ref(false)
+async function sincronizar() {
+  if (sincronizando.value || !cola.value.length || !navigator.onLine) return
+  sincronizando.value = true
+  const token = decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
+  for (const v of [...cola.value]) {
+    try {
+      const r = await fetch(`/${props.vertical}/vender`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify(v) })
+      if (r.ok || r.status === 422) { cola.value = cola.value.filter(x => x.offline_id !== v.offline_id); guardarCola(); if (r.ok) { const j = await r.json(); ultimaVenta.value = { comprobante_id: j.comprobante_id, numero: j.numero, total: j.total, vuelto: j.vuelto, sync: true } } }
+      else break
+    } catch (e) { break }
+  }
+  sincronizando.value = false
+}
 function cobrar() {
   if (enviando.value) return
   enviando.value = true; error.value = null
-  router.post(`/${props.vertical}/vender`, { contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0) }, {
+  const datos = { contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0) }
+  if (!navigator.onLine) {
+    cola.value.push({ ...datos, offline_id: 'off-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), fecha_offline: new Date().toISOString() }); guardarCola()
+    ultimaVenta.value = { numero: 'SIN CONEXIÓN', total: totalFinal.value, vuelto: Math.max(0, pagado.value - aCobrar.value), offline: true }
+    ticket.value = []; cobroAbierto.value = false; contactId.value = props.consumidorFinalId; enviando.value = false; nextTick(() => buscador.value?.focus()); return
+  }
+  router.post(`/${props.vertical}/vender`, datos, {
     preserveScroll: true,
-    onSuccess: () => { ultimaVenta.value = page.props.flash?.pos ?? null; ticket.value = []; cobroAbierto.value = false; contactId.value = props.consumidorFinalId; nextTick(() => buscador.value?.focus()) },
+    onSuccess: () => { ultimaVenta.value = page.props.flash?.pos ?? null; ticket.value = []; cobroAbierto.value = false; contactId.value = props.consumidorFinalId; nextTick(() => buscador.value?.focus()); if (ultimaVenta.value?.comprobante_id) imprimirAuto(ultimaVenta.value.comprobante_id) },
     onError: e => { error.value = Object.values(e)[0] },
     onFinish: () => (enviando.value = false),
   })
 }
+// --- Impresora térmica directa (WebSerial) ---
+let puerto = null
+const impresoraOk = ref(false)
+const tieneSerial = 'serial' in navigator
+async function conectarImpresora() { try { puerto = await navigator.serial.requestPort(); await puerto.open({ baudRate: 9600 }); impresoraOk.value = true } catch (e) { impresoraOk.value = false } }
+async function imprimirSerial(id) {
+  if (!puerto) return false
+  try { const bytes = new Uint8Array(await (await fetch(`/${props.vertical}/ticket/${id}/escpos`)).arrayBuffer()); const w = puerto.writable.getWriter(); await w.write(bytes); w.releaseLock(); return true } catch (e) { impresoraOk.value = false; return false }
+}
+async function imprimirTicket(id) {
+  if (props.posConfig.impresora === 'ninguna') return
+  if (props.posConfig.impresora === 'serial' && await imprimirSerial(id)) return
+  window.open(`/${props.vertical}/ticket/${id}`, '_blank')
+}
+function imprimirAuto(id) { if (props.posConfig.imprimir_auto) imprimirTicket(id) }
 function teclas(e) { if (e.key === 'F2') { e.preventDefault(); buscador.value?.focus() } if (e.key === 'F9') { e.preventDefault(); cobroAbierto.value ? cobrar() : abrirCobro() } if (e.key === 'Escape' && cobroAbierto.value) cobroAbierto.value = false }
-onMounted(() => { window.addEventListener('keydown', teclas); buscador.value?.focus() })
-onBeforeUnmount(() => window.removeEventListener('keydown', teclas))
+const onOnline = () => { online.value = true; sincronizar() }; const onOffline = () => (online.value = false)
+onMounted(() => { window.addEventListener('keydown', teclas); window.addEventListener('online', onOnline); window.addEventListener('offline', onOffline); buscador.value?.focus(); sincronizar() })
+onBeforeUnmount(() => { window.removeEventListener('keydown', teclas); window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline) })
 </script>

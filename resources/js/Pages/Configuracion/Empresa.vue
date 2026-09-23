@@ -46,6 +46,28 @@
             </div>
           </div>
         </div>
+        <div class="card">
+          <h2 class="font-bold mb-1">Avisos al dueño por WhatsApp</h2>
+          <p class="text-xs text-marca-muted mb-3">Todos los días a la hora que elijas te llega el resumen (ventas, cobros, caja, vencidos, pedidos web) y, cuando pasa algo crítico, un aviso al momento. {{ whatsappApi ? 'Se manda solo por la API.' : 'Sin API de WhatsApp, te deja el mensaje listo para mandar.' }}</p>
+          <form @submit.prevent="av.post('/configuracion/empresa/avisos', { preserveScroll: true })" class="space-y-2 text-sm">
+            <label class="flex items-center gap-2 font-semibold"><input v-model="av.activo" type="checkbox" class="accent-carmin" /> Activar avisos</label>
+            <input v-model="av.whatsapp" class="input" placeholder="WhatsApp del dueño (549351…)" />
+            <div class="grid grid-cols-2 gap-2"><div><label class="label">Hora del resumen</label><input v-model="av.hora" type="time" class="input" /></div><div class="flex flex-col justify-end gap-1"><label class="flex items-center gap-2"><input v-model="av.resumen_diario" type="checkbox" class="accent-carmin" /> Resumen diario</label><label class="flex items-center gap-2"><input v-model="av.criticas" type="checkbox" class="accent-carmin" /> Alertas críticas</label></div></div>
+            <div class="flex gap-2"><button class="btn-primary flex-1" :disabled="av.processing">Guardar</button><button type="button" class="btn-secondary" @click="router.post('/configuracion/empresa/avisos/resumen', {}, { preserveScroll: true })">Ver resumen de hoy</button></div>
+          </form>
+          <pre v-if="resumenTexto" class="mt-3 text-xs whitespace-pre-wrap bg-marca-fondo rounded-xl p-3">{{ resumenTexto }}</pre>
+        </div>
+        <div class="card">
+          <h2 class="font-bold mb-1">Punto de venta: balanza e impresora</h2>
+          <form @submit.prevent="pf.post('/configuracion/empresa/pos', { preserveScroll: true })" class="space-y-2 text-sm">
+            <p class="text-xs text-marca-muted">Balanza: códigos de peso variable (EAN-13 que empieza con el prefijo). El sistema lee el artículo y la cantidad o el importe.</p>
+            <div class="grid grid-cols-3 gap-2"><div><label class="label">Prefijo</label><input v-model="pf.balanza_prefijo" class="input" maxlength="3" /></div><div><label class="label">Contiene</label><select v-model="pf.balanza_modo" class="input"><option value="peso">Peso (kg)</option><option value="importe">Importe ($)</option></select></div><div><label class="label">Decimales</label><input v-model.number="pf.balanza_decimales" type="number" min="0" max="3" class="input" /></div></div>
+            <p class="text-xs text-marca-muted">Impresora térmica: por el navegador (ventana de impresión) o directo por cable/USB con WebSerial (Chrome/Edge), sin driver.</p>
+            <div class="grid grid-cols-2 gap-2"><div><label class="label">Impresora</label><select v-model="pf.impresora" class="input"><option value="navegador">Ventana del navegador</option><option value="serial">Directa (WebSerial / ESC-POS)</option><option value="ninguna">No imprimir</option></select></div><div><label class="label">Ancho (caracteres)</label><select v-model.number="pf.ancho" class="input"><option :value="32">32 (58 mm)</option><option :value="42">42 (80 mm)</option><option :value="48">48 (80 mm chica)</option></select></div></div>
+            <label class="flex items-center gap-2"><input v-model="pf.imprimir_auto" type="checkbox" class="accent-carmin" /> Imprimir el ticket automáticamente al cobrar</label>
+            <button class="btn-primary w-full" :disabled="pf.processing">Guardar</button>
+          </form>
+        </div>
       </div>
     </div>
   </AppLayout>
@@ -53,11 +75,13 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 
-const props = defineProps({ empresa: Object, plan: Object, modulos: Array })
+const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean })
+const av = useForm({ activo: !!props.avisos?.activo, whatsapp: props.avisos?.whatsapp ?? '', hora: props.avisos?.hora ?? '21:00', resumen_diario: props.avisos?.resumen_diario ?? true, criticas: props.avisos?.criticas ?? true })
+const pf = useForm({ ...props.pos })
 const form = useForm({ ...props.empresa })
 const page = usePage()
 const puedeEditar = computed(() => { const p = page.props.auth?.permisos ?? {}; return !!(p['*'] || p.configuracion?.includes('editar')) })

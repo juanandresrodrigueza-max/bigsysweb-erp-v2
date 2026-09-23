@@ -11,6 +11,7 @@ return [
         'clientes'      => ['label' => 'Clientes',       'icono' => 'users',     'grupo' => 'Comercial', 'ruta' => '/clientes',      'core' => true,  'disponible' => true],
         'proveedores'   => ['label' => 'Proveedores',    'icono' => 'truck',     'grupo' => 'Compras',   'ruta' => '/proveedores',   'core' => true,  'disponible' => true],
         'stock'         => ['label' => 'Stock',          'icono' => 'boxes',     'grupo' => 'Operación', 'ruta' => '/stock',         'core' => true,  'disponible' => true],
+        'agenda'        => ['label' => 'Agenda',         'icono' => 'calendar',  'grupo' => 'Operación', 'ruta' => '/agenda',        'core' => false, 'disponible' => true],
         'produccion'    => ['label' => 'Producción',     'icono' => 'factory',   'grupo' => 'Operación', 'ruta' => '/produccion',    'core' => false, 'disponible' => true],
         'fondos'        => ['label' => 'Fondos',         'icono' => 'wallet',    'grupo' => 'Finanzas',  'ruta' => '/fondos',        'core' => true,  'disponible' => true],
         'contable'      => ['label' => 'Contable',       'icono' => 'book',      'grupo' => 'Finanzas',  'ruta' => '/contable',      'core' => false, 'disponible' => true],

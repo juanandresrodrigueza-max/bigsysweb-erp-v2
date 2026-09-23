@@ -46,7 +46,7 @@ class PlanSeeder extends Seeder
                 'max_products'   => 5000,
                 'is_free'        => false,
                 'is_active'      => true,
-                'features'       => ['comprobantes', 'clientes', 'proveedores', 'stock', 'produccion', 'fondos', 'contable', 'estadisticas', 'afip', 'crm', 'mercadopago', 'tiendanube', 'retail', 'minimarket', 'gastronomia'],
+                'features'       => ['comprobantes', 'clientes', 'proveedores', 'stock', 'produccion', 'agenda', 'fondos', 'contable', 'estadisticas', 'afip', 'crm', 'mercadopago', 'tiendanube', 'retail', 'minimarket', 'gastronomia'],
             ],
             [
                 'name'           => 'Enterprise',

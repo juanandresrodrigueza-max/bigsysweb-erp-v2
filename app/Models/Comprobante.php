@@ -34,7 +34,7 @@ class Comprobante extends Model
         'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'fce', 'fce_estado', 'fce_vto_pago', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
-        'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en',
+        'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id',
         'numero_proveedor', 'cae_proveedor', 'origen_carga',
     ];
 

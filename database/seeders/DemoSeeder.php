@@ -286,6 +286,18 @@ class DemoSeeder extends Seeder
             \App\Models\Booking::create(['business_id' => $empresa->id, 'location_id' => $central->id, 'starts_at' => today()->addDay()->setTime(21, 0), 'ends_at' => today()->addDay()->setTime(23, 0), 'status' => 'pending', 'price' => 0, 'nombre' => 'Familia Gómez', 'telefono' => '3515559999', 'personas' => 4, 'origen' => 'web', 'token' => \Illuminate\Support\Str::random(40), 'notes' => 'Cumpleaños']);
             foreach (\App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $empresa->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereIn('tipo', ['FA', 'FB'])->orderBy('id')->limit(15)->get() as $cf) app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($cf);
 
+            // Fase 12: servicios con agenda de turnos, avisos al dueño y POS configurado (balanza / impresora)
+            $empresa->update([
+                'avisos' => ['activo' => true, 'whatsapp' => '5493515550100', 'hora' => '21:00', 'resumen_diario' => true, 'criticas' => true, 'ultimo_resumen' => null, 'ultima_critica_id' => 0],
+                'pos' => ['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42],
+            ]);
+            $servicios = collect([['Colocación de cerámicos (m²)', 'SRV-COL', 9500, 60], ['Asesoramiento en obra', 'SRV-ASE', 25000, 90], ['Flete y descarga', 'SRV-FLE', 18000, 45]])
+                ->map(fn($s) => Product::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'rubro_id' => $rubros->first()->id, 'name' => $s[0], 'sku' => $s[1], 'tipo' => 'servicio', 'unit' => 'un', 'cost' => 0, 'price' => $s[2], 'iva' => 21, 'stock' => 0, 'active' => true, 'controla_stock' => false]));
+            $clientesAg = Contact::customers()->where('business_id', $empresa->id)->where('name', '!=', 'Consumidor Final')->orderBy('id')->limit(4)->get();
+            $mk = fn($dias, $h, $srv, $cli, $st) => \App\Models\Booking::create(['business_id' => $empresa->id, 'location_id' => $central->id, 'contact_id' => $cli?->id, 'service_id' => $srv->id, 'assigned_to' => $dueno->id, 'starts_at' => today()->addDays($dias)->setTime($h, 0), 'ends_at' => today()->addDays($dias)->setTime($h, 0)->addMinutes(60), 'status' => $st, 'price' => $srv->price, 'personas' => 1, 'origen' => 'manual', 'token' => \Illuminate\Support\Str::random(40)]);
+            $mk(0, 9, $servicios[0], $clientesAg[0] ?? null, 'confirmed'); $mk(0, 11, $servicios[1], $clientesAg[1] ?? null, 'pending'); $mk(0, 15, $servicios[2], $clientesAg[2] ?? null, 'completed');
+            $mk(1, 10, $servicios[0], $clientesAg[3] ?? null, 'confirmed'); $mk(2, 16, $servicios[1], $clientesAg[0] ?? null, 'pending'); $mk(-1, 14, $servicios[2], $clientesAg[1] ?? null, 'completed');
+
             // Contabilidad: asientos de todo lo anterior + extracto bancario de prueba (con dos movimientos que el sistema no tiene)
             app(\App\Services\Contabilidad\ContabilidadService::class)->sincronizar($empresa->id);
             $csv = "Fecha;Concepto;Importe;Saldo\n";

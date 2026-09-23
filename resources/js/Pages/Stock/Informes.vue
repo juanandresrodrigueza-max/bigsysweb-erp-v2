@@ -40,6 +40,7 @@
     <template v-else-if="tipo === 'faltantes'">
       <div class="flex flex-wrap gap-3 items-end mb-4">
         <div><label class="label">Cubrir</label><select :value="datos.cobertura" class="input" @change="ir({ cobertura: $event.target.value })"><option :value="15">15 días</option><option :value="30">30 días</option><option :value="60">60 días</option></select></div>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" :checked="!!filtros.estacional" class="accent-carmin" @change="ir({ estacional: $event.target.checked ? 1 : '' })" /> Compra inteligente (mira la temporada del año pasado)</label>
         <div class="card py-2 px-4"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Compra sugerida</p><p class="text-lg font-extrabold tabular-nums">{{ moneda(datos.total, 0) }}</p><p class="text-[11px] text-marca-muted">{{ datos.filas.length }} artículos</p></div>
         <Link v-if="datos.filas.length" :href="`/proveedores/ordenes/nueva`" class="btn-primary ml-auto">Armar órdenes de compra</Link>
       </div>

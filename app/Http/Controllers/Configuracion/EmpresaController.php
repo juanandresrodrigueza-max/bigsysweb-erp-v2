@@ -15,6 +15,7 @@ class EmpresaController extends Controller
         $sub = $b->activeSubscription;
 
         return Inertia::render('Configuracion/Empresa', [
+            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
             'empresa' => [
                 'name' => $b->name, 'razon_social' => $b->razon_social, 'cuit' => $b->cuit, 'email' => $b->email,
                 'phone' => $b->phone, 'condicion_iva' => $b->condicion_iva ?? 'Responsable Inscripto',
@@ -47,5 +48,30 @@ class EmpresaController extends Controller
         AuditLog::registrar('editar', $b, 'Datos de la empresa', $antes, $data);
 
         return back()->with('success', 'Datos de la empresa guardados.');
+    }
+
+    public function guardarAvisos(Request $request, \App\Services\Ventas\AvisosDuenoService $svc)
+    {
+        $d = $request->validate(['activo' => 'boolean', 'whatsapp' => 'nullable|string|max:40', 'hora' => 'required|date_format:H:i', 'resumen_diario' => 'boolean', 'criticas' => 'boolean']);
+        $b = $request->user()->business;
+        $b->update(['avisos' => array_replace($svc->config($b), $d)]);
+        AuditLog::registrar('editar', $b, 'Configuró los avisos al dueño por WhatsApp');
+        return back()->with('success', 'Avisos guardados.');
+    }
+
+    public function resumenAhora(Request $request, \App\Services\Ventas\AvisosDuenoService $svc)
+    {
+        $b = $request->user()->business; $c = $svc->config($b);
+        $texto = $svc->resumen($b);
+        $r = $c['whatsapp'] ? app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $c['whatsapp'], $texto) : ['enviado' => false, 'link' => null];
+        return back()->with('resumen_texto', $texto)->with('success', $r['enviado'] ? 'Resumen enviado por WhatsApp.' : 'Este es el resumen de hoy.')->with('abrir', $r['link']);
+    }
+
+    public function guardarPos(Request $request)
+    {
+        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna', 'ancho' => 'required|integer|in:32,42,48']);
+        $b = $request->user()->business;
+        $b->update(['pos' => array_replace($b->pos ?? [], $d)]);
+        return back()->with('success', 'Punto de venta configurado.');
     }
 }

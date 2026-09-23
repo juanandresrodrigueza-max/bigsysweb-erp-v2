@@ -17,6 +17,11 @@ class InformesStockService
             ->whereNotNull('comprobante_items.product_id')->selectRaw('comprobante_items.product_id, SUM(comprobante_items.cantidad) as cant, SUM(comprobante_items.neto) as neto, MAX(comprobantes.fecha) as ultima')->groupBy('comprobante_items.product_id')->get()->keyBy('product_id');
     }
 
+    private function ventasEntre(\Carbon\Carbon $d, \Carbon\Carbon $h): \Illuminate\Support\Collection
+    {
+        return ComprobanteItem::join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->where('comprobantes.business_id', Auth::user()->business_id)->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', ['FA', 'FB', 'FC', 'FE', 'REM'])->whereBetween('comprobantes.fecha', [$d->toDateString(), $h->toDateString()])->whereNotNull('comprobante_items.product_id')->selectRaw('comprobante_items.product_id, SUM(comprobante_items.cantidad) as cant')->groupBy('comprobante_items.product_id')->get()->keyBy('product_id');
+    }
+
     public function valorizado(string $base = 'cost', ?int $rubroId = null): array
     {
         $ps = Product::with('rubro:id,nombre')->where('active', true)->where('controla_stock', true)->when($rubroId, fn($q, $r) => $q->where('rubro_id', $r))->get();
@@ -41,12 +46,15 @@ class InformesStockService
     }
 
     // Faltantes: cuánto comprar para cubrir X días de venta según el ritmo de los últimos 90.
-    public function faltantes(int $cobertura = 30, int $base = 90): array
+    public function faltantes(int $cobertura = 30, int $base = 90, bool $estacional = false): array
     {
         $v = $this->ventas($base);
+        // Compra inteligente: si el mismo período del año pasado vendió más, se toma esa demanda (temporada).
+        $vAnt = $estacional ? $this->ventasEntre(today()->subYear()->subDays(15), today()->subYear()->addDays($cobertura + 15)) : collect();
         $out = [];
         foreach (Product::with('proveedor:id,name')->where('active', true)->where('controla_stock', true)->whereIn('tipo', ['producto', 'insumo'])->get() as $p) {
             $diaria = (float) ($v[$p->id]->cant ?? 0) / $base;
+            if ($estacional && isset($vAnt[$p->id])) $diaria = max($diaria, (float) $vAnt[$p->id]->cant / ($cobertura + 30));
             $necesario = $diaria * $cobertura;
             $dias = $diaria > 0 ? (float) $p->stock / $diaria : null;
             $pedir = round(max(0, $necesario - (float) $p->stock), 3);
@@ -55,7 +63,7 @@ class InformesStockService
             $out[] = ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'proveedor' => $p->proveedor?->name, 'proveedor_id' => $p->proveedor_id, 'stock' => (float) $p->stock, 'minimo' => (float) $p->stock_min, 'venta_diaria' => round($diaria, 3), 'dias_stock' => $dias === null ? null : round($dias), 'pedir' => $pedir, 'costo' => round($pedir * (float) ($p->precio_compra ?: $p->cost), 2)];
         }
         usort($out, fn($a, $b) => ($a['dias_stock'] ?? 9999) <=> ($b['dias_stock'] ?? 9999));
-        return ['filas' => $out, 'total' => round(array_sum(array_column($out, 'costo')), 2), 'cobertura' => $cobertura];
+        return ['filas' => $out, 'total' => round(array_sum(array_column($out, 'costo')), 2), 'cobertura' => $cobertura, 'estacional' => $estacional];
     }
 
     // Artículos con stock y sin ventas en $dias días: plata parada.

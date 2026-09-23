@@ -298,11 +298,22 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/ejercicio/ajuste',           [\App\Http\Controllers\Contable\EjercicioController::class, 'ajuste'])->middleware('permiso:contable,crear');
         Route::get('/diario',                      [\App\Http\Controllers\Contable\EjercicioController::class, 'diario']);
         Route::get('/contador',                    [\App\Http\Controllers\Contable\ContadorController::class, 'index']);
+        Route::get('/cashflow',                    [\App\Http\Controllers\Contable\CashFlowController::class, 'index']);
         Route::get('/contador/exportar',           [\App\Http\Controllers\Contable\ContadorController::class, 'exportar'])->middleware('permiso:contable,exportar');
         Route::post('/contador/invitar',           [\App\Http\Controllers\Contable\ContadorController::class, 'invitar'])->middleware('permiso:configuracion,editar');
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware('permiso:estadisticas');
+
+    // Agenda de turnos
+    Route::prefix('agenda')->middleware('permiso:agenda')->group(function () {
+        Route::get('/',                 [\App\Http\Controllers\AgendaController::class, 'index']);
+        Route::post('/turnos/{id?}',    [\App\Http\Controllers\AgendaController::class, 'guardar'])->middleware('permiso:agenda,crear');
+        Route::post('/turnos/{id}/estado',   [\App\Http\Controllers\AgendaController::class, 'estado'])->middleware('permiso:agenda,editar');
+        Route::post('/turnos/{id}/recordar', [\App\Http\Controllers\AgendaController::class, 'recordar'])->middleware('permiso:agenda,editar');
+        Route::post('/turnos/{id}/cobrar',   [\App\Http\Controllers\AgendaController::class, 'cobrar'])->middleware('permiso:agenda,crear');
+    });
 
     // Envíos por mail / WhatsApp desde cualquier pantalla
     Route::post('/envios',              [\App\Http\Controllers\EnviosController::class, 'enviar']);
@@ -315,6 +326,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::get('/',            [\App\Http\Controllers\Pos\PosController::class, 'index']);
             Route::post('/vender',     [\App\Http\Controllers\Pos\PosController::class, 'vender'])->middleware("permiso:{$v},crear");
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
+            Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);
         });
     }
 
@@ -342,6 +354,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
         Route::post('/empresa',    [EmpresaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('empresa.guardar');
+        Route::post('/empresa/avisos', [EmpresaController::class, 'guardarAvisos'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/avisos/resumen', [EmpresaController::class, 'resumenAhora'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/pos', [EmpresaController::class, 'guardarPos'])->middleware('permiso:configuracion,editar');
 
         Route::get('/sucursales',            [SucursalesController::class, 'index'])->name('sucursales');
         Route::post('/sucursales/{id?}',     [SucursalesController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('sucursales.guardar');

@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#e4003f" />
     <title inertia>BigSysWeb ERP</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}))</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
 </head>

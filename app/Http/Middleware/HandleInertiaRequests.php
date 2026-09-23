@@ -65,6 +65,7 @@ class HandleInertiaRequests extends Middleware
                 'envio_id' => fn() => $request->session()->get('envio_id'),
                 'preview'  => fn() => $request->session()->get('preview'),
                 'interpretacion' => fn() => $request->session()->get('interpretacion'),
+                'resumen_texto' => fn() => $request->session()->get('resumen_texto'),
                 'totp_setup' => fn() => $request->session()->get('totp_setup'),
                 'totp_codigos' => fn() => $request->session()->get('totp_codigos'),
                 'token_nuevo' => fn() => $request->session()->get('token_nuevo'),
