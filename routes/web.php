@@ -248,6 +248,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
         Route::delete('/rubros/{id}',            [\App\Http\Controllers\Stock\StockController::class, 'eliminarRubro'])->middleware('permiso:stock,editar');
+        Route::post('/precios/previsualizar', [\App\Http\Controllers\Stock\StockController::class, 'previsualizarPrecios'])->middleware('permiso:stock,editar');
+        Route::post('/precios/deshacer', [\App\Http\Controllers\Stock\StockController::class, 'deshacerPrecios'])->middleware('permiso:stock,editar');
         Route::post('/precios',                  [\App\Http\Controllers\Stock\StockController::class, 'actualizarPrecios'])->middleware('permiso:stock,editar');
         Route::post('/cotizacion',               [\App\Http\Controllers\Stock\StockController::class, 'cotizacion'])->middleware('permiso:stock,editar');
         Route::get('/importar',                  [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'index'])->middleware('permiso:stock,editar');
@@ -447,6 +449,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/importar',              [\App\Http\Controllers\Configuracion\ImportarController::class, 'index'])->middleware('permiso:configuracion,editar');
         Route::post('/importar/previsualizar', [\App\Http\Controllers\Configuracion\ImportarController::class, 'previsualizar'])->middleware('permiso:configuracion,editar');
         Route::post('/importar/aplicar',     [\App\Http\Controllers\Configuracion\ImportarController::class, 'aplicar'])->middleware('permiso:configuracion,editar');
+        Route::get('/importar/plantilla/{entidad}', [\App\Http\Controllers\Configuracion\ImportarController::class, 'plantilla']);
+        Route::get('/importar/exportar/{entidad}',  [\App\Http\Controllers\Configuracion\ImportarController::class, 'exportar'])->middleware('permiso:configuracion,exportar');
         Route::get('/datos',                 [\App\Http\Controllers\Configuracion\DatosController::class, 'index']);
         Route::post('/datos/backup',         [\App\Http\Controllers\Configuracion\DatosController::class, 'crear'])->middleware('permiso:configuracion,editar');
         Route::get('/datos/backups/{id}',    [\App\Http\Controllers\Configuracion\DatosController::class, 'descargar'])->middleware('permiso:configuracion,editar');

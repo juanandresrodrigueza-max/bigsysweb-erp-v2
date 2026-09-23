@@ -31,10 +31,23 @@ class ImportarController extends Controller
 
     public function aplicar(Request $request, ImportadorService $svc)
     {
-        $d = $request->validate(['entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES)), 'archivo' => 'nullable|string', 'filas' => 'required|array|min:1', 'mapeo' => 'required|array', 'stock_inicial' => 'boolean', 'saldos' => 'boolean', 'fecha_saldos' => 'nullable|date']);
+        $d = $request->validate(['entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES)), 'archivo' => 'nullable|string', 'filas' => 'required|array|min:1', 'mapeo' => 'required|array', 'stock_inicial' => 'boolean', 'ajustar_stock' => 'boolean', 'saldos' => 'boolean', 'reemplazar_saldos' => 'boolean', 'fecha_saldos' => 'nullable|date']);
         $mapeo = collect($d['mapeo'])->filter(fn($v) => $v !== null && $v !== '')->all();
         if (! $mapeo) return back()->withErrors(['mapeo' => 'Asigná al menos la columna de nombre o descripción.']);
-        $imp = $svc->aplicar($d['entidad'], $d['filas'], $mapeo, ['archivo' => $d['archivo'] ?? null, 'stock_inicial' => $d['stock_inicial'] ?? true, 'saldos' => $d['saldos'] ?? true, 'fecha_saldos' => $d['fecha_saldos'] ?? null]);
+        $imp = $svc->aplicar($d['entidad'], $d['filas'], $mapeo, ['archivo' => $d['archivo'] ?? null, 'stock_inicial' => $d['stock_inicial'] ?? true, 'ajustar_stock' => $d['ajustar_stock'] ?? false, 'saldos' => $d['saldos'] ?? true, 'reemplazar_saldos' => $d['reemplazar_saldos'] ?? false, 'fecha_saldos' => $d['fecha_saldos'] ?? null]);
         return back()->with('success', "Importación lista: {$imp->creadas} nuevos, {$imp->actualizadas} actualizados" . ($imp->errores ? ", {$imp->errores} con error (mirá el detalle abajo)" : '') . '.');
+    }
+
+    public function plantilla(string $entidad, ImportadorService $svc)
+    {
+        abort_if(! isset(ImportadorService::PLANTILLAS[$entidad]), 404);
+        return response($svc->plantillaCsv($entidad), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=plantilla_{$entidad}.csv"]);
+    }
+
+    public function exportar(string $entidad, ImportadorService $svc)
+    {
+        abort_if(! isset(ImportadorService::PLANTILLAS[$entidad]), 404);
+        \App\Models\AuditLog::registrar('exportar', null, "Exportó {$entidad} a CSV");
+        return response($svc->exportarCsv($entidad), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename={$entidad}_" . today()->toDateString() . '.csv']);
     }
 }

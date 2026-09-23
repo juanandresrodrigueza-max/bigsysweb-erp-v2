@@ -9,6 +9,7 @@
         <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
         <Link href="/proveedores/compras" class="btn-secondary">Compras</Link>
         <Link v-if="puede('proveedores','crear')" href="/proveedores/compras/nueva" class="btn-secondary">Cargar factura</Link>
+        <a href="/configuracion/importar/exportar/proveedores" class="btn-secondary">Exportar CSV</a>
         <button v-if="puede('proveedores','crear')" @click="editar(null)" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nuevo proveedor</button>
       </div>
     </div>

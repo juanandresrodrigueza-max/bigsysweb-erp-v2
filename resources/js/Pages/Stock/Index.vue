@@ -6,6 +6,7 @@
         <Link href="/stock/movimientos" class="btn-secondary">Movimientos</Link>
         <Link v-if="puede('stock','editar')" href="/stock/inventario" class="btn-secondary">Inventario</Link>
         <button v-if="puede('stock','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
+        <a href="/configuracion/importar/exportar/articulos" class="btn-secondary" title="Todos los artículos con sus 6 listas, stock y descuentos">Exportar CSV</a>
         <button v-if="puede('stock','editar')" @click="preciosAbierto = true" class="btn-secondary">Actualizar precios</button>
         <Link v-if="puede('stock','editar')" href="/stock/importar" class="btn-secondary">Importar lista</Link>
         <Link href="/stock/informes" class="btn-secondary">Informes</Link>
@@ -78,16 +79,33 @@
     </Modal>
 
     <!-- Actualizar precios -->
-    <Modal :abierto="preciosAbierto" titulo="Actualizar precios en bloque" @cerrar="preciosAbierto = false">
+    <Modal :abierto="preciosAbierto" titulo="Actualizar precios en bloque" ancho="max-w-2xl" @cerrar="preciosAbierto = false">
+      <div class="flex gap-1 bg-marca-fondo rounded-xl p-1 mb-4 text-sm">
+        <button v-for="m in [['porcentaje', 'Subir o bajar un %'], ['margen', 'Recalcular por margen desde el costo']]" :key="m[0]" @click="pr.modo = m[0]" class="flex-1 py-1.5 rounded-lg font-semibold transition" :class="pr.modo === m[0] ? 'bg-white shadow' : 'text-marca-muted'">{{ m[1] }}</button>
+      </div>
       <div class="grid sm:grid-cols-2 gap-4">
-        <div><label class="label">Porcentaje</label><input v-model.number="pr.porcentaje" type="number" step="any" class="input" placeholder="Ej: 8 (o -5 para bajar)" /><p v-if="pr.errors.porcentaje" class="text-carmin text-xs mt-1">{{ pr.errors.porcentaje }}</p></div>
-        <div><label class="label">Sobre</label><select v-model="pr.campo" class="input"><option value="price">Precios de venta (todas las listas)</option><option value="cost">Costos</option><option value="ambos">Precios y costos</option></select></div>
+        <template v-if="pr.modo === 'porcentaje'">
+          <div><label class="label">Porcentaje</label><input v-model.number="pr.porcentaje" type="number" step="any" class="input" placeholder="Ej: 8 (o -5 para bajar)" /><p v-if="pr.errors.porcentaje" class="text-carmin text-xs mt-1">{{ pr.errors.porcentaje }}</p></div>
+          <div><label class="label">Sobre</label><select v-model="pr.campo" class="input"><option value="price">Precios de venta</option><option value="cost">Costos</option><option value="ambos">Precios y costos</option></select></div>
+          <div v-if="pr.campo !== 'cost'" class="sm:col-span-2"><label class="label">Listas a tocar</label><div class="flex flex-wrap gap-2"><label v-for="n in 6" :key="n" class="flex items-center gap-1 text-sm px-2 py-1 rounded-lg border" :class="pr.listas.includes(n) ? 'border-violeta bg-violeta/5' : 'border-marca-borde'"><input type="checkbox" class="accent-violeta" :checked="pr.listas.includes(n)" @change="pr.listas = $event.target.checked ? [...pr.listas, n] : pr.listas.filter(x => x !== n)" /> Lista {{ n }}</label></div><p class="text-[11px] text-marca-muted mt-1">Sin ninguna marcada se actualizan todas.</p></div>
+        </template>
+        <p v-else class="sm:col-span-2 text-sm text-marca-muted">Vuelve a calcular las listas de cada artículo con sus márgenes sobre el costo actual. Solo toca los artículos que tienen márgenes cargados. Útil después de subir costos o de importar una lista del proveedor.</p>
         <div><label class="label">Solo el rubro</label><select v-model="pr.rubro_id" class="input"><option :value="null">Todos</option><option v-for="r in rubros" :key="r.id" :value="r.id">{{ r.completo }}</option></select></div>
         <div><label class="label">Solo el proveedor</label><select v-model="pr.proveedor_id" class="input"><option :value="null">Todos</option><option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.name }}</option></select></div>
+        <div><label class="label">Solo la marca</label><input v-model="pr.marca" class="input" list="marcas" placeholder="Todas" /><datalist id="marcas"><option v-for="m in marcas" :key="m" :value="m" /></datalist></div>
         <div><label class="label">Redondear a</label><select v-model="pr.redondeo" class="input"><option value="0">Centavos</option><option value="1">$1</option><option value="10">$10</option><option value="100">$100</option></select></div>
+        <div class="sm:col-span-2"><label class="label">Que el nombre o código contenga</label><input v-model="pr.buscar" class="input" placeholder="Opcional, ej: cemento" /></div>
       </div>
-      <p class="text-xs text-marca-muted mt-3">Queda registrado en auditoría quién lo hizo y cuándo. La fecha de última actualización se ve en cada artículo.</p>
-      <template #pie><button class="btn-secondary" @click="preciosAbierto = false">Cancelar</button><button class="btn-primary" :disabled="pr.processing || !pr.porcentaje" @click="pr.post('/stock/precios', { preserveScroll: true, onSuccess: () => (preciosAbierto = false) })">Aplicar {{ pr.porcentaje ? pr.porcentaje + '%' : '' }}</button></template>
+      <div class="mt-3 rounded-xl bg-marca-fondo p-3 text-sm">
+        <div class="flex items-center justify-between"><span class="font-semibold">Vista previa</span><button class="btn-ghost !py-1 text-xs" @click="previsualizar" :disabled="prevCargando || (pr.modo === 'porcentaje' && !pr.porcentaje)">{{ prevCargando ? 'Calculando…' : 'Calcular' }}</button></div>
+        <template v-if="prev">
+          <p class="text-xs mt-1">Se van a tocar <b>{{ prev.n }}</b> artículos. Ejemplos:</p>
+          <table class="table text-xs mt-1"><tbody><tr v-for="e in prev.ejemplos" :key="e.sku"><td>{{ e.nombre }}</td><td class="text-right tabular-nums"><template v-if="pr.campo !== 'cost' || pr.modo === 'margen'">{{ moneda(e.antes) }} → <b>{{ moneda(e.despues) }}</b></template><template v-else>costo {{ moneda(e.costo_antes) }} → <b>{{ moneda(e.costo_despues) }}</b></template></td></tr></tbody></table>
+        </template>
+        <p v-else class="text-xs text-marca-muted mt-1">Calculá antes de aplicar para ver cuántos artículos cambian y cómo quedan.</p>
+      </div>
+      <p class="text-xs text-marca-muted mt-3">Queda en auditoría quién lo hizo y cuándo, y se puede deshacer la última actualización durante 7 días.</p>
+      <template #pie><button class="btn-ghost text-carmin" @click="router.post('/stock/precios/deshacer', {}, { preserveScroll: true, onSuccess: () => (preciosAbierto = false) })">Deshacer la última</button><span class="flex-1"></span><button class="btn-secondary" @click="preciosAbierto = false">Cancelar</button><button class="btn-primary" :disabled="pr.processing || (pr.modo === 'porcentaje' && !pr.porcentaje)" @click="pr.post('/stock/precios', { preserveScroll: true, onSuccess: () => { preciosAbierto = false; prev = null } })">{{ pr.modo === 'margen' ? 'Recalcular' : 'Aplicar ' + (pr.porcentaje ? pr.porcentaje + '%' : '') }}</button></template>
     </Modal>
 
     <!-- Rubros y depósitos -->
@@ -153,7 +171,10 @@ const opcionesArticulos = computed(() => props.lista.data.filter(p => p.controla
 
 const preciosAbierto = ref(false), dolarAbierto = ref(false)
 const dol = useForm({ venta: null })
-const pr = useForm({ porcentaje: null, campo: 'price', rubro_id: null, proveedor_id: null, redondeo: '10' })
+const pr = useForm({ modo: 'porcentaje', porcentaje: null, campo: 'price', rubro_id: null, proveedor_id: null, marca: '', listas: [], redondeo: '10', buscar: '' })
+const prev = ref(null), prevCargando = ref(false)
+const marcas = computed(() => [...new Set((props.lista?.data ?? props.lista ?? []).map(a => a.marca).filter(Boolean))].sort())
+async function previsualizar() { prevCargando.value = true; try { const r = await fetch('/stock/precios/previsualizar', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify(pr.data()) }); prev.value = r.ok ? await r.json() : null } catch (e) { prev.value = null } finally { prevCargando.value = false } }
 
 const configAbierto = ref(false)
 const rubro = useForm({ id: null, nombre: '', parent_id: null, color: '#4f3089' })

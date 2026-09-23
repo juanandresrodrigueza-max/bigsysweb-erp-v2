@@ -27,9 +27,17 @@
             </table>
           </div>
           <div class="flex flex-wrap gap-4 items-end mt-4">
-            <label v-if="preview.entidad === 'articulos'" class="flex items-center gap-2 text-sm"><input v-model="ap.stock_inicial" type="checkbox" class="accent-carmin" /> Cargar el stock inicial de los artículos nuevos</label>
+            <template v-if="preview.entidad === 'articulos'">
+              <label class="flex items-center gap-2 text-sm"><input v-model="ap.stock_inicial" type="checkbox" class="accent-carmin" /> Cargar el stock inicial de los artículos nuevos</label>
+              <label class="flex items-center gap-2 text-sm"><input v-model="ap.ajustar_stock" type="checkbox" class="accent-carmin" /> Ajustar el stock de los que ya existen al valor del archivo</label>
+            </template>
+            <template v-else-if="preview.entidad.startsWith('saldos')">
+              <label class="flex items-center gap-2 text-sm"><input v-model="ap.reemplazar_saldos" type="checkbox" class="accent-carmin" /> Si el comprobante ya estaba cargado, reemplazarlo</label>
+              <div><label class="label">Fecha si la fila no la trae</label><input v-model="ap.fecha_saldos" type="date" class="input" /></div>
+            </template>
             <template v-else>
               <label class="flex items-center gap-2 text-sm"><input v-model="ap.saldos" type="checkbox" class="accent-carmin" /> Cargar los saldos iniciales en cuenta corriente</label>
+              <label v-if="ap.saldos" class="flex items-center gap-2 text-sm"><input v-model="ap.reemplazar_saldos" type="checkbox" class="accent-carmin" /> Reemplazar el saldo inicial de los que ya existen</label>
               <div v-if="ap.saldos"><label class="label">Fecha de los saldos</label><input v-model="ap.fecha_saldos" type="date" class="input" /></div>
             </template>
             <button class="btn-primary ml-auto" :disabled="ap.processing || !Object.values(ap.mapeo).some(Boolean)" @click="aplicar">{{ ap.processing ? 'Importando…' : `Importar ${preview.total} filas` }}</button>
@@ -43,11 +51,17 @@
         <ul class="text-sm text-marca-muted space-y-2 list-disc pl-4">
           <li>Primera fila con los nombres de columna (ej. <code>Nombre;CUIT;Saldo</code>).</li>
           <li><b>Clientes / proveedores:</b> nombre obligatorio; CUIT, condición IVA, email, teléfono, dirección, lista, límite y saldo son opcionales.</li>
-          <li><b>Artículos:</b> descripción obligatoria; código, barras, rubro, costo, precios por lista, IVA y stock son opcionales. El rubro se crea si no existe.</li>
+          <li><b>Artículos:</b> descripción obligatoria; código, barras, rubro, costo, 6 listas, IVA, stock y descuentos por cantidad son opcionales. El rubro se crea si no existe; con <code>Hierros / Aletado / Chicos</code> se crean los niveles.</li>
+          <li><b>Saldos por comprobante:</b> una fila por factura pendiente con fecha, vencimiento e importe. Así funcionan mora, antigüedad y cobranzas desde el primer día.</li>
           <li>Saldo positivo = el cliente te debe (o le debés al proveedor). Negativo = a favor.</li>
           <li>Podés importar varias veces: lo existente se actualiza.</li>
         </ul>
-        <p class="text-xs text-marca-muted mt-3">Del BigSys viejo: exportá cada listado a Excel desde el menú Listados y subilo acá tal cual.</p>
+        <p class="text-xs text-marca-muted mt-3">Del BigSys viejo: exportá cada listado a Excel desde el menú Listados y subilo acá tal cual. Orden recomendado: proveedores, clientes, artículos y por último los saldos por comprobante.</p>
+        <div class="mt-4 pt-3 border-t border-marca-borde">
+          <p class="label">Plantillas y exportación</p>
+          <p class="text-xs text-marca-muted mb-2">Bajá la plantilla con un ejemplo, completala y subila. La exportación usa las mismas columnas: sirve de backup y para pasar datos entre empresas.</p>
+          <div v-for="e in entidades" :key="e.key" class="flex items-center justify-between gap-2 py-1 text-xs border-t border-marca-borde/60 first:border-0"><span class="truncate">{{ e.label }}</span><span class="flex gap-2 shrink-0"><a :href="`/configuracion/importar/plantilla/${e.key}`" class="text-violeta font-semibold">Plantilla</a><a :href="`/configuracion/importar/exportar/${e.key}`" class="text-carmin font-semibold">Exportar</a></span></div>
+        </div>
       </div>
     </div>
 
@@ -78,7 +92,7 @@ const page = usePage()
 const preview = computed(() => page.props.flash?.preview)
 const entidadActual = computed(() => props.entidades.find(e => e.key === (preview.value?.entidad ?? sub.entidad)) ?? props.entidades[0])
 const sub = useForm({ entidad: 'clientes', archivo: null })
-const ap = useForm({ entidad: '', archivo: '', filas: [], mapeo: {}, stock_inicial: true, saldos: true, fecha_saldos: hoyISO() })
+const ap = useForm({ entidad: '', archivo: '', filas: [], mapeo: {}, stock_inicial: true, ajustar_stock: false, saldos: true, reemplazar_saldos: false, fecha_saldos: hoyISO() })
 watch(preview, p => { if (p) { ap.entidad = p.entidad; ap.archivo = p.archivo; ap.filas = p.filas; ap.mapeo = Object.fromEntries(p.encabezado.map((_, i) => [String(i), p.mapeo?.[i] ?? null])) } }, { immediate: true })
 function aplicar() { ap.post('/configuracion/importar/aplicar', { preserveScroll: true, onSuccess: () => router.get('/configuracion/importar') }) }
 </script>

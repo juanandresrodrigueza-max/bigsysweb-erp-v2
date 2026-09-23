@@ -6,6 +6,7 @@
         <p class="page-subtitle">{{ entero(totales.clientes) }} clientes · por cobrar {{ moneda(totales.por_cobrar, 0) }}</p>
       </div>
       <div class="flex gap-2">
+        <a href="/configuracion/importar/exportar/clientes" class="btn-secondary">Exportar CSV</a>
         <Link href="/clientes/fidelizacion" class="btn-secondary">Puntos</Link>
         <Link href="/clientes/cobranzas" class="btn-secondary">Cobranzas</Link>
         <Link href="/clientes/vendedores" class="btn-secondary">Vendedores</Link>

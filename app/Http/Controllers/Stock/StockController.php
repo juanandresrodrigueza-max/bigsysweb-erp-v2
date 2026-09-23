@@ -240,26 +240,76 @@ class StockController extends Controller
         return back()->with('success', 'Cotización fijada en $ ' . number_format((float) $d['venta'], 2, ',', '.') . '.');
     }
 
+    // Consulta y aplicación de precios en bloque: por %, por margen desde el costo, sobre rubro/proveedor/marca y listas elegidas. Con vista previa y deshacer.
+    private function reglasPrecios(): array
+    {
+        return ['modo' => 'required|in:porcentaje,margen', 'porcentaje' => 'nullable|numeric|min:-90|max:500', 'campo' => 'required|in:price,cost,ambos', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'marca' => 'nullable|string|max:60', 'listas' => 'nullable|array', 'listas.*' => 'integer|min:1|max:6', 'redondeo' => 'nullable|in:0,1,10,100', 'buscar' => 'nullable|string|max:80'];
+    }
+
+    private function consultaPrecios(array $d)
+    {
+        return Product::where('active', true)->when($d['rubro_id'] ?? null, fn($q, $x) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $x)))->when($d['proveedor_id'] ?? null, fn($q, $x) => $q->where('proveedor_id', $x))->when($d['marca'] ?? null, fn($q, $x) => $q->where('marca', $x))->when($d['buscar'] ?? null, fn($q, $x) => $q->where(fn($w) => $w->where('name', 'like', "%{$x}%")->orWhere('sku', 'like', "%{$x}%")));
+    }
+
+    // Calcula los valores nuevos de un artículo sin guardarlos.
+    private function calcularPrecios(Product $p, array $d): array
+    {
+        $red = (int) ($d['redondeo'] ?? 0); $r = fn($v) => $red ? round($v / $red) * $red : round($v, 2);
+        $listas = array_map('intval', $d['listas'] ?? []) ?: [1, 2, 3, 4, 5, 6];
+        $upd = [];
+        if ($d['modo'] === 'margen') {
+            // Recalcula las listas desde el costo con los márgenes cargados en el artículo (solo los que tienen márgenes).
+            if (! collect($p->margenes ?? [])->filter(fn($v) => $v !== null && $v !== '')->count()) return [];
+            $copia = clone $p; $copia->recalcularDesdeCosto();
+            $upd['price'] = $r((float) $copia->price); $upd['prices'] = collect($copia->prices ?? [])->map(fn($v) => $v !== null && $v !== '' ? $r((float) $v) : $v)->all() ?: null;
+            return $upd;
+        }
+        $factor = 1 + (float) ($d['porcentaje'] ?? 0) / 100;
+        if (in_array($d['campo'], ['price', 'ambos'], true)) {
+            if (in_array(1, $listas, true)) $upd['price'] = $r((float) $p->price * $factor);
+            $prices = $p->prices ?? [];
+            foreach ($prices as $k => $v) if (in_array((int) $k, $listas, true) && $v !== null && $v !== '') $prices[$k] = $r((float) $v * $factor);
+            $upd['prices'] = $prices ?: null;
+        }
+        if (in_array($d['campo'], ['cost', 'ambos'], true)) $upd['cost'] = $r((float) $p->cost * $factor);
+        return $upd;
+    }
+
+    public function previsualizarPrecios(Request $request)
+    {
+        $d = $request->validate($this->reglasPrecios());
+        $q = $this->consultaPrecios($d); $n = 0; $ej = [];
+        foreach ($q->orderBy('name')->get() as $p) {
+            $upd = $this->calcularPrecios($p, $d); if (! $upd) continue; $n++;
+            if (count($ej) < 6) $ej[] = ['nombre' => $p->name, 'sku' => $p->sku, 'antes' => (float) $p->price, 'despues' => (float) ($upd['price'] ?? $p->price), 'costo_antes' => (float) $p->cost, 'costo_despues' => (float) ($upd['cost'] ?? $p->cost)];
+        }
+        return response()->json(['n' => $n, 'ejemplos' => $ej]);
+    }
+
     public function actualizarPrecios(Request $request)
     {
-        $d = $request->validate(['porcentaje' => 'required|numeric|min:-90|max:500', 'campo' => 'required|in:price,cost,ambos', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'redondeo' => 'nullable|in:0,1,10,100']);
-        $factor = 1 + (float) $d['porcentaje'] / 100;
-        $red = (int) ($d['redondeo'] ?? 0);
-        $r = fn($v) => $red ? round($v / $red) * $red : round($v, 2);
-        $q = Product::where('active', true)->when($d['rubro_id'] ?? null, fn($q, $x) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $x)))->when($d['proveedor_id'] ?? null, fn($q, $x) => $q->where('proveedor_id', $x));
-        $n = 0;
-        foreach ($q->get() as $p) {
-            $upd = [];
-            if (in_array($d['campo'], ['price', 'ambos'], true)) {
-                $upd['price'] = $r((float) $p->price * $factor);
-                $upd['prices'] = collect($p->prices ?? [])->map(fn($v) => $v !== null && $v !== '' ? $r((float) $v * $factor) : $v)->all() ?: null;
-                $upd['precio_actualizado_en'] = now();
-            }
-            if (in_array($d['campo'], ['cost', 'ambos'], true)) $upd['cost'] = $r((float) $p->cost * $factor);
-            $p->forceFill($upd)->save();
-            $n++;
+        $d = $request->validate($this->reglasPrecios());
+        $n = 0; $antes = [];
+        foreach ($this->consultaPrecios($d)->get() as $p) {
+            $upd = $this->calcularPrecios($p, $d); if (! $upd) continue;
+            $antes[$p->id] = ['price' => (float) $p->price, 'prices' => $p->prices, 'cost' => (float) $p->cost];
+            if (isset($upd['price']) || isset($upd['prices'])) $upd['precio_actualizado_en'] = now();
+            $p->forceFill($upd)->save(); $n++;
         }
-        AuditLog::registrar('editar', null, "Actualización de precios {$d['porcentaje']}% ({$d['campo']}) sobre {$n} artículos");
-        return back()->with('success', "Precios actualizados en {$n} artículos ({$d['porcentaje']}%).");
+        $desc = $d['modo'] === 'margen' ? "Recalculó las listas por margen sobre el costo en {$n} artículos" : "Actualización de precios {$d['porcentaje']}% ({$d['campo']}" . (($d['listas'] ?? null) ? ', listas ' . implode(',', $d['listas']) : '') . ") sobre {$n} artículos";
+        $log = AuditLog::registrar('precios_masivo', null, $desc, $antes, ['filtros' => collect($d)->only('rubro_id', 'proveedor_id', 'marca', 'buscar')->all()]);
+        return back()->with('success', $desc . '. Si te equivocaste, podés deshacerlo desde el mismo botón.')->with('precios_log', $log->id);
+    }
+
+    // Vuelve atrás la última actualización masiva (mientras sea la última y tenga menos de 7 días).
+    public function deshacerPrecios(Request $request)
+    {
+        $log = AuditLog::where('accion', 'precios_masivo')->latest('id')->first();
+        abort_if(! $log || ! $log->antes || $log->created_at->lt(now()->subDays(7)), 422, 'No hay una actualización reciente para deshacer.');
+        $n = 0;
+        foreach ($log->antes as $id => $v) { if ($p = Product::find($id)) { $p->forceFill(['price' => $v['price'], 'prices' => $v['prices'], 'cost' => $v['cost']])->save(); $n++; } }
+        $log->update(['antes' => null]);
+        AuditLog::registrar('editar', null, "Deshizo la actualización masiva de precios ({$n} artículos vuelven a los valores anteriores)");
+        return back()->with('success', "Listo: {$n} artículos volvieron a los precios anteriores.");
     }
 }
