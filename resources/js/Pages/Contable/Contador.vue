@@ -28,12 +28,13 @@
       <div class="card">
         <h2 class="font-bold mb-1">Acceso para el estudio</h2>
         <p class="text-sm text-marca-muted mb-3">Un usuario con rol Contador: ve contabilidad, libros, fondos y comprobantes (sin poder facturar ni tocar stock).</p>
-        <div v-for="c in contadores" :key="c.id" class="text-sm py-1.5 border-t border-marca-borde/60 first:border-0"><p class="font-medium">{{ c.name }}</p><p class="text-xs text-marca-muted">{{ c.email }} · {{ c.ultimo }}</p></div>
+        <div v-for="c in contadores" :key="c.id" class="text-sm py-1.5 border-t border-marca-borde/60 first:border-0 flex items-center gap-2"><div class="flex-1 min-w-0"><p class="font-medium">{{ c.name }} <span v-if="c.externo" class="badge bg-lavanda-light text-violeta ml-1">estudio · {{ c.empresas }} empresas</span></p><p class="text-xs text-marca-muted">{{ c.email }} · {{ c.ultimo }}</p></div><button v-if="c.externo" class="btn-ghost !px-2 text-xs text-carmin" @click="router.delete(`/contable/contador/acceso/${c.id}`, { preserveScroll: true })">Quitar</button></div>
+        <p class="text-[11px] text-marca-muted mt-2">Si el contador ya usa BigSysWeb con otro cliente, cargá el mismo email: se le da acceso sin crear otro usuario y cambia de empresa desde el encabezado.</p>
         <form @submit.prevent="inv.post('/contable/contador/invitar', { preserveScroll: true, onSuccess: () => inv.reset() })" class="space-y-2 mt-3">
           <input v-model="inv.name" class="input" placeholder="Nombre del contador" />
           <input v-model="inv.email" type="email" class="input" placeholder="Email" /><p v-if="inv.errors.email" class="text-carmin text-xs">{{ inv.errors.email }}</p>
-          <input v-model="inv.password" type="text" class="input" placeholder="Contraseña inicial (mín. 8)" /><p v-if="inv.errors.password" class="text-carmin text-xs">{{ inv.errors.password }}</p>
-          <button class="btn-primary w-full" :disabled="inv.processing || !inv.email || !inv.name || inv.password.length < 8">Dar acceso</button>
+          <input v-model="inv.password" type="text" class="input" placeholder="Contraseña inicial (mín. 8; vacío si ya tiene usuario)" /><p v-if="inv.errors.password" class="text-carmin text-xs">{{ inv.errors.password }}</p>
+          <button class="btn-primary w-full" :disabled="inv.processing || !inv.email">Dar acceso</button>
         </form>
       </div>
     </div>
@@ -41,7 +42,7 @@
 </template>
 
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'

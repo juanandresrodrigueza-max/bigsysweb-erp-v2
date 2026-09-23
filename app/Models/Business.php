@@ -48,6 +48,12 @@ class Business extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    // Usuarios de otras empresas con acceso a esta (contador multiempresa).
+    public function usuariosExternos(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_businesses')->withPivot('role_id')->withTimestamps()->where('users.business_id', '!=', $this->id);
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);

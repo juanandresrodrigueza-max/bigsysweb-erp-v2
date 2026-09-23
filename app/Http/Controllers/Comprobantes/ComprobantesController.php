@@ -41,7 +41,7 @@ class ComprobantesController extends Controller
             })
             ->orderByDesc('fecha')->orderByDesc('id');
 
-        $resumen = (clone $q)->selectRaw("COUNT(*) as cantidad, COALESCE(SUM(CASE WHEN estado='emitido' THEN total ELSE 0 END),0) as total, COALESCE(SUM(CASE WHEN estado='emitido' THEN saldo ELSE 0 END),0) as saldo")->first();
+        $resumen = (clone $q)->reorder()->selectRaw("COUNT(*) as cantidad, COALESCE(SUM(CASE WHEN estado='emitido' THEN total ELSE 0 END),0) as total, COALESCE(SUM(CASE WHEN estado='emitido' THEN saldo ELSE 0 END),0) as saldo")->first();
 
         $lista = $q->paginate(25)->withQueryString()->through(fn($c) => $this->resumir($c));
 

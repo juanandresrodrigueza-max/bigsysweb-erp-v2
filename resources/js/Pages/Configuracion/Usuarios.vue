@@ -10,7 +10,7 @@
 
     <div class="card p-0 overflow-x-auto">
       <table class="table">
-        <thead><tr><th>Usuario</th><th>Rol</th><th>Sucursales</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Sucursales</th><th>Estado</th><th>Último acceso</th><th>Actividad 30 días</th><th></th></tr></thead>
         <tbody>
           <tr v-for="u in usuarios" :key="u.id">
             <td>
@@ -23,6 +23,7 @@
             <td class="text-marca-muted">{{ u.es_dueno ? 'Todas' : (u.sucursales.map(s => s.name).join(', ') || 'Principal') }}</td>
             <td><span class="badge" :class="u.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-marca-fondo text-marca-muted'">{{ u.status === 'active' ? 'Activo' : 'Inactivo' }}</span></td>
             <td class="text-marca-muted text-xs">{{ u.ultimo_acceso ?? 'Nunca' }}</td>
+            <td class="text-xs"><template v-if="u.actividad"><span class="font-semibold tabular-nums">{{ u.actividad.dias }}</span> días · <span class="tabular-nums">{{ u.actividad.acciones }}</span> acciones</template><span v-else class="text-marca-muted">Sin uso</span></td>
             <td class="text-right"><button @click="abrir(u)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
         </tbody>

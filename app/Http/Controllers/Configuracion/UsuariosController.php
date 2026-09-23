@@ -15,6 +15,7 @@ class UsuariosController extends Controller
     {
         $b = $request->user()->business;
         $max = $b->activeSubscription?->plan?->max_users ?? 1;
+        $uso = app(\App\Services\Producto\UsoService::class)->porUsuario($b->id, 30);
 
         return Inertia::render('Configuracion/Usuarios', [
             'usuarios' => $b->users()->with(['role:id,nombre', 'locations:id,name'])->orderBy('name')->get()->map(fn($u) => [
@@ -23,7 +24,9 @@ class UsuariosController extends Controller
                 'es_dueno' => $u->id === $b->owner_id,
                 'sucursales' => $u->locations->map(fn($l) => ['id' => $l->id, 'name' => $l->name, 'role_id' => $l->pivot->role_id]),
                 'ultimo_acceso' => $u->last_login_at?->diffForHumans(),
+                'actividad' => $uso[$u->id] ?? null,
             ]),
+            'externos' => $b->usuariosExternos()->get()->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'ultimo_acceso' => $u->last_login_at?->diffForHumans()]),
             'roles'      => $b->roles()->orderBy('nombre')->get(['id', 'nombre', 'slug']),
             'listaSucursales' => $b->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'limite'     => ['max' => $max, 'usados' => $b->users()->count()],

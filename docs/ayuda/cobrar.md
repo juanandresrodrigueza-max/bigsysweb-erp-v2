@@ -1,0 +1,34 @@
+---
+titulo: Cobrar y cuenta corriente
+modulo: clientes
+rutas: /clientes
+orden: 3
+resumen: Cómo registrar un cobro, imputarlo a facturas, manejar cheques y tarjetas, y seguir a los que deben.
+---
+
+## Registrar un cobro
+
+Desde la ficha del cliente, **Registrar cobro**, o desde la factura, **Registrar cobro**. Elegís uno o varios medios (efectivo, transferencia, cheque, tarjeta, Mercado Pago) y a qué facturas se imputa. Si el cliente paga de más, queda **a cuenta** para la próxima.
+
+- **Efectivo** entra en la caja activa. **Transferencia** en el banco que elijas.
+- **Cheque**: se carga con número, banco y fecha de pago; queda en cartera en **Fondos → Cheques** hasta que lo depositás o lo endosás.
+- **Tarjeta**: queda como cupón pendiente en **Fondos → Tarjetas**; cuando la tarjeta liquida, registrás la liquidación con sus comisiones.
+- **Mercado Pago**: por link de pago (el cliente paga desde el mail o WhatsApp) o, en el mostrador, con QR o Point.
+
+Con **descuento por pronto pago** o **interés por mora** se ajusta en el mismo cobro y el sistema hace la nota correspondiente.
+
+## Cuenta corriente
+
+La ficha del cliente muestra el saldo, las facturas pendientes con su vencimiento y el historial. **Clientes → Cobranzas** lista todos los deudores por antigüedad de la deuda; desde ahí se mandan recordatorios por WhatsApp o mail (uno o todos).
+
+Si un cliente supera el **límite de crédito**, la factura avisa antes de emitir.
+
+## Recordatorios automáticos
+
+En **Configuración → Empresa → Avisos** se activan los recordatorios de vencimientos: el sistema avisa al cliente unos días antes y el día del vencimiento.
+
+## Errores comunes
+
+- **Cobré en la caja equivocada**: anulá el cobro (queda en auditoría) y cargalo de nuevo.
+- **El saldo no cierra**: revisá cobros anulados y notas de crédito en el historial; cada movimiento tiene un link al comprobante.
+- **El cheque rebotó**: en Fondos → Cheques, "Rechazar": la deuda vuelve a la cuenta corriente del cliente.

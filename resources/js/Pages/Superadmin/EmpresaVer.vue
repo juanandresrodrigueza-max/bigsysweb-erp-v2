@@ -113,6 +113,26 @@
     </div>
 
     <!-- Auditoría -->
+    <div v-if="tab === 'uso'" class="grid lg:grid-cols-3 gap-4">
+      <div class="card lg:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Vistas 30 días</p><p class="text-xl font-extrabold tabular-nums">{{ usoDetalle.vistas.toLocaleString('es-AR') }}</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Acciones</p><p class="text-xl font-extrabold tabular-nums">{{ usoDetalle.acciones.toLocaleString('es-AR') }}</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Usuarios activos</p><p class="text-xl font-extrabold tabular-nums">{{ usoDetalle.usuarios_activos }}</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Días con uso</p><p class="text-xl font-extrabold tabular-nums">{{ usoDetalle.dias_activos }} / 30</p><p class="text-xs text-marca-muted">último {{ usoDetalle.ultimo_uso ?? 'nunca' }}</p></div>
+        <div class="col-span-full"><div class="flex items-end gap-[3px] h-16"><div v-for="p in usoDetalle.serie" :key="p.fecha" class="flex-1 rounded-t bg-violeta-grad" :style="{ height: (Math.max(...usoDetalle.serie.map(x => x.vistas)) ? p.vistas / Math.max(...usoDetalle.serie.map(x => x.vistas)) * 100 : 0) + '%' }" :title="`${p.fecha}: ${p.vistas} vistas · ${p.usuarios} usuarios`"></div></div></div>
+      </div>
+      <div class="card">
+        <h2 class="font-bold mb-2">Módulos</h2>
+        <div v-for="m in usoDetalle.modulos" :key="m.modulo" class="mb-2"><div class="flex justify-between text-xs"><span class="font-medium">{{ m.label }}</span><span class="text-marca-muted tabular-nums">{{ m.vistas }} vistas · {{ m.acciones }} acciones · {{ m.usuarios }} us.</span></div><div class="h-1.5 rounded-full bg-marca-fondo overflow-hidden"><div class="h-full bg-marca-grad" :style="{ width: (usoDetalle.modulos[0] ? m.vistas / usoDetalle.modulos[0].vistas * 100 : 0) + '%' }"></div></div></div>
+        <p v-if="!usoDetalle.modulos.length" class="text-sm text-marca-muted">Sin uso registrado en 30 días.</p>
+      </div>
+      <div class="card lg:col-span-2 p-0 overflow-x-auto">
+        <div class="px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Por usuario</h2></div>
+        <table class="table text-sm"><thead><tr><th>Usuario</th><th class="text-right">Vistas</th><th class="text-right">Acciones</th><th class="text-right">Días</th><th class="text-right">Último</th></tr></thead>
+          <tbody><tr v-for="u in usoDetalle.usuarios" :key="u.id"><td class="font-medium">{{ u.nombre }}</td><td class="text-right tabular-nums">{{ u.vistas }}</td><td class="text-right tabular-nums">{{ u.acciones }}</td><td class="text-right tabular-nums">{{ u.dias }}</td><td class="text-right tabular-nums">{{ u.ultimo }}</td></tr>
+          <tr v-if="!usoDetalle.usuarios.length"><td colspan="5" class="text-center text-marca-muted py-4">Nadie entró en 30 días.</td></tr></tbody></table>
+      </div>
+    </div>
     <div v-if="tab === 'auditoria'" class="card p-0 overflow-x-auto">
       <table class="table">
         <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
@@ -177,9 +197,9 @@ import Icono from '@/Components/Icono.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { estadoClase, pagoClase, pagoLabel, cicloLabel } from '@/util/suscripcion'
 
-const props = defineProps({ empresa: Object, suscripcion: Object, uso: Object, usuarios: Array, pagos: Array, auditoria: Array, planes: Array, medios: Object, verticales: Object, estados: Object })
+const props = defineProps({ usoDetalle: Object, empresa: Object, suscripcion: Object, uso: Object, usuarios: Array, pagos: Array, auditoria: Array, planes: Array, medios: Object, verticales: Object, estados: Object })
 const tab = ref('suscripcion')
-const tabs = computed(() => [{ key: 'suscripcion', label: 'Suscripción', n: props.pagos.filter(p => p.estado === 'pendiente').length }, { key: 'datos', label: 'Datos' }, { key: 'usuarios', label: 'Usuarios', n: props.usuarios.length }, { key: 'auditoria', label: 'Actividad' }])
+const tabs = computed(() => [{ key: 'suscripcion', label: 'Suscripción', n: props.pagos.filter(p => p.estado === 'pendiente').length }, { key: 'datos', label: 'Datos' }, { key: 'usuarios', label: 'Usuarios', n: props.usuarios.length }, { key: 'uso', label: 'Uso' }, { key: 'auditoria', label: 'Actividad' }])
 
 const planAbierto = ref(false), pagoAbierto = ref(false), suspAbierto = ref(false), bajaAbierto = ref(false), pass = ref(null)
 const enUnMes = () => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10) }

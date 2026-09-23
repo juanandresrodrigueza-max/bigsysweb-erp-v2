@@ -11,7 +11,7 @@
       </div>
       <p v-if="abierto" class="px-4 pt-3 text-[11px] font-semibold text-lavanda truncate">{{ empresa?.nombre }}</p>
 
-      <nav class="flex-1 overflow-y-auto py-3">
+      <nav class="flex-1 overflow-y-auto py-3" data-tour="menu">
         <template v-for="grupo in nav" :key="grupo.label">
           <p v-if="abierto && grupo.label" class="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-lavanda">{{ grupo.label }}</p>
           <Link v-for="item in grupo.items" :key="item.key" :href="item.ruta"
@@ -44,7 +44,7 @@
         <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
 
         <!-- Selector de sucursal -->
-        <div class="relative" ref="selRef">
+        <div class="relative" ref="selRef" data-tour="sucursal">
           <button @click="selAbierto = !selAbierto" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde hover:border-carmin/50 text-sm">
             <Icono nombre="pin" clase="w-4 h-4 text-carmin" />
             <span class="font-semibold max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span>
@@ -61,17 +61,36 @@
           </div>
         </div>
 
+        <!-- Contador con varias empresas -->
+        <div v-if="empresas" class="relative" ref="empRef">
+          <button @click="empAbierto = !empAbierto" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-violeta/40 bg-lavanda-light text-violeta hover:border-violeta text-sm" title="Cambiar de empresa">
+            <Icono nombre="building" clase="w-4 h-4" /><span class="font-semibold max-w-[160px] truncate hidden sm:inline">{{ empresa?.nombre }}</span><Icono nombre="chevron" clase="w-4 h-4" />
+          </button>
+          <div v-if="empAbierto" class="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
+            <p class="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-marca-muted border-b border-marca-borde">Cambiar empresa</p>
+            <Link v-for="e in empresas" :key="e.id" :href="`/empresa/${e.id}`" method="post" as="button" class="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-marca-fondo text-sm" @click="empAbierto = false">
+              <span class="w-2 h-2 rounded-full" :class="e.id === empresa?.id ? 'bg-carmin' : 'bg-marca-borde'"></span>
+              <span class="flex-1 min-w-0"><span class="font-semibold block truncate">{{ e.nombre }}</span><span v-if="e.cuit" class="text-marca-muted text-xs">{{ e.cuit }}</span></span>
+              <Icono v-if="e.id === empresa?.id" nombre="check" clase="w-4 h-4 text-carmin" />
+            </Link>
+            <Link href="/contador/empresas" class="block px-4 py-2 text-xs font-semibold text-violeta border-t border-marca-borde hover:bg-marca-fondo" @click="empAbierto = false">Ver todas mis empresas →</Link>
+          </div>
+        </div>
+
         <div class="flex-1"></div>
 
-        <button type="button" @click="paleta?.abrir()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde text-sm text-marca-muted hover:border-carmin/50" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">
+        <button type="button" @click="paleta?.abrir()" data-tour="buscar" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde text-sm text-marca-muted hover:border-carmin/50" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">
           <Icono nombre="search" clase="w-4 h-4" /><span>Buscar…</span><kbd class="text-[10px] px-1.5 py-0.5 rounded border border-marca-borde">Ctrl K</kbd>
         </button>
         <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
 
         <Link v-if="empresa?.plan" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
-        <CampanaAlertas :alertas="alertas" />
+        <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-carmin/50 hover:text-carmin font-black" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
+        <span data-tour="alertas"><CampanaAlertas :alertas="alertas" /></span>
       </header>
       <Paleta ref="paleta" :nav="nav" />
+      <AyudaPanel ref="ayuda" @tour="p => tourRef?.iniciar(p)" />
+      <Tour ref="tourRef" :pasos-iniciales="tourInicial" />
       <!-- Barra inferior en el celular: lo que más se usa, a un toque -->
       <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-marca-borde grid grid-cols-5 text-[10px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
         <Link href="/dueno" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/dueno') ? 'text-carmin' : ''"><Icono nombre="home" clase="w-5 h-5" />Mi negocio</Link>
@@ -118,12 +137,13 @@
             <Icono :nombre="item.icono" clase="w-5 h-5" /> {{ item.label }}
           </Link>
         </template>
-        <Link href="/soporte" class="mt-6 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Soporte</Link>
+        <Link href="/ayuda" @click="movil = false" class="mt-6 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Ayuda</Link>
+        <Link href="/soporte" @click="movil = false" class="mt-2 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Soporte</Link>
         <Link href="/logout" method="post" as="button" class="mt-2 flex items-center gap-2 text-sm text-white/70"><Icono nombre="logout" clase="w-4 h-4" /> Salir</Link>
       </div>
     </div>
 
-    <AgenteIA />
+    <span data-tour="asistente" class="contents"><AgenteIA /></span>
   </div>
 </template>
 
@@ -135,6 +155,8 @@ import Logo from '@/Components/Logo.vue'
 import CampanaAlertas from '@/Components/CampanaAlertas.vue'
 import AgenteIA from '@/Components/AgenteIA.vue'
 import Paleta from '@/Components/Paleta.vue'
+import AyudaPanel from '@/Components/AyudaPanel.vue'
+import Tour from '@/Components/Tour.vue'
 
 defineProps({ titulo: { type: String, default: '' } })
 
@@ -149,12 +171,15 @@ const suscripcion = computed(() => page.props.suscripcion)
 const impersonando = computed(() => page.props.impersonando)
 const mensajeGlobal = computed(() => page.props.mensajeGlobal)
 const onboarding = computed(() => page.props.onboarding)
+const empresas = computed(() => page.props.empresas)
+// El tour se muestra una vez, en Inicio, la primera vez que entra cada usuario.
+const tourInicial = page.props.tour && ['/dashboard', '/dueno'].includes(page.url.split('?')[0]) ? page.props.tour : null
 
 const abierto = ref(true)
 const movil = ref(false)
 const selAbierto = ref(false)
 const selRef = ref(null)
-const paleta = ref(null)
+const paleta = ref(null), ayuda = ref(null), tourRef = ref(null), empAbierto = ref(false), empRef = ref(null)
 
 const iniciales = computed(() => (user.value?.name ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase())
 
@@ -162,7 +187,7 @@ function activo(item) {
   const url = page.url.split('?')[0]
   return url === item.ruta || (item.ruta !== '/dashboard' && url.startsWith(item.ruta + '/')) || (item.ruta === '/configuracion' && url.startsWith('/configuracion'))
 }
-function clickAfuera(e) { if (selRef.value && !selRef.value.contains(e.target)) selAbierto.value = false }
+function clickAfuera(e) { if (selRef.value && !selRef.value.contains(e.target)) selAbierto.value = false; if (empRef.value && !empRef.value.contains(e.target)) empAbierto.value = false }
 onMounted(() => {
   document.addEventListener('click', clickAfuera)
   try { abierto.value = localStorage.getItem('bs.sidebar') !== '0' } catch {}

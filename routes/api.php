@@ -19,6 +19,10 @@ use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\TiendanubeController;
 use Illuminate\Support\Facades\Route;
 
+// Documentación (pública, sin datos)
+Route::get('docs', [\App\Http\Controllers\Api\DocsController::class, 'index']);
+Route::get('openapi.json', [\App\Http\Controllers\Api\DocsController::class, 'openapi']);
+
 // Auth (público)
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:api-auth');

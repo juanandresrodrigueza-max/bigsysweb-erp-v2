@@ -44,6 +44,9 @@ class HandleInertiaRequests extends Middleware
                 'lista'  => $user->sucursalesAccesibles()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'ciudad' => $l->city])->values(),
             ] : null,
             'nav' => fn() => $user ? $this->nav($user) : [],
+            // Contador con varias empresas: selector en el encabezado.
+            'empresas' => fn() => $user && ($user->business_id) ? (function () use ($user) { $l = $user->empresasAccesibles(); return $l->count() > 1 ? $l->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name, 'cuit' => $b->cuit])->values() : null; })() : null,
+            'tour' => fn() => $user && $user->business_id && ! $user->tour_visto_en ? \App\Services\Producto\AyudaService::tour() : null,
             'suscripcion' => fn() => $user?->business ? $this->suscripcion($user) : null,
             'impersonando' => fn() => $request->session()->has('impersonando_desde') ? ['empresa' => $user?->business?->name] : null,
             'mensajeGlobal' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('mensaje_global') : null,

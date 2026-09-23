@@ -15,7 +15,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'business_id', 'role_id', 'current_location_id', 'name', 'email', 'password',
-        'status', 'language', 'avatar', 'is_superadmin', 'last_login_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_enabled_at',
+        'status', 'language', 'avatar', 'is_superadmin', 'last_login_at', 'tour_visto_en', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_enabled_at',
     ];
 
     protected $hidden = [
@@ -27,6 +27,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at'     => 'datetime',
             'two_factor_enabled_at' => 'datetime',
+            'tour_visto_en'     => 'datetime',
             'password'          => 'hashed',
             'is_superadmin'     => 'boolean',
         ];
@@ -50,6 +51,30 @@ class User extends Authenticatable
     public function locations(): BelongsToMany
     {
         return $this->belongsToMany(BusinessLocation::class, 'user_locations')->withPivot('role_id')->withTimestamps();
+    }
+
+    // Otras empresas a las que este usuario entra (contador de varios clientes). La propia (business_id) es la de origen.
+    public function empresas(): BelongsToMany
+    {
+        return $this->belongsToMany(Business::class, 'user_businesses')->withPivot('role_id')->withTimestamps();
+    }
+
+    public function empresasAccesibles(): \Illuminate\Support\Collection
+    {
+        $propia = $this->business_id ? Business::find($this->business_id) : null;
+        $otras = $this->empresas()->whereNull('businesses.suspended_at')->get();
+        return collect($propia ? [$propia] : [])->concat($otras)->unique('id')->sortBy('name')->values();
+    }
+
+    // Cambia la empresa activa: toma el rol asignado en esa empresa y su sucursal por defecto.
+    public function cambiarEmpresa(Business $b): void
+    {
+        // La empresa de origen entra al listado con el rol actual, así al volver se recupera.
+        if ($this->business_id && $this->business_id !== $b->id && ! $this->empresas()->where('businesses.id', $this->business_id)->exists()) $this->empresas()->syncWithoutDetaching([$this->business_id => ['role_id' => $this->role_id]]);
+        $pivot = $this->empresas()->where('businesses.id', $b->id)->first()?->pivot;
+        $rol = $pivot?->role_id ?: ($this->business_id === $b->id ? $this->role_id : null);
+        $this->forceFill(['business_id' => $b->id, 'role_id' => $rol, 'current_location_id' => $b->locations()->where('is_default', true)->value('id') ?? $b->locations()->value('id')])->save();
+        $this->unsetRelation('business'); $this->unsetRelation('role'); $this->unsetRelation('currentLocation');
     }
 
     public function esDueno(): bool

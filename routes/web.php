@@ -94,6 +94,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/soporte/{id}/responder',            [\App\Http\Controllers\SoporteController::class, 'adminResponder']);
     Route::post('/sistema/revisar',                   [\App\Http\Controllers\Superadmin\SistemaController::class, 'revisarAhora']);
     Route::get('/auditoria',                          [\App\Http\Controllers\Superadmin\SistemaController::class, 'auditoria']);
+    Route::get('/uso',                                [\App\Http\Controllers\Superadmin\UsoController::class, 'index']);
 });
 
 Route::middleware(['auth', 'suscripcion'])->group(function () {
@@ -108,6 +109,16 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/soporte/{id}/cerrar',      [\App\Http\Controllers\SoporteController::class, 'cerrar']);
 
     Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->name('sucursal.cambiar');
+    Route::post('/empresa/{id}',  [\App\Http\Controllers\EmpresaSwitchController::class, 'cambiar'])->whereNumber('id')->name('empresa.cambiar');
+    Route::get('/contador/empresas', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'index']);
+    // Centro de ayuda y tour
+    Route::get('/ayuda',                 [\App\Http\Controllers\AyudaController::class, 'index']);
+    Route::get('/ayuda/contexto',        [\App\Http\Controllers\AyudaController::class, 'contexto']);
+    Route::get('/ayuda/buscar',          [\App\Http\Controllers\AyudaController::class, 'buscar']);
+    Route::post('/ayuda/tour-visto',     [\App\Http\Controllers\AyudaController::class, 'tourVisto']);
+    Route::post('/ayuda/tour-reiniciar', [\App\Http\Controllers\AyudaController::class, 'tourReiniciar']);
+    Route::get('/ayuda/guia/{nombre}',   [\App\Http\Controllers\AyudaController::class, 'guia']);
+    Route::get('/ayuda/{slug}',          [\App\Http\Controllers\AyudaController::class, 'index']);
 
     Route::get('/alertas',                  [AlertasController::class, 'index'])->middleware('permiso:alertas')->name('alertas.index');
     Route::post('/alertas/leer-todas',      [AlertasController::class, 'leerTodas'])->name('alertas.leerTodas');
@@ -331,6 +342,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/activos/{id}/baja',          [\App\Http\Controllers\Contable\ActivosController::class, 'baja'])->middleware('permiso:contable,anular');
         Route::get('/contador/exportar',           [\App\Http\Controllers\Contable\ContadorController::class, 'exportar'])->middleware('permiso:contable,exportar');
         Route::post('/contador/invitar',           [\App\Http\Controllers\Contable\ContadorController::class, 'invitar'])->middleware('permiso:configuracion,editar');
+        Route::delete('/contador/acceso/{user}',   [\App\Http\Controllers\Contable\ContadorController::class, 'quitarAcceso'])->middleware('permiso:configuracion,editar')->whereNumber('user');
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');

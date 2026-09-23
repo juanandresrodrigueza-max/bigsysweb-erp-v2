@@ -55,7 +55,7 @@ class LoginController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
         AuditLog::registrar('login', $user, 'Inicio de sesión');
 
-        return redirect()->intended($user->is_superadmin && ! $user->business_id ? '/admin' : '/dashboard');
+        return redirect()->intended($user->is_superadmin && ! $user->business_id ? '/admin' : ($user->empresas()->count() > 0 ? '/contador/empresas' : '/dashboard'));
     }
 
     public function verificar(Request $request)

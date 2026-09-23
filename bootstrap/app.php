@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\Mantenimiento::class,
             \App\Http\Middleware\ResolverSucursal::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\RegistrarUso::class,
         ]);
         $middleware->alias([
             'permiso'    => \App\Http\Middleware\Permiso::class,
