@@ -109,7 +109,8 @@ class FondosController extends Controller
 
     public function guardarCategoria(Request $request)
     {
-        $data = $request->validate(['name' => 'required|string|max:80', 'color' => 'nullable|string|max:10']);
+        $data = $request->validate(['name' => 'required|string|max:80', 'color' => 'nullable|string|max:10', 'tipo_costo' => 'nullable|in:fijo,variable', 'imputacion' => 'nullable|in:directo,indirecto']);
+        $data = array_filter($data, fn($v) => $v !== null) + ExpenseCategory::sugerir($data['name']);
         ExpenseCategory::create($data + ['business_id' => $request->user()->business_id]);
         return back()->with('success', 'Categoría creada.');
     }

@@ -5,6 +5,7 @@
       <div class="flex flex-wrap items-center gap-2">
         <select :value="sucursalId ?? ''" @change="$inertia.get('/estadisticas', { ...periodo, sucursal: $event.target.value || undefined }, { preserveState: true, replace: true })" class="input w-auto !py-1 text-xs"><option value="">Todas las sucursales</option><option v-for="s in listaSucursales" :key="s.id" :value="s.id">{{ s.name }}</option></select>
         <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="{ sucursal: sucursalId }" />
+        <Link href="/estadisticas/rentabilidad" class="btn-secondary !py-1 text-xs">Rentabilidad</Link>
         <Link href="/estadisticas/analista" class="btn-violeta !py-1 text-xs">✦ Analista IA</Link>
         <a :href="`/estadisticas?desde=${periodo.desde}&hasta=${periodo.hasta}${sucursalId ? '&sucursal=' + sucursalId : ''}&export=1`" class="btn-secondary !py-1 text-xs">Exportar CSV</a>
       </div>

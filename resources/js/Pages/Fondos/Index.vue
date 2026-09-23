@@ -157,6 +157,11 @@
 
     <Modal :abierto="catAbierto" titulo="Nueva categoría de gasto" @cerrar="catAbierto = false">
       <div class="flex gap-2 items-end"><div class="flex-1"><label class="label">Nombre</label><input v-model="cat.name" class="input" /></div><input v-model="cat.color" type="color" class="w-10 h-10 rounded-lg border border-marca-borde" /></div>
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <div><label class="label">Tipo de costo</label><select v-model="cat.tipo_costo" class="input"><option :value="null">Sugerir por el nombre</option><option value="fijo">Fijo (se paga igual vendas o no)</option><option value="variable">Variable (crece con las ventas)</option></select></div>
+        <div><label class="label">Imputación</label><select v-model="cat.imputacion" class="input"><option :value="null">Sugerir por el nombre</option><option value="directo">Directo (de una venta/obra puntual)</option><option value="indirecto">Indirecto (de todo el negocio)</option></select></div>
+      </div>
+      <p class="text-xs text-marca-muted mt-2">Esto arma la rentabilidad real en Estadísticas → Rentabilidad.</p>
       <template #pie><button class="btn-secondary" @click="catAbierto = false">Cancelar</button><button class="btn-primary" :disabled="cat.processing || !cat.name" @click="cat.post('/fondos/categorias', { preserveScroll: true, onSuccess: () => { catAbierto = false; cat.reset() } })">Crear</button></template>
     </Modal>
   </AppLayout>
@@ -197,5 +202,5 @@ const aq = useForm({ contado: null, notas: '' })
 const rt = useForm({ monto: null, destino_id: props.cuentas.find(c => c.tipo === 'banco')?.id ?? null, referencia: '' })
 const ta = useForm({ saldo_inicial: 0 })
 const tc = useForm({ saldo_contado: null, notas: '', rendicion: {} })
-const cat = useForm({ name: '', color: '#4f3089' })
+const cat = useForm({ name: '', color: '#4f3089', tipo_costo: null, imputacion: null })
 </script>

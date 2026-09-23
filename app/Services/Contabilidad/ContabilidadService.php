@@ -88,7 +88,7 @@ class ContabilidadService
         if ($def['stock'] && ! $c->es_acopio) {
             $cmv = 0;
             foreach ($c->items as $it) {
-                if ($it->product_id && ($p = Product::withoutGlobalScopes()->find($it->product_id)) && $p->controla_stock) $cmv += (float) $it->cantidad * (float) $p->cost;
+                if ($it->product_id && ($p = Product::withoutGlobalScopes()->find($it->product_id)) && $p->controla_stock) $cmv += (float) $it->cantidad * (float) ($it->costo_unit ?? $p->costoPesos());
             }
             if ($cmv > 0.005) {
                 $this->linea($lineas, 'cmv', $signo * $cmv, 0, 'Costo de venta');

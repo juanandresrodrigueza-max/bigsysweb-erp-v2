@@ -124,7 +124,7 @@ class DemoSeeder extends Seeder
             $banco       = CuentaFondos::create(['business_id' => $empresa->id, 'tipo' => 'banco', 'nombre' => 'Banco Galicia CC', 'banco' => 'Galicia', 'cbu' => '0070000000000000000001', 'alias' => 'corralon.demo', 'es_default' => true, 'saldo_minimo' => 500000]);
             $mp          = CuentaFondos::create(['business_id' => $empresa->id, 'tipo' => 'billetera', 'nombre' => 'MercadoPago', 'es_default' => true]);
             foreach (['Sueldos' => '#4f3089', 'Alquiler' => '#a42785', 'Servicios' => '#e4003f', 'Fletes' => '#1f9d5b', 'Impuestos' => '#c77d00'] as $n => $col) {
-                ExpenseCategory::create(['business_id' => $empresa->id, 'name' => $n, 'color' => $col]);
+                ExpenseCategory::create(['business_id' => $empresa->id, 'name' => $n, 'color' => $col] + ExpenseCategory::sugerir($n));
             }
 
             \App\Services\Contabilidad\PlanCuentas::crear($empresa);
