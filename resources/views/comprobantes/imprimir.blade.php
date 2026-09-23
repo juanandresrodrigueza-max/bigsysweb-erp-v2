@@ -78,6 +78,7 @@
       @if($c->percepciones > 0)<tr><td>Percepciones</td><td class="r">{{ $fmt($c->percepciones) }}</td></tr>@endif
     @endif
     <tr class="g"><td>TOTAL</td><td class="r">{{ $fmt($c->total) }}</td></tr>
+    @if(($c->moneda ?? 'ARS') !== 'ARS')<tr><td>Moneda {{ $c->moneda }} · cotización {{ number_format((float) $c->cotizacion, 2, ',', '.') }}</td><td class="r">{{ $c->moneda }} {{ number_format((float) $c->total_me, 2, ',', '.') }}</td></tr>@endif
   </table></div>
   @if($c->notas)<div style="padding:0 16px 12px;color:#6f6a62">{{ $c->notas }}</div>@endif
   <div class="pie">

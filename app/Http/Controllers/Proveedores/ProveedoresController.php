@@ -47,7 +47,7 @@ class ProveedoresController extends Controller
             'compras' => Comprobante::compras()->where('contact_id', $c->id)->orderByDesc('fecha')->orderByDesc('id')->limit(30)->get()->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'estado' => $x->estado, 'estado_cobro' => $x->estadoCobro(), 'origen_carga' => $x->origen_carga]),
             'pagos' => Pago::where('contact_id', $c->id)->with('medios')->orderByDesc('fecha')->orderByDesc('id')->limit(20)->get()->map(fn($p) => ['id' => $p->id, 'numero' => $p->numeroFormateado(), 'fecha' => $p->fecha->format('d/m/Y'), 'total' => (float) $p->total, 'a_cuenta' => (float) $p->a_cuenta, 'estado' => $p->estado, 'medios' => $p->medios->map(fn($m) => Pago::MEDIOS[$m->medio] . ' $ ' . number_format((float) $m->monto, 0, ',', '.'))->implode(', ')]),
             'medios' => Pago::MEDIOS, 'condicionesIva' => Contact::CONDICIONES_IVA,
-            'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->orderBy('nombre')->get(['id', 'tipo', 'nombre', 'saldo']),
+            'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->orderBy('nombre')->get(['id', 'tipo', 'nombre', 'saldo', 'moneda']), 'cotizacionUsd' => \App\Models\Cotizacion::valor($request->user()->business_id),
             'chequesCartera' => Cheque::enCartera()->orderBy('fecha_pago')->get()->map(fn($ch) => ['id' => $ch->id, 'numero' => $ch->numero, 'banco' => $ch->banco, 'emisor' => $ch->emisor, 'fecha_pago' => $ch->fecha_pago?->format('d/m/Y'), 'monto' => (float) $ch->monto]),
             'retencionTipos' => \App\Models\Retencion::TIPOS,
         ]);

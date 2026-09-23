@@ -26,6 +26,11 @@ class PlanCuentas
         ['1.3.02', 'Retenciones y percepciones sufridas', 'activo', 'ret_sufridas', true],
         ['1.4', 'Bienes de cambio', 'activo', null, false],
         ['1.4.01', 'Mercaderías', 'activo', 'mercaderias', true],
+        ['1.5', 'Bienes de uso', 'activo', null, false],
+        ['1.5.01', 'Bienes de uso', 'activo', 'bienes_uso', true],
+        ['1.5.02', 'Amortización acumulada bienes de uso', 'activo', 'amort_acum', true],
+        ['1.6', 'Otros créditos', 'activo', null, false],
+        ['1.6.01', 'Anticipos al personal', 'activo', 'anticipos_personal', true],
         ['2', 'PASIVO', 'pasivo', null, false],
         ['2.1', 'Deudas comerciales', 'pasivo', null, false],
         ['2.1.01', 'Proveedores', 'pasivo', 'proveedores', true],
@@ -36,7 +41,8 @@ class PlanCuentas
         ['2.2.02', 'Percepciones cobradas a depositar', 'pasivo', 'percepciones_cobradas', true],
         ['2.2.03', 'Retenciones practicadas a depositar', 'pasivo', 'ret_practicadas', true],
         ['2.3', 'Deudas sociales y otras', 'pasivo', null, false],
-        ['2.3.01', 'Sueldos y cargas sociales a pagar', 'pasivo', 'sueldos_pagar', true],
+        ['2.3.01', 'Sueldos a pagar', 'pasivo', 'sueldos_pagar', true],
+        ['2.3.02', 'Cargas sociales a pagar', 'pasivo', 'cargas_pagar', true],
         ['3', 'PATRIMONIO NETO', 'patrimonio', null, false],
         ['3.1.01', 'Capital', 'patrimonio', 'capital', true],
         ['3.1.02', 'Resultados acumulados', 'patrimonio', 'resultados', true],
@@ -63,6 +69,11 @@ class PlanCuentas
         ['5.2.06', 'Descuentos otorgados', 'egreso', 'descuentos_otorgados', true],
         ['5.2.07', 'Intereses perdidos', 'egreso', 'intereses_perdidos', true],
         ['5.2.08', 'Comisiones a vendedores', 'egreso', 'comisiones', true],
+        ['5.2.09', 'Sueldos y jornales', 'egreso', 'sueldos', true],
+        ['5.2.10', 'Cargas sociales', 'egreso', 'cargas_sociales', true],
+        ['5.2.11', 'Amortización de bienes de uso', 'egreso', 'amortizaciones', true],
+        ['5.2.12', 'Resultado por venta o baja de bienes de uso', 'egreso', 'resultado_bienes_uso', true],
+        ['5.2.13', 'Diferencias de cambio negativas', 'egreso', 'dif_cambio_neg', true],
     ];
 
     // Crea el plan para una empresa (no duplica si ya existe) y una subcuenta por categoría de gasto.
@@ -73,7 +84,7 @@ class PlanCuentas
             $parentCodigo = str_contains($codigo, '.') ? substr($codigo, 0, strrpos($codigo, '.')) : null;
             $c = CuentaContable::withoutGlobalScopes()->firstOrCreate(
                 ['business_id' => $b->id, 'codigo' => $codigo],
-                ['nombre' => $nombre, 'tipo' => $tipo, 'clave' => $clave, 'imputable' => $imputable, 'ajustable' => in_array($clave, ['mercaderias', 'capital', 'resultados'], true), 'parent_id' => $parentCodigo ? ($ids[$parentCodigo] ?? null) : null]
+                ['nombre' => $nombre, 'tipo' => $tipo, 'clave' => $clave, 'imputable' => $imputable, 'ajustable' => in_array($clave, ['mercaderias', 'capital', 'resultados', 'bienes_uso', 'amort_acum'], true), 'parent_id' => $parentCodigo ? ($ids[$parentCodigo] ?? null) : null]
             );
             $ids[$codigo] = $c->id;
         }

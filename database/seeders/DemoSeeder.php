@@ -298,6 +298,65 @@ class DemoSeeder extends Seeder
             $mk(0, 9, $servicios[0], $clientesAg[0] ?? null, 'confirmed'); $mk(0, 11, $servicios[1], $clientesAg[1] ?? null, 'pending'); $mk(0, 15, $servicios[2], $clientesAg[2] ?? null, 'completed');
             $mk(1, 10, $servicios[0], $clientesAg[3] ?? null, 'confirmed'); $mk(2, 16, $servicios[1], $clientesAg[0] ?? null, 'pending'); $mk(-1, 14, $servicios[2], $clientesAg[1] ?? null, 'completed');
 
+            // Fase 13: sueldos, bienes de uso, dólares, obra, servicio técnico y hotelería (el corralón demo tiene cabañas y taller)
+            $empresa->update(['verticales_extra' => ['hoteleria', 'servicios'], 'sueldos' => ['dia_pago' => 4, 'cuenta_id' => $banco->id]]);
+            $mesPasado = today()->subMonth();
+            $emps = collect([['Marcelo Ortiz', '20-28111222-3', 'Vendedor B', 'Comercio CCT 130/75', 'Vendedor', '2019-03-01', 980000], ['Sofía Ledesma', '27-33444555-6', 'Administrativo A', 'Comercio CCT 130/75', 'Administración', '2022-08-15', 1050000], ['Ramón Quiroga', '20-25666777-8', 'Oficial especializado', 'UOCRA CCT 76/75', 'Depósito y obra', '2016-05-10', 1120000]])
+                ->map(fn($e, $i) => \App\Models\Empleado::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'legajo' => $i + 1, 'nombre' => $e[0], 'cuil' => $e[1], 'categoria' => $e[2], 'convenio' => $e[3], 'puesto' => $e[4], 'fecha_ingreso' => $e[5], 'sueldo_basico' => $e[6], 'obra_social' => 'OSECAC', 'activo' => true]));
+            $sueldos = app(\App\Services\Sueldos\SueldosService::class);
+            $sueldos->anticipo($emps[2], $cajaCentral, 150000, $mesPasado->copy()->day(15)->toDateString());
+            $liq = $sueldos->liquidar($empresa, $mesPasado->format('Y-m'), 'mensual', [$emps[0]->id => ['dias' => 30, 'horas_extra_50' => 6], $emps[2]->id => ['dias' => 30, 'anticipos' => 150000, 'adicionales' => 40000]]);
+            $sueldos->confirmar($liq);
+            $activosSvc = app(\App\Services\Contabilidad\ActivosService::class);
+            $activosSvc->alta(['nombre' => 'Camioneta Toyota Hilux 2022', 'categoria' => 'rodados', 'identificacion' => 'AF 123 GH', 'fecha_alta' => today()->subMonths(14)->startOfMonth()->toDateString(), 'valor_origen' => 38000000, 'valor_residual' => 8000000, 'vida_util_meses' => 60], 'aporte');
+            $activosSvc->alta(['nombre' => 'Autoelevador Heli 2.5 t', 'categoria' => 'maquinaria', 'fecha_alta' => today()->subMonths(8)->startOfMonth()->toDateString(), 'valor_origen' => 21000000, 'valor_residual' => 3000000, 'vida_util_meses' => 120], 'aporte');
+            $activosSvc->alta(['nombre' => 'Notebooks administración (3)', 'categoria' => 'equipos', 'fecha_alta' => today()->subMonths(3)->startOfMonth()->toDateString(), 'valor_origen' => 2700000, 'valor_residual' => 0, 'vida_util_meses' => 36], 'aporte');
+            foreach ([3, 2, 1] as $m) $activosSvc->amortizar($empresa, today()->subMonths($m)->format('Y-m'));
+            $cajaUsd = CuentaFondos::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'tipo' => 'caja', 'nombre' => 'Caja fuerte USD', 'moneda' => 'USD']);
+            \App\Models\Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => today()->subDays(30)->toDateString(), 'tipo' => 'oficial'], ['compra' => 1380, 'venta' => 1400, 'fuente' => 'dolarapi']);
+            \App\Models\Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => today()->toDateString(), 'tipo' => 'oficial'], ['compra' => 1430, 'venta' => 1450, 'fuente' => 'dolarapi']);
+            \App\Models\Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => today()->toDateString(), 'tipo' => 'blue'], ['compra' => 1470, 'venta' => 1490, 'fuente' => 'dolarapi']);
+            $fondos->registrar($cajaUsd, ['fecha' => today()->subDays(30)->toDateString(), 'origen' => 'apertura', 'concepto' => 'Saldo inicial', 'ingreso' => 3200, 'cotizacion' => 1400]);
+            $cajaUsd->update(['cotizacion_cierre' => 1400]);
+            $constructora = Contact::customers()->where('business_id', $empresa->id)->where('name', 'like', 'Constructora%')->first() ?? Contact::customers()->first(); $constructora->update(['credit_limit' => 0]);
+            $fusd = $comprobantes->guardarBorrador(['contact_id' => $constructora->id, 'tipo' => 'FX', 'fecha' => today()->subDays(5)->toDateString(), 'condicion' => 'cta_cte', 'moneda' => 'USD', 'cotizacion' => 1440, 'notas' => 'Precio pactado en dólares', 'items' => [['product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 100, 'precio_unit' => 9.5, 'descuento' => 0]]]);
+            $comprobantes->emitir($fusd);
+            // Obra en curso con partes, compra imputada y un certificado
+            $obras = app(\App\Services\Obras\ObrasService::class);
+            $obra = $obras->guardar(['nombre' => 'Ampliación galpón · Ruta 9 km 12', 'contact_id' => $constructora->id, 'responsable_id' => $dueno->id, 'direccion' => 'Ruta 9 km 12, Córdoba', 'estado' => 'en_curso', 'fecha_inicio' => today()->subDays(40)->toDateString(), 'fecha_fin_prevista' => today()->addDays(50)->toDateString(), 'presupuesto_venta' => 18500000, 'presupuesto_costo' => 12800000, 'avance' => 45, 'descripcion' => 'Platea de 300 m², estructura metálica y cerramiento.']);
+            $obras->parte($obra, ['fecha' => today()->subDays(35)->toDateString(), 'tipo' => 'material', 'product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 120, 'descripcion' => '']);
+            $obras->parte($obra, ['fecha' => today()->subDays(30)->toDateString(), 'tipo' => 'material', 'product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 80, 'descripcion' => '']);
+            $obras->parte($obra, ['fecha' => today()->subDays(28)->toDateString(), 'tipo' => 'mano_obra', 'empleado_id' => $emps[2]->id, 'descripcion' => 'Armado de platea', 'cantidad' => 96, 'unidad' => 'h', 'costo_unit' => 8400]);
+            $obras->parte($obra, ['fecha' => today()->subDays(20)->toDateString(), 'tipo' => 'maquinaria', 'descripcion' => 'Alquiler hormigonera y vibrador', 'cantidad' => 5, 'unidad' => 'día', 'costo_unit' => 95000]);
+            $obras->parte($obra, ['fecha' => today()->subDays(10).'', 'tipo' => 'subcontrato', 'descripcion' => 'Montaje estructura metálica (Herrería Paz)', 'cantidad' => 1, 'unidad' => 'gl', 'costo_unit' => 2400000]);
+            $obras->certificar($obra, 30);
+            $obra->update(['avance' => 45]);
+            // Servicio técnico
+            $ots = app(\App\Services\Servicios\OrdenesService::class);
+            $cl = Contact::customers()->where('business_id', $empresa->id)->where('name', '!=', 'Consumidor Final')->orderBy('id')->get();
+            $o1 = $ots->crear(['contact_id' => $cl[0]->id, 'equipo' => 'Hormigonera 130 l', 'marca_modelo' => 'Gamma', 'serie' => 'GM-2291', 'falla' => 'No arranca el motor, hace ruido y se corta.', 'prioridad' => 'alta', 'tecnico_id' => $dueno->id, 'fecha_ingreso' => today()->subDays(4)->toDateString(), 'fecha_prometida' => today()->addDay()->toDateString()]);
+            $ots->actualizar($o1, ['equipo' => $o1->equipo, 'falla' => $o1->falla, 'diagnostico' => 'Capacitor quemado y carbones gastados. Se reemplazan.', 'presupuesto' => 68000]);
+            $ots->item($o1, ['descripcion' => 'Capacitor 40 µF', 'tipo' => 'material', 'cantidad' => 1, 'precio_unit' => 18000]);
+            $ots->item($o1, ['descripcion' => 'Juego de carbones', 'tipo' => 'material', 'cantidad' => 1, 'precio_unit' => 12000]);
+            $ots->item($o1, ['descripcion' => 'Mano de obra taller (2 h)', 'tipo' => 'mano_obra', 'cantidad' => 2, 'precio_unit' => 19000]);
+            $ots->tarea($o1, 'Desarmar carcasa y probar motor'); $ots->tarea($o1, 'Reemplazar capacitor'); $ots->tarea($o1, 'Prueba de carga 15 minutos');
+            $o1->update(['estado' => 'en_curso', 'aprobado_en' => now()->subDay()]); $o1->tareas()->first()->update(['hecha' => true, 'hecha_en' => now()->subHours(5), 'user_id' => $dueno->id]);
+            $o2 = $ots->crear(['nombre' => 'Pedro Almada', 'telefono' => '3515558833', 'equipo' => 'Amoladora angular 9"', 'marca_modelo' => 'Bosch GWS 22', 'falla' => 'Se calienta y pierde fuerza.', 'fecha_ingreso' => today()->subDays(2)->toDateString(), 'fecha_prometida' => today()->addDays(3)->toDateString()]);
+            $ots->actualizar($o2, ['equipo' => $o2->equipo, 'falla' => $o2->falla, 'diagnostico' => 'Rodamientos gastados y bobinado sucio.', 'presupuesto' => 42000]); $o2->update(['estado' => 'presupuestado']);
+            $o3 = $ots->crear(['contact_id' => $cl[1]->id, 'equipo' => 'Bomba sumergible 1 HP', 'marca_modelo' => 'Motorarg', 'falla' => 'No levanta agua.', 'fecha_ingreso' => today()->subDays(7)->toDateString(), 'fecha_prometida' => today()->subDay()->toDateString(), 'presupuesto' => 95000]);
+            $o3->update(['estado' => 'listo', 'diagnostico' => 'Sello mecánico roto; reemplazado.']);
+            $ots->crear(['contact_id' => $cl[2]->id, 'equipo' => 'Compresor 100 l', 'marca_modelo' => 'Lüsqtoff', 'falla' => 'Pierde aire por el presostato.', 'fecha_ingreso' => today()->toDateString()]);
+            // Hotelería: cabañas del corralón (demo)
+            $hot = app(\App\Services\Hoteleria\HoteleriaService::class);
+            $habs = collect([['Cabaña 1', 'cabania', 4, 85000], ['Cabaña 2', 'cabania', 4, 85000], ['Cabaña 3', 'cabania', 6, 110000], ['Suite Sierras', 'suite', 2, 120000], ['Doble Norte', 'doble', 2, 62000]])->map(fn($h, $i) => \App\Models\Habitacion::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'nombre' => $h[0], 'tipo' => $h[1], 'capacidad' => $h[2], 'tarifa' => $h[3], 'orden' => $i + 1]));
+            $e1 = $hot->reservar(['habitacion_id' => $habs[0]->id, 'nombre' => 'Familia Bustos', 'telefono' => '3515551122', 'personas' => 4, 'desde' => today()->subDays(2)->toDateString(), 'hasta' => today()->addDays(2)->toDateString(), 'origen' => 'booking']);
+            $hot->checkin($e1); $hot->consumo($e1, ['descripcion' => 'Desayuno x4', 'cantidad' => 2, 'precio_unit' => 14000, 'fecha' => today()->subDay()->toDateString()]); $hot->consumo($e1, ['descripcion' => 'Leña', 'cantidad' => 1, 'precio_unit' => 6000]);
+            $e2 = $hot->reservar(['habitacion_id' => $habs[3]->id, 'contact_id' => $cl[3]->id, 'personas' => 2, 'desde' => today()->toDateString(), 'hasta' => today()->addDays(3)->toDateString(), 'notas' => 'Aniversario · pidieron vista a las sierras']);
+            $hot->senia($e2, 120000, $mp);
+            $hot->reservar(['habitacion_id' => $habs[2]->id, 'nombre' => 'Grupo Trekking Córdoba', 'telefono' => '3515557799', 'personas' => 6, 'desde' => today()->addDays(4)->toDateString(), 'hasta' => today()->addDays(7)->toDateString(), 'origen' => 'web']);
+            $e4 = $hot->reservar(['habitacion_id' => $habs[1]->id, 'nombre' => 'Laura Méndez', 'telefono' => '3515553344', 'personas' => 3, 'desde' => today()->subDays(6)->toDateString(), 'hasta' => today()->subDays(3)->toDateString()]);
+            $hot->checkin($e4); $hot->consumo($e4, ['descripcion' => 'Desayuno x3', 'cantidad' => 3, 'precio_unit' => 10500]); $hot->checkout($e4); $habs[1]->update(['estado' => 'libre']);
+
             // Contabilidad: asientos de todo lo anterior + extracto bancario de prueba (con dos movimientos que el sistema no tiene)
             app(\App\Services\Contabilidad\ContabilidadService::class)->sincronizar($empresa->id);
             $csv = "Fecha;Concepto;Importe;Saldo\n";

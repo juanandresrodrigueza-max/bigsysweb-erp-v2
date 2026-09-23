@@ -10,7 +10,7 @@ class Expense extends Model
 {
     use SoftDeletes, BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'user_id', 'expense_category_id', 'contact_id', 'reference', 'amount', 'expense_date', 'notes'];
+    protected $fillable = ['business_id', 'user_id', 'expense_category_id', 'contact_id', 'reference', 'amount', 'expense_date', 'notes', 'proyecto_id'];
 
     protected $casts = [
         'amount'       => 'decimal:2',

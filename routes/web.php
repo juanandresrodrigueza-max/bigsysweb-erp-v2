@@ -45,6 +45,8 @@ Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaC
 Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu']);
 Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa']);
 Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar']);
+Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\OrdenesController::class, 'publico']);
+Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder']);
 Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore']);
 Route::get('/portal/{token}',              [\App\Http\Controllers\PortalController::class, 'ver']);
 Route::get('/portal/{token}/pagar/{id}',   [\App\Http\Controllers\PortalController::class, 'pagar'])->whereNumber('id');
@@ -208,6 +210,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     // Fondos
     Route::prefix('fondos')->middleware('permiso:fondos')->group(function () {
+        Route::get('/moneda',              [\App\Http\Controllers\Fondos\MonedaController::class, 'index']);
+        Route::post('/moneda/fijar',       [\App\Http\Controllers\Fondos\MonedaController::class, 'fijar'])->middleware('permiso:fondos,editar');
+        Route::post('/moneda/actualizar',  [\App\Http\Controllers\Fondos\MonedaController::class, 'actualizar'])->middleware('permiso:fondos,editar');
+        Route::post('/moneda/revaluar',    [\App\Http\Controllers\Fondos\MonedaController::class, 'revaluar'])->middleware('permiso:fondos,crear');
         Route::get('/',                        [FondosController::class, 'index']);
         Route::post('/cuentas/{id?}',          [FondosController::class, 'guardarCuenta'])->middleware('permiso:fondos,editar');
         Route::post('/movimiento',             [FondosController::class, 'movimiento'])->middleware('permiso:fondos,crear');
@@ -299,6 +305,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/diario',                      [\App\Http\Controllers\Contable\EjercicioController::class, 'diario']);
         Route::get('/contador',                    [\App\Http\Controllers\Contable\ContadorController::class, 'index']);
         Route::get('/cashflow',                    [\App\Http\Controllers\Contable\CashFlowController::class, 'index']);
+        Route::get('/activos',                     [\App\Http\Controllers\Contable\ActivosController::class, 'index']);
+        Route::post('/activos/amortizar',          [\App\Http\Controllers\Contable\ActivosController::class, 'amortizar'])->middleware('permiso:contable,crear');
+        Route::post('/activos/{id?}',              [\App\Http\Controllers\Contable\ActivosController::class, 'guardar'])->middleware('permiso:contable,crear');
+        Route::post('/activos/{id}/baja',          [\App\Http\Controllers\Contable\ActivosController::class, 'baja'])->middleware('permiso:contable,anular');
         Route::get('/contador/exportar',           [\App\Http\Controllers\Contable\ContadorController::class, 'exportar'])->middleware('permiso:contable,exportar');
         Route::post('/contador/invitar',           [\App\Http\Controllers\Contable\ContadorController::class, 'invitar'])->middleware('permiso:configuracion,editar');
     });
@@ -313,6 +323,70 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/turnos/{id}/estado',   [\App\Http\Controllers\AgendaController::class, 'estado'])->middleware('permiso:agenda,editar');
         Route::post('/turnos/{id}/recordar', [\App\Http\Controllers\AgendaController::class, 'recordar'])->middleware('permiso:agenda,editar');
         Route::post('/turnos/{id}/cobrar',   [\App\Http\Controllers\AgendaController::class, 'cobrar'])->middleware('permiso:agenda,crear');
+    });
+
+    // Sueldos
+    Route::prefix('sueldos')->middleware('permiso:sueldos')->group(function () {
+        $c = \App\Http\Controllers\Sueldos\SueldosController::class;
+        Route::get('/', [$c, 'index']);
+        Route::post('/empleados/{id?}', [$c, 'guardarEmpleado'])->middleware('permiso:sueldos,crear');
+        Route::post('/empleados/{id}/anticipo', [$c, 'anticipo'])->middleware('permiso:sueldos,crear');
+        Route::post('/conceptos/{id?}', [$c, 'guardarConcepto'])->middleware('permiso:sueldos,editar');
+        Route::post('/conceptos/{id}/borrar', [$c, 'borrarConcepto'])->middleware('permiso:sueldos,editar');
+        Route::post('/config', [$c, 'guardarConfig'])->middleware('permiso:sueldos,editar');
+        Route::post('/liquidar', [$c, 'liquidar'])->middleware('permiso:sueldos,crear');
+        Route::post('/importar', [$c, 'importar'])->middleware('permiso:sueldos,crear');
+        Route::post('/{id}/confirmar', [$c, 'confirmar'])->middleware('permiso:sueldos,crear');
+        Route::post('/{id}/reabrir', [$c, 'reabrir'])->middleware('permiso:sueldos,anular');
+        Route::post('/{id}/pagar', [$c, 'pagar'])->middleware('permiso:sueldos,crear');
+        Route::post('/{id}/pagar-cargas', [$c, 'pagarCargas'])->middleware('permiso:sueldos,crear');
+        Route::get('/{id}/recibo/{item?}', [$c, 'recibo']);
+        Route::get('/{id}/libro', [$c, 'libro'])->middleware('permiso:sueldos,exportar');
+    });
+
+    // Obras y proyectos
+    Route::prefix('obras')->middleware('permiso:obras')->group(function () {
+        $c = \App\Http\Controllers\Obras\ObrasController::class;
+        Route::get('/', [$c, 'index']);
+        Route::post('/', [$c, 'guardar'])->middleware('permiso:obras,crear');
+        Route::get('/{id}', [$c, 'ver']);
+        Route::post('/{id}', [$c, 'guardar'])->middleware('permiso:obras,editar');
+        Route::post('/{id}/partes', [$c, 'parte'])->middleware('permiso:obras,crear');
+        Route::post('/{id}/partes/{parte}/borrar', [$c, 'borrarParte'])->middleware('permiso:obras,anular');
+        Route::post('/{id}/certificar', [$c, 'certificar'])->middleware('permiso:obras,crear');
+        Route::post('/{id}/vincular', [$c, 'vincular'])->middleware('permiso:obras,editar');
+    });
+
+    // Servicio técnico
+    Route::prefix('servicios')->middleware('permiso:servicios')->group(function () {
+        $c = \App\Http\Controllers\Servicios\OrdenesController::class;
+        Route::get('/', [$c, 'index']);
+        Route::post('/', [$c, 'crear'])->middleware('permiso:servicios,crear');
+        Route::get('/{id}', [$c, 'ver']);
+        Route::post('/{id}', [$c, 'actualizar'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/estado', [$c, 'estado'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/items', [$c, 'item'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/items/{item}/borrar', [$c, 'borrarItem'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/tareas', [$c, 'tarea'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/tareas/{tarea}/hecha', [$c, 'tareaHecha'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/firmar', [$c, 'firmar'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/facturar', [$c, 'facturar'])->middleware('permiso:servicios,crear');
+    });
+
+    // Hotelería
+    Route::prefix('hoteleria')->middleware('permiso:hoteleria')->group(function () {
+        $c = \App\Http\Controllers\Hoteleria\HoteleriaController::class;
+        Route::get('/', [$c, 'index']);
+        Route::post('/habitaciones/{id?}', [$c, 'guardarHabitacion'])->middleware('permiso:hoteleria,editar');
+        Route::post('/habitaciones/{id}/estado', [$c, 'estadoHabitacion'])->middleware('permiso:hoteleria,editar');
+        Route::post('/reservas/{id?}', [$c, 'reservar'])->middleware('permiso:hoteleria,crear');
+        Route::get('/estadias/{id}', [$c, 'estadia']);
+        Route::post('/estadias/{id}/checkin', [$c, 'checkin'])->middleware('permiso:hoteleria,editar');
+        Route::post('/estadias/{id}/consumos', [$c, 'consumo'])->middleware('permiso:hoteleria,crear');
+        Route::post('/estadias/{id}/consumos/{consumo}/borrar', [$c, 'borrarConsumo'])->middleware('permiso:hoteleria,editar');
+        Route::post('/estadias/{id}/senia', [$c, 'senia'])->middleware('permiso:hoteleria,crear');
+        Route::post('/estadias/{id}/checkout', [$c, 'checkout'])->middleware('permiso:hoteleria,crear');
+        Route::post('/estadias/{id}/cancelar', [$c, 'cancelar'])->middleware('permiso:hoteleria,anular');
     });
 
     // Envíos por mail / WhatsApp desde cualquier pantalla
@@ -357,6 +431,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/empresa/avisos', [EmpresaController::class, 'guardarAvisos'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/avisos/resumen', [EmpresaController::class, 'resumenAhora'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/pos', [EmpresaController::class, 'guardarPos'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/verticales', [EmpresaController::class, 'guardarVerticales'])->middleware('permiso:configuracion,editar');
 
         Route::get('/sucursales',            [SucursalesController::class, 'index'])->name('sucursales');
         Route::post('/sucursales/{id?}',     [SucursalesController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('sucursales.guardar');

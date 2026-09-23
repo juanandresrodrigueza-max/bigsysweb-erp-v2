@@ -20,7 +20,7 @@ class CashFlowService
         $sem = fn(?Carbon $f) => $f && $f->gt($hoy) ? min($semanas - 1, (int) floor($hoy->diffInDays($f) / 7)) : 0; // vencido → esta semana
 
         $filas = ['cobros' => ['label' => 'Cobros de facturas por vencer', 'tipo' => 'in'], 'cheques_in' => ['label' => 'Cheques en cartera a cobrar', 'tipo' => 'in'], 'abonos' => ['label' => 'Abonos recurrentes', 'tipo' => 'in'], 'ventas_contado' => ['label' => 'Ventas de contado estimadas', 'tipo' => 'in'],
-            'pagos' => ['label' => 'Facturas de compra a pagar', 'tipo' => 'out'], 'cheques_out' => ['label' => 'Cheques propios a debitar', 'tipo' => 'out'], 'gastos' => ['label' => 'Gastos recurrentes estimados', 'tipo' => 'out'], 'compras_estimadas' => ['label' => 'Compras estimadas (reposición)', 'tipo' => 'out']];
+            'pagos' => ['label' => 'Facturas de compra a pagar', 'tipo' => 'out'], 'cheques_out' => ['label' => 'Cheques propios a debitar', 'tipo' => 'out'], 'gastos' => ['label' => 'Gastos recurrentes estimados', 'tipo' => 'out'], 'sueldos' => ['label' => 'Sueldos y cargas sociales', 'tipo' => 'out'], 'compras_estimadas' => ['label' => 'Compras estimadas (reposición)', 'tipo' => 'out']];
         foreach ($filas as &$f) $f['semanas'] = array_fill(0, $semanas, 0.0);
         unset($f);
 
@@ -40,6 +40,11 @@ class CashFlowService
         $compras = (float) Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'compra')->where('estado', 'emitido')->where('fecha', '>=', $hoy->copy()->subDays(90))->sum('total') / 13;
         for ($i = 0; $i < $semanas; $i++) { $filas['gastos']['semanas'][$i] = round($gastos, 2); $filas['compras_estimadas']['semanas'][$i] = $i < 2 ? 0 : round($compras * 0.6, 2); } // las primeras semanas ya están en "a pagar"
 
+        // Sueldos: la última liquidación se repite cada mes (neto el día de pago, cargas a mitad de mes siguiente).
+        if ($liq = \App\Models\Liquidacion::withoutGlobalScopes()->where('business_id', $b->id)->where('tipo', 'mensual')->where('estado', '!=', 'borrador')->orderByDesc('periodo')->first()) {
+            $dia = (int) (($b->sueldos['dia_pago'] ?? 4)); $cargas = round((float) $liq->total_deducciones + (float) $liq->total_contribuciones, 2);
+            for ($m = 0; $m < 4; $m++) { $fp = $hoy->copy()->addMonths($m)->day(min($dia, 28)); if ($fp->lt($hoy)) continue; if ($fp->gt($hoy->copy()->addWeeks($semanas))) break; $filas['sueldos']['semanas'][$sem($fp)] += (float) $liq->total_neto; $fc = $fp->copy()->day(15); if ($fc->lte($hoy->copy()->addWeeks($semanas))) $filas['sueldos']['semanas'][$sem($fc)] += $cargas; }
+        }
         $cols = []; $acum = $saldo; $minimo = ['saldo' => $saldo, 'semana' => 0];
         for ($i = 0; $i < $semanas; $i++) {
             $in = array_sum(array_map(fn($f) => $f['tipo'] === 'in' ? $f['semanas'][$i] : 0, $filas)); $out = array_sum(array_map(fn($f) => $f['tipo'] === 'out' ? $f['semanas'][$i] : 0, $filas));

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PagoMedio extends Model
 {
     public $timestamps = false;
-    protected $fillable = ['pago_id', 'medio', 'monto', 'cuenta_fondos_id', 'cheque_id', 'referencia', 'datos'];
+    protected $fillable = ['pago_id', 'medio', 'monto', 'cuenta_fondos_id', 'cheque_id', 'referencia', 'datos', 'moneda', 'cotizacion', 'monto_me'];
     protected $casts = ['monto' => 'decimal:2', 'datos' => 'array'];
 
     public function cheque(): BelongsTo { return $this->belongsTo(Cheque::class); }

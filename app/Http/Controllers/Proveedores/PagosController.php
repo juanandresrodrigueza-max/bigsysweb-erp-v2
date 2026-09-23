@@ -16,7 +16,7 @@ class PagosController extends Controller
         $data = $request->validate([
             'fecha' => 'required|date', 'notas' => 'nullable|string|max:500', 'descuento' => 'nullable|numeric|min:0', 'interes' => 'nullable|numeric|min:0',
             'medios' => 'required|array|min:1', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Pago::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0',
-            'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.cheque_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array',
+            'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.moneda' => 'nullable|in:ARS,USD', 'medios.*.cotizacion' => 'nullable|numeric|min:0', 'medios.*.cheque_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array',
             'imputaciones' => 'nullable|array', 'imputaciones.*.comprobante_id' => 'required|integer', 'imputaciones.*.monto' => 'required|numeric|min:0',
         ]);
         $pago = $service->registrar($proveedor, $data);

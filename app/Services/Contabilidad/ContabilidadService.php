@@ -63,7 +63,7 @@ class ContabilidadService
         foreach (Pago::withoutGlobalScopes()->where('business_id', $businessId)->where('estado', '!=', 'anulado')->orderBy('fecha')->cursor() as $p) {
             if (! $tiene('pago', $p->id) && $this->contabilizar($p)) $n++;
         }
-        foreach (MovimientoFondos::withoutGlobalScopes()->where('business_id', $businessId)->whereIn('origen', ['gasto', 'ingreso', 'transferencia', 'ajuste', 'apertura', 'cheque'])->orderBy('fecha')->orderBy('id')->cursor() as $m) {
+        foreach (MovimientoFondos::withoutGlobalScopes()->where('business_id', $businessId)->whereIn('origen', ['gasto', 'ingreso', 'transferencia', 'ajuste', 'apertura', 'cheque', 'sueldos', 'cargas_sociales', 'anticipo_sueldo', 'dif_cambio', 'senia'])->orderBy('fecha')->orderBy('id')->cursor() as $m) {
             if (! $tiene('fondos', $m->id) && $this->contabilizar($m)) $n++;
         }
         return $n;
@@ -178,10 +178,15 @@ class ContabilidadService
         if (in_array($m->origen, ['cobro', 'pago', 'liquidacion_tarjeta'], true)) return null;
         $cuenta = CuentaFondos::withoutGlobalScopes()->find($m->cuenta_fondos_id);
         $claveCuenta = $this->claveCuentaFondos($m->cuenta_fondos_id, null);
-        $monto = (float) $m->ingreso - (float) $m->egreso;
+        $monto = round(((float) $m->ingreso - (float) $m->egreso) * (float) ($m->cotizacion ?: 1), 2); // cuentas en dólares: se contabiliza en pesos a la cotización del movimiento
         $lineas = [];
         $contra = match ($m->origen) {
             'gasto' => $m->expense_category_id ? $this->claveCategoria($m->business_id, $m->expense_category_id) : 'gastos',
+            'sueldos' => 'sueldos_pagar',
+            'cargas_sociales' => 'cargas_pagar',
+            'anticipo_sueldo' => 'anticipos_personal',
+            'dif_cambio' => $monto >= 0 ? 'dif_cambio' : 'dif_cambio_neg',
+            'senia' => 'anticipos_clientes',
             'ingreso' => 'otros_ingresos',
             'transferencia' => 'transito',
             // El saldo con el que arranca una cuenta es aporte de capital; las diferencias de caja son resultado.
@@ -263,6 +268,17 @@ class ContabilidadService
             return $a;
         });
     }
+
+    // Asiento armado por otro módulo (sueldos, bienes de uso, moneda extranjera) con líneas por clave de cuenta.
+    public function asientoPorClaves(int $businessId, ?int $locationId, $fecha, string $concepto, string $origen, ?int $origenId, array $lineas): ?Asiento
+    {
+        $ls = [];
+        foreach ($lineas as $l) $this->linea($ls, $l['clave'], (float) ($l['debe'] ?? 0), (float) ($l['haber'] ?? 0), $l['detalle'] ?? null, $l['contact_id'] ?? null);
+        return $this->crear($businessId, $locationId, $fecha, $concepto, $origen, $origenId, $ls);
+    }
+
+    // Clave contable de una cuenta de fondos (caja/banco/billetera).
+    public function claveDeCuentaFondos(int $cuentaId): string { return $this->claveCuentaFondos($cuentaId, null); }
 
     // Asiento manual del contador: recibe líneas con cuenta_id.
     public function manual(array $d): Asiento

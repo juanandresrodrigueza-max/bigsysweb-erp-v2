@@ -23,7 +23,12 @@ class PagoService
     {
         return DB::transaction(function () use ($proveedor, $data) {
             $user = Auth::user();
-            $medios = collect($data['medios'])->filter(fn($m) => (float) $m['monto'] > 0)->values();
+            // Medios en dólares: el importe viene en USD y se convierte a pesos a la cotización indicada (o la del día).
+            $medios = collect($data['medios'])->filter(fn($m) => (float) $m['monto'] > 0)->map(function ($m) use ($user) {
+                if (strtoupper($m['moneda'] ?? 'ARS') === 'USD') { $m['moneda'] = 'USD'; $m['cotizacion'] = (float) ($m['cotizacion'] ?? 0) ?: \App\Models\Cotizacion::valor($user->business_id); abort_if($m['cotizacion'] <= 0, 422, 'Falta la cotización del dólar.'); $m['monto_me'] = round((float) $m['monto'], 2); $m['monto'] = round($m['monto_me'] * $m['cotizacion'], 2); }
+                else { $m['moneda'] = 'ARS'; $m['cotizacion'] = 1; $m['monto_me'] = null; }
+                return $m;
+            })->values();
             $total  = round($medios->sum(fn($m) => (float) $m['monto']), 2);
             if ($total <= 0) {
                 throw ValidationException::withMessages(['medios' => 'Ingresá al menos un medio de pago con importe.']);
@@ -78,9 +83,9 @@ class PagoService
                             throw ValidationException::withMessages(['medios' => 'No hay una cuenta de fondos para ese medio. Creala en Fondos.']);
                         }
                         $cuentaId = $cuenta->id;
-                        $this->fondos->registrar($cuenta, ['fecha' => $pago->fecha, 'origen' => 'pago', 'origen_id' => $pago->id, 'concepto' => "Pago {$pago->numeroFormateado()} · {$proveedor->name}", 'egreso' => (float) $m['monto'], 'referencia' => $m['referencia'] ?? null]);
+                        $this->fondos->registrar($cuenta, ['fecha' => $pago->fecha, 'origen' => 'pago', 'origen_id' => $pago->id, 'concepto' => "Pago {$pago->numeroFormateado()} · {$proveedor->name}" . ($m['moneda'] === 'USD' ? " · USD " . number_format($m['monto_me'], 2, ',', '.') : ''), 'egreso' => $m['moneda'] === 'USD' && $cuenta->moneda === 'USD' ? $m['monto_me'] : (float) $m['monto'], 'cotizacion' => $m['moneda'] === 'USD' && $cuenta->moneda === 'USD' ? $m['cotizacion'] : 1, 'referencia' => $m['referencia'] ?? null]);
                 }
-                $pago->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $d ?: null]);
+                $pago->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $d ?: null, 'moneda' => $m['moneda'], 'cotizacion' => $m['cotizacion'], 'monto_me' => $m['monto_me']]);
             }
 
             foreach ($imputaciones as $i) {

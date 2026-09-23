@@ -38,6 +38,14 @@
           <Link href="/suscripcion" class="btn-secondary w-full mt-4 !py-1.5 text-xs">Ver suscripción y renovar</Link>
         </div>
         <div class="card">
+          <h2 class="font-bold mb-1">Verticales habilitados</h2>
+          <p class="text-xs text-marca-muted mb-2">Además del rubro principal, podés prender otras pantallas: una ferretería con cabañas, un taller con local de venta.</p>
+          <div class="space-y-1.5 text-sm">
+            <label v-for="(lbl, k) in verticalesDisponibles" :key="k" class="flex items-center gap-2"><input type="checkbox" class="accent-carmin" :checked="vx.verticales_extra.includes(k)" @change="toggleVertical(k)" /> {{ lbl }}</label>
+          </div>
+          <button class="btn-secondary w-full mt-3 !py-1.5 text-xs" :disabled="vx.processing" @click="vx.post('/configuracion/empresa/verticales', { preserveScroll: true })">Guardar verticales</button>
+        </div>
+        <div class="card">
           <h2 class="font-bold mb-3">Módulos</h2>
           <div class="space-y-1.5">
             <div v-for="m in modulos" :key="m.key" class="flex items-center justify-between text-sm">
@@ -79,7 +87,10 @@ import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 
-const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean })
+const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] } })
+const verticalesDisponibles = { retail: 'Comercio / punto de venta', gastronomia: 'Gastronomía (mesas, comandas, cocina)', minimarket: 'Minimarket', servicios: 'Servicio técnico (órdenes de trabajo)', hoteleria: 'Hotelería (habitaciones, reservas, check-in)' }
+const vx = useForm({ verticales_extra: [...props.verticalesExtra] })
+const toggleVertical = k => { vx.verticales_extra = vx.verticales_extra.includes(k) ? vx.verticales_extra.filter(x => x !== k) : [...vx.verticales_extra, k] }
 const av = useForm({ activo: !!props.avisos?.activo, whatsapp: props.avisos?.whatsapp ?? '', hora: props.avisos?.hora ?? '21:00', resumen_diario: props.avisos?.resumen_diario ?? true, criticas: props.avisos?.criticas ?? true })
 const pf = useForm({ ...props.pos })
 const form = useForm({ ...props.empresa })

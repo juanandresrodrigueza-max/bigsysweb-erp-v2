@@ -16,12 +16,14 @@ class Business extends Model
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
         'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
-        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'onboarding', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos',
+        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'onboarding', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'sueldos',
     ];
 
-    public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'otro' => 'Otro'];
+    public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'hoteleria' => 'Hotelería / alojamiento', 'otro' => 'Otro'];
+    public const VERTICALES_MODULOS = ['gastronomia', 'retail', 'minimarket', 'hoteleria', 'servicios'];
 
     protected $casts = [
+        'verticales_extra' => 'array', 'sueldos' => 'array',
         'is_active'            => 'boolean',
         'recordatorios'        => 'array',
         'impuestos'            => 'array',
@@ -122,17 +124,20 @@ class Business extends Model
         $modulos = in_array('*', $features, true) ? array_keys($todos) : array_values(array_unique(array_merge($core, array_intersect(array_keys($todos), $features))));
         // Los verticales se muestran según el rubro de la empresa: un corralón no necesita ver "Gastronomía".
         $permitidos = $this->verticalesPermitidos();
-        return array_values(array_filter($modulos, fn($m) => ! in_array($m, ['gastronomia', 'retail', 'minimarket'], true) || in_array($m, $permitidos, true)));
+        return array_values(array_filter($modulos, fn($m) => ! in_array($m, self::VERTICALES_MODULOS, true) || in_array($m, $permitidos, true)));
     }
 
+    // Verticales visibles: los del rubro principal más los que el dueño habilitó a mano (una ferretería con cabañas, un taller con local).
     public function verticalesPermitidos(): array
     {
-        return match ($this->vertical) {
+        $base = match ($this->vertical) {
             'gastronomia' => ['gastronomia', 'retail'],
             'minimarket' => ['minimarket'],
-            'retail', 'corralon', 'otro', null => ['retail'],
+            'hoteleria' => ['hoteleria', 'retail'],
+            'servicios' => ['servicios', 'retail'],
             default => ['retail'],
         };
+        return array_values(array_unique(array_merge($base, (array) ($this->verticales_extra ?? []))));
     }
 
     public function tieneModulo(string $modulo): bool

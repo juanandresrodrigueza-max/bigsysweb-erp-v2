@@ -194,6 +194,9 @@ class ComprobantesController extends Controller
             'fce'             => 'boolean',
             'fce_vto_pago'    => 'nullable|date',
             'notas'           => 'nullable|string|max:2000',
+            'moneda'          => 'nullable|in:ARS,USD',
+            'cotizacion'      => 'nullable|numeric|min:0',
+            'proyecto_id'     => 'nullable|integer|exists:proyectos,id',
             'items'           => 'required|array|min:1',
             'items.*.product_id'   => 'nullable|integer|exists:products,id',
             'items.*.descripcion'  => 'nullable|string|max:255',
@@ -212,12 +215,14 @@ class ComprobantesController extends Controller
         $origen = $request->origen_id ? Comprobante::ventas()->with('items')->find($request->origen_id) : null;
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
-                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas,
+                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
             ]) : null,
             'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre', 'user_id']),
             'cbuFce' => $user->business->cbu_fce,
+            'proyectos' => \App\Models\Proyecto::whereNotIn('estado', ['terminado', 'cancelado'])->orderBy('codigo')->get(['id', 'codigo', 'nombre', 'contact_id']),
+            'cotizacionUsd' => \App\Models\Cotizacion::valor($user->business_id),
             'vendedorDefault' => \App\Models\Vendedor::deUsuario($user->id)?->id,
             'tipoInicial' => $c ? preg_replace('/^(F|NC|ND)[ABCE]$/', '$1X', $c->tipo) : $request->input('tipo', 'FX'),
             'origen' => $origen ? ['id' => $origen->id, 'nombre' => $origen->nombreTipo(), 'numero' => $origen->numeroFormateado(), 'contact_id' => $origen->contact_id, 'items' => $origen->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva])] : null,
@@ -239,7 +244,7 @@ class ComprobantesController extends Controller
         return [
             'id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombreTipo(), 'letra' => $c->def()['letra'], 'grupo' => $c->def()['grupo'],
             'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'fecha_vto' => $c->fecha_vto?->format('d/m/Y'),
-            'cliente' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo,
+            'cliente' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'total_me' => (float) $c->total_me, 'proyecto' => $c->proyecto_id ? ['id' => $c->proyecto_id, 'codigo' => $c->proyecto?->codigo, 'nombre' => $c->proyecto?->nombre] : null,
             'estado' => $c->estado, 'estado_cobro' => $c->estadoCobro(), 'vencido' => $c->vencido(), 'afip_estado' => $c->afip_estado,
             'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal(),
         ];

@@ -35,7 +35,7 @@ class Comprobante extends Model
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id',
-        'numero_proveedor', 'cae_proveedor', 'origen_carga',
+        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id',
     ];
 
     protected $casts = [
@@ -58,6 +58,10 @@ class Comprobante extends Model
     public function imputaciones(): HasMany { return $this->hasMany(CobroImputacion::class); }
     public function acopio(): HasOne { return $this->hasOne(Acopio::class); }
     public function adjuntos(): HasMany { return $this->hasMany(ComprobanteAdjunto::class); }
+    public function proyecto(): BelongsTo { return $this->belongsTo(Proyecto::class); }
+    public function ordenTrabajo(): BelongsTo { return $this->belongsTo(OrdenTrabajo::class); }
+    public function estadia(): BelongsTo { return $this->belongsTo(Estadia::class); }
+    public function enMonedaExtranjera(): bool { return ($this->moneda ?? 'ARS') !== 'ARS'; }
     public function abono(): BelongsTo { return $this->belongsTo(Abono::class); }
     public function envios(): HasMany { return $this->hasMany(Envio::class, 'modelo_id')->where('modelo', 'Comprobante'); }
 

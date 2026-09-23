@@ -101,8 +101,12 @@
               <button @click="pago.medios.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
             <select v-if="['efectivo','transferencia','billetera','tarjeta','cheque_propio'].includes(m.medio)" v-model="m.cuenta_fondos_id" class="input !py-1 text-xs">
-              <option :value="null">Cuenta: la predeterminada</option><option v-for="c in cuentasPara(m.medio)" :key="c.id" :value="c.id">{{ c.nombre }} · {{ moneda(c.saldo, 0) }}</option>
+              <option :value="null">Cuenta: la predeterminada</option><option v-for="c in cuentasPara(m.medio)" :key="c.id" :value="c.id">{{ c.nombre }} · {{ c.moneda === 'USD' ? 'USD ' + Number(c.saldo).toLocaleString('es-AR') : moneda(c.saldo, 0) }}</option>
             </select>
+            <div v-if="['efectivo','transferencia'].includes(m.medio) && cuentas.some(c => c.moneda === 'USD')" class="flex items-center gap-2 text-xs">
+              <label class="flex items-center gap-1"><input type="checkbox" class="accent-carmin" :checked="m.moneda === 'USD'" @change="m.moneda = $event.target.checked ? 'USD' : 'ARS'; if (m.moneda === 'USD') { m.cotizacion = m.cotizacion || cotizacionUsd; m.cuenta_fondos_id = cuentas.find(c => c.moneda === 'USD')?.id ?? m.cuenta_fondos_id }" /> En dólares</label>
+              <template v-if="m.moneda === 'USD'"><span class="text-marca-muted">cotización</span><input v-model.number="m.cotizacion" type="number" step="any" class="input !py-0.5 !w-24 text-xs" /><span class="text-marca-muted">= {{ moneda((m.monto || 0) * (m.cotizacion || 0), 0) }}</span></template>
+            </div>
             <select v-if="m.medio === 'cheque_tercero'" v-model="m.cheque_id" class="input !py-1 text-xs" @change="m.monto = chequesCartera.find(c => c.id === m.cheque_id)?.monto ?? 0">
               <option :value="null">Elegir cheque en cartera…</option><option v-for="c in chequesCartera" :key="c.id" :value="c.id">{{ c.numero }} · {{ c.banco }} · {{ c.emisor }} · vto {{ c.fecha_pago }} · {{ moneda(c.monto, 0) }}</option>
             </select>
@@ -117,7 +121,7 @@
             </div>
             <input v-if="['transferencia','billetera','tarjeta'].includes(m.medio)" v-model="m.referencia" class="input !py-1 text-xs" placeholder="Referencia / N° operación" />
           </div>
-          <button @click="pago.medios.push({ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {} })" class="btn-ghost !px-2 text-xs">+ Otro medio</button>
+          <button @click="pago.medios.push({ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {}, moneda: 'ARS', cotizacion: null })" class="btn-ghost !px-2 text-xs">+ Otro medio</button>
           <div class="mt-4 grid grid-cols-2 gap-2"><div><label class="label">Fecha</label><input v-model="pago.fecha" type="date" class="input" /></div><div><label class="label">Notas</label><input v-model="pago.notas" class="input" /></div></div>
           <p v-if="pago.errors.medios" class="text-carmin text-xs mt-2">{{ pago.errors.medios }}</p>
         </div>
@@ -157,7 +161,7 @@ import Modal from '@/Components/Modal.vue'
 import ProveedorModal from '@/Components/ProveedorModal.vue'
 import { moneda, hoyISO, estadoComprobante } from '@/util/formato'
 
-const props = defineProps({ proveedor: Object, cc: Array, pendientes: Array, compras: Array, pagos: Array, medios: Object, condicionesIva: Array, cuentas: Array, chequesCartera: Array, retencionTipos: Object })
+const props = defineProps({ proveedor: Object, cc: Array, pendientes: Array, compras: Array, pagos: Array, medios: Object, condicionesIva: Array, cuentas: Array, chequesCartera: Array, retencionTipos: Object, cotizacionUsd: { type: Number, default: 0 } })
 const tab = ref('cc')
 const tabs = computed(() => [{ key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'compras', label: 'Compras' }, { key: 'pagos', label: 'Pagos' }, { key: 'datos', label: 'Datos' }])
 const editarAbierto = ref(false)
@@ -165,7 +169,7 @@ function abrirMov(m) { if (m.comprobante_id) router.visit(`/proveedores/compras/
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], cheque_propio: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco']).includes(c.tipo))
 
 const pagoAbierto = ref(false)
-const pago = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, medios: [{ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {} }], imputaciones: [] })
+const pago = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, medios: [{ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {}, moneda: 'ARS', cotizacion: null }], imputaciones: [] })
 const imput = reactive({})
 function cambiarMedio(m) { m.cheque_id = null; m.cuenta_fondos_id = null; m.datos = m.medio === 'retencion' ? { tipo: Object.keys(props.retencionTipos)[0], alicuota: null, base: null, certificado: '' } : m.medio === 'cheque_propio' ? { numero: '', fecha_pago: hoyISO() } : {}; if (m.medio === 'cheque_tercero') m.monto = 0 }
 async function sugerirRetencion(m) {
@@ -175,7 +179,7 @@ async function sugerirRetencion(m) {
   const d = await r.json()
   m.datos.base = base; m.datos.alicuota = d.alicuota; m.datos.motivo = d.motivo; m.datos.jurisdiccion = d.jurisdiccion ?? null; m.monto = d.monto
 }
-const totalPago = computed(() => pago.medios.reduce((a, m) => a + (Number(m.monto) || 0), 0))
+const totalPago = computed(() => pago.medios.reduce((a, m) => a + (Number(m.monto) || 0) * (m.moneda === 'USD' ? (Number(m.cotizacion) || 0) : 1), 0))
 const cancelaPago = computed(() => totalPago.value + (Number(pago.descuento) || 0) - (Number(pago.interes) || 0))
 const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (Number(v) || 0), 0))
 function autoImputar() { let resto = totalPago.value; Object.keys(imput).forEach(k => delete imput[k]); for (const p of props.pendientes) { if (resto <= 0) break; const m = Math.min(resto, p.saldo); imput[p.id] = Math.round(m * 100) / 100; resto -= m } }

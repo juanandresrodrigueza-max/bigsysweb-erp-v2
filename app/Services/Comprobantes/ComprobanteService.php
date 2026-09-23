@@ -47,7 +47,13 @@ class ComprobanteService
                 'fce'             => (bool) ($data['fce'] ?? ($c->exists ? $c->fce : false)),
                 'fce_vto_pago'    => ($data['fce'] ?? false) ? ($data['fce_vto_pago'] ?? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays((int) ($data['dias_vto'] ?? $contact?->dias_pago ?? 30))) : null,
                 'notas'           => $data['notas'] ?? null,
+                'proyecto_id'     => $data['proyecto_id'] ?? $c->proyecto_id,
+                'orden_trabajo_id' => $data['orden_trabajo_id'] ?? $c->orden_trabajo_id,
+                'estadia_id'      => $data['estadia_id'] ?? $c->estadia_id,
+                'moneda'          => $moneda = strtoupper($data['moneda'] ?? 'ARS'),
+                'cotizacion'      => $cot = ($moneda === 'ARS' ? 1 : (float) ($data['cotizacion'] ?: \App\Models\Cotizacion::valor($user->business_id))),
             ])->save();
+            abort_if($moneda !== 'ARS' && $cot <= 0, 422, 'Cargá la cotización del dólar para facturar en moneda extranjera.');
 
             $c->items()->delete();
             $letraC = str_ends_with($tipo, 'C') && in_array($tipo, ['FC', 'NCC', 'NDC'], true); // monotributista: no discrimina IVA
@@ -56,6 +62,8 @@ class ComprobanteService
                 $al = $letraC ? 0 : (float) ($it['alicuota_iva'] ?? $product?->iva ?? 21);
                 // Descuento por cantidad del artículo: se aplica solo si la línea no trae descuento propio.
                 if ($product && (float) ($it['descuento'] ?? 0) == 0.0 && ($dq = $product->descuentoPorCantidad((float) $it['cantidad'])) > 0) $it['descuento'] = $dq;
+                // Moneda extranjera: los precios vienen en dólares y se guardan en pesos a la cotización del comprobante.
+                if ($moneda !== 'ARS') $it['precio_unit'] = round((float) $it['precio_unit'] * $cot, 2);
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
                 $c->items()->create([
                     'product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'),
@@ -81,6 +89,7 @@ class ComprobanteService
             }
 
             $c->recalcularTotales();
+            if ($moneda !== 'ARS') $c->forceFill(['total_me' => round((float) $c->total / $cot, 2), 'neto_me' => round((float) $c->neto / $cot, 2)])->save();
             return $c->fresh(['items', 'contact']);
         });
     }

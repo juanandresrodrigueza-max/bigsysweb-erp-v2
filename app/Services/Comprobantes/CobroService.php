@@ -22,7 +22,12 @@ class CobroService
     {
         return DB::transaction(function () use ($contact, $data) {
             $user = Auth::user();
-            $medios = collect($data['medios'])->filter(fn($m) => (float) $m['monto'] > 0)->values();
+            // Medios en dólares: el importe viene en USD y se convierte a pesos a la cotización indicada (o la del día).
+            $medios = collect($data['medios'])->filter(fn($m) => (float) $m['monto'] > 0)->map(function ($m) use ($user) {
+                if (strtoupper($m['moneda'] ?? 'ARS') === 'USD') { $m['moneda'] = 'USD'; $m['cotizacion'] = (float) ($m['cotizacion'] ?? 0) ?: \App\Models\Cotizacion::valor($user->business_id); abort_if($m['cotizacion'] <= 0, 422, 'Falta la cotización del dólar.'); $m['monto_me'] = round((float) $m['monto'], 2); $m['monto'] = round($m['monto_me'] * $m['cotizacion'], 2); }
+                else { $m['moneda'] = 'ARS'; $m['cotizacion'] = 1; $m['monto_me'] = null; }
+                return $m;
+            })->values();
             $total  = round($medios->sum(fn($m) => (float) $m['monto']), 2);
             if ($total <= 0) {
                 throw ValidationException::withMessages(['medios' => 'Ingresá al menos un medio de pago con importe.']);
@@ -63,10 +68,10 @@ class CobroService
                     $cuenta = $this->fondos->cuentaPara($m['medio'], $user, $m['cuenta_fondos_id'] ?? null);
                     if ($cuenta) {
                         $cuentaId = $cuenta->id;
-                        $this->fondos->registrar($cuenta, ['fecha' => $cobro->fecha, 'origen' => 'cobro', 'origen_id' => $cobro->id, 'concepto' => "Cobro {$cobro->numeroFormateado()} · {$contact->name}", 'ingreso' => (float) $m['monto'], 'referencia' => $m['referencia'] ?? null]);
+                        $this->fondos->registrar($cuenta, ['fecha' => $cobro->fecha, 'origen' => 'cobro', 'origen_id' => $cobro->id, 'concepto' => "Cobro {$cobro->numeroFormateado()} · {$contact->name}" . ($m['moneda'] === 'USD' ? " · USD " . number_format($m['monto_me'], 2, ',', '.') : ''), 'ingreso' => $m['moneda'] === 'USD' && $cuenta->moneda === 'USD' ? $m['monto_me'] : (float) $m['monto'], 'cotizacion' => $m['moneda'] === 'USD' && $cuenta->moneda === 'USD' ? $m['cotizacion'] : 1, 'referencia' => $m['referencia'] ?? null]);
                     }
                 }
-                $medioRow = $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null]);
+                $medioRow = $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null, 'moneda' => $m['moneda'], 'cotizacion' => $m['cotizacion'], 'monto_me' => $m['monto_me']]);
                 if ($m['medio'] === 'tarjeta') app(\App\Services\Fondos\TarjetasService::class)->cuponDesdeCobro($cobro, $medioRow);
             }
 

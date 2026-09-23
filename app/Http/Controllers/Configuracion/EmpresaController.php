@@ -15,7 +15,7 @@ class EmpresaController extends Controller
         $sub = $b->activeSubscription;
 
         return Inertia::render('Configuracion/Empresa', [
-            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
+            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'verticalesExtra' => (array) ($request->user()->business->verticales_extra ?? []), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
             'empresa' => [
                 'name' => $b->name, 'razon_social' => $b->razon_social, 'cuit' => $b->cuit, 'email' => $b->email,
                 'phone' => $b->phone, 'condicion_iva' => $b->condicion_iva ?? 'Responsable Inscripto',
@@ -65,6 +65,15 @@ class EmpresaController extends Controller
         $texto = $svc->resumen($b);
         $r = $c['whatsapp'] ? app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $c['whatsapp'], $texto) : ['enviado' => false, 'link' => null];
         return back()->with('resumen_texto', $texto)->with('success', $r['enviado'] ? 'Resumen enviado por WhatsApp.' : 'Este es el resumen de hoy.')->with('abrir', $r['link']);
+    }
+
+    public function guardarVerticales(Request $request)
+    {
+        $v = array_values(array_intersect((array) $request->input('verticales_extra', []), \App\Models\Business::VERTICALES_MODULOS));
+        $b = $request->user()->business;
+        $b->update(['verticales_extra' => $v]);
+        AuditLog::registrar('editar', $b, 'Verticales habilitados: ' . (implode(', ', $v) ?: 'ninguno extra'));
+        return back()->with('success', 'Verticales guardados.');
     }
 
     public function guardarPos(Request $request)

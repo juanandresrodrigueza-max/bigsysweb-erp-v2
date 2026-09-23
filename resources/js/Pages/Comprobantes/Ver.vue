@@ -58,6 +58,8 @@
               <div class="flex justify-between"><span class="text-marca-muted">IVA</span><span class="tabular-nums">{{ moneda(c.iva) }}</span></div>
               <div v-if="c.percepciones" class="flex justify-between"><span class="text-marca-muted">Percepciones</span><span class="tabular-nums">{{ moneda(c.percepciones) }}</span></div>
               <div class="flex justify-between text-lg font-extrabold pt-1 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ moneda(c.total) }}</span></div>
+              <div v-if="c.moneda && c.moneda !== 'ARS'" class="flex justify-between text-xs text-violeta font-semibold"><span>En {{ c.moneda }} · cotización {{ Number(c.cotizacion).toLocaleString('es-AR') }}</span><span class="tabular-nums">{{ c.moneda }} {{ Number(c.total_me).toLocaleString('es-AR', { minimumFractionDigits: 2 }) }}</span></div>
+              <div v-if="c.proyecto" class="flex justify-between text-xs"><span class="text-marca-muted">Obra</span><Link :href="`/obras/${c.proyecto.id}`" class="text-violeta font-semibold hover:underline">{{ c.proyecto.codigo }} · {{ c.proyecto.nombre }}</Link></div>
               <div v-if="c.estado_cobro !== 'na' && c.estado === 'emitido'" class="flex justify-between" :class="c.saldo > 0 ? 'text-carmin font-semibold' : 'text-emerald-700'"><span>Saldo</span><span class="tabular-nums">{{ moneda(c.saldo) }}</span></div>
             </div>
           </div>

@@ -38,6 +38,14 @@
           </div>
           <div v-if="form.condicion === 'cta_cte' && esFactura"><label class="label">Días para el vencimiento</label><input v-model.number="form.dias_vto" type="number" min="0" class="input" /></div>
           <div v-if="vendedores.length"><label class="label">Vendedor</label><select v-model="form.vendedor_id" class="input"><option :value="null">{{ cliente?.vendedor ? 'El del cliente' : 'Sin vendedor' }}</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
+          <div v-if="proyectos.length"><label class="label">Obra / proyecto</label><select v-model="form.proyecto_id" class="input"><option :value="null">Sin obra</option><option v-for="p in proyectos" :key="p.id" :value="p.id">{{ p.codigo }} · {{ p.nombre }}</option></select></div>
+          <div><label class="label">Moneda</label>
+            <div class="flex gap-2 items-center">
+              <div class="flex gap-1 bg-marca-fondo rounded-xl p-1 flex-1"><button type="button" v-for="m in ['ARS','USD']" :key="m" @click="form.moneda = m; if (m === 'USD' && !form.cotizacion) form.cotizacion = cotizacionUsd" class="flex-1 py-1.5 rounded-lg text-sm font-semibold transition" :class="form.moneda === m ? 'bg-white shadow text-marca-texto' : 'text-marca-muted'">{{ m === 'ARS' ? '$ Pesos' : 'US$ Dólares' }}</button></div>
+              <input v-if="form.moneda === 'USD'" v-model.number="form.cotizacion" type="number" step="any" class="input !w-28" placeholder="Cotización" title="Cotización del dólar" />
+            </div>
+            <p v-if="form.moneda === 'USD'" class="text-xs text-violeta mt-1">Los precios se cargan en dólares y la factura sale en pesos a {{ moneda(form.cotizacion || 0) }} por dólar.</p>
+          </div>
           <div v-if="puntosVenta.length > 1"><label class="label">Punto de venta</label><select v-model="form.punto_venta_id" class="input"><option v-for="p in puntosVenta" :key="p.id" :value="p.id">{{ String(p.numero).padStart(4,'0') }} · {{ p.sucursal ?? 'General' }}</option></select></div>
           <label v-if="esFactura" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.es_acopio ? 'border-violeta bg-violeta-light' : 'border-marca-borde'">
             <input v-model="form.es_acopio" type="checkbox" class="accent-violeta" />
@@ -93,7 +101,8 @@
             <div class="flex justify-between"><span class="text-marca-muted">Neto</span><span class="tabular-nums">{{ moneda(totales.neto) }}</span></div>
             <div class="flex justify-between"><span class="text-marca-muted">IVA</span><span class="tabular-nums">{{ moneda(totales.iva) }}</span></div>
             <div v-if="cliente?.percepcion_iibb && esFactura" class="flex justify-between"><span class="text-marca-muted">Percepción IIBB 3%</span><span class="tabular-nums">{{ moneda(totales.neto * 0.03) }}</span></div>
-            <div class="flex justify-between text-lg font-extrabold pt-2 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ moneda(totales.total) }}</span></div>
+            <div class="flex justify-between text-lg font-extrabold pt-2 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ form.moneda === 'USD' ? 'US$ ' + totales.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : moneda(totales.total) }}</span></div>
+            <div v-if="form.moneda === 'USD'" class="flex justify-between text-xs text-violeta font-semibold"><span>En pesos a {{ moneda(form.cotizacion || 0) }}</span><span class="tabular-nums">{{ moneda(totales.total * (form.cotizacion || 0)) }}</span></div>
           </div>
           <p v-if="form.errors.afip" class="text-carmin text-xs mt-3">{{ form.errors.afip }}</p>
           <p v-if="Object.keys(form.errors).length && !form.errors.afip" class="text-carmin text-xs mt-3">Revisá los campos marcados.</p>
@@ -151,13 +160,13 @@ import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 
-const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
+const props = defineProps({ proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
 
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
   fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
-  items: (base?.items ?? []).map(i => ({ ...i })), emitir: false,
+  items: (base?.items ?? []).map(i => ({ ...i })), emitir: false, moneda: base?.moneda ?? 'ARS', cotizacion: base?.cotizacion && base.cotizacion !== 1 ? base.cotizacion : null, proyecto_id: base?.proyecto_id ?? (new URLSearchParams(location.search).get('proyecto_id') ? Number(new URLSearchParams(location.search).get('proyecto_id')) : null),
 })
 const esConversion = !!props.origen
 
