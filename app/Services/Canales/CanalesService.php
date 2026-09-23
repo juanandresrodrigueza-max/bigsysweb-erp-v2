@@ -39,6 +39,7 @@ class CanalesService
         }
         $pedido = $this->tienda->crearPedido($b, ['items' => $p['items'], 'cliente' => $p['cliente'] ?? [], 'entrega' => $p['entrega'] ?? 'envio', 'pago' => $p['pago'] ?? 'pagado_externo', 'envio' => $p['envio'] ?? 0, 'external_id' => $p['external_id'] ?? null, 'notas' => $p['notas'] ?? null, 'texto_original' => $p['texto_original'] ?? null], $c->tipo);
         if (isset($p['total']) && abs((float) $p['total'] - (float) $pedido->total) > 0.01) $pedido->forceFill(['descuento' => round((float) $pedido->subtotal + (float) $pedido->envio - (float) $p['total'], 2), 'total' => (float) $p['total']])->save();
+        if (! empty($p['envio_datos'])) $pedido->forceFill(['envio_datos' => $p['envio_datos']])->save();
         return $pedido;
     }
 
@@ -48,7 +49,7 @@ class CanalesService
         return match ($tipo) {
             'woocommerce' => ['external_id' => (string) ($raw['id'] ?? ''), 'cliente' => ['nombre' => trim(($raw['billing']['first_name'] ?? '') . ' ' . ($raw['billing']['last_name'] ?? '')), 'email' => $raw['billing']['email'] ?? null, 'telefono' => $raw['billing']['phone'] ?? null, 'direccion' => trim(($raw['shipping']['address_1'] ?? $raw['billing']['address_1'] ?? '') . ' ' . ($raw['shipping']['city'] ?? $raw['billing']['city'] ?? ''))], 'items' => array_map(fn($l) => ['sku' => $l['sku'] ?? null, 'descripcion' => $l['name'] ?? 'Ítem', 'cantidad' => (float) ($l['quantity'] ?? 1), 'precio_unit' => (float) ($l['total'] ?? 0) / max(1, (float) ($l['quantity'] ?? 1))], $raw['line_items'] ?? []), 'entrega' => 'envio', 'envio' => (float) ($raw['shipping_total'] ?? 0), 'total' => (float) ($raw['total'] ?? 0), 'pago' => ($raw['status'] ?? '') === 'processing' || ($raw['date_paid'] ?? null) ? 'pagado_externo' : 'a_convenir', 'notas' => $raw['customer_note'] ?? null],
             'shopify' => ['external_id' => (string) ($raw['id'] ?? ''), 'cliente' => ['nombre' => trim(($raw['customer']['first_name'] ?? '') . ' ' . ($raw['customer']['last_name'] ?? '')) ?: ($raw['email'] ?? 'Cliente Shopify'), 'email' => $raw['email'] ?? null, 'telefono' => $raw['phone'] ?? ($raw['shipping_address']['phone'] ?? null), 'direccion' => trim(($raw['shipping_address']['address1'] ?? '') . ' ' . ($raw['shipping_address']['city'] ?? ''))], 'items' => array_map(fn($l) => ['sku' => $l['sku'] ?? null, 'descripcion' => $l['title'] ?? $l['name'] ?? 'Ítem', 'cantidad' => (float) ($l['quantity'] ?? 1), 'precio_unit' => (float) ($l['price'] ?? 0)], $raw['line_items'] ?? []), 'entrega' => 'envio', 'envio' => (float) ($raw['total_shipping_price_set']['shop_money']['amount'] ?? 0), 'total' => (float) ($raw['total_price'] ?? 0), 'pago' => ($raw['financial_status'] ?? '') === 'paid' ? 'pagado_externo' : 'a_convenir', 'notas' => $raw['note'] ?? null],
-            'mercadolibre' => ['external_id' => (string) ($raw['id'] ?? ''), 'cliente' => ['nombre' => trim(($raw['buyer']['first_name'] ?? '') . ' ' . ($raw['buyer']['last_name'] ?? '')) ?: ($raw['buyer']['nickname'] ?? 'Comprador ML'), 'email' => $raw['buyer']['email'] ?? null, 'telefono' => isset($raw['buyer']['phone']) ? ($raw['buyer']['phone']['area_code'] ?? '') . ($raw['buyer']['phone']['number'] ?? '') : null, 'direccion' => $raw['shipping']['receiver_address']['address_line'] ?? null], 'items' => array_map(fn($l) => ['sku' => $l['item']['seller_sku'] ?? $l['item']['seller_custom_field'] ?? null, 'descripcion' => $l['item']['title'] ?? 'Ítem', 'cantidad' => (float) ($l['quantity'] ?? 1), 'precio_unit' => (float) ($l['unit_price'] ?? 0)], $raw['order_items'] ?? []), 'entrega' => 'envio', 'envio' => 0, 'total' => (float) ($raw['total_amount'] ?? 0), 'pago' => ($raw['status'] ?? '') === 'paid' ? 'pagado_externo' : 'a_convenir'],
+            'mercadolibre' => ['external_id' => (string) ($raw['id'] ?? ''), 'cliente' => ['nombre' => trim(($raw['buyer']['first_name'] ?? '') . ' ' . ($raw['buyer']['last_name'] ?? '')) ?: ($raw['buyer']['nickname'] ?? 'Comprador ML'), 'email' => $raw['buyer']['email'] ?? null, 'telefono' => isset($raw['buyer']['phone']) ? ($raw['buyer']['phone']['area_code'] ?? '') . ($raw['buyer']['phone']['number'] ?? '') : null, 'direccion' => $raw['shipping']['receiver_address']['address_line'] ?? null], 'items' => array_map(fn($l) => ['sku' => $l['item']['seller_sku'] ?? $l['item']['seller_custom_field'] ?? null, 'descripcion' => $l['item']['title'] ?? 'Ítem', 'cantidad' => (float) ($l['quantity'] ?? 1), 'precio_unit' => (float) ($l['unit_price'] ?? 0)], $raw['order_items'] ?? []), 'entrega' => 'envio', 'envio' => 0, 'total' => (float) ($raw['total_amount'] ?? 0), 'pago' => ($raw['status'] ?? '') === 'paid' ? 'pagado_externo' : 'a_convenir', 'envio_datos' => ! empty($raw['shipping']['id']) ? ['proveedor' => 'mercadoenvios', 'shipment_id' => (string) $raw['shipping']['id'], 'estado' => $raw['shipping']['status'] ?? null, 'logistica' => $raw['shipping']['logistic_type'] ?? null] : null],
             'pedidosya', 'rappi' => ['external_id' => (string) ($raw['id'] ?? $raw['order_id'] ?? $raw['code'] ?? ''), 'cliente' => ['nombre' => $raw['customer']['name'] ?? ($raw['user']['name'] ?? 'Cliente ' . ucfirst($tipo)), 'telefono' => $raw['customer']['phone'] ?? ($raw['user']['phone'] ?? null), 'direccion' => $raw['delivery']['address'] ?? ($raw['address'] ?? ($raw['delivery_information']['address'] ?? null)), 'notas' => $raw['notes'] ?? ($raw['comments'] ?? null)], 'items' => array_map(fn($l) => ['sku' => $l['sku'] ?? ($l['external_id'] ?? ($l['id'] ?? null)), 'descripcion' => $l['name'] ?? ($l['product_name'] ?? 'Ítem'), 'cantidad' => (float) ($l['quantity'] ?? ($l['units'] ?? 1)), 'precio_unit' => (float) ($l['unit_price'] ?? ($l['price'] ?? 0))], $raw['items'] ?? ($raw['products'] ?? ($raw['order_detail']['items'] ?? []))), 'entrega' => 'envio', 'envio' => 0, 'total' => (float) ($raw['total'] ?? ($raw['total_amount'] ?? ($raw['payment']['total'] ?? 0))), 'pago' => 'pagado_externo', 'texto_original' => json_encode($raw, JSON_UNESCAPED_UNICODE)],
             default => ['external_id' => (string) ($raw['external_id'] ?? $raw['id'] ?? ''), 'cliente' => $raw['cliente'] ?? [], 'items' => $raw['items'] ?? [], 'entrega' => $raw['entrega'] ?? 'envio', 'envio' => (float) ($raw['envio'] ?? 0), 'total' => $raw['total'] ?? null, 'pago' => $raw['pago'] ?? 'pagado_externo', 'notas' => $raw['notas'] ?? null],
         };
@@ -89,6 +90,31 @@ class CanalesService
         $cr = $c->credenciales ?? []; if (empty($cr['location_id']) || empty($cr['inventory_' . $p->sku])) return;
         $this->shopify($c)->post('inventory_levels/set.json', ['location_id' => $cr['location_id'], 'inventory_item_id' => $cr['inventory_' . $p->sku], 'available' => (int) $p->stock]);
     }
+    // Mercado Envíos: etiqueta PDF del envío y estado/tracking. Usa las credenciales del canal Mercado Libre.
+    public function mlCanal(Business $b): ?Canal { return Canal::withoutGlobalScopes()->where('business_id', $b->id)->where('tipo', 'mercadolibre')->where('activo', true)->first(); }
+
+    public function mlEtiqueta(Business $b, string $shipmentId): string
+    {
+        $c = $this->mlCanal($b); abort_unless($c, 422, 'No hay un canal Mercado Libre activo con credenciales.');
+        $r = Http::withToken($c->credenciales['access_token'] ?? '')->timeout(15)->get('https://api.mercadolibre.com/shipment_labels', ['shipment_ids' => $shipmentId, 'response_type' => 'pdf']);
+        if (! $r->ok()) throw new \RuntimeException("Mercado Envíos HTTP {$r->status()}: " . mb_substr($r->body(), 0, 200));
+        return $r->body();
+    }
+
+    public function mlEnvioEstado(Business $b, PedidoWeb $p): array
+    {
+        $c = $this->mlCanal($b); abort_unless($c, 422, 'No hay un canal Mercado Libre activo con credenciales.');
+        $id = $p->envio_datos['shipment_id'] ?? null; abort_unless($id, 422, 'El pedido no tiene envío de Mercado Envíos.');
+        $r = Http::withToken($c->credenciales['access_token'] ?? '')->timeout(10)->get("https://api.mercadolibre.com/shipments/{$id}");
+        if (! $r->ok()) throw new \RuntimeException("Mercado Envíos HTTP {$r->status()}");
+        $datos = array_replace($p->envio_datos ?? [], ['estado' => $r->json('status'), 'subestado' => $r->json('substatus'), 'tracking' => $r->json('tracking_number'), 'logistica' => $r->json('logistic_type') ?? ($p->envio_datos['logistica'] ?? null), 'consultado' => now()->format('d/m H:i')]);
+        $p->forceFill(['envio_datos' => $datos])->save();
+        // Estado del pedido según el envío: shipped → enviado, delivered → entregado.
+        $mapa = ['shipped' => 'enviado', 'delivered' => 'entregado'];
+        if (isset($mapa[$datos['estado']]) && ! in_array($p->estado, ['entregado', 'cancelado'], true) && $p->estado !== $mapa[$datos['estado']]) $this->tienda->cambiarEstado($p, $mapa[$datos['estado']]);
+        return $datos;
+    }
+
     private function mlPedidos(Canal $c): array
     {
         $cr = $c->credenciales ?? [];

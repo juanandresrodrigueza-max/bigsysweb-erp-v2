@@ -85,7 +85,7 @@ class ComprobantesController extends Controller
 
     public function show(int $id)
     {
-        $c = Comprobante::ventas()->with(['items.product:id,name,sku', 'contact', 'origen', 'derivados', 'imputaciones.cobro', 'acopio.items', 'location:id,name', 'user:id,name'])->findOrFail($id);
+        $c = Comprobante::ventas()->with(['items.product:id,name,sku', 'contact', 'origen', 'derivados', 'imputaciones.cobro', 'acopio.items', 'location:id,name', 'user:id,name', 'impuestos'])->findOrFail($id);
         $tipos = Comprobante::TIPOS;
         $letra = $c->def()['letra'];
 
@@ -104,6 +104,8 @@ class ComprobantesController extends Controller
                 'acopio' => $c->acopio ? ['id' => $c->acopio->id, 'estado' => $c->acopio->estado, 'fecha_limite' => $c->acopio->fecha_limite?->format('d/m/Y'), 'items' => $c->acopio->items->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'facturada' => (float) $i->cantidad_facturada, 'retirada' => (float) $i->cantidad_retirada, 'pendiente' => $i->pendiente()])] : null,
                 'sucursal' => $c->location?->name, 'usuario' => $c->user?->name, 'notas' => $c->notas, 'afip_respuesta' => $c->afip_respuesta,
                 'neto' => (float) $c->neto, 'iva' => (float) $c->iva, 'percepciones' => (float) $c->percepciones,
+                'impuestos' => $c->impuestos->map(fn($t) => ['tipo' => $t->tipo, 'nombre' => \App\Models\ComprobanteImpuesto::descripcion($t->tipo), 'alicuota' => (float) $t->alicuota, 'monto' => (float) $t->monto]),
+                'transporte' => $c->tipo === 'REM' ? ['transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega, 'cot' => $c->cot] : null,
             ]),
             'conversiones' => $this->conversionesPosibles($c),
             'puedeAnular' => $c->estado !== 'anulado' && ! ($c->estado === 'emitido' && $c->esFiscal() && $c->afip_estado === 'aprobado'),
@@ -159,9 +161,25 @@ class ComprobantesController extends Controller
         return response()->json($this->service->verificarEnArca($c));
     }
 
+    // Remito electrónico: archivo para pedir el COT en ARBA y guardado del código devuelto.
+    public function cot(int $id, \App\Services\Fiscal\CotService $cot)
+    {
+        $c = Comprobante::ventas()->with(['items.product', 'contact', 'business'])->findOrFail($id);
+        return response($cot->archivo($c), 200, ['Content-Type' => 'text/plain; charset=ISO-8859-1', 'Content-Disposition' => 'attachment; filename="' . $cot->nombreArchivo($c) . '"']);
+    }
+
+    public function guardarCot(int $id, Request $request)
+    {
+        $d = $request->validate(['cot' => 'nullable|string|max:40']);
+        $c = Comprobante::ventas()->where('tipo', 'REM')->findOrFail($id);
+        $c->forceFill(['cot' => $d['cot'] ? trim($d['cot']) : null])->save();
+        \App\Models\AuditLog::registrar('editar', $c, 'COT del remito ' . $c->numeroFormateado() . ': ' . ($c->cot ?: 'borrado'));
+        return back()->with('success', $c->cot ? 'COT guardado en el remito.' : 'COT borrado.');
+    }
+
     public function imprimir(int $id)
     {
-        $c = Comprobante::ventas()->with(['items', 'contact', 'business', 'location'])->findOrFail($id);
+        $c = Comprobante::ventas()->with(['items', 'contact', 'business', 'location', 'impuestos'])->findOrFail($id);
         return view('comprobantes.imprimir', ['c' => $c, 'b' => $c->business]);
     }
 
@@ -223,6 +241,13 @@ class ComprobantesController extends Controller
             'moneda'          => 'nullable|in:ARS,USD',
             'cotizacion'      => 'nullable|numeric|min:0',
             'proyecto_id'     => 'nullable|integer|exists:proyectos,id',
+            // Remito: datos de transporte (para el COT de ARBA y el pie del remito).
+            'transportista'      => 'nullable|string|max:120',
+            'transportista_cuit' => 'nullable|string|max:13',
+            'patente'            => 'nullable|string|max:12',
+            'bultos'             => 'nullable|integer|min:0',
+            'peso_kg'            => 'nullable|numeric|min:0',
+            'domicilio_entrega'  => 'nullable|string|max:200',
             'items'           => 'required|array|min:1',
             'items.*.product_id'   => 'nullable|integer|exists:products,id',
             'items.*.descripcion'  => 'nullable|string|max:255',
@@ -245,6 +270,7 @@ class ComprobantesController extends Controller
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
                 'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
+                'transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
             ]) : null,

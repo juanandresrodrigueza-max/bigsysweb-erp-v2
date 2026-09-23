@@ -93,6 +93,17 @@
           <p v-if="form.errors.items" class="text-carmin text-xs px-4 pb-3">{{ form.errors.items }}</p>
         </div>
 
+        <div v-if="form.tipo === 'REM'" class="card">
+          <div class="flex items-center justify-between mb-1"><h2 class="font-bold">Transporte (remito electrónico)</h2><span class="text-[11px] text-marca-muted">Sale impreso y arma el archivo del COT de ARBA</span></div>
+          <div class="grid sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-3"><label class="label">Domicilio de entrega</label><input v-model="form.domicilio_entrega" class="input" :placeholder="cliente ? [cliente.address, cliente.city].filter(Boolean).join(', ') || 'Calle, número, localidad' : 'Calle, número, localidad'" /></div>
+            <div><label class="label">Transportista</label><input v-model="form.transportista" class="input" placeholder="Nombre o empresa" /></div>
+            <div><label class="label">CUIT transportista</label><input v-model="form.transportista_cuit" class="input" placeholder="30-12345678-9" /></div>
+            <div><label class="label">Patente</label><input v-model="form.patente" class="input" placeholder="AB123CD" /></div>
+            <div><label class="label">Bultos</label><input v-model.number="form.bultos" type="number" min="0" class="input" /></div>
+            <div><label class="label">Peso (kg)</label><input v-model.number="form.peso_kg" type="number" min="0" step="any" class="input" /></div>
+          </div>
+        </div>
         <div class="card"><label class="label">Notas (salen impresas)</label><textarea v-model="form.notas" rows="2" class="input"></textarea></div>
       </div>
 
@@ -103,6 +114,7 @@
             <div class="flex justify-between"><span class="text-marca-muted">Neto</span><span class="tabular-nums">{{ moneda(totales.neto) }}</span></div>
             <div class="flex justify-between"><span class="text-marca-muted">IVA</span><span class="tabular-nums">{{ moneda(totales.iva) }}</span></div>
             <div v-if="cliente?.percepcion_iibb && esFactura" class="flex justify-between"><span class="text-marca-muted">Percepción IIBB 3%</span><span class="tabular-nums">{{ moneda(totales.neto * 0.03) }}</span></div>
+            <p v-if="(cliente?.percepcion_iva || cliente?.percepcion_ganancias) && esFactura" class="text-[11px] text-marca-muted">Este cliente lleva percepción de {{ [cliente.percepcion_iva ? 'IVA' : null, cliente.percepcion_ganancias ? 'Ganancias' : null].filter(Boolean).join(' y ') }}: se calcula al emitir según Configuración → Impuestos.</p>
             <div class="flex justify-between text-lg font-extrabold pt-2 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ form.moneda === 'USD' ? 'US$ ' + totales.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : moneda(totales.total) }}</span></div>
             <div v-if="form.moneda === 'USD'" class="flex justify-between text-xs text-violeta font-semibold"><span>En pesos a {{ moneda(form.cotizacion || 0) }}</span><span class="tabular-nums">{{ moneda(totales.total * (form.cotizacion || 0)) }}</span></div>
           </div>
@@ -172,6 +184,7 @@ const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.con
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
   fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
+  transportista: base?.transportista ?? '', transportista_cuit: base?.transportista_cuit ?? '', patente: base?.patente ?? '', bultos: base?.bultos ?? null, peso_kg: base?.peso_kg ?? null, domicilio_entrega: base?.domicilio_entrega ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false, moneda: base?.moneda ?? 'ARS', cotizacion: base?.cotizacion && base.cotizacion !== 1 ? base.cotizacion : null, proyecto_id: base?.proyecto_id ?? (new URLSearchParams(location.search).get('proyecto_id') ? Number(new URLSearchParams(location.search).get('proyecto_id')) : null),
 })
 const esConversion = !!props.origen

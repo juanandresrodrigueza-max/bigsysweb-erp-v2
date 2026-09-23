@@ -72,23 +72,38 @@
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         <button v-for="m in [['efectivo','Efectivo'],['tarjeta','Tarjeta'],['transferencia','Transfer.'],['mercadopago','MercadoPago']]" :key="m[0]" @click="soloMedio(m[0])" class="py-2 rounded-xl border text-sm font-semibold" :class="medios.length === 1 && medios[0].medio === m[0] ? 'bg-carmin text-white border-carmin' : 'bg-white border-marca-borde'">{{ m[1] }}</button>
       </div>
-      <div v-for="(m, i) in medios" :key="i" class="grid grid-cols-[1fr_130px_28px] gap-2 mb-2">
-        <select v-model="m.medio" class="input"><option v-for="(l, k) in mediosLabels" :key="k" :value="k">{{ l }}</option></select>
-        <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right text-lg font-bold tabular-nums" @keydown.enter.prevent="cobrar" ref="montoInputs" />
-        <button @click="medios.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+      <div v-for="(m, i) in medios" :key="i" class="mb-2">
+        <div class="grid grid-cols-[1fr_130px_28px] gap-2">
+          <select v-model="m.medio" class="input"><option v-for="(l, k) in mediosLabels" :key="k" :value="k">{{ l }}</option></select>
+          <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right text-lg font-bold tabular-nums" @keydown.enter.prevent="cobrar" ref="montoInputs" />
+          <button @click="medios.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+        </div>
+        <div v-if="m.medio === 'tarjeta' && planesCuotas.length" class="grid grid-cols-2 gap-2 mt-1">
+          <select v-model="m.datos.tarjeta" class="input !py-1 text-xs" @change="m.datos.cuotas = 1; aplicarCuotas(m)"><option v-for="t in planesCuotas" :key="t.nombre" :value="t.nombre">{{ t.nombre }}</option></select>
+          <select v-model.number="m.datos.cuotas" class="input !py-1 text-xs" @change="aplicarCuotas(m)"><option v-for="pl in planesDe(m.datos.tarjeta)" :key="pl.cuotas" :value="pl.cuotas">{{ pl.cuotas }} cuota{{ pl.cuotas > 1 ? 's' : '' }}{{ pl.recargo ? ` · ${pl.recargo > 0 ? '+' : ''}${pl.recargo}%` : ' · sin recargo' }}</option></select>
+          <p v-if="recargoDe(m)" class="col-span-2 text-[11px] text-marca-muted">{{ m.datos.cuotas }} cuotas de <b class="tabular-nums">{{ moneda(m.monto / m.datos.cuotas) }}</b> · recargo {{ recargoDe(m) }}% incluido en el importe (entra como ítem de la factura).</p>
+        </div>
+        <div v-if="m.medio === 'mercadopago' && (mp.qr || mp.point)" class="mt-1 rounded-xl border border-marca-borde p-2 text-xs">
+          <div v-if="!mpCobro" class="flex flex-wrap gap-1.5 items-center"><span class="text-marca-muted">Cobrar {{ moneda(m.monto) }} con:</span><button v-if="mp.qr" type="button" class="btn-secondary !py-1 text-xs" @click="mpIniciar('qr', m)">QR de mostrador</button><button v-if="mp.point" type="button" class="btn-secondary !py-1 text-xs" @click="mpIniciar('point', m)">Point (lector)</button></div>
+          <div v-else class="flex gap-3 items-center">
+            <canvas v-if="mpCobro.tipo === 'qr'" ref="mpQr" class="w-28 h-28 rounded-lg border border-marca-borde shrink-0"></canvas>
+            <div class="flex-1"><p class="font-semibold">{{ mpCobro.tipo === 'qr' ? 'El cliente escanea el QR del mostrador' : 'Importe enviado al Point' }} · {{ moneda(mpCobro.monto) }}</p><p class="text-marca-muted">{{ mpCobro.estado === 'pagado' ? '¡Pago aprobado! Emitiendo…' : mpCobro.estado === 'cancelado' ? 'Cancelado o vencido.' : 'Esperando el pago…' }}<span v-if="mpCobro.error" class="text-carmin"> {{ mpCobro.error }}</span></p><button type="button" class="btn-ghost !px-2 text-xs mt-1" @click="mpCancelar">Cancelar</button></div>
+          </div>
+        </div>
       </div>
-      <button @click="medios.push({ medio: 'tarjeta', monto: Math.max(0, total - pagado) })" class="btn-ghost !px-2 text-xs">+ Otro medio (pago mixto)</button>
+      <button @click="medios.push({ medio: 'tarjeta', monto: Math.max(0, aCobrar - pagado), datos: { tarjeta: planesCuotas[0]?.nombre ?? null, cuotas: 1 } })" class="btn-ghost !px-2 text-xs">+ Otro medio (pago mixto)</button>
       <div v-if="medios.some(m => m.medio === 'efectivo')" class="flex gap-1.5 mt-2 flex-wrap"><span class="text-xs text-marca-muted self-center">Paga con:</span><button v-for="b in billetes" :key="b" @click="ponerEfectivo(b)" class="px-2.5 py-1 rounded-lg bg-marca-fondo text-xs font-semibold tabular-nums">{{ moneda(b, 0) }}</button></div>
       <div class="mt-4 p-3 rounded-xl bg-marca-fondo text-sm space-y-1">
         <div class="flex justify-between"><span>Total</span><b class="tabular-nums">{{ moneda(aCobrar) }}</b></div>
+        <div v-if="recargoTotal > 0.005" class="flex justify-between text-marca-muted"><span>Recargo por cuotas</span><b class="tabular-nums">{{ moneda(recargoTotal) }}</b></div>
         <div class="flex justify-between"><span>Pagado</span><b class="tabular-nums">{{ moneda(pagado) }}</b></div>
-        <div class="flex justify-between text-lg" :class="pagado >= aCobrar ? 'text-emerald-700' : 'text-carmin'"><span>{{ pagado >= aCobrar ? 'Vuelto' : 'Falta' }}</span><b class="tabular-nums">{{ moneda(Math.abs(pagado - aCobrar)) }}</b></div>
+        <div class="flex justify-between text-lg" :class="pagado >= aCobrar + recargoTotal - 0.005 ? 'text-emerald-700' : 'text-carmin'"><span>{{ pagado >= aCobrar + recargoTotal - 0.005 ? 'Vuelto' : 'Falta' }}</span><b class="tabular-nums">{{ moneda(Math.abs(pagado - aCobrar - recargoTotal)) }}</b></div>
       </div>
-      <label v-if="pagado < aCobrar - 0.005 && contactId !== consumidorFinalId" class="flex items-center gap-2 text-sm mt-3"><input v-model="aCuenta" type="checkbox" class="accent-carmin" /> Lo que falta queda en cuenta corriente del cliente</label>
+      <label v-if="pagado < aCobrar + recargoTotal - 0.005 && contactId !== consumidorFinalId" class="flex items-center gap-2 text-sm mt-3"><input v-model="aCuenta" type="checkbox" class="accent-carmin" /> Lo que falta queda en cuenta corriente del cliente</label>
       <p v-if="error" class="text-carmin text-xs mt-2">{{ error }}</p>
       <template #pie>
         <button class="btn-secondary" @click="cobroAbierto = false">Cancelar</button>
-        <button class="btn-primary !px-6" :disabled="enviando || (pagado < aCobrar - 0.005 && !aCuenta)" @click="cobrar">{{ enviando ? 'Cobrando…' : 'Confirmar y emitir' }}</button>
+        <button class="btn-primary !px-6" :disabled="enviando || (pagado < aCobrar + recargoTotal - 0.005 && !aCuenta)" @click="cobrar">{{ enviando ? 'Cobrando…' : 'Confirmar y emitir' }}</button>
       </template>
     </Modal>
   </AppLayout>
@@ -101,8 +116,9 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
+import QRCode from 'qrcode'
 
-const props = defineProps({ vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) } })
+const props = defineProps({ vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) }, planesCuotas: { type: Array, default: () => [] }, mp: { type: Object, default: () => ({ qr: false, point: false }) } })
 const page = usePage()
 const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mercadopago: 'MercadoPago', billetera: 'Billetera' }
 const q = ref(''), rubroSel = ref(null), buscador = ref(null)
@@ -151,8 +167,48 @@ const cobroAbierto = ref(false), medios = ref([]), aCuenta = ref(false), enviand
 const pagado = computed(() => medios.value.reduce((a, m) => a + (Number(m.monto) || 0), 0))
 const aCobrar = computed(() => totalFinal.value)
 const billetes = computed(() => { const t = aCobrar.value; const base = [1000, 2000, 5000, 10000, 20000, 50000]; const r = [Math.ceil(t / 1000) * 1000, Math.ceil(t / 5000) * 5000, Math.ceil(t / 10000) * 10000, ...base.filter(b => b > t)]; return [...new Set(r.filter(b => b >= t))].sort((a, b) => a - b).slice(0, 5) })
-function abrirCobro() { if (!ticket.value.length) return; medios.value = [{ medio: 'efectivo', monto: aCobrar.value }]; aCuenta.value = false; error.value = null; cobroAbierto.value = true; nextTick(() => { montoInputs.value?.[0]?.select?.() }) }
-function soloMedio(m) { medios.value = [{ medio: m, monto: aCobrar.value }]; nextTick(() => montoInputs.value?.[0]?.select?.()) }
+const nuevoMedio = (medio, monto) => ({ medio, monto, datos: { tarjeta: props.planesCuotas[0]?.nombre ?? null, cuotas: 1 } })
+function abrirCobro() { if (!ticket.value.length) return; medios.value = [nuevoMedio('efectivo', aCobrar.value)]; aCuenta.value = false; error.value = null; mpCobro.value = null; cobroAbierto.value = true; nextTick(() => { montoInputs.value?.[0]?.select?.() }) }
+function soloMedio(m) { medios.value = [nuevoMedio(m, aCobrar.value)]; mpCobro.value = null; nextTick(() => montoInputs.value?.[0]?.select?.()) }
+// --- Tarjeta en cuotas: el importe del medio pasa a incluir el recargo del plan; el servidor lo agrega como ítem ---
+const planesDe = nombre => props.planesCuotas.find(t => t.nombre === nombre)?.planes ?? []
+const recargoDe = m => planesDe(m.datos?.tarjeta).find(p => p.cuotas === Number(m.datos?.cuotas))?.recargo ?? 0
+function aplicarCuotas(m) {
+  // Base = lo que faltaba cobrar sin este medio; el importe queda con recargo.
+  const otros = medios.value.filter(x => x !== m).reduce((a, x) => a + (Number(x.monto) || 0), 0)
+  const base = Math.max(0, aCobrar.value - otros)
+  m.monto = Math.round(base * (1 + recargoDe(m) / 100) * 100) / 100
+}
+const recargoTotal = computed(() => medios.value.filter(m => m.medio === 'tarjeta' && recargoDe(m)).reduce((a, m) => a + (Number(m.monto) || 0) - Math.round((Number(m.monto) || 0) / (1 + recargoDe(m) / 100) * 100) / 100, 0))
+// --- Mercado Pago presencial (QR / Point) ---
+const mpCobro = ref(null), mpQr = ref(null); let mpTimer = null
+const xsrf = () => decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
+async function mpIniciar(tipo, m) {
+  const monto = Number(m.monto) || 0; if (monto <= 0) return
+  mpCobro.value = { tipo, monto, estado: 'iniciando', medio: m }
+  try {
+    const r = await fetch(`/${props.vertical}/mp/iniciar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ tipo, monto }) })
+    const j = await r.json(); if (!r.ok) { mpCobro.value = null; error.value = j.error ?? j.message ?? 'No se pudo iniciar el cobro.'; return }
+    mpCobro.value = { ...mpCobro.value, id: j.id, qr_data: j.qr_data, estado: 'pendiente' }
+    if (tipo === 'qr' && j.qr_data) nextTick(() => { const c = Array.isArray(mpQr.value) ? mpQr.value[0] : mpQr.value; if (c) QRCode.toCanvas(c, j.qr_data, { width: 112, margin: 1, color: { dark: '#4f3089' } }).catch(() => {}) })
+    mpTimer = setInterval(mpConsultar, 3000)
+  } catch (e) { mpCobro.value = null; error.value = 'No se pudo iniciar el cobro con Mercado Pago.' }
+}
+async function mpConsultar() {
+  if (!mpCobro.value?.id) return
+  try {
+    const r = await fetch(`/${props.vertical}/mp/estado?tipo=${mpCobro.value.tipo}&id=${encodeURIComponent(mpCobro.value.id)}`, { headers: { Accept: 'application/json' } }); const j = await r.json()
+    mpCobro.value.estado = j.estado; mpCobro.value.error = j.error ?? null
+    if (j.estado === 'pagado') { clearInterval(mpTimer); mpCobro.value.medio.referencia = j.pago_id || mpCobro.value.id; if (j.monto) mpCobro.value.medio.monto = j.monto; cobrar() }
+    if (j.estado === 'cancelado') clearInterval(mpTimer)
+  } catch (e) {}
+}
+async function mpCancelar() {
+  clearInterval(mpTimer)
+  if (mpCobro.value?.id) try { await fetch(`/${props.vertical}/mp/cancelar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ tipo: mpCobro.value.tipo, id: mpCobro.value.id }) }) } catch (e) {}
+  mpCobro.value = null
+}
+watch(cobroAbierto, v => { if (!v) { clearInterval(mpTimer); mpCobro.value = null } })
 function ponerEfectivo(b) { const ef = medios.value.find(m => m.medio === 'efectivo'); if (ef) ef.monto = b }
 // --- Sin conexión: la venta se guarda en el navegador y se sincroniza cuando vuelve internet ---
 const online = ref(navigator.onLine)
@@ -175,7 +231,7 @@ async function sincronizar() {
 function cobrar() {
   if (enviando.value) return
   enviando.value = true; error.value = null
-  const datos = { contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0) }
+  const datos = { contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' ? m.datos : null })) }
   if (!navigator.onLine) {
     cola.value.push({ ...datos, offline_id: 'off-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), fecha_offline: new Date().toISOString() }); guardarCola()
     ultimaVenta.value = { numero: 'SIN CONEXIÓN', total: totalFinal.value, vuelto: Math.max(0, pagado.value - aCobrar.value), offline: true }

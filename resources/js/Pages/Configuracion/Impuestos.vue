@@ -45,6 +45,23 @@
               <div><label class="label">Mes de cierre de ejercicio</label><select v-model.number="form.cierre_mes" class="input"><option v-for="(m, i) in meses" :key="i" :value="i + 1">{{ m }}</option></select></div>
             </div>
           </div>
+          <div class="rounded-xl border border-marca-borde p-4">
+            <label class="flex items-center gap-2 font-semibold text-sm"><input v-model="form.impuestos.percepcion_iva.activo" type="checkbox" class="accent-carmin" /> Percepción de IVA en ventas (RG 2408)</label>
+            <p class="text-[11px] text-marca-muted mt-1">Si sos agente de percepción de IVA. Se aplica sobre el neto gravado a los clientes marcados en su ficha con "Aplica percepción IVA". Va a ARCA como tributo 6.</p>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div><label class="label">Alícuota %</label><input v-model.number="form.impuestos.percepcion_iva.alicuota" type="number" step="any" class="input" /></div>
+              <div><label class="label">Mínimo no percibible $</label><input v-model.number="form.impuestos.percepcion_iva.minimo" type="number" step="any" class="input" /></div>
+              <label class="flex items-center gap-2 text-sm col-span-2"><input v-model="form.impuestos.percepcion_iva.solo_ri" type="checkbox" class="accent-carmin" /> Solo a responsables inscriptos</label>
+            </div>
+          </div>
+          <div class="rounded-xl border border-marca-borde p-4">
+            <label class="flex items-center gap-2 font-semibold text-sm"><input v-model="form.impuestos.percepcion_ganancias.activo" type="checkbox" class="accent-carmin" /> Percepción de Ganancias en ventas</label>
+            <p class="text-[11px] text-marca-muted mt-1">Regímenes de percepción de Ganancias por actividad. Se aplica sobre el neto gravado a los clientes marcados con "Aplica percepción Ganancias" (nunca a monotributistas). Va a ARCA como tributo 9.</p>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div><label class="label">Alícuota %</label><input v-model.number="form.impuestos.percepcion_ganancias.alicuota" type="number" step="any" class="input" /></div>
+              <div><label class="label">Mínimo no percibible $</label><input v-model.number="form.impuestos.percepcion_ganancias.minimo" type="number" step="any" class="input" /></div>
+            </div>
+          </div>
         </div>
         <div class="flex justify-end mt-4"><button class="btn-primary" :disabled="form.processing" @click="form.post('/configuracion/impuestos', { preserveScroll: true })">Guardar configuración</button></div>
       </div>

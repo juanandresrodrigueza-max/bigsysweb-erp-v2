@@ -74,14 +74,22 @@
     @if($c->def()['letra']==='A')
       <tr><td>Neto gravado</td><td class="r">{{ $fmt($c->neto) }}</td></tr>
       <tr><td>IVA</td><td class="r">{{ $fmt($c->iva) }}</td></tr>
-      @if($c->percepciones > 0)<tr><td>Percepción IIBB</td><td class="r">{{ $fmt($c->percepciones) }}</td></tr>@endif
     @else
       <tr><td>Subtotal</td><td class="r">{{ $fmt($c->neto + $c->iva) }}</td></tr>
-      @if($c->percepciones > 0)<tr><td>Percepciones</td><td class="r">{{ $fmt($c->percepciones) }}</td></tr>@endif
     @endif
+    @foreach($c->impuestos as $t)<tr><td>{{ \App\Models\ComprobanteImpuesto::descripcion($t->tipo) }} {{ rtrim(rtrim(number_format((float) $t->alicuota, 2, ',', ''), '0'), ',') }}%</td><td class="r">{{ $fmt($t->monto) }}</td></tr>@endforeach
+    @if($c->percepciones > 0 && $c->impuestos->isEmpty())<tr><td>Percepciones</td><td class="r">{{ $fmt($c->percepciones) }}</td></tr>@endif
     <tr class="g"><td>TOTAL</td><td class="r">{{ $fmt($c->total) }}</td></tr>
     @if(($c->moneda ?? 'ARS') !== 'ARS')<tr><td>Moneda {{ $c->moneda }} · cotización {{ number_format((float) $c->cotizacion, 2, ',', '.') }}</td><td class="r">{{ $c->moneda }} {{ number_format((float) $c->total_me, 2, ',', '.') }}</td></tr>@endif
   </table></div>
+  @if($c->tipo === 'REM' && ($c->transportista || $c->patente || $c->domicilio_entrega || $c->bultos || $c->cot))
+  <div style="margin:0 16px 12px;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:2px 12px">
+    <div><b>Entrega en:</b> {{ $c->domicilio_entrega ?: trim(($c->contact?->address ?? '') . ' ' . ($c->contact?->city ?? '')) }}</div>
+    <div><b>Transportista:</b> {{ $c->transportista ?: '-' }} @if($c->transportista_cuit)· CUIT {{ $c->transportista_cuit }}@endif</div>
+    <div><b>Patente:</b> {{ $c->patente ?: '-' }} · <b>Bultos:</b> {{ $c->bultos ?: '-' }} · <b>Peso:</b> {{ $c->peso_kg ? number_format((float) $c->peso_kg, 2, ',', '.') . ' kg' : '-' }}</div>
+    <div><b>COT ARBA:</b> {{ $c->cot ?: 'sin código' }}</div>
+  </div>
+  @endif
   @if($c->notas)<div style="padding:0 16px 12px;color:#6f6a62">{{ $c->notas }}</div>@endif
   <div class="pie">
     <div style="display:flex;align-items:center;gap:10px">@if($qr)<img src="{{ $qr }}" alt="QR ARCA" style="width:82px;height:82px">@endif<span>@if($fiscal && $c->cae)Comprobante Autorizado · CAE: <b>{{ $c->cae }}</b> · Vto CAE: {{ $c->cae_vto?->format('d/m/Y') }}@elseif($fiscal && $pendiente)<span class="badge">PENDIENTE DE CAE · ARCA no respondió al emitir; se reintenta automáticamente. No válido como factura hasta que tenga CAE.</span>@elseif($fiscal && $simulado)<span class="badge">SIN CAE · comprobante simulado, no válido como factura</span>@elseif($c->tipo==='PRE')Presupuesto válido por 7 días.@endif</span></div>

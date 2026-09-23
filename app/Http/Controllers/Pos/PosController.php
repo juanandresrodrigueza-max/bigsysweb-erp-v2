@@ -47,6 +47,8 @@ class PosController extends Controller
             'caja' => $caja ? ['id' => $caja->id, 'nombre' => $caja->nombre, 'saldo' => (float) $caja->saldo, 'turno' => $caja->turnoAbierto ? ['id' => $caja->turnoAbierto->id, 'desde' => $caja->turnoAbierto->apertura->format('H:i'), 'usuario' => $caja->turnoAbierto->user?->name] : null] : null,
             'hoy' => ['ventas' => (float) (clone $hoy)->sum('total'), 'tickets' => (clone $hoy)->count(), 'ultimos' => (clone $hoy)->latest('id')->limit(8)->get()->map(fn($c) => ['id' => $c->id, 'numero' => $c->numeroFormateado(), 'total' => (float) $c->total, 'hora' => $c->emitido_en?->format('H:i'), 'cliente' => $c->contact?->name])],
             'empresaLetra' => $ri ? 'B' : 'C', 'preciosConIva' => $ri,
+            'planesCuotas' => app(\App\Services\Pos\CuotasService::class)->planes($user->business),
+            'mp' => ['qr' => app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->qrConfigurado($user->business), 'point' => app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->pointConfigurado($user->business)],
             'posConfig' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $user->business->pos ?? []),
         ]);
     }
@@ -76,7 +78,7 @@ class PosController extends Controller
         $d = $request->validate([
             'contact_id' => 'nullable|exists:contacts,id', 'notas' => 'nullable|string|max:200', 'a_cuenta' => 'boolean', 'precios_con_iva' => 'boolean',
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:150', 'items.*.cantidad' => 'required|numeric|min:0.001', 'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100',
-            'medios' => 'nullable|array', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120',
+            'medios' => 'nullable|array', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array', 'medios.*.datos.tarjeta' => 'nullable|string|max:60', 'medios.*.datos.cuotas' => 'nullable|integer|min:1|max:60',
             'offline_id' => 'nullable|string|max:64', 'fecha_offline' => 'nullable|date',
         ]);
         // Venta hecha sin conexión: si ya se sincronizó, se devuelve la misma (idempotente).
@@ -88,6 +90,34 @@ class PosController extends Controller
         if (! empty($d['offline_id'])) $c->forceFill(['offline_id' => $d['offline_id'], 'notas' => trim(($c->notas ?? '') . ' · Venta sin conexión del ' . \Carbon\Carbon::parse($d['fecha_offline'] ?? now())->format('d/m H:i'))])->save();
         if ($request->wantsJson()) return response()->json(['ok' => true, 'comprobante_id' => $c->id, 'numero' => $c->numeroFormateado(), 'total' => (float) $c->total, 'vuelto' => $r['vuelto']]);
         return back()->with('success', "{$c->nombreTipo()} {$c->numeroFormateado()} · " . number_format((float) $c->total, 2, ',', '.') . ($r['vuelto'] > 0 ? ' · vuelto $ ' . number_format($r['vuelto'], 2, ',', '.') : ''))->with('pos', ['comprobante_id' => $c->id, 'numero' => $c->numeroFormateado(), 'total' => (float) $c->total, 'vuelto' => $r['vuelto']]);
+    }
+
+    // Mercado Pago presencial: QR de mostrador o Point. Se inicia el cobro, el POS consulta el estado y al aprobarse emite la venta con la referencia del pago.
+    public function mpIniciar(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        $d = $request->validate(['tipo' => 'required|in:qr,point', 'monto' => 'required|numeric|min:1']);
+        $b = $request->user()->business;
+        $ref = 'pos-' . $b->id . '-' . now()->format('YmdHis') . '-' . substr(bin2hex(random_bytes(3)), 0, 5);
+        try {
+            $r = $d['tipo'] === 'qr' ? $mp->iniciarQr($b, (float) $d['monto'], $ref) : $mp->iniciarPoint($b, (float) $d['monto'], $ref);
+        } catch (\RuntimeException $e) { return response()->json(['error' => $e->getMessage()], 422); }
+        catch (\Illuminate\Http\Client\ConnectionException $e) { return response()->json(['error' => 'No se pudo conectar con Mercado Pago. Revisá la conexión a internet y volvé a intentar.'], 422); }
+        return response()->json($r);
+    }
+
+    public function mpEstado(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        $d = $request->validate(['tipo' => 'required|in:qr,point', 'id' => 'required|string|max:80']);
+        $b = $request->user()->business;
+        try { return response()->json($d['tipo'] === 'qr' ? $mp->estadoQr($b, $d['id']) : $mp->estadoPoint($b, $d['id'])); }
+        catch (\Throwable $e) { return response()->json(['estado' => 'pendiente', 'error' => $e->getMessage()]); }
+    }
+
+    public function mpCancelar(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        $d = $request->validate(['tipo' => 'required|in:qr,point', 'id' => 'required|string|max:80']);
+        try { if ($d['tipo'] === 'point') $mp->cancelarPoint($request->user()->business, $d['id']); } catch (\Throwable $e) {}
+        return response()->json(['ok' => true]);
     }
 
     // Bytes ESC/POS para impresora térmica (WebSerial/WebUSB desde el navegador o agente local).

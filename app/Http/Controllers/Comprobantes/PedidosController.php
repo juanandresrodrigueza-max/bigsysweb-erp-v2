@@ -16,7 +16,7 @@ class PedidosController extends Controller
 
     private function fila(PedidoWeb $p): array
     {
-        return ['id' => $p->id, 'numero' => $p->numeroFormateado(), 'canal' => $p->canal, 'canal_label' => PedidoWeb::CANALES[$p->canal] ?? $p->canal, 'cliente' => $p->cliente, 'contact_id' => $p->contact_id, 'items' => $p->items, 'subtotal' => (float) $p->subtotal, 'envio' => (float) $p->envio, 'descuento' => (float) $p->descuento, 'total' => (float) $p->total, 'entrega' => $p->entrega, 'pago' => $p->pago, 'estado' => $p->estado, 'estado_label' => PedidoWeb::ESTADOS[$p->estado] ?? $p->estado, 'comprobante_id' => $p->comprobante_id, 'comprobante' => $p->comprobante ? $p->comprobante->nombreTipo() . ' ' . $p->comprobante->numeroFormateado() : null, 'link_pago' => $p->comprobante?->link_pago, 'cobrado' => $p->comprobante ? (float) $p->comprobante->saldo <= 0.005 : false, 'texto' => $p->texto_original, 'notas' => $p->notas, 'creado' => $p->created_at->format('d/m H:i'), 'hace' => $p->created_at->diffForHumans(), 'url_publica' => $p->urlPublica(), 'external_id' => $p->external_id];
+        return ['id' => $p->id, 'numero' => $p->numeroFormateado(), 'canal' => $p->canal, 'canal_label' => PedidoWeb::CANALES[$p->canal] ?? $p->canal, 'cliente' => $p->cliente, 'contact_id' => $p->contact_id, 'items' => $p->items, 'subtotal' => (float) $p->subtotal, 'envio' => (float) $p->envio, 'descuento' => (float) $p->descuento, 'total' => (float) $p->total, 'entrega' => $p->entrega, 'pago' => $p->pago, 'estado' => $p->estado, 'estado_label' => PedidoWeb::ESTADOS[$p->estado] ?? $p->estado, 'comprobante_id' => $p->comprobante_id, 'comprobante' => $p->comprobante ? $p->comprobante->nombreTipo() . ' ' . $p->comprobante->numeroFormateado() : null, 'link_pago' => $p->comprobante?->link_pago, 'cobrado' => $p->comprobante ? (float) $p->comprobante->saldo <= 0.005 : false, 'texto' => $p->texto_original, 'notas' => $p->notas, 'creado' => $p->created_at->format('d/m H:i'), 'hace' => $p->created_at->diffForHumans(), 'url_publica' => $p->urlPublica(), 'external_id' => $p->external_id, 'envio_datos' => $p->envio_datos];
     }
 
     public function index(Request $request)
@@ -59,6 +59,24 @@ class PedidosController extends Controller
         $d = $request->validate(['texto' => 'required|string|max:2000', 'telefono' => 'nullable|string|max:40', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|min:0.001', 'nombre' => 'nullable|string|max:120', 'direccion' => 'nullable|string|max:200', 'entrega' => 'nullable|in:retiro,envio', 'notas' => 'nullable|string|max:500']);
         $p = $wa->crearDesdeTexto($request->user()->business, $d['texto'], $d['telefono'] ?? null, ['items' => $d['items'], 'nombre' => $d['nombre'] ?? null, 'direccion' => $d['direccion'] ?? null, 'entrega' => $d['entrega'] ?? 'retiro', 'notas' => $d['notas'] ?? null]);
         return redirect("/comprobantes/pedidos?abrir={$p->id}")->with('success', "Pedido {$p->numeroFormateado()} creado desde WhatsApp.");
+    }
+
+    // Mercado Envíos: etiqueta PDF para pegar en el paquete y consulta de estado/tracking.
+    public function etiqueta(Request $request, int $id, \App\Services\Canales\CanalesService $canales)
+    {
+        $p = PedidoWeb::findOrFail($id);
+        $sid = $p->envio_datos['shipment_id'] ?? null; abort_unless($sid, 422, 'Este pedido no tiene envío de Mercado Envíos.');
+        try { $pdf = $canales->mlEtiqueta($request->user()->business, $sid); }
+        catch (\RuntimeException $e) { return back()->with('error', $e->getMessage()); }
+        return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => "inline; filename=etiqueta_{$sid}.pdf"]);
+    }
+
+    public function envioEstado(Request $request, int $id, \App\Services\Canales\CanalesService $canales)
+    {
+        $p = PedidoWeb::findOrFail($id);
+        try { $d = $canales->mlEnvioEstado($request->user()->business, $p); }
+        catch (\RuntimeException $e) { return back()->with('error', $e->getMessage()); }
+        return back()->with('success', "Envío {$d['shipment_id']}: " . ($d['estado'] ?? 'sin estado') . ($d['tracking'] ? " · tracking {$d['tracking']}" : '') . '.');
     }
 
     public function responder(Request $request, int $id, WhatsappPedidosService $wa)

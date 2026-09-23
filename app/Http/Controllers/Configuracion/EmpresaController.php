@@ -16,6 +16,8 @@ class EmpresaController extends Controller
 
         return Inertia::render('Configuracion/Empresa', [
             'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'verticalesExtra' => (array) ($request->user()->business->verticales_extra ?? []), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
+            'tarjetas' => app(\App\Services\Pos\CuotasService::class)->planes($b),
+            'mercadopago' => ['access_token' => ! empty($b->mercadopago_settings['access_token']) ? '••••' . substr((string) $b->mercadopago_settings['access_token'], -4) : '', 'user_id' => $b->mercadopago_settings['user_id'] ?? '', 'pos_external_id' => $b->mercadopago_settings['pos_external_id'] ?? '', 'point_device_id' => $b->mercadopago_settings['point_device_id'] ?? '', 'tiene_token' => ! empty($b->mercadopago_settings['access_token'])],
             'empresa' => [
                 'name' => $b->name, 'razon_social' => $b->razon_social, 'cuit' => $b->cuit, 'email' => $b->email,
                 'phone' => $b->phone, 'condicion_iva' => $b->condicion_iva ?? 'Responsable Inscripto',
@@ -74,6 +76,29 @@ class EmpresaController extends Controller
         $b->update(['verticales_extra' => $v]);
         AuditLog::registrar('editar', $b, 'Verticales habilitados: ' . (implode(', ', $v) ?: 'ninguno extra'));
         return back()->with('success', 'Verticales guardados.');
+    }
+
+    // Tarjetas y planes de cuotas del punto de venta.
+    public function guardarTarjetas(Request $request)
+    {
+        $d = $request->validate(['tarjetas' => 'present|array|max:20', 'tarjetas.*.nombre' => 'required|string|max:60', 'tarjetas.*.planes' => 'present|array|max:30', 'tarjetas.*.planes.*.cuotas' => 'required|integer|min:1|max:60', 'tarjetas.*.planes.*.recargo' => 'required|numeric|min:-100|max:500']);
+        $b = $request->user()->business;
+        $b->update(['tarjetas' => array_values($d['tarjetas'])]);
+        AuditLog::registrar('editar', $b, 'Planes de cuotas: ' . count($d['tarjetas']) . ' tarjeta/s');
+        return back()->with('success', 'Planes de cuotas guardados.');
+    }
+
+    // Credenciales de Mercado Pago: links de pago, QR de mostrador y Point. El token se guarda cifrado y no se vuelve a mostrar.
+    public function guardarMercadoPago(Request $request)
+    {
+        $d = $request->validate(['access_token' => 'nullable|string|max:300', 'user_id' => 'nullable|string|max:30', 'pos_external_id' => 'nullable|string|max:60', 'point_device_id' => 'nullable|string|max:80']);
+        $b = $request->user()->business;
+        $s = $b->mercadopago_settings ?? [];
+        if (! empty($d['access_token']) && ! str_starts_with($d['access_token'], '••••')) $s['access_token'] = trim($d['access_token']);
+        foreach (['user_id', 'pos_external_id', 'point_device_id'] as $k) $s[$k] = $d[$k] !== null && $d[$k] !== '' ? trim($d[$k]) : null;
+        $b->update(['mercadopago_settings' => $s]);
+        AuditLog::registrar('editar', $b, 'Configuró Mercado Pago (QR / Point)');
+        return back()->with('success', 'Mercado Pago configurado.');
     }
 
     public function guardarPos(Request $request)

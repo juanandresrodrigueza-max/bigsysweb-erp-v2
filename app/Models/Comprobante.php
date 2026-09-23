@@ -36,7 +36,7 @@ class Comprobante extends Model
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id',
-        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id',
+        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id', 'transportista', 'transportista_cuit', 'patente', 'bultos', 'peso_kg', 'domicilio_entrega', 'cot',
     ];
 
     protected $casts = [
@@ -128,7 +128,7 @@ class Comprobante extends Model
         $items = $this->items()->get();
         $neto = $items->sum(fn($i) => (float) $i->neto);
         $iva  = $items->sum(fn($i) => (float) $i->iva);
-        $percep = (float) $this->impuestos()->where('tipo', 'like', 'iibb%')->sum('monto');
+        $percep = (float) $this->impuestos()->where(fn($w) => $w->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->sum('monto');
         $total = round($neto + $iva + $percep, 2);
         $this->forceFill([
             'neto' => round($neto, 2), 'iva' => round($iva, 2), 'percepciones' => $percep, 'total' => $total,

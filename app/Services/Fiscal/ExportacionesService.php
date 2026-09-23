@@ -46,11 +46,11 @@ class ExportacionesService
     public function percepciones(string $desde, string $hasta): string
     {
         $out = '';
-        $cs = Comprobante::ventas()->emitidos()->with('contact', 'impuestos')->whereBetween('fecha', [$desde, $hasta])->whereHas('impuestos', fn($q) => $q->where('tipo', 'like', 'iibb%'))->orderBy('fecha')->get();
+        $cs = Comprobante::ventas()->emitidos()->with('contact', 'impuestos')->whereBetween('fecha', [$desde, $hasta])->whereHas('impuestos', fn($q) => $q->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->orderBy('fecha')->get();
         foreach ($cs as $c) {
-            foreach ($c->impuestos->filter(fn($i) => str_starts_with($i->tipo, 'iibb')) as $i) {
+            foreach ($c->impuestos->filter(fn($i) => str_starts_with($i->tipo, 'iibb') || str_starts_with($i->tipo, 'perc_')) as $i) {
                 $signo = $c->def()['cc'] < 0 ? -1 : 1;
-                $out .= implode(';', [$c->fecha->format('d/m/Y'), preg_replace('/\D/', '', (string) $c->contact?->cuit), $c->def()['grupo'] === 'nc' ? 'C' : 'F', $c->def()['letra'], str_pad((string) $c->punto_venta, 5, '0', STR_PAD_LEFT), str_pad((string) $c->numero, 8, '0', STR_PAD_LEFT), number_format($signo * (float) $i->base, 2, ',', ''), number_format((float) $i->alicuota, 2, ',', ''), number_format($signo * (float) $i->monto, 2, ',', ''), strtoupper(str_replace('iibb_', '', $i->tipo === 'iibb' ? 'ARBA' : $i->tipo))]) . "\r\n";
+                $out .= implode(';', [$c->fecha->format('d/m/Y'), preg_replace('/\D/', '', (string) $c->contact?->cuit), $c->def()['grupo'] === 'nc' ? 'C' : 'F', $c->def()['letra'], str_pad((string) $c->punto_venta, 5, '0', STR_PAD_LEFT), str_pad((string) $c->numero, 8, '0', STR_PAD_LEFT), number_format($signo * (float) $i->base, 2, ',', ''), number_format((float) $i->alicuota, 2, ',', ''), number_format($signo * (float) $i->monto, 2, ',', ''), \App\Models\ComprobanteImpuesto::etiqueta($i->tipo)]) . "\r\n";
             }
         }
         return $out;

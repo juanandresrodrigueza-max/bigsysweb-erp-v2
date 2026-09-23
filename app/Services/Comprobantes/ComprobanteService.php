@@ -48,6 +48,9 @@ class ComprobanteService
                 'fce_vto_pago'    => ($data['fce'] ?? false) ? ($data['fce_vto_pago'] ?? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays((int) ($data['dias_vto'] ?? $contact?->dias_pago ?? 30))) : null,
                 'notas'           => $data['notas'] ?? null,
                 'proyecto_id'     => $data['proyecto_id'] ?? $c->proyecto_id,
+                // Remito: datos del transporte (para el COT de ARBA y para imprimir).
+                'transportista' => $data['transportista'] ?? $c->transportista, 'transportista_cuit' => $data['transportista_cuit'] ?? $c->transportista_cuit, 'patente' => $data['patente'] ?? $c->patente,
+                'bultos' => $data['bultos'] ?? $c->bultos, 'peso_kg' => $data['peso_kg'] ?? $c->peso_kg, 'domicilio_entrega' => $data['domicilio_entrega'] ?? $c->domicilio_entrega,
                 'orden_trabajo_id' => $data['orden_trabajo_id'] ?? $c->orden_trabajo_id,
                 'estadia_id'      => $data['estadia_id'] ?? $c->estadia_id,
                 'moneda'          => $moneda = strtoupper($data['moneda'] ?? 'ARS'),
@@ -77,6 +80,13 @@ class ComprobanteService
                 $base = (float) $c->items()->sum('neto');
                 $cfg = app(\App\Services\Fiscal\ImpuestosService::class)->config($user->business)['percepcion_iibb'];
                 if ($base >= (float) ($cfg['minimo'] ?? 0)) $c->impuestos()->create(['tipo' => 'iibb_' . strtolower($pi['jurisdiccion']), 'base' => $base, 'alicuota' => $pi['alicuota'], 'monto' => round($base * $pi['alicuota'] / 100, 2)]);
+            }
+            // Percepciones de IVA y de Ganancias (agente de percepción): sobre el neto gravado.
+            if ($c->esFactura()) {
+                $imp = app(\App\Services\Fiscal\ImpuestosService::class);
+                $baseGravada = (float) $c->items()->where('alicuota_iva', '>', 0)->sum('neto');
+                if (($pv = $imp->percepcionIva($user->business, $contact)) && $baseGravada >= $pv['minimo'] && $baseGravada > 0) $c->impuestos()->create(['tipo' => 'perc_iva', 'base' => $baseGravada, 'alicuota' => $pv['alicuota'], 'monto' => round($baseGravada * $pv['alicuota'] / 100, 2)]);
+                if (($pg = $imp->percepcionGanancias($user->business, $contact)) && $baseGravada >= $pg['minimo'] && $baseGravada > 0) $c->impuestos()->create(['tipo' => 'perc_ganancias', 'base' => $baseGravada, 'alicuota' => $pg['alicuota'], 'monto' => round($baseGravada * $pg['alicuota'] / 100, 2)]);
             }
             // Novedades de facturación: precio distinto al de la lista del cliente queda auditado (quién, cuánto, en qué comprobante).
             if ($contact && $c->esFactura()) {

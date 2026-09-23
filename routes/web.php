@@ -146,6 +146,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/pedidos/{id}/confirmar', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'confirmar'])->middleware('permiso:comprobantes,crear');
         Route::post('/pedidos/{id}/estado',    [\App\Http\Controllers\Comprobantes\PedidosController::class, 'estado'])->middleware('permiso:comprobantes,editar');
         Route::post('/pedidos/{id}/responder', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'responder'])->middleware('permiso:comprobantes,editar');
+        Route::get('/pedidos/{id}/etiqueta',   [\App\Http\Controllers\Comprobantes\PedidosController::class, 'etiqueta'])->whereNumber('id');
+        Route::post('/pedidos/{id}/envio',     [\App\Http\Controllers\Comprobantes\PedidosController::class, 'envioEstado'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
         Route::get('/{id}',                [ComprobantesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
@@ -156,6 +158,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
         Route::post('/{id}/convertir',     [ComprobantesController::class, 'convertir'])->middleware('permiso:comprobantes,crear');
         Route::get('/{id}/imprimir',       [ComprobantesController::class, 'imprimir']);
+        Route::get('/{id}/cot',            [ComprobantesController::class, 'cot'])->whereNumber('id');
+        Route::post('/{id}/cot',           [ComprobantesController::class, 'guardarCot'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
     });
 
     // Clientes
@@ -424,6 +428,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::post('/vender',     [\App\Http\Controllers\Pos\PosController::class, 'vender'])->middleware("permiso:{$v},crear");
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
             Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);
+            Route::post('/mp/iniciar', [\App\Http\Controllers\Pos\PosController::class, 'mpIniciar'])->middleware("permiso:{$v},crear");
+            Route::get('/mp/estado',   [\App\Http\Controllers\Pos\PosController::class, 'mpEstado']);
+            Route::post('/mp/cancelar', [\App\Http\Controllers\Pos\PosController::class, 'mpCancelar'])->middleware("permiso:{$v},crear");
         });
     }
 
@@ -455,6 +462,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/empresa/avisos/resumen', [EmpresaController::class, 'resumenAhora'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/pos', [EmpresaController::class, 'guardarPos'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/verticales', [EmpresaController::class, 'guardarVerticales'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/tarjetas',   [EmpresaController::class, 'guardarTarjetas'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/mercadopago', [EmpresaController::class, 'guardarMercadoPago'])->middleware('permiso:configuracion,editar');
 
         Route::get('/sucursales',            [SucursalesController::class, 'index'])->name('sucursales');
         Route::post('/sucursales/{id?}',     [SucursalesController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('sucursales.guardar');

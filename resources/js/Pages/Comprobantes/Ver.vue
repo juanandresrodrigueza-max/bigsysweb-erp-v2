@@ -57,7 +57,8 @@
             <div class="w-64 text-sm space-y-1">
               <div class="flex justify-between"><span class="text-marca-muted">Neto</span><span class="tabular-nums">{{ moneda(c.neto) }}</span></div>
               <div class="flex justify-between"><span class="text-marca-muted">IVA</span><span class="tabular-nums">{{ moneda(c.iva) }}</span></div>
-              <div v-if="c.percepciones" class="flex justify-between"><span class="text-marca-muted">Percepciones</span><span class="tabular-nums">{{ moneda(c.percepciones) }}</span></div>
+              <div v-for="t in c.impuestos ?? []" :key="t.tipo" class="flex justify-between"><span class="text-marca-muted">{{ t.nombre }} {{ t.alicuota }}%</span><span class="tabular-nums">{{ moneda(t.monto) }}</span></div>
+              <div v-if="c.percepciones && !(c.impuestos ?? []).length" class="flex justify-between"><span class="text-marca-muted">Percepciones</span><span class="tabular-nums">{{ moneda(c.percepciones) }}</span></div>
               <div class="flex justify-between text-lg font-extrabold pt-1 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ moneda(c.total) }}</span></div>
               <div v-if="c.moneda && c.moneda !== 'ARS'" class="flex justify-between text-xs text-violeta font-semibold"><span>En {{ c.moneda }} · cotización {{ Number(c.cotizacion).toLocaleString('es-AR') }}</span><span class="tabular-nums">{{ c.moneda }} {{ Number(c.total_me).toLocaleString('es-AR', { minimumFractionDigits: 2 }) }}</span></div>
               <div v-if="c.proyecto" class="flex justify-between text-xs"><span class="text-marca-muted">Obra</span><Link :href="`/obras/${c.proyecto.id}`" class="text-violeta font-semibold hover:underline">{{ c.proyecto.codigo }} · {{ c.proyecto.nombre }}</Link></div>
@@ -80,6 +81,20 @@
             </div>
           </div>
           <Link :href="`/clientes/${c.contact_id}?retirar=${c.acopio.id}`" class="btn-violeta mt-4">Registrar retiro</Link>
+        </div>
+
+        <div v-if="c.transporte" class="card text-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Transporte · remito electrónico</p><span v-if="c.transporte.cot" class="badge bg-emerald-50 text-emerald-700">COT {{ c.transporte.cot }}</span><span v-else-if="c.estado === 'emitido'" class="badge bg-amber-50 text-amber-700">Sin COT</span></div>
+          <div class="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-marca-muted">
+            <p><b class="text-marca-texto">Entrega:</b> {{ c.transporte.domicilio_entrega || [c.contacto?.address, c.contacto?.city].filter(Boolean).join(', ') || '-' }}</p>
+            <p><b class="text-marca-texto">Transportista:</b> {{ c.transporte.transportista || '-' }}<span v-if="c.transporte.transportista_cuit"> · {{ c.transporte.transportista_cuit }}</span></p>
+            <p><b class="text-marca-texto">Patente:</b> {{ c.transporte.patente || '-' }} · <b class="text-marca-texto">Bultos:</b> {{ c.transporte.bultos ?? '-' }} · <b class="text-marca-texto">Peso:</b> {{ c.transporte.peso_kg != null ? c.transporte.peso_kg + ' kg' : '-' }}</p>
+          </div>
+          <div v-if="c.estado === 'emitido'" class="flex flex-wrap items-center gap-2 mt-3">
+            <a :href="`/comprobantes/${c.id}/cot`" class="btn-secondary !py-1 text-xs">Descargar archivo para COT (ARBA)</a>
+            <form v-if="puede('comprobantes', 'editar')" class="flex gap-1" @submit.prevent="cotForm.post(`/comprobantes/${c.id}/cot`, { preserveScroll: true })"><input v-model="cotForm.cot" class="input !py-1 text-xs w-44" placeholder="Pegá el COT que devolvió ARBA" /><button class="btn-primary !py-1 text-xs" :disabled="cotForm.processing">Guardar COT</button></form>
+          </div>
+          <p class="text-[11px] text-marca-muted mt-2">El archivo se sube en la web de ARBA (Remito electrónico) o por web service; el código que devuelve se guarda acá y sale impreso en el remito. Obligatorio para traslados en Provincia de Buenos Aires que superen los montos vigentes.</p>
         </div>
 
         <div v-if="c.notas" class="card text-sm text-marca-muted whitespace-pre-line">{{ c.notas }}</div>
@@ -192,6 +207,7 @@ const anularAbierto = ref(false)
 const verificando = ref(false), verificacion = ref(null)
 async function verificarArca() { verificando.value = true; try { const r = await fetch(`/comprobantes/${props.c.id}/verificar-arca`, { headers: { Accept: 'application/json' } }); verificacion.value = await r.json() } catch (e) { verificacion.value = { ok: false, detalle: 'No se pudo consultar.' } } finally { verificando.value = false } }
 const anular = useForm({ motivo: '' })
+const cotForm = useForm({ cot: props.c.transporte?.cot ?? '' })
 const conv = ref(null)
 const convForm = useForm({ condicion: props.c.condicion, es_acopio: false })
 function convertir(cv) { conv.value = cv }

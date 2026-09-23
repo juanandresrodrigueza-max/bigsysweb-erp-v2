@@ -58,6 +58,10 @@
             <button class="btn-secondary" @click="estado(sel, 'entregado')">Entregado</button>
             <button class="btn-ghost text-carmin" @click="estado(sel, 'cancelado')">Cancelar</button>
           </template>
+          <template v-if="sel.envio_datos?.shipment_id">
+            <a :href="`/comprobantes/pedidos/${sel.id}/etiqueta`" target="_blank" class="btn-secondary text-xs">Etiqueta Mercado Envíos</a>
+            <button class="btn-ghost text-xs" @click="router.post(`/comprobantes/pedidos/${sel.id}/envio`, {}, { preserveScroll: true })">Estado del envío{{ sel.envio_datos.estado ? ` · ${sel.envio_datos.estado}` : '' }}{{ sel.envio_datos.tracking ? ` · ${sel.envio_datos.tracking}` : '' }}</button>
+          </template>
           <button v-if="sel.cliente.telefono" class="btn-ghost text-xs" @click="respAbierto = true">Avisar por WhatsApp</button>
           <a :href="sel.url_publica" target="_blank" class="btn-ghost text-xs">Ver como el cliente</a>
         </div>

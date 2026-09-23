@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 // Venta de mostrador: arma la factura, la emite y cobra en el mismo paso. Reusa todo el circuito de comprobantes y fondos.
 class PosService
 {
-    public function __construct(private ComprobanteService $comprobantes, private CobroService $cobros) {}
+    public function __construct(private ComprobanteService $comprobantes, private CobroService $cobros, private CuotasService $cuotas) {}
 
     // Cliente genérico para ventas sin identificar (se crea una vez por empresa).
     public function consumidorFinal(): Contact
@@ -30,6 +30,10 @@ class PosService
             $contact = ! empty($d['contact_id']) ? Contact::customers()->findOrFail($d['contact_id']) : $this->consumidorFinal();
             $items = collect($d['items'])->filter(fn($i) => (float) $i['cantidad'] > 0)->values();
             if ($items->isEmpty()) throw ValidationException::withMessages(['items' => 'El ticket está vacío.']);
+            // Tarjeta en cuotas: el recargo del plan entra como ítem para que la factura cierre con lo que paga el cliente.
+            [$mediosCuotas, $recargos] = $this->cuotas->aplicar(Auth::user()->business, array_values(array_filter($d['medios'] ?? [], fn($m) => (float) $m['monto'] > 0)));
+            $d['medios'] = $mediosCuotas;
+            $items = $items->concat($recargos)->values();
 
             // En mostrador y salón los precios son finales (IVA incluido). El comprobante guarda el neto; en Factura C no hay IVA.
             $tipo = $this->comprobantes->resolverTipo($d['tipo'] ?? 'FX', $contact);

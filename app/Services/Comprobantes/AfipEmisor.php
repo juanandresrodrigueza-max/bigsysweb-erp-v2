@@ -89,7 +89,7 @@ class AfipEmisor
         $netoGravado = $letraC ? round((float) $c->neto - (float) $c->descuento, 2) : round(array_sum(array_column($iva, 'BaseImp')), 2);
         $ivaTotal    = $letraC ? 0 : round(array_sum(array_column($iva, 'Importe')), 2);
         $netoExento  = $letraC ? 0 : round($porAlicuota->get('0', collect())->sum(fn($i) => (float) $i->neto), 2);
-        $tributos    = $c->impuestos->map(fn($t) => ['Id' => str_starts_with($t->tipo, 'iibb') ? 7 : 99, 'Desc' => str_starts_with($t->tipo, 'iibb') ? 'Percepción IIBB ' . strtoupper(substr($t->tipo, 5)) : $t->tipo, 'BaseImp' => round((float) $t->base, 2), 'Alic' => round((float) $t->alicuota, 2), 'Importe' => round((float) $t->monto, 2)])->values()->all();
+        $tributos    = $c->impuestos->map(fn($t) => ['Id' => str_starts_with($t->tipo, 'iibb') ? 7 : ($t->tipo === 'perc_iva' ? 6 : ($t->tipo === 'perc_ganancias' ? 9 : 99)), 'Desc' => str_starts_with($t->tipo, 'iibb') ? 'Percepción IIBB ' . strtoupper(substr($t->tipo, 5)) : ($t->tipo === 'perc_iva' ? 'Percepción IVA RG 2408' : ($t->tipo === 'perc_ganancias' ? 'Percepción Ganancias' : $t->tipo)), 'BaseImp' => round((float) $t->base, 2), 'Alic' => round((float) $t->alicuota, 2), 'Importe' => round((float) $t->monto, 2)])->values()->all();
         $impTrib     = round(array_sum(array_column($tributos, 'Importe')), 2);
         $total       = round($netoGravado + $netoExento + $ivaTotal + $impTrib, 2);
 

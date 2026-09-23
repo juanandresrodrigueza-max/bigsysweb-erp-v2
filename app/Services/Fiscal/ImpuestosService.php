@@ -14,6 +14,8 @@ class ImpuestosService
         'retencion_iibb' => ['activo' => true, 'jurisdiccion' => 'ARBA', 'alicuota' => 3.0, 'minimo' => 0],
         'retencion_ganancias' => ['activo' => true, 'alicuota_bienes' => 2.0, 'alicuota_servicios' => 6.0, 'minimo' => 224000, 'acumula_mes' => true],
         'retencion_iva' => ['activo' => false, 'alicuota' => 10.5, 'minimo' => 0],
+        'percepcion_iva' => ['activo' => false, 'alicuota' => 3.0, 'minimo' => 0, 'solo_ri' => true],           // RG 2408: sobre el neto gravado a responsables inscriptos
+        'percepcion_ganancias' => ['activo' => false, 'alicuota' => 2.0, 'minimo' => 0],                        // regímenes de percepción de Ganancias (según actividad)
         'agente_retencion' => false,
         'agente_percepcion' => false,
     ];
@@ -36,6 +38,22 @@ class ImpuestosService
         if ($p = PadronIibb::buscar($cli->cuit, $jur)) return (float) $p->alic_percepcion > 0 ? ['alicuota' => (float) $p->alic_percepcion, 'jurisdiccion' => $jur, 'origen' => 'padron'] : null;
         if ($cfg['activo'] && $cli->percepcion_iibb && ! $cfg['solo_padron']) return ['alicuota' => (float) $cfg['alicuota'], 'jurisdiccion' => $jur, 'origen' => 'default'];
         return null;
+    }
+
+    // Percepción de IVA en una factura de venta (agente de percepción, RG 2408): solo a responsables inscriptos marcados en su ficha.
+    public function percepcionIva(Business $b, ?Contact $cli): ?array
+    {
+        $cfg = $this->config($b)['percepcion_iva'];
+        if (! $cfg['activo'] || ! $cli || ! $cli->percepcion_iva) return null;
+        if ($cfg['solo_ri'] && $cli->condicion_iva !== 'Responsable Inscripto') return null;
+        return ['alicuota' => (float) $cfg['alicuota'], 'minimo' => (float) $cfg['minimo']];
+    }
+
+    public function percepcionGanancias(Business $b, ?Contact $cli): ?array
+    {
+        $cfg = $this->config($b)['percepcion_ganancias'];
+        if (! $cfg['activo'] || ! $cli || ! $cli->percepcion_ganancias || $cli->condicion_iva === 'Monotributista') return null;
+        return ['alicuota' => (float) $cfg['alicuota'], 'minimo' => (float) $cfg['minimo']];
     }
 
     // Retención sugerida al pagar a un proveedor: tipo iibb | ganancias | iva.

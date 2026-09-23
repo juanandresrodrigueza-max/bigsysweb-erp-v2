@@ -26,12 +26,12 @@ class FiscalController extends Controller
     {
         [$desde, $hasta] = $this->periodo($request);
         $rets = $exp->retenciones($desde, $hasta);
-        $percep = \App\Models\ComprobanteImpuesto::whereHas('comprobante', fn($q) => $q->ventas()->emitidos()->whereBetween('fecha', [$desde, $hasta]))->where('tipo', 'like', 'iibb%')->with('comprobante.contact:id,name,cuit')->get();
+        $percep = \App\Models\ComprobanteImpuesto::whereHas('comprobante', fn($q) => $q->ventas()->emitidos()->whereBetween('fecha', [$desde, $hasta]))->where(fn($w) => $w->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->with('comprobante.contact:id,name,cuit')->get();
         return Inertia::render('Contable/Fiscal', [
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
             'retenciones' => $rets->map(fn($r) => ['id' => $r->id, 'fecha' => $r->fecha->format('d/m/Y'), 'tipo' => Retencion::TIPOS[$r->tipo] ?? $r->tipo, 'proveedor' => $r->contact?->name, 'cuit' => $r->contact?->cuit, 'pago' => $r->pago?->numero, 'pago_id' => $r->pago_id, 'base' => (float) $r->base, 'alicuota' => (float) $r->alicuota, 'monto' => (float) $r->monto, 'certificado' => $r->certificado]),
             'resumenRetenciones' => $rets->groupBy('tipo')->map(fn($g, $t) => ['tipo' => Retencion::TIPOS[$t] ?? $t, 'n' => $g->count(), 'monto' => round($g->sum('monto'), 2)])->values(),
-            'percepciones' => $percep->map(fn($i) => ['id' => $i->id, 'fecha' => $i->comprobante->fecha->format('d/m/Y'), 'comprobante' => $i->comprobante->nombreTipo() . ' ' . $i->comprobante->numeroFormateado(), 'comprobante_id' => $i->comprobante_id, 'cliente' => $i->comprobante->contact?->name, 'jurisdiccion' => strtoupper(str_replace('iibb_', '', $i->tipo === 'iibb' ? 'ARBA' : $i->tipo)), 'base' => (float) $i->base, 'alicuota' => (float) $i->alicuota, 'monto' => (float) $i->monto * ($i->comprobante->def()['cc'] < 0 ? -1 : 1)]),
+            'percepciones' => $percep->map(fn($i) => ['id' => $i->id, 'fecha' => $i->comprobante->fecha->format('d/m/Y'), 'comprobante' => $i->comprobante->nombreTipo() . ' ' . $i->comprobante->numeroFormateado(), 'comprobante_id' => $i->comprobante_id, 'cliente' => $i->comprobante->contact?->name, 'jurisdiccion' => \App\Models\ComprobanteImpuesto::etiqueta($i->tipo), 'base' => (float) $i->base, 'alicuota' => (float) $i->alicuota, 'monto' => (float) $i->monto * ($i->comprobante->def()['cc'] < 0 ? -1 : 1)]),
             'totalPercepciones' => round($percep->sum(fn($i) => (float) $i->monto * ($i->comprobante->def()['cc'] < 0 ? -1 : 1)), 2),
             'ultimoAnalisis' => session('arca_analisis'),
         ]);

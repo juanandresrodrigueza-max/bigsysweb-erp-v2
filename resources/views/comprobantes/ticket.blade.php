@@ -44,7 +44,7 @@
   </table>
   @if(isset($cobro) && $cobro)
     <hr>
-    @foreach($cobro->medios as $m)<div>{{ \App\Models\Cobro::MEDIOS[$m->medio] ?? $m->medio }}: <span style="float:right">{{ $fmt($m->monto) }}</span></div>@endforeach
+    @foreach($cobro->medios as $m)<div>{{ \App\Models\Cobro::MEDIOS[$m->medio] ?? $m->medio }}@if(($m->datos['cuotas'] ?? 1) > 1) {{ $m->datos['tarjeta'] ?? '' }} {{ $m->datos['cuotas'] }} cuotas@endif: <span style="float:right">{{ $fmt($m->monto) }}</span></div>@endforeach
     @if(($vuelto ?? 0) > 0)<div class="b">Vuelto: <span style="float:right">{{ $fmt($vuelto) }}</span></div>@endif
   @endif
   <hr>

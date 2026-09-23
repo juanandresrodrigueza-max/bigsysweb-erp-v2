@@ -66,6 +66,29 @@
           <pre v-if="resumenTexto" class="mt-3 text-xs whitespace-pre-wrap bg-marca-fondo rounded-xl p-3">{{ resumenTexto }}</pre>
         </div>
         <div class="card">
+          <h2 class="font-bold mb-1">Tarjetas y planes de cuotas</h2>
+          <p class="text-xs text-marca-muted mb-3">En el punto de venta, al cobrar con tarjeta se elige el plan y el recargo entra como ítem de la factura. Recargo negativo = descuento.</p>
+          <div v-for="(t, ti) in tf.tarjetas" :key="ti" class="rounded-xl border border-marca-borde p-3 mb-2 text-sm">
+            <div class="flex gap-2 items-center mb-2"><input v-model="t.nombre" class="input !py-1 flex-1" placeholder="Nombre de la tarjeta" /><button type="button" class="text-marca-muted hover:text-carmin text-xs" @click="tf.tarjetas.splice(ti, 1)">Quitar</button></div>
+            <div class="flex flex-wrap gap-1.5">
+              <span v-for="(pl, pi) in t.planes" :key="pi" class="inline-flex items-center gap-1 rounded-lg bg-marca-fondo px-2 py-1 text-xs"><input v-model.number="pl.cuotas" type="number" min="1" class="input !py-0.5 !px-1 w-12 text-center" /> cuotas <input v-model.number="pl.recargo" type="number" step="any" class="input !py-0.5 !px-1 w-16 text-right" />% <button type="button" class="text-marca-muted hover:text-carmin" @click="t.planes.splice(pi, 1)">✕</button></span>
+              <button type="button" class="text-xs text-violeta font-semibold" @click="t.planes.push({ cuotas: (t.planes.at(-1)?.cuotas ?? 0) + 3, recargo: 0 })">+ plan</button>
+            </div>
+          </div>
+          <div class="flex gap-2"><button type="button" class="btn-secondary flex-1 !py-1.5 text-xs" @click="tf.tarjetas.push({ nombre: '', planes: [{ cuotas: 1, recargo: 0 }] })">+ Tarjeta</button><button class="btn-primary flex-1 !py-1.5 text-xs" :disabled="tf.processing" @click="tf.post('/configuracion/empresa/tarjetas', { preserveScroll: true })">Guardar planes</button></div>
+          <p v-if="Object.keys(tf.errors).length" class="text-carmin text-xs mt-1">Revisá nombres, cuotas (≥1) y recargos.</p>
+        </div>
+        <div class="card">
+          <h2 class="font-bold mb-1">Mercado Pago: links, QR de mostrador y Point</h2>
+          <p class="text-xs text-marca-muted mb-3">Con el access token se generan links de pago. Para cobrar con QR en el mostrador cargá tu user id y el id externo de la caja (POS) creada en Mercado Pago; para el lector Point, el id del dispositivo. {{ mercadopago.tiene_token ? 'Token cargado.' : 'Sin token: los links salen simulados.' }}</p>
+          <form @submit.prevent="mp.post('/configuracion/empresa/mercadopago', { preserveScroll: true })" class="space-y-2 text-sm">
+            <div><label class="label">Access token</label><input v-model="mp.access_token" class="input" placeholder="APP_USR-…" autocomplete="off" /></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="label">User id (collector)</label><input v-model="mp.user_id" class="input" placeholder="123456789" /></div><div><label class="label">Caja QR (external id)</label><input v-model="mp.pos_external_id" class="input" placeholder="CAJA01" /></div></div>
+            <div><label class="label">Point: id del dispositivo</label><input v-model="mp.point_device_id" class="input" placeholder="PAX_A910__SMARTPOS123…" /></div>
+            <button class="btn-primary w-full" :disabled="mp.processing">Guardar Mercado Pago</button>
+          </form>
+        </div>
+        <div class="card">
           <h2 class="font-bold mb-1">Punto de venta: balanza e impresora</h2>
           <form @submit.prevent="pf.post('/configuracion/empresa/pos', { preserveScroll: true })" class="space-y-2 text-sm">
             <p class="text-xs text-marca-muted">Balanza: códigos de peso variable (EAN-13 que empieza con el prefijo). El sistema lee el artículo y la cantidad o el importe.</p>
@@ -87,7 +110,9 @@ import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 
-const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] } })
+const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] }, tarjetas: { type: Array, default: () => [] }, mercadopago: { type: Object, default: () => ({}) } })
+const tf = useForm({ tarjetas: JSON.parse(JSON.stringify(props.tarjetas)) })
+const mp = useForm({ access_token: props.mercadopago.access_token ?? '', user_id: props.mercadopago.user_id ?? '', pos_external_id: props.mercadopago.pos_external_id ?? '', point_device_id: props.mercadopago.point_device_id ?? '' })
 const verticalesDisponibles = { retail: 'Comercio / punto de venta', gastronomia: 'Gastronomía (mesas, comandas, cocina)', minimarket: 'Minimarket', servicios: 'Servicio técnico (órdenes de trabajo)', hoteleria: 'Hotelería (habitaciones, reservas, check-in)' }
 const vx = useForm({ verticales_extra: [...props.verticalesExtra] })
 const toggleVertical = k => { vx.verticales_extra = vx.verticales_extra.includes(k) ? vx.verticales_extra.filter(x => x !== k) : [...vx.verticales_extra, k] }
