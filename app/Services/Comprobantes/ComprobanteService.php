@@ -166,6 +166,7 @@ class ComprobanteService
             AuditLog::registrar('emitir', $c, "Emitió {$c->nombreTipo()} {$c->numeroFormateado()}");
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
+            \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['crm_quote_id' => $c->crm_quote_id]);
             try { app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($c->fresh(['contact', 'business'])); } catch (\Throwable $e) { \Log::warning('Puntos: ' . $e->getMessage()); }
             return $c->fresh();
         });
@@ -222,6 +223,7 @@ class ComprobanteService
             $c->forceFill(['estado' => 'anulado', 'anulado_en' => now(), 'saldo' => 0, 'notas' => trim(($c->notas ?? '') . "\nAnulado: {$motivo}")])->save();
             AuditLog::registrar('anular', $c, "Anuló {$c->nombreTipo()} {$c->numeroFormateado()}: {$motivo}");
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.anulado', ['id' => $c->id, 'tipo' => $c->tipo, 'numero' => $c->numeroFormateado(), 'motivo' => $motivo]);
+            \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.anulado', ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha?->toDateString(), 'cliente' => $c->contact ? ['id' => $c->contact_id, 'nombre' => $c->contact->name] : null, 'total' => (float) $c->total, 'saldo' => 0, 'estado' => 'anulado']);
             app(\App\Services\Contabilidad\ContabilidadService::class)->anular('venta', $c->id, $motivo);
             return $c;
         });

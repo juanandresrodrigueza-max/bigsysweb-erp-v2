@@ -95,8 +95,57 @@ class CrmSyncService
     {
         return match ($evento) {
             'contact.created', 'contact.updated' => self::recibirContacto($b, (array) ($data['contact'] ?? $data)),
+            'quote.accepted' => self::recibirPresupuesto($b, (array) ($data['quote'] ?? []), is_array($data['contact'] ?? null) ? $data['contact'] : null),
+            'deal.won' => self::avisarVentaGanada($b, (array) ($data['deal'] ?? [])),
             default => ['ok' => true, 'ignorado' => $evento],
         };
+    }
+
+    // Presupuesto aceptado en el CRM: nace como presupuesto (o factura en borrador, según la configuración) en el ERP y devuelve su número.
+    public static function recibirPresupuesto(Business $b, array $q, ?array $contacto = null): array
+    {
+        if (empty($q['id'])) return ['ok' => false, 'motivo' => 'Presupuesto sin id.'];
+        $ya = \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('crm_quote_id', (int) $q['id'])->where('estado', '!=', 'anulado')->first();
+        if ($ya) return ['ok' => true, 'accion' => 'existente', 'id' => $ya->id, 'numero' => $ya->numeroFormateado()];
+        // Cliente: por id del CRM, por external_id (id del ERP), por CUIT o email; si no existe, se crea.
+        $cq = Contact::withoutGlobalScopes()->where('business_id', $b->id);
+        $cli = ! empty($q['contact_id']) ? (clone $cq)->where('crm_external_id', (string) $q['contact_id'])->first() : null;
+        if (! $cli && $contacto) { $r = self::recibirContacto($b, $contacto + ['id' => $q['contact_id'] ?? null, 'name' => $contacto['name'] ?? ($q['bill_to_name'] ?? 'Cliente del CRM')]); $cli = ! empty($r['id']) ? Contact::withoutGlobalScopes()->find($r['id']) : null; }
+        if (! $cli) return ['ok' => false, 'motivo' => 'El cliente del presupuesto no existe en el ERP y el CRM no mandó sus datos. Sincronizá contactos primero.'];
+        $user = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->whereNotNull('role_id')->orderBy('id')->first();
+        if (! $user) return ['ok' => false, 'motivo' => 'La empresa no tiene usuarios activos en el ERP.'];
+        $iva = (float) ($q['tax_rate'] ?? 21); if (! in_array($iva, [0, 2.5, 5, 10.5, 21, 27], true)) $iva = 21.0;
+        $items = [];
+        foreach ((array) ($q['items'] ?? []) as $it) {
+            $prod = null;
+            if (! empty($it['code'])) $prod = Product::withoutGlobalScopes()->where('business_id', $b->id)->where(fn($w) => $w->where('sku', $it['code'])->orWhere('barcode', $it['code']))->first();
+            $items[] = ['product_id' => $prod?->id, 'descripcion' => (string) ($it['description'] ?? $prod?->name ?? 'Ítem'), 'cantidad' => (float) ($it['quantity'] ?? 1), 'precio_unit' => (float) ($it['unit_price'] ?? 0), 'descuento' => 0, 'alicuota_iva' => $prod ? (float) $prod->iva : $iva];
+        }
+        if (! $items) return ['ok' => false, 'motivo' => 'El presupuesto no tiene ítems.'];
+        $modo = CrmService::config($b)['presupuesto_como'] ?? 'presupuesto';
+        $prev = \Illuminate\Support\Facades\Auth::user(); \Illuminate\Support\Facades\Auth::setUser($user);
+        self::$silencio = true;
+        try {
+            $svc = app(\App\Services\Comprobantes\ComprobanteService::class);
+            $c = $svc->guardarBorrador(['contact_id' => $cli->id, 'tipo' => $modo === 'factura' ? 'FX' : 'PRE', 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'items' => $items,
+                'notas' => trim('Presupuesto ' . ($q['quote_number'] ?? $q['id']) . ' del CRM' . (! empty($q['title']) ? ' · ' . $q['title'] : '') . (! empty($q['notes']) ? "\n" . $q['notes'] : ''))]);
+            $c->forceFill(['crm_quote_id' => (int) $q['id']])->save();
+            if ($modo !== 'factura') $c = $svc->emitir($c); // el presupuesto se numera; la factura queda en borrador para revisar y emitir
+            AuditLog::registrar('crear', $c, "{$c->nombreTipo()} " . ($c->numeroFormateado() ?? 'borrador') . " creado desde el presupuesto " . ($q['quote_number'] ?? $q['id']) . ' del CRM');
+            \App\Models\Alerta::create(['business_id' => $b->id, 'business_location_id' => $c->business_location_id, 'modulo' => 'comprobantes', 'tipo' => 'crm_presupuesto', 'severidad' => 'aviso', 'modelo' => 'Comprobante', 'modelo_id' => $c->id,
+                'titulo' => ($modo === 'factura' ? 'Factura en borrador desde el CRM · ' : 'Presupuesto aceptado en el CRM · ') . $cli->name, 'detalle' => ($q['quote_number'] ?? '') . ' por $ ' . number_format((float) $c->total, 0, ',', '.') . ($modo === 'factura' ? '. Revisala y emitila.' : '. Facturalo cuando corresponda.'), 'url' => "/comprobantes/{$c->id}"]);
+            return ['ok' => true, 'accion' => 'creado', 'id' => $c->id, 'numero' => $c->numeroFormateado() ?? ('borrador #' . $c->id), 'tipo' => $c->tipo];
+        } finally { self::$silencio = false; if ($prev) \Illuminate\Support\Facades\Auth::setUser($prev); else \Illuminate\Support\Facades\Auth::logout(); }
+    }
+
+    // Venta ganada en el CRM sin presupuesto: aviso en la campana para armar la venta.
+    public static function avisarVentaGanada(Business $b, array $d): array
+    {
+        if (empty($d['id'])) return ['ok' => false, 'motivo' => 'Deal sin id.'];
+        $cli = ! empty($d['contact_id']) ? Contact::withoutGlobalScopes()->where('business_id', $b->id)->where('crm_external_id', (string) $d['contact_id'])->first() : null;
+        \App\Models\Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $b->id, 'tipo' => 'crm_venta', 'modelo' => 'CrmDeal', 'modelo_id' => (int) $d['id']],
+            ['modulo' => 'comprobantes', 'severidad' => 'aviso', 'titulo' => 'Venta ganada en el CRM' . ($cli ? ' · ' . $cli->name : '') . (! empty($d['title']) ? ' · ' . $d['title'] : ''), 'detalle' => (isset($d['value']) ? 'Valor $ ' . number_format((float) $d['value'], 0, ',', '.') . '. ' : '') . 'Si no salió de un presupuesto, armá la venta en el ERP.', 'url' => $cli ? "/clientes/{$cli->id}" : '/comprobantes', 'resuelta_en' => null]);
+        return ['ok' => true, 'accion' => 'avisado'];
     }
 
     // Alta o actualización de un cliente que nació o cambió en el CRM. Lo fiscal (CUIT, condición IVA, domicilio) es del ERP:

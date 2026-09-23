@@ -84,6 +84,6 @@ class CrmSyncTest extends ErpTestCase
         $post(['event' => 'contact.created', 'data' => ['contact' => ['id' => 77, 'name' => 'Constructora Sur SA', 'cuit' => '30500000001']]])->assertOk()->assertJsonPath('accion', 'actualizado');
         $this->assertSame('77', $viejo->fresh()->crm_external_id);
         $this->assertSame(1, Contact::where('name', 'like', 'Constructora Sur%')->count());
-        $post(['event' => 'deal.won', 'data' => ['deal' => ['id' => 1]]])->assertOk()->assertJsonPath('ignorado', 'deal.won');
+        $post(['event' => 'message.received', 'data' => ['message' => ['id' => 1]]])->assertOk()->assertJsonPath('ignorado', 'message.received');
     }
 }

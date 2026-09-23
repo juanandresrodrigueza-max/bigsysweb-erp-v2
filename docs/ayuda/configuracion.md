@@ -35,6 +35,8 @@ Si tu empresa usa el ERP y el CRM de BigSys, se pasan de uno al otro con un bot�
 
 **Clientes y artículos**: tocá **Sincronizar clientes y artículos** una vez (carga inicial). Después, cada cliente o artículo que se crea o cambia en el ERP viaja solo al CRM, y cada contacto que nace en el CRM (por ejemplo un WhatsApp nuevo) aparece en el ERP como cliente consumidor final, enlazado por CUIT o email si ya existía. Lo fiscal (CUIT, condición IVA, domicilio, lista de precios, límite de crédito) lo administra el ERP y el CRM no lo pisa; los artículos y precios quedan en solo lectura en el CRM, con el precio de la lista que elijas.
 
+**Ventas**: los presupuestos se arman en el CRM. Cuando el vendedor lo marca aceptado (o toca **Mandar al ERP**), nace en el ERP como presupuesto numerado, con los artículos enlazados por código, y avisa en la campana; si preferís, en Configuración → CRM podés elegir que nazca como factura en borrador. **Factura solo el ERP**: en el CRM la facturación queda apagada para esa empresa, y cada factura, nota o recibo que emitís acá aparece en la ficha del cliente del CRM con su saldo y un link para abrirlo. Una venta ganada en el CRM sin presupuesto también avisa en la campana.
+
 Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente (dueño y administrador → admin; encargado y contador → supervisor; vendedor y cajero → operador; depósito, producción y solo lectura → consulta). El token que viaja dura 60 segundos y sirve una sola vez.
 
 ## Importar datos
