@@ -47,7 +47,7 @@ class StockController extends Controller
             'id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'tipo' => $p->tipo, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre, 'rubro_color' => $p->rubro?->color, 'marca' => $p->marca,
             'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min, 'bajo' => $p->bajoMinimo(), 'controla' => $p->controla_stock, 'active' => $p->active,
             'price' => (float) $p->price, 'cost' => (float) $p->cost, 'valor' => round((float) $p->stock * (float) $p->cost, 2), 'moneda' => $p->moneda, 'precio_pesos' => $p->precioLista(1),
-            'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado,
+            'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado, 'en_tienda' => $p->en_tienda, 'descripcion_tienda' => $p->descripcion_tienda,
             'por_deposito' => $p->stocks->mapWithKeys(fn($s) => [$s->deposito_id => (float) $s->cantidad]),
         ]);
 
@@ -111,7 +111,7 @@ class StockController extends Controller
             'barcode' => 'nullable|string|max:40', 'marca' => 'nullable|string|max:60', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'description' => 'nullable|string|max:500',
             'unit' => 'required|string|max:10', 'iva' => 'required|numeric|min:0|max:27', 'price' => 'required|numeric|min:0', 'cost' => 'required|numeric|min:0', 'prices' => 'nullable|array',
             'stock_min' => 'nullable|numeric|min:0', 'active' => 'boolean', 'controla_stock' => 'boolean', 'stock_inicial' => 'nullable|numeric|min:0', 'deposito_id' => 'nullable|exists:depositos,id',
-            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean',
+            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'en_tienda' => 'boolean', 'descripcion_tienda' => 'nullable|string|max:500',
         ]);
         $d['margenes'] = ($d['usar_margenes'] ?? false) ? collect($d['margenes'] ?? [])->filter(fn($v) => $v !== null && $v !== '')->all() ?: null : null;
         $d['moneda'] = $d['moneda'] ?? 'ARS';

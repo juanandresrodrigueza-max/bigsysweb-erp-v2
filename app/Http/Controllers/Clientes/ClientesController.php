@@ -40,7 +40,7 @@ class ClientesController extends Controller
         ]);
     }
 
-    public function show(int $id)
+    public function show(int $id, Request $request)
     {
         $c = Contact::customers()->with('tipoCliente')->findOrFail($id);
 
@@ -62,7 +62,7 @@ class ClientesController extends Controller
         }
 
         return Inertia::render('Clientes/Ver', [
-            'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'balance', 'is_active', 'notes', 'tipo_cliente_id', 'interes_mora', 'vendedor_id') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida(), 'vendedor' => $c->vendedor?->nombre, 'interes_calculado' => $this->interesMora($c, $pendientes)],
+            'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'balance', 'is_active', 'notes', 'tipo_cliente_id', 'interes_mora', 'vendedor_id') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida(), 'vendedor' => $c->vendedor?->nombre, 'interes_calculado' => $this->interesMora($c, $pendientes), 'portal_url' => \App\Http\Controllers\PortalController::url($c), 'puntos' => (float) $c->puntos, 'puntos_pesos' => app(\App\Services\Ventas\FidelizacionService::class)->valorEnPesos($request->user()->business, (float) $c->puntos), 'fidelizacion_activa' => (bool) app(\App\Services\Ventas\FidelizacionService::class)->config($request->user()->business)['activo']],
             'cc' => $cc, 'pendientes' => $pendientes, 'antiguedad' => $antiguedad,
             'comprobantes' => Comprobante::where('contact_id', $c->id)->orderByDesc('fecha')->orderByDesc('id')->limit(30)->get()->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'estado' => $x->estado, 'estado_cobro' => $x->estadoCobro(), 'es_acopio' => $x->es_acopio]),
             'cobros' => Cobro::where('contact_id', $c->id)->with('medios')->orderByDesc('fecha')->orderByDesc('id')->limit(20)->get()->map(fn($x) => ['id' => $x->id, 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'a_cuenta' => (float) $x->a_cuenta, 'estado' => $x->estado, 'medios' => $x->medios->map(fn($m) => Cobro::MEDIOS[$m->medio] . ' $ ' . number_format((float) $m->monto, 0, ',', '.'))->implode(', ')]),

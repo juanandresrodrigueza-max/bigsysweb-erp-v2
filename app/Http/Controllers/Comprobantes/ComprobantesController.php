@@ -75,6 +75,8 @@ class ComprobantesController extends Controller
 
         if ($request->boolean('emitir')) {
             $c = $this->service->emitir($c);
+            // Canje de puntos: la línea de descuento ya viene en los ítems; acá se descuentan los puntos del cliente.
+            if ((float) ($data['canje_puntos'] ?? 0) > 0 && $c->contact) app(\App\Services\Ventas\FidelizacionService::class)->canjear($c->contact, (float) $data['canje_puntos'], "Canje en {$c->nombreTipo()} {$c->numeroFormateado()}");
             $msg = "{$c->nombreTipo()} {$c->numeroFormateado()} emitido" . ($c->afip_estado === 'simulado' ? ' (simulado, sin CAE: configurá AFIP para emitir de verdad).' : '.');
             return redirect("/comprobantes/{$c->id}")->with('success', $msg);
         }
@@ -197,7 +199,8 @@ class ComprobantesController extends Controller
             'items.*.descripcion'  => 'nullable|string|max:255',
             'items.*.cantidad'     => 'required|numeric|gt:0',
             'items.*.unidad'       => 'nullable|string|max:10',
-            'items.*.precio_unit'  => 'required|numeric|min:0',
+            'items.*.precio_unit'  => 'required|numeric',
+            'canje_puntos'         => 'nullable|numeric|min:0',
             'items.*.descuento'    => 'nullable|numeric|min:0|max:100',
             'items.*.alicuota_iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27',
         ]);

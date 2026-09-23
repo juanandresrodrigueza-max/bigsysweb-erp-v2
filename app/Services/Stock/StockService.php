@@ -43,6 +43,8 @@ class StockService
             else { $usadas = $ls->salida($p, $deposito, -$cantidad, $lote['serie'] ?? null); $loteId = $usadas[0]['lote']->id ?? null; }
         }
 
+        if (\App\Models\Canal::withoutGlobalScopes()->where('business_id', $p->business_id)->where('activo', true)->where('sync_stock', true)->exists()) { try { app(\App\Services\Canales\CanalesService::class)->empujarStock($p); } catch (\Throwable $e) {} }
+
         return StockMovement::create([
             'business_id' => $p->business_id, 'business_location_id' => $deposito?->business_location_id ?? $locationId ?? Auth::user()?->current_location_id,
             'product_id' => $p->id, 'deposito_id' => $deposito?->id, 'lote_id' => $loteId, 'user_id' => Auth::id() ?? $p->business->owner_id,

@@ -38,6 +38,17 @@ Route::get('/p/{token}/pdf',             [\App\Http\Controllers\PublicoControlle
 Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoController::class, 'responder']);
 Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado']);
 
+// Tienda propia, menú QR, reservas y portal del cliente (públicos, sin login).
+Route::get('/t/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'catalogo']);
+Route::post('/t/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedir']);
+Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaController::class, 'pedido']);
+Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu']);
+Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa']);
+Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar']);
+Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore']);
+Route::get('/portal/{token}',              [\App\Http\Controllers\PortalController::class, 'ver']);
+Route::get('/portal/{token}/pagar/{id}',   [\App\Http\Controllers\PortalController::class, 'pagar'])->whereNumber('id');
+
 // Suscripción: accesible aunque la empresa esté bloqueada (es donde se renueva).
 Route::middleware('auth')->group(function () {
     Route::get('/suscripcion',          [SuscripcionController::class, 'index'])->name('suscripcion');
@@ -121,6 +132,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/lote',               [ComprobantesController::class, 'facturarLote'])->middleware('permiso:comprobantes,crear');
         Route::post('/ia/interpretar',     [PresupuestoIAController::class, 'interpretar'])->middleware('permiso:comprobantes,crear');
         Route::get('/novedades',           [\App\Http\Controllers\Comprobantes\NovedadesController::class, 'index']);
+        Route::get('/pedidos',             [\App\Http\Controllers\Comprobantes\PedidosController::class, 'index']);
+        Route::post('/pedidos/interpretar', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'interpretar'])->middleware('permiso:comprobantes,crear');
+        Route::post('/pedidos/whatsapp',   [\App\Http\Controllers\Comprobantes\PedidosController::class, 'crearWhatsapp'])->middleware('permiso:comprobantes,crear');
+        Route::post('/pedidos/{id}/confirmar', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'confirmar'])->middleware('permiso:comprobantes,crear');
+        Route::post('/pedidos/{id}/estado',    [\App\Http\Controllers\Comprobantes\PedidosController::class, 'estado'])->middleware('permiso:comprobantes,editar');
+        Route::post('/pedidos/{id}/responder', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'responder'])->middleware('permiso:comprobantes,editar');
         Route::get('/{id}',                [ComprobantesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
@@ -143,6 +160,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/vendedores/{id?}',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/tipos/{id?}',            [ClientesController::class, 'guardarTipo'])->middleware('permiso:clientes,editar');
         Route::delete('/tipos/{id}',           [ClientesController::class, 'eliminarTipo'])->middleware('permiso:clientes,anular');
+        Route::get('/fidelizacion',            [\App\Http\Controllers\Clientes\FidelizacionController::class, 'index']);
+        Route::post('/fidelizacion/ajustar',   [\App\Http\Controllers\Clientes\FidelizacionController::class, 'ajustar'])->middleware('permiso:clientes,editar');
+        Route::get('/{id}/puntos',             [\App\Http\Controllers\Clientes\FidelizacionController::class, 'consultar'])->whereNumber('id');
         Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/pendientes',         [ClientesController::class, 'pendientesJson'])->whereNumber('id');
         Route::post('/{id}',                   [ClientesController::class, 'guardar'])->middleware('permiso:clientes,editar');
@@ -314,6 +334,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/comandas/{id}/anular',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'anular'])->middleware('permiso:gastronomia,editar');
         Route::post('/items/{item}/estado',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'itemEstado'])->middleware('permiso:gastronomia,editar');
         Route::get('/cocina',                         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cocina']);
+        Route::get('/reservas',                       [\App\Http\Controllers\Gastronomia\ReservasController::class, 'index']);
+        Route::post('/reservas',                      [\App\Http\Controllers\Gastronomia\ReservasController::class, 'guardar'])->middleware('permiso:gastronomia,crear');
+        Route::post('/reservas/{id}/estado',          [\App\Http\Controllers\Gastronomia\ReservasController::class, 'estado'])->middleware('permiso:gastronomia,editar');
     });
 
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
@@ -351,6 +374,14 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/seguridad/webhooks/{id?}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'guardarWebhook'])->middleware('permiso:configuracion,editar');
         Route::delete('/seguridad/webhooks/{id}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'borrarWebhook'])->middleware('permiso:configuracion,editar');
         Route::post('/seguridad/webhooks/{id}/probar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'probarWebhook'])->middleware('permiso:configuracion,editar');
+        Route::get('/tienda',                [\App\Http\Controllers\Configuracion\TiendaController::class, 'index']);
+        Route::post('/tienda',               [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardar'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/fidelizacion',  [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarFidelizacion'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/articulos',     [\App\Http\Controllers\Configuracion\TiendaController::class, 'articulos'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/whatsapp',      [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarWhatsapp'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/canales/{id?}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarCanal'])->middleware('permiso:configuracion,editar');
+        Route::delete('/tienda/canales/{id}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'borrarCanal'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/canales/{id}/sincronizar', [\App\Http\Controllers\Configuracion\TiendaController::class, 'sincronizar'])->middleware('permiso:configuracion,editar');
         Route::get('/impuestos',             [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'index'])->name('impuestos');
         Route::post('/impuestos',            [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/impuestos/padron',     [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'importarPadron'])->middleware('permiso:configuracion,editar');

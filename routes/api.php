@@ -105,3 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('bookings/calendar', [BookingController::class, 'calendar']);
     Route::apiResource('bookings',  BookingController::class);
 });
+
+// Entrada de pedidos: marketplaces / delivery (por token de canal) y WhatsApp Cloud API (por empresa).
+Route::post('canales/{tipo}/{token}',        [\App\Http\Controllers\Api\CanalesWebhookController::class, 'entrada']);
+Route::get('whatsapp/entrante/{business}',   [\App\Http\Controllers\Api\WhatsappController::class, 'verificar']);
+Route::post('whatsapp/entrante/{business}',  [\App\Http\Controllers\Api\WhatsappController::class, 'entrante']);

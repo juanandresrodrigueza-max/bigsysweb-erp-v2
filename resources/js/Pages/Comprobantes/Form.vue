@@ -57,7 +57,7 @@
         <div class="card p-0 overflow-hidden">
           <div class="flex items-center justify-between px-4 py-3 border-b border-marca-borde">
             <h2 class="font-bold">Ítems</h2>
-            <button type="button" @click="agregar()" class="btn-secondary !py-1 text-xs"><Icono nombre="plus" clase="w-3.5 h-3.5" /> Agregar</button>
+            <button type="button" @click="agregar()" class="btn-secondary !py-1 text-xs"><Icono nombre="plus" clase="w-3.5 h-3.5" /> Agregar</button><button v-if="esFactura && puntos && puntos.activo && puntos.puntos >= puntos.minimo && !form.canje_puntos" type="button" class="btn-ghost !py-1 text-xs text-violeta" @click="usarPuntos" :title="`${puntos.puntos} puntos = ${moneda(puntos.pesos)}`">★ Usar {{ puntos.puntos }} puntos ({{ moneda(puntos.pesos, 0) }})</button>
           </div>
           <div class="overflow-x-auto">
             <table class="table min-w-[720px]">
@@ -143,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -156,7 +156,7 @@ const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Ob
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
-  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, notas: base?.notas ?? '',
+  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false,
 })
 const esConversion = !!props.origen
@@ -184,6 +184,17 @@ function alElegirProducto(it, o) {
   if (!o) return
   it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = o.iva; it.precio_unit = o.precios[lista.value]; it.descuento = cliente.value?.descuento ?? 0
   if (!it.cantidad) it.cantidad = 1
+}
+const puntos = ref(null)
+watch(() => form.contact_id, async id => { puntos.value = null; form.canje_puntos = 0; if (!id) return; try { const r = await fetch(`/clientes/${id}/puntos`, { headers: { Accept: 'application/json' } }); if (r.ok) puntos.value = await r.json() } catch (e) {} }, { immediate: true })
+function usarPuntos() {
+  if (!puntos.value) return
+  const neto = form.items.reduce((a, it) => a + netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100), 0)
+  const pesos = Math.min(puntos.value.pesos, neto)
+  const usar = Math.floor(pesos / puntos.value.valor_punto)
+  if (usar < puntos.value.minimo) return
+  form.canje_puntos = usar
+  form.items.push({ product_id: null, descripcion: `Canje de ${usar} puntos`, cantidad: 1, unidad: 'un', precio_unit: -Math.round(usar * puntos.value.valor_punto * 100) / 100, descuento: 0, alicuota_iva: 0 })
 }
 function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, unidad: null, precio_unit: 0, descuento: cliente.value?.descuento ?? 0, alicuota_iva: 21, ...pre }) }
 const netoItem = it => (Number(it.cantidad) || 0) * (Number(it.precio_unit) || 0) * (1 - (Number(it.descuento) || 0) / 100)

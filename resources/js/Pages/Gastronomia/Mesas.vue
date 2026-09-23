@@ -3,6 +3,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Salón</h1><p class="page-subtitle">Tocá una mesa para abrirla o ver su comanda. Se actualiza solo.</p></div>
       <div class="flex flex-wrap gap-2">
+        <Link href="/gastronomia/reservas" class="btn-secondary">Reservas y QR</Link>
         <Link href="/gastronomia/cocina" class="btn-secondary"><Icono nombre="utensils" clase="w-4 h-4" /> Cocina <span v-if="kpis.en_cocina" class="ml-1 badge bg-carmin text-white">{{ kpis.en_cocina }}</span></Link>
         <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'mostrador', cliente: '', direccion: '', telefono: '' }" class="btn-secondary">Mostrador</button>
         <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'delivery', cliente: '', direccion: '', telefono: '' }" class="btn-secondary">Delivery</button>

@@ -10,7 +10,7 @@ class Booking extends Model
 
     protected $fillable = [
         'business_id','contact_id','service_id','assigned_to',
-        'starts_at','ends_at','status','notes','price','location_id',
+        'starts_at','ends_at','status','notes','price','location_id', 'nombre', 'telefono', 'email', 'personas', 'origen', 'token',
     ];
 
     protected $casts = [

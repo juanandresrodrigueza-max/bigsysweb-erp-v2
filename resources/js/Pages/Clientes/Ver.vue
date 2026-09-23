@@ -11,13 +11,15 @@
         <Link :href="`/comprobantes/nuevo?tipo=PRE&contact_id=${cliente.id}`" class="btn-secondary">Presupuesto</Link>
         <Link :href="`/comprobantes/nuevo?contact_id=${cliente.id}`" class="btn-secondary">Factura</Link>
         <button @click="enviarDoc('Contact', cliente.id)" class="btn-secondary">Enviar resumen</button>
+        <button @click="portalAbierto = true" class="btn-secondary" title="Link para que el cliente vea su cuenta, pague y pida">Portal del cliente</button>
         <button @click="cobroAbierto = true" class="btn-primary">Registrar cobro</button>
       </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+    <div class="grid grid-cols-2 gap-3 mb-5" :class="cliente.fidelizacion_activa ? 'lg:grid-cols-6' : 'lg:grid-cols-5'">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Saldo</p><p class="text-xl font-extrabold tabular-nums" :class="cliente.balance > 0 ? 'text-carmin' : cliente.balance < 0 ? 'text-emerald-700' : ''">{{ moneda(cliente.balance, 0) }}</p><p v-if="cliente.balance < 0" class="text-[11px] text-marca-muted">a favor del cliente</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Vencido</p><p class="text-xl font-extrabold tabular-nums" :class="cliente.deuda_vencida > 0 ? 'text-carmin' : ''">{{ moneda(cliente.deuda_vencida, 0) }}</p></div>
+      <div v-if="cliente.fidelizacion_activa" class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Puntos</p><p class="text-xl font-extrabold tabular-nums text-violeta">★ {{ cliente.puntos }}</p><p class="text-[11px] text-marca-muted">valen {{ moneda(cliente.puntos_pesos, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Límite</p><p class="text-xl font-extrabold tabular-nums">{{ cliente.credit_limit > 0 ? moneda(cliente.credit_limit, 0) : '∞' }}</p><div v-if="cliente.credit_limit > 0" class="h-1.5 rounded-full bg-gris-light mt-1 overflow-hidden"><div class="h-full" :class="cliente.balance / cliente.credit_limit > 0.9 ? 'bg-carmin' : 'bg-violeta'" :style="{ width: `${Math.min(100, Math.max(0, cliente.balance / cliente.credit_limit * 100))}%` }"></div></div></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Condiciones</p><p class="text-sm font-semibold">Lista {{ cliente.lista_precios }} · {{ cliente.dias_pago }} días</p><p class="text-[11px] text-marca-muted">{{ cliente.descuento }}% dto.<span v-if="cliente.percepcion_iibb"> · perc. IIBB</span></p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Antigüedad de deuda</p>
@@ -200,6 +202,16 @@
         <button class="btn-violeta" :disabled="retiro.processing" @click="retiro.post(`/clientes/acopios/${retiroDe.id}/retiros`, { preserveScroll: true, onSuccess: () => (retiroDe = null) })">Registrar retiro</button>
       </template>
     </Modal>
+    <Modal :abierto="portalAbierto" titulo="Portal del cliente" @cerrar="portalAbierto = false">
+      <p class="text-sm mb-2">Con este link el cliente ve su cuenta corriente, descarga sus facturas, paga online y hace pedidos con sus precios. No necesita usuario ni contraseña: el link es su acceso, no lo publiques.</p>
+      <div class="flex gap-2"><input :value="cliente.portal_url" readonly class="input text-xs select-all" @focus="$event.target.select()" /><button class="btn-secondary whitespace-nowrap" @click="navigator.clipboard?.writeText(cliente.portal_url)">Copiar</button></div>
+      <div class="flex gap-2 mt-3">
+        <a :href="`https://wa.me/${(cliente.mobile || cliente.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent('Hola ' + cliente.name + ', este es tu acceso a tu cuenta: ' + cliente.portal_url)}`" target="_blank" class="btn-primary !py-1.5 text-xs">Enviar por WhatsApp</a>
+        <a :href="`mailto:${cliente.email ?? ''}?subject=${encodeURIComponent('Tu acceso a tu cuenta')}&body=${encodeURIComponent('Hola ' + cliente.name + ', este es tu acceso: ' + cliente.portal_url)}`" class="btn-secondary !py-1.5 text-xs">Enviar por mail</a>
+        <a :href="cliente.portal_url" target="_blank" class="btn-ghost !py-1.5 text-xs">Ver como el cliente</a>
+      </div>
+      <template #pie><button class="btn-secondary" @click="portalAbierto = false">Cerrar</button></template>
+    </Modal>
   </AppLayout>
 </template>
 
@@ -226,6 +238,7 @@ const tabs = computed(() => [
 const totalAnt = computed(() => Object.values(props.antiguedad).reduce((a, b) => a + b, 0))
 const pct = v => totalAnt.value ? v / totalAnt.value * 100 : 0
 const editarAbierto = ref(false)
+const portalAbierto = ref(false)
 function abrirMov(m) { if (m.comprobante_id) router.visit(`/comprobantes/${m.comprobante_id}`); else if (m.cobro_id) window.open(`/clientes/cobros/${m.cobro_id}/imprimir`, '_blank') }
 
 // Cobro

@@ -134,6 +134,7 @@ class ComprobanteService
             AuditLog::registrar('emitir', $c, "Emitió {$c->nombreTipo()} {$c->numeroFormateado()}");
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
+            try { app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($c->fresh(['contact', 'business'])); } catch (\Throwable $e) { \Log::warning('Puntos: ' . $e->getMessage()); }
             return $c->fresh();
         });
     }
