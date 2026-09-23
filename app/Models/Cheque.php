@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Cheque extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const ESTADOS = ['cartera' => 'En cartera', 'depositado' => 'Depositado', 'entregado' => 'Entregado', 'cobrado' => 'Cobrado', 'rechazado' => 'Rechazado', 'anulado' => 'Anulado', 'pagado' => 'Pagado'];

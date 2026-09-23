@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcopioRetiro extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     protected $fillable = ['acopio_id', 'remito_id', 'user_id', 'fecha', 'retirado_por', 'observaciones'];
     protected $casts = ['fecha' => 'date'];
 

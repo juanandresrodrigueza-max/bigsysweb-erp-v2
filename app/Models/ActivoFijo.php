@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 // Bien de uso: se amortiza mes a mes en forma lineal.
 class ActivoFijo extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const CATEGORIAS = ['rodados' => ['Rodados', 60], 'maquinaria' => ['Maquinaria y herramientas', 120], 'muebles' => ['Muebles y útiles', 120], 'equipos' => ['Equipos de computación', 36], 'instalaciones' => ['Instalaciones', 120], 'inmuebles' => ['Inmuebles', 600], 'otros' => ['Otros bienes', 60]];

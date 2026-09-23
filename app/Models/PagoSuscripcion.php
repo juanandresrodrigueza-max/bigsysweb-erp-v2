@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // Un cobro de suscripción: lo que una empresa le paga a BigSys por un período del plan.
 class PagoSuscripcion extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     protected $table = 'pagos_suscripcion';
 
     public const MEDIOS = ['mercadopago' => 'MercadoPago', 'transferencia' => 'Transferencia', 'efectivo' => 'Efectivo', 'cortesia' => 'Cortesía / bonificado'];

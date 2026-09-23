@@ -82,7 +82,53 @@ class DashboardController extends Controller
             ];
         }
 
-        return Inertia::render('Dashboard', compact('kpis', 'serie', 'ultimas', 'destacadas', 'periodo', 'operacion'));
+        return Inertia::render('Dashboard', compact('kpis', 'serie', 'ultimas', 'destacadas', 'periodo', 'operacion') + ['panel' => $this->panelRol($user, $desde, $hasta)]);
+    }
+
+    // Panel por rol: lo que esa persona tiene que mirar hoy (vendedor, cajero, depósito, contador). El dueño/admin ve todo lo demás.
+    private function panelRol($user, Carbon $desde, Carbon $hasta): ?array
+    {
+        $slug = $user->rolActual()?->slug; if ($user->esDueno() || in_array($slug, [null, 'dueno', 'admin'], true)) return null;
+        $f = [$desde->toDateString(), $hasta->toDateString()];
+        if ($slug === 'vendedor') {
+            $v = \App\Models\Vendedor::deUsuario($user->id);
+            $mias = Comprobante::ventas()->emitidos()->facturas()->whereBetween('fecha', $f)->where(fn($q) => $q->where('user_id', $user->id)->when($v, fn($qq) => $qq->orWhere('vendedor_id', $v->id)));
+            $pres = Comprobante::ventas()->emitidos()->where('tipo', 'PRE')->whereDoesntHave('derivados')->where('user_id', $user->id)->with('contact:id,name')->orderByDesc('fecha')->limit(5)->get();
+            $com = $v ? collect(app(\App\Services\Comprobantes\ComisionesService::class)->liquidar($f[0], $f[1], $v->id))->first() : null;
+            $deud = $v ? Contact::customers()->where('vendedor_id', $v->id)->where('balance', '>', 0.005)->orderByDesc('balance')->limit(5)->get(['id', 'name', 'balance']) : collect();
+            return ['tipo' => 'vendedor', 'ventas' => (float) (clone $mias)->sum('total'), 'facturas' => (clone $mias)->count(), 'comision' => $com['total'] ?? null,
+                'presupuestos' => $pres->map(fn($p) => ['id' => $p->id, 'numero' => $p->numeroFormateado(), 'cliente' => $p->contact?->name, 'total' => (float) $p->total, 'fecha' => $p->fecha->format('d/m')]),
+                'deudores' => $deud->map(fn($c) => ['id' => $c->id, 'nombre' => $c->name, 'saldo' => (float) $c->balance])];
+        }
+        if ($slug === 'cajero') {
+            $caja = \App\Models\CuentaFondos::where('activa', true)->where('tipo', 'caja')->where('business_location_id', $user->current_location_id)->orderByDesc('es_default')->first() ?? \App\Models\CuentaFondos::where('activa', true)->where('tipo', 'caja')->first();
+            $turno = $caja?->turnoAbierto;
+            $esperado = $turno ? app(\App\Services\Fondos\FondosService::class)->esperadoPorMedio($turno) : [];
+            $hoyQ = Comprobante::ventas()->emitidos()->facturas()->where('fecha', today()->toDateString())->where('user_id', $user->id);
+            return ['tipo' => 'cajero', 'caja' => $caja ? ['id' => $caja->id, 'nombre' => $caja->nombre, 'saldo' => (float) $caja->saldo] : null,
+                'turno' => $turno ? ['id' => $turno->id, 'desde' => $turno->apertura->format('H:i'), 'inicial' => (float) $turno->saldo_inicial, 'esperado' => (float) ($esperado['efectivo'] ?? $caja->saldo), 'medios' => $esperado] : null,
+                'ventas_hoy' => (float) (clone $hoyQ)->sum('total'), 'tickets_hoy' => (clone $hoyQ)->count(),
+                'cobros_hoy' => (float) \App\Models\Cobro::where('estado', '!=', 'anulado')->where('fecha', today()->toDateString())->where('user_id', $user->id)->sum('total')];
+        }
+        if ($slug === 'deposito') {
+            $prod = Product::where('active', true)->where('controla_stock', true);
+            $entregas = Comprobante::ventas()->emitidos()->facturas()->where('entrega_pendiente', true)->with('contact:id,name')->orderBy('fecha')->limit(8)->get()->filter(fn($c) => $c->pendienteEntrega() > 0)->values();
+            $transf = class_exists(\App\Models\TransferenciaStock::class) ? \App\Models\TransferenciaStock::where('estado', 'pendiente')->count() : 0;
+            return ['tipo' => 'deposito', 'bajo_minimo' => (clone $prod)->whereColumn('stock', '<=', 'stock_min')->count(), 'sin_stock' => (clone $prod)->where('stock', '<=', 0)->count(), 'transferencias_pendientes' => $transf,
+                'entregas' => $entregas->map(fn($c) => ['id' => $c->id, 'numero' => $c->numeroFormateado(), 'cliente' => $c->contact?->name, 'pendiente' => $c->pendienteEntrega(), 'fecha' => $c->fecha->format('d/m')]),
+                'faltantes' => (clone $prod)->whereColumn('stock', '<=', 'stock_min')->orderByRaw('stock - stock_min')->limit(6)->get()->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'stock' => (float) $p->stock, 'min' => (float) $p->stock_min])];
+        }
+        if ($slug === 'contador') {
+            $mes = [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()];
+            $ivaDF = (float) Comprobante::ventas()->emitidos()->whereBetween('fecha', $mes)->selectRaw("COALESCE(SUM(CASE WHEN tipo IN ('NCA','NCB','NCC') THEN -iva ELSE iva END),0) s")->value('s');
+            $ivaCF = (float) Comprobante::compras()->emitidos()->whereBetween('fecha', $mes)->selectRaw("COALESCE(SUM(CASE WHEN tipo IN ('NCA','NCB','NCC') THEN -iva ELSE iva END),0) s")->value('s');
+            $conAsiento = \App\Models\Asiento::where('estado', 'confirmado')->whereIn('origen', ['venta', 'compra'])->pluck('origen_id');
+            $sinAsiento = Comprobante::emitidos()->whereBetween('fecha', $mes)->whereNotIn('tipo', ['PRE', 'REM'])->whereNotIn('id', $conAsiento)->count();
+            $res = app(\App\Services\Contabilidad\ContabilidadService::class)->resultado($user->business_id, $mes[0], $mes[1]);
+            return ['tipo' => 'contador', 'iva_df' => $ivaDF, 'iva_cf' => $ivaCF, 'posicion_iva' => round($ivaDF - $ivaCF, 2), 'sin_asiento' => $sinAsiento, 'resultado' => $res, 'pendientes_cae' => Comprobante::ventas()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->count(),
+                'sueldos_pendientes' => class_exists(\App\Models\Liquidacion::class) ? \App\Models\Liquidacion::where('estado', 'confirmada')->count() : 0];
+        }
+        return null;
     }
 
     private function rango(string $periodo): array

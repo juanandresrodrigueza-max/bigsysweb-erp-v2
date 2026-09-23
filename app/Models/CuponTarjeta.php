@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // Cupón de tarjeta: nace con el cobro y se liquida cuando el emisor acredita en el banco.
 class CuponTarjeta extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $table = 'cupones_tarjeta';

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 // Liquidación de sueldos de un período (mensual, SAC o final).
 class Liquidacion extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const TIPOS = ['mensual' => 'Mensual', 'sac' => 'Aguinaldo (SAC)', 'final' => 'Liquidación final'];

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 // Padrón de alícuotas de IIBB por CUIT (ARBA, AGIP, etc.). Es global: lo comparten todas las empresas.
 class PadronIibb extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     protected $table = 'padrones_iibb';
     protected $fillable = ['jurisdiccion', 'cuit', 'alic_percepcion', 'alic_retencion', 'desde', 'hasta', 'fuente'];
     protected $casts = ['alic_percepcion' => 'decimal:3', 'alic_retencion' => 'decimal:3', 'desde' => 'date', 'hasta' => 'date'];

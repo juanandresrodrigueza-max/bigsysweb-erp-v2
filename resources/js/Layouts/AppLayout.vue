@@ -39,7 +39,7 @@
     </aside>
 
     <!-- Contenido -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
       <header class="h-16 bg-white border-b border-marca-borde flex items-center px-4 md:px-6 gap-3 sticky top-0 z-30">
         <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
 
@@ -72,6 +72,14 @@
         <CampanaAlertas :alertas="alertas" />
       </header>
       <Paleta ref="paleta" :nav="nav" />
+      <!-- Barra inferior en el celular: lo que más se usa, a un toque -->
+      <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-marca-borde grid grid-cols-5 text-[10px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
+        <Link href="/dueno" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/dueno') ? 'text-carmin' : ''"><Icono nombre="home" clase="w-5 h-5" />Mi negocio</Link>
+        <Link href="/comprobantes" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/comprobantes') ? 'text-carmin' : ''"><Icono nombre="receipt" clase="w-5 h-5" />Ventas</Link>
+        <button type="button" @click="paleta?.abrir()" class="flex flex-col items-center py-2 gap-0.5"><span class="-mt-5 w-11 h-11 rounded-full bg-marca-grad text-white grid place-items-center shadow-pop"><Icono nombre="search" clase="w-5 h-5" /></span>Buscar</button>
+        <Link href="/clientes/cobranzas" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/clientes') ? 'text-carmin' : ''"><Icono nombre="users" clase="w-5 h-5" />Cobrar</Link>
+        <button type="button" @click="movil = true" class="flex flex-col items-center py-2 gap-0.5"><Icono nombre="menu" clase="w-5 h-5" />Menú</button>
+      </nav>
 
       <!-- Superadmin dando soporte dentro de una empresa -->
       <div v-if="impersonando" class="px-4 md:px-6 py-2 bg-violeta text-white text-sm flex items-center gap-3">

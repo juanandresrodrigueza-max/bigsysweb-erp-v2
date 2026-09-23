@@ -26,8 +26,15 @@ class AgenteController extends Controller
         $user     = $request->user();
         $contexto = $this->contexto($user);
         $apiKey   = config('services.anthropic.api_key');
+        $acciones = app(\App\Services\IA\AccionesService::class);
 
         if (! $apiKey) {
+            // Sin IA: se entienden las frases más comunes (cobros, gastos, recordatorios, presupuestos, saldos, stock, ventas).
+            if ($i = $acciones->interpretarLocal($data['mensaje'])) {
+                if (isset($i['consulta'])) return response()->json(['respuesta' => $acciones->consultar($i['consulta'], $i['args']), 'modo' => 'local']);
+                $p = $acciones->proponer($user, $i['accion'], $i['args']);
+                return isset($p['error']) ? response()->json(['respuesta' => $p['error'], 'modo' => 'local']) : response()->json(['respuesta' => "Te propongo esto. ¿Confirmás?", 'propuesta' => $p, 'modo' => 'local']);
+            }
             return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
         }
 
@@ -37,27 +44,45 @@ class AgenteController extends Controller
             ->values()->all();
 
         try {
-            $res = Http::withHeaders([
-                'x-api-key'         => $apiKey,
-                'anthropic-version' => '2023-06-01',
-            ])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
-                'model'      => config('services.anthropic.model'),
-                'max_tokens' => 800,
-                'system'     => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null),
-                'messages'   => $mensajes,
+            $tools = $acciones->herramientas($user);
+            $llamar = fn(array $msgs) => Http::withHeaders(['x-api-key' => $apiKey, 'anthropic-version' => '2023-06-01'])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
+                'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null), 'messages' => $msgs, 'tools' => $tools,
             ]);
-
+            $res = $llamar($mensajes);
+            // Hasta 3 rondas: las consultas se resuelven y se le devuelven a la IA; una acción se propone al usuario.
+            for ($ronda = 0; $ronda < 3 && $res->successful(); $ronda++) {
+                $contenido = $res->json('content', []);
+                $usos = collect($contenido)->where('type', 'tool_use');
+                $texto = collect($contenido)->where('type', 'text')->pluck('text')->implode("\n");
+                if ($usos->isEmpty()) return response()->json(['respuesta' => $texto ?: 'No pude generar una respuesta. Probá de nuevo.', 'modo' => 'ia']);
+                $accion = $usos->first(fn($u) => ! \App\Services\IA\AccionesService::esConsulta($u['name']));
+                if ($accion) {
+                    $p = $acciones->proponer($user, $accion['name'], (array) $accion['input']);
+                    return isset($p['error']) ? response()->json(['respuesta' => trim($texto . "\n" . $p['error']), 'modo' => 'ia']) : response()->json(['respuesta' => trim($texto) ?: 'Te propongo esto. ¿Confirmás?', 'propuesta' => $p, 'modo' => 'ia']);
+                }
+                $resultados = $usos->map(fn($u) => ['type' => 'tool_result', 'tool_use_id' => $u['id'], 'content' => $acciones->consultar($u['name'], (array) $u['input'])])->values()->all();
+                $mensajes[] = ['role' => 'assistant', 'content' => $contenido];
+                $mensajes[] = ['role' => 'user', 'content' => $resultados];
+                $res = $llamar($mensajes);
+            }
             if (! $res->successful()) {
                 Log::warning('Agente IA: respuesta no exitosa', ['status' => $res->status(), 'body' => $res->body()]);
                 return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
             }
-
             $texto = collect($res->json('content', []))->where('type', 'text')->pluck('text')->implode("\n");
             return response()->json(['respuesta' => $texto ?: 'No pude generar una respuesta. Probá de nuevo.', 'modo' => 'ia']);
         } catch (\Throwable $e) {
             Log::error('Agente IA: error', ['e' => $e->getMessage()]);
             return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
         }
+    }
+
+    // El usuario confirmó una propuesta: se ejecuta con sus permisos y queda auditado.
+    public function ejecutar(Request $request)
+    {
+        $d = $request->validate(['accion' => 'required|in:registrar_cobro,registrar_gasto,crear_presupuesto,recordar_deuda', 'datos' => 'required|array']);
+        $r = app(\App\Services\IA\AccionesService::class)->ejecutar($request->user(), $d['accion'], $d['datos']);
+        return response()->json($r);
     }
 
     private function contexto($user): array
@@ -100,6 +125,7 @@ Respondés en español rioplatense, claro y breve (máximo 6 líneas salvo que p
 Cuando te preguntan cómo hacer algo en el sistema, das los pasos concretos: menú, botón, campo. Si el módulo todavía no está disponible, lo decís sin inventar.
 Cuando te preguntan por datos del negocio, usás los números de abajo; si el dato no está, decís que todavía no lo tenés y en qué pantalla se vería.
 Nunca inventás importes ni comprobantes.
+Tenés herramientas: para consultar (saldo de un cliente, stock de un artículo, deudores, ventas de un período) usalas y respondé con el dato; para hacer cosas (registrar un cobro o un gasto, armar un presupuesto, mandar un recordatorio de deuda) llamá a la herramienta con lo que el usuario dijo: el sistema le muestra una propuesta y él la confirma. Si falta un dato clave (importe, cliente) preguntalo antes.
 
 Usuario: {$user->name}, rol {$c['rol']}, empresa {$c['empresa']}, sucursal {$c['sucursal']}.
 Pantalla actual: {$pantalla}.

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 // Conteo físico de un depósito: lo contado contra lo que decía el sistema, con los ajustes que generó.
 class Inventario extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $fillable = ['business_id', 'business_location_id', 'deposito_id', 'user_id', 'numero', 'fecha', 'estado', 'items_contados', 'items_con_diferencia', 'diferencia_valorizada', 'notas'];

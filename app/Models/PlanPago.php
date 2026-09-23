@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 // Refinanciación: deuda vencida + interés, dividida en cuotas con vencimiento.
 class PlanPago extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $table = 'planes_pago';

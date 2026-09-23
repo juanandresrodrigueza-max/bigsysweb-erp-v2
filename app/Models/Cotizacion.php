@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 // Cotización del dólar: la general la baja el sistema todos los días; la empresa puede fijar la suya.
 class Cotizacion extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     protected $table = 'cotizaciones';
     protected $fillable = ['business_id', 'fecha', 'tipo', 'compra', 'venta', 'fuente'];
     protected $casts = ['fecha' => 'date', 'compra' => 'decimal:2', 'venta' => 'decimal:2'];

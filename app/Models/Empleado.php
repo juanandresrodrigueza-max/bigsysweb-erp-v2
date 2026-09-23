@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 // Empleado en relación de dependencia (legajo).
 class Empleado extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $fillable = ['business_id', 'business_location_id', 'user_id', 'legajo', 'nombre', 'cuil', 'categoria', 'convenio', 'puesto', 'fecha_ingreso', 'fecha_egreso', 'sueldo_basico', 'modalidad', 'obra_social', 'cbu', 'email', 'telefono', 'activo', 'notas'];

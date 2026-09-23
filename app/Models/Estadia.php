@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 // Reserva / estadía de un huésped en una habitación: reserva → check-in → consumos → check-out con factura.
 class Estadia extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const ESTADOS = ['reservada' => 'Reservada', 'checkin' => 'Alojado', 'checkout' => 'Finalizada', 'cancelada' => 'Cancelada', 'no_show' => 'No vino'];

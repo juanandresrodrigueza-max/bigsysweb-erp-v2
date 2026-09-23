@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LoteFacturacion extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $table = 'lotes_facturacion';

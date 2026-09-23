@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asiento extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const ORIGENES = ['venta' => 'Venta', 'compra' => 'Compra', 'cobro' => 'Cobro', 'pago' => 'Pago', 'fondos' => 'Fondos', 'manual' => 'Manual'];

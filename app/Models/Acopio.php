@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Acopio extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'comprobante_id', 'fecha', 'fecha_limite', 'estado', 'observaciones'];

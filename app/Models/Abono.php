@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 // Facturación recurrente: abonos, cuotas, alquileres. Cada vencimiento genera una factura.
 class Abono extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $fillable = ['business_id', 'contact_id', 'descripcion', 'items', 'condicion', 'frecuencia', 'dia_emision', 'desde', 'hasta', 'meses_excluidos', 'emitir_auto', 'activo', 'cuota_actual', 'proximo', 'ultimo_emitido_en', 'notas'];

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Comprobante extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness, SoftDeletes;
 
     // tipo => [nombre, letra, afip_id (null = no fiscal), signo en CC (+1 debe, -1 haber, 0 no impacta), mueve_stock]

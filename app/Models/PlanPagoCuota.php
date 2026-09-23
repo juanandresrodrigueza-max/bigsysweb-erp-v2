@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PlanPagoCuota extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     public $timestamps = false;
     protected $fillable = ['plan_pago_id', 'numero', 'vencimiento', 'monto', 'pagado', 'estado'];
     protected $casts = ['vencimiento' => 'date', 'monto' => 'decimal:2', 'pagado' => 'decimal:2'];

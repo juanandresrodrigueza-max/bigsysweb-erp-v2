@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 // Orden de trabajo del servicio técnico: equipo que entra, diagnóstico, presupuesto, tareas, hoja de trabajo y entrega con firma.
 class OrdenTrabajo extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const ESTADOS = ['recibido' => 'Recibido', 'diagnostico' => 'En diagnóstico', 'presupuestado' => 'Presupuestado', 'aprobado' => 'Aprobado', 'en_curso' => 'En reparación', 'listo' => 'Listo para retirar', 'entregado' => 'Entregado', 'cancelado' => 'Cancelado'];

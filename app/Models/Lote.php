@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // Partida de stock con lote, vencimiento o número de serie. Se consume FEFO (vence primero, sale primero).
 class Lote extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $fillable = ['business_id', 'product_id', 'deposito_id', 'lote', 'serie', 'vencimiento', 'cantidad', 'costo_unit'];

@@ -12,6 +12,7 @@
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ],
   "shortcuts": [
+    { "name": "Mi negocio", "url": "/dueno" },
     { "name": "Punto de venta", "url": "/retail" },
     { "name": "Nueva factura", "url": "/comprobantes/nuevo" },
     { "name": "Pedidos web", "url": "/comprobantes/pedidos" }

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 // Un extracto importado del banco (CSV / Excel exportado del home banking).
 class ExtractoBancario extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $table = 'extractos_bancarios';

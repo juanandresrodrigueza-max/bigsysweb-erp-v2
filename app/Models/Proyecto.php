@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 // Obra o proyecto con costeo: presupuesto vs real, partes diarios y certificación de avance.
 class Proyecto extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     public const ESTADOS = ['presupuestado' => 'Presupuestado', 'en_curso' => 'En curso', 'pausado' => 'Pausado', 'terminado' => 'Terminado', 'cancelado' => 'Cancelado'];

@@ -115,6 +115,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/alertas/{id}/resolver',   [AlertasController::class, 'resolver'])->name('alertas.resolver');
 
     Route::post('/agente/chat', [AgenteController::class, 'chat'])->name('agente.chat');
+    Route::post('/agente/ejecutar', [AgenteController::class, 'ejecutar'])->middleware('throttle:60,1');
+    Route::get('/dueno', [\App\Http\Controllers\DuenoController::class, 'index'])->middleware('permiso:dashboard');
 
     // Comprobantes
     Route::prefix('comprobantes')->middleware('permiso:comprobantes')->group(function () {

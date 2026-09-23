@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 // Hoja de reparto: un repartidor, una fecha, varios comprobantes a entregar.
 class OrdenEntrega extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
     protected $table = 'ordenes_entrega';
