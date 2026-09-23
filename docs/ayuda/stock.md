@@ -1,7 +1,7 @@
 ---
-titulo: Stock, precios y compras
+titulo: Stock, artículos y precios
 modulo: stock
-rutas: /stock, /proveedores
+rutas: /stock
 orden: 4
 resumen: Artículos, listas de precios, movimientos de stock, mínimos, compras a proveedores y actualización de costos.
 ---

@@ -116,6 +116,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/contador/empresas', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'index']);
     // Centro de ayuda y tour
     Route::get('/ayuda',                 [\App\Http\Controllers\AyudaController::class, 'index']);
+    Route::get('/ayuda/manual',          [\App\Http\Controllers\AyudaController::class, 'manual']);
     Route::get('/ayuda/contexto',        [\App\Http\Controllers\AyudaController::class, 'contexto']);
     Route::get('/ayuda/buscar',          [\App\Http\Controllers\AyudaController::class, 'buscar']);
     Route::post('/ayuda/tour-visto',     [\App\Http\Controllers\AyudaController::class, 'tourVisto']);

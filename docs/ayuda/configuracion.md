@@ -1,7 +1,7 @@
 ---
 titulo: Configuración, usuarios y seguridad
 modulo: configuracion
-rutas: /configuracion, /suscripcion, /soporte
+rutas: /configuracion, /suscripcion
 orden: 8
 resumen: Empresa, sucursales, usuarios y roles, impuestos, tienda y canales, importación, copias de seguridad, dos factores y API.
 ---

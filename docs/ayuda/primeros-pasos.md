@@ -1,7 +1,7 @@
 ---
 titulo: Primeros pasos
 modulo: dashboard
-rutas: /dashboard, /primeros-pasos, /dueno
+rutas: /dashboard
 orden: 1
 resumen: Qué configurar el primer día para empezar a facturar y cobrar, y cómo moverse por el sistema.
 ---

@@ -15,14 +15,19 @@ class ProductoTest extends ErpTestCase
 {
     public function test_centro_de_ayuda_lista_articulos_busca_y_muestra_la_guia_de_la_pantalla_actual(): void
     {
-        $this->get('/ayuda')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->has('articulos', 10)->where('articulos.0.slug', 'primeros-pasos'));
+        $this->get('/ayuda')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->has('articulos', 23)->where('articulos.0.slug', 'implementacion')->where('articulos.1.slug', 'primeros-pasos'));
         $this->get('/ayuda/facturar')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->where('articulo.titulo', 'Facturar, presupuestar y remitir')->where('articulo.secciones.0.titulo', 'La factura paso a paso'));
         $this->get('/ayuda/no-existe')->assertNotFound();
         $this->get('/ayuda?q=anular factura')->assertInertia(fn($p) => $p->component('Ayuda', false)->where('resultados.0.slug', 'facturar'));
         $this->getJson('/ayuda/buscar?q=rebot')->assertOk()->assertJsonPath('0.slug', 'cobrar');
         $this->getJson('/ayuda/contexto?ruta=/comprobantes/nuevo')->assertOk()->assertJsonPath('articulo.slug', 'facturar')->assertJsonCount(6, 'tour');
         $this->getJson('/ayuda/contexto?ruta=/retail')->assertJsonPath('articulo.slug', 'punto-de-venta');
-        $this->getJson('/ayuda/contexto?ruta=/obras/3')->assertJsonPath('articulo', null)->assertJsonCount(6, 'sugeridos');
+        $this->getJson('/ayuda/contexto?ruta=/obras/3')->assertJsonPath('articulo.slug', 'obras');
+        $this->getJson('/ayuda/contexto?ruta=/ruta-inexistente')->assertJsonPath('articulo', null)->assertJsonCount(6, 'sugeridos');
+        foreach (['/comprobantes/pedidos' => 'ventas-avanzadas', '/proveedores/compras' => 'compras', '/sueldos' => 'sueldos', '/servicios/2' => 'servicio-tecnico', '/gastronomia/cocina' => 'gastronomia', '/hoteleria' => 'hoteleria', '/agenda' => 'agenda', '/configuracion/tienda' => 'tienda-y-canales', '/admin/empresas' => 'administracion-bigsys', '/primeros-pasos' => 'implementacion', '/contable/iva' => 'contable', '/estadisticas/rentabilidad' => 'estadisticas', '/fondos/cheques' => 'fondos', '/stock/inventario' => 'stock', '/clientes/cobranzas' => 'cobrar', '/alertas' => 'alertas-y-asistente'] as $ruta => $slug) $this->getJson('/ayuda/contexto?ruta=' . $ruta)->assertJsonPath('articulo.slug', $slug, "Ruta {$ruta}");
+        // Manual completo: todos los artículos en una página imprimible, y los pasos del onboarding con su guía.
+        $this->get('/ayuda/manual')->assertOk()->assertSee('Manual de usuario')->assertSee('1. Guía de implementación')->assertSee('id="preguntas-frecuentes"', false);
+        $this->get('/primeros-pasos')->assertInertia(fn($pg) => $pg->component('Onboarding', false)->where('pasos.0.ayuda', 'implementacion')->where('pasos.1.ayuda', 'guia-arca'));
         $this->get('/ayuda/guia/arca')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->where('articulo.slug', 'guia-arca'));
         $this->get('/ayuda/guia/../.env')->assertNotFound();
     }

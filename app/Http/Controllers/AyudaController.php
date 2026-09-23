@@ -25,6 +25,13 @@ class AyudaController extends Controller
         ]);
     }
 
+    // Manual completo en una página imprimible: todos los artículos, en orden, con índice.
+    public function manual()
+    {
+        $arts = array_map(fn($a) => $this->ayuda->articulo($a['slug']), $this->ayuda->lista());
+        return view('ayuda.manual', ['articulos' => $arts]);
+    }
+
     // Ayuda de la pantalla actual, para el panel lateral.
     public function contexto(Request $request)
     {

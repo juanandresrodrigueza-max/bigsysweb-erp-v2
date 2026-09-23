@@ -2,7 +2,7 @@
 titulo: Preguntas frecuentes
 modulo:
 rutas:
-orden: 10
+orden: 12
 resumen: Las dudas que más llegan a soporte, con la respuesta corta.
 ---
 

@@ -15,6 +15,7 @@
           <Link v-for="g in guias" :key="g" :href="`/ayuda/guia/${g}`" class="block px-3 py-1.5 rounded-xl text-sm hover:bg-marca-fondo" :class="articulo?.slug === 'guia-' + g ? 'bg-lavanda-light text-violeta font-semibold' : ''">{{ { arca: 'ARCA y factura electrónica', asistente: 'Asistente con IA', atajos: 'Atajos de teclado', 'mercado-argentino': 'Percepciones, COT, cuotas, Mercado Pago', seguridad: 'Seguridad', api: 'API para desarrolladores' }[g] ?? g }}</Link>
           <a href="/api/docs" target="_blank" class="block px-3 py-1.5 rounded-xl text-sm hover:bg-marca-fondo">Referencia de la API ↗</a>
         </div>
+        <a href="/ayuda/manual" target="_blank" class="card block text-sm hover:border-carmin/50"><p class="font-bold">Manual completo</p><p class="text-xs text-marca-muted">Todas las guías en una página, para imprimir o guardar en PDF.</p></a>
         <div class="card text-sm">
           <p class="font-bold mb-1">¿No lo encontrás?</p>
           <p class="text-marca-muted text-xs mb-2">Abrí un ticket y te respondemos ahí y por mail.</p>
