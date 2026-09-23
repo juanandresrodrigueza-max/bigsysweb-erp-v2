@@ -80,3 +80,37 @@ jobs:
         with:
           php-version: "8.3"
       - run: find app database routes config tests -name "*.php" -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+  e2e:
+    name: Pruebas de navegador (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: bcmath,exif,gd,mbstring,pdo,pdo_sqlite,sqlite3,zip,intl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-8.3-${{ hashFiles('**/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --optimize-autoloader
+      - run: npm ci && npm run build
+      - run: cp .env.example .env && php artisan key:generate
+      # Base demo en un archivo SQLite: las pruebas entran con las cuentas del seeder.
+      - run: touch database/e2e.sqlite && php artisan migrate:fresh --seed --force
+        env: { DB_CONNECTION: sqlite, DB_DATABASE: "${{ github.workspace }}/database/e2e.sqlite" }
+      - run: npx playwright-core install --with-deps chromium
+      - run: (php artisan serve --host=127.0.0.1 --port=8000 > serve.log 2>&1 &) && sleep 3 && curl -sf http://127.0.0.1:8000/up
+        env: { DB_CONNECTION: sqlite, DB_DATABASE: "${{ github.workspace }}/database/e2e.sqlite" }
+      - run: node tests/e2e/run.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-e2e
+          path: tests/e2e/shots
+          if-no-files-found: ignore
