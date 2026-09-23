@@ -27,6 +27,7 @@
         <p v-if="form.errors.activo" class="text-carmin text-xs">{{ form.errors.activo }}</p>
         <div class="flex flex-wrap gap-2 justify-end">
           <button type="button" class="btn-secondary" @click="router.post('/configuracion/crm/probar', {}, { preserveScroll: true })">Probar conexión</button>
+          <button v-if="listo" type="button" class="btn-secondary" title="Manda todos los clientes y artículos al CRM (carga inicial). Después cada cambio va solo." @click="router.post('/configuracion/crm/sincronizar', {}, { preserveScroll: true })">Sincronizar clientes y artículos</button>
           <button class="btn-primary" :disabled="form.processing">Guardar</button>
         </div>
         <div v-if="prueba" class="text-sm rounded-xl p-3" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin'">{{ prueba.detalle }}</div>
@@ -37,7 +38,8 @@
         <p><b>1.</b> El CUIT une las dos empresas: acá <b class="tabular-nums">{{ cuit ?? 'sin CUIT (cargalo en Empresa)' }}</b>; en el CRM cargá el mismo en Configuración → Empresa.</p>
         <p><b>2.</b> Generá el secreto acá y pegalo en el CRM. Pegá acá la clave de API que crea el CRM.</p>
         <p><b>3.</b> En el CRM (Integraciones → ERP) cargá esta URL del ERP: <code class="font-mono text-xs break-all">{{ urlEntrada }}</code></p>
-        <p><b>4.</b> Activá y probá. Aparece <b>CRM</b> en el menú; al tocarlo entrás al CRM sin volver a loguearte. Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente.</p>
+        <p><b>4.</b> Tocá <b>Sincronizar clientes y artículos</b> una vez: manda todo al CRM. Después, cada cliente o artículo que se crea o cambia en el ERP viaja solo, y cada contacto que nace en el CRM (un WhatsApp nuevo) aparece acá como cliente. Lo fiscal (CUIT, condición IVA, domicilio, listas, límite de crédito) lo administra el ERP; los artículos y precios quedan en solo lectura en el CRM.</p>
+        <p><b>5.</b> Activá y probá. Aparece <b>CRM</b> en el menú; al tocarlo entrás al CRM sin volver a loguearte. Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente.</p>
         <p class="text-xs text-marca-muted">Roles: dueño y administrador → admin; encargado y contador → supervisor; vendedor y cajero → operador (solo lo suyo); depósito, producción y solo lectura → consulta.</p>
         <a v-if="listo" href="/integraciones/crm/ir" class="btn-primary inline-flex">Ir al CRM ahora ↗</a>
       </div>

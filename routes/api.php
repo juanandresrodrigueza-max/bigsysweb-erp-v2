@@ -35,6 +35,7 @@ Route::prefix('auth')->group(function () {
 
 // Webhooks (público)
 Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook'])->middleware('throttle:webhooks');
+Route::post('crm/webhook/{business}', [\App\Http\Controllers\Api\CrmWebhookController::class, 'recibir'])->middleware('throttle:webhooks')->whereNumber('business');
 Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook'])->middleware('throttle:webhooks');
 Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\SuscripcionController::class, 'webhook'])->middleware('throttle:webhooks');
 

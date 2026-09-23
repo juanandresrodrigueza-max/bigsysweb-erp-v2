@@ -33,6 +33,8 @@ Si tu empresa usa el ERP y el CRM de BigSys, se pasan de uno al otro con un bot�
 2. En **Configuración → CRM** poné la URL del CRM, tocá **Generar** para crear el secreto compartido y pegalo en el CRM (Integraciones → ERP BigSys). Pegá acá la clave de API que crea el CRM.
 3. Activá y **Probar conexión**. Aparece **CRM** en el menú: al tocarlo entrás al CRM sin volver a loguearte. En el CRM aparece **ERP BigSys** para volver.
 
+**Clientes y artículos**: tocá **Sincronizar clientes y artículos** una vez (carga inicial). Después, cada cliente o artículo que se crea o cambia en el ERP viaja solo al CRM, y cada contacto que nace en el CRM (por ejemplo un WhatsApp nuevo) aparece en el ERP como cliente consumidor final, enlazado por CUIT o email si ya existía. Lo fiscal (CUIT, condición IVA, domicilio, lista de precios, límite de crédito) lo administra el ERP y el CRM no lo pisa; los artículos y precios quedan en solo lectura en el CRM, con el precio de la lista que elijas.
+
 Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente (dueño y administrador → admin; encargado y contador → supervisor; vendedor y cajero → operador; depósito, producción y solo lectura → consulta). El token que viaja dura 60 segundos y sirve una sola vez.
 
 ## Importar datos

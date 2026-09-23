@@ -28,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', fn(Request $r) => Limit::perMinute(240)->by($r->user()?->id ?: $r->ip()));
 
         // Recuperación de contraseña: link a la pantalla propia y mail en castellano.
+        // Integración CRM: clientes y artículos tocados se mandan al CRM (en cola, si la integración está activa).
+        \App\Models\Contact::saved(fn($c) => in_array($c->type, ['customer', 'both'], true) ? \App\Services\Integraciones\CrmSyncService::encolar($c->business_id, 'contactos', [$c->id]) : null);
+        \App\Models\Product::saved(fn($p) => \App\Services\Integraciones\CrmSyncService::encolar($p->business_id, 'productos', [$p->id]));
         ResetPassword::createUrlUsing(fn($user, string $token) => url("/restablecer/{$token}?email=" . urlencode($user->email)));
         // Ojo: el segundo parámetro es el token, no la URL.
         ResetPassword::toMailUsing(fn($notifiable, string $token) => (new MailMessage())

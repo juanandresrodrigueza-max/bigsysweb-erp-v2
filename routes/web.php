@@ -541,6 +541,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/crm',                   [\App\Http\Controllers\Configuracion\CrmController::class, 'index']);
         Route::post('/crm',                  [\App\Http\Controllers\Configuracion\CrmController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/crm/probar',           [\App\Http\Controllers\Configuracion\CrmController::class, 'probar'])->middleware('permiso:configuracion,editar');
+        Route::post('/crm/sincronizar',      [\App\Http\Controllers\Configuracion\CrmController::class, 'sincronizar'])->middleware('permiso:configuracion,editar');
         Route::get('/tienda',                [\App\Http\Controllers\Configuracion\TiendaController::class, 'index']);
         Route::post('/tienda',               [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/fidelizacion',  [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarFidelizacion'])->middleware('permiso:configuracion,editar');

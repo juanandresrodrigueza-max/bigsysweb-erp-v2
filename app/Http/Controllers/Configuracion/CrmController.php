@@ -18,7 +18,7 @@ class CrmController extends Controller
         $c = CrmService::config($b);
         return Inertia::render('Configuracion/Crm', [
             'config' => ['activo' => $c['activo'], 'url' => $c['url'], 'secreto_set' => $c['secreto'] !== '', 'api_key_set' => $c['api_key'] !== '', 'webhook_secreto_set' => $c['webhook_secreto'] !== '', 'lista_precios' => $c['lista_precios'], 'presupuesto_como' => $c['presupuesto_como']],
-            'cuit' => $b->cuit, 'urlEntrada' => url('/integraciones/crm/entrar'), 'urlWebhook' => url('/api/crm/webhook'), 'listo' => CrmService::activo($b),
+            'cuit' => $b->cuit, 'urlEntrada' => url('/integraciones/crm/entrar'), 'urlWebhook' => url('/api/crm/webhook/' . $b->id), 'listo' => CrmService::activo($b),
             'prueba' => session('crm_prueba'),
         ]);
     }
@@ -39,6 +39,16 @@ class CrmController extends Controller
         $b->update(['crm_settings' => $c]);
         AuditLog::registrar('editar', $b, 'Configuró la integración con el CRM' . ($c['activo'] ? ' (activa)' : ' (inactiva)'));
         return back()->with('success', 'Integración con el CRM guardada.' . (($d['generar_secreto'] ?? false) ? ' Copiá el secreto y cargalo en el CRM.' : ''))->with('crm_secreto_nuevo', ($d['generar_secreto'] ?? false) ? $c['secreto'] : null);
+    }
+
+    // Carga inicial: manda todos los clientes y artículos al CRM (en cola, de a 500).
+    public function sincronizar(Request $request)
+    {
+        $b = $request->user()->business;
+        if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '') return back()->with('error', 'Activá la integración y cargá la clave de API del CRM antes de sincronizar.');
+        $r = \App\Services\Integraciones\CrmSyncService::sincronizarTodo($b);
+        AuditLog::registrar('editar', $b, "Sincronizó con el CRM: {$r['contactos']} clientes y {$r['productos']} artículos");
+        return back()->with('success', "Se están mandando al CRM {$r['contactos']} clientes y {$r['productos']} artículos. En unos minutos aparecen allá; después cada cambio va solo.");
     }
 
     public function probar(Request $request)
