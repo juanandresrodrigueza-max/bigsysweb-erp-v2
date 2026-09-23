@@ -107,4 +107,18 @@ class ContableSueldosActivosTest extends ErpTestCase
         $this->assertAsientosBalancean();
         $this->assertTrue(CuentaContable::where('clave', 'dif_cambio')->exists());
     }
+
+    public function test_resumen_f931_por_empleado_con_totales(): void
+    {
+        $e = Empleado::create(['business_id' => $this->empresa->id, 'legajo' => 7, 'nombre' => 'Ana', 'cuil' => '27-22222222-2', 'fecha_ingreso' => today()->subYear()->toDateString(), 'sueldo_basico' => 500000, 'modalidad' => 'mensual', 'activo' => true, 'obra_social' => 'OSECAC']);
+        $liq = app(SueldosService::class)->liquidar($this->empresa, today()->format('Y-m'), 'mensual', [$e->id => ['dias' => 30, 'anticipos' => 10000]]);
+        $csv = $this->get("/sueldos/{$liq->id}/f931")->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8')->getContent();
+        $lineas = array_values(array_filter(explode("\n", $csv)));
+        $this->assertStringContainsString('Aportes retenidos', $lineas[0]);
+        $ana = str_getcsv($lineas[1], ';'); $tot = str_getcsv($lineas[2], ';');
+        $this->assertSame('27222222222', $ana[1]); $this->assertSame('OSECAC', $ana[9]);
+        $i = $liq->items->first(); $aportes = collect($i->detalle)->where('tipo', 'deduccion')->where('codigo', '!=', 'ANTI')->sum('monto');
+        $this->assertSame(number_format($aportes, 2, ',', ''), $ana[6], 'Los anticipos no son aportes');
+        $this->assertSame('TOTALES', $tot[2]); $this->assertSame($ana[4], $tot[4]);
+    }
 }

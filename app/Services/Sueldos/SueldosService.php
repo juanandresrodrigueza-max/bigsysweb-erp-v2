@@ -196,6 +196,20 @@ class SueldosService
     }
 
     // Libro de sueldos (CSV) para el contador o el aplicativo.
+    // Resumen para el F.931 / Libro de Sueldos Digital: por empleado, remuneración, no remunerativo, aportes retenidos y contribuciones, con totales.
+    public function resumen931(Liquidacion $liq): string
+    {
+        $out = "Periodo;CUIL;Empleado;Dias;Remuneracion bruta;No remunerativo;Aportes retenidos;Contribuciones patronales;Neto;Obra social\n";
+        $t = ['bruto' => 0, 'no_rem' => 0, 'ded' => 0, 'contrib' => 0, 'neto' => 0];
+        foreach ($liq->items()->with('empleado')->get() as $i) {
+            $aportes = collect($i->detalle ?? [])->where('tipo', 'deduccion')->where('codigo', '!=', 'ANTI')->sum('monto');
+            foreach (['bruto' => $i->bruto, 'no_rem' => $i->no_rem, 'ded' => $aportes, 'contrib' => $i->contribuciones, 'neto' => $i->neto] as $k => $v) $t[$k] += (float) $v;
+            $out .= implode(';', [$liq->periodo, preg_replace('/\D/', '', (string) $i->empleado->cuil), $i->empleado->nombre, $i->dias, ...array_map(fn($v) => number_format((float) $v, 2, ',', ''), [$i->bruto, $i->no_rem, $aportes, $i->contribuciones, $i->neto]), $i->empleado->obra_social ?? '']) . "\n";
+        }
+        $out .= implode(';', [$liq->periodo, '', 'TOTALES', $liq->items()->count(), ...array_map(fn($v) => number_format($v, 2, ',', ''), [$t['bruto'], $t['no_rem'], $t['ded'], $t['contrib'], $t['neto']]), '']) . "\n";
+        return $out;
+    }
+
     public function libroCsv(Liquidacion $liq): string
     {
         $out = "Legajo;CUIL;Empleado;Categoría;Días;Bruto;No remunerativo;Deducciones;Neto;Contribuciones\n";

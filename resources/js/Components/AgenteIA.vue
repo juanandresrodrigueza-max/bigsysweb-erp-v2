@@ -36,7 +36,8 @@
         </div>
 
         <form @submit.prevent="enviar()" class="p-2 border-t border-marca-borde flex gap-2 bg-white">
-          <input v-model="texto" class="input rounded-full" placeholder="Escribí tu consulta…" :disabled="cargando" />
+          <input v-model="texto" class="input rounded-full" :placeholder="dictado.escuchando.value ? 'Escuchando… hablá' : 'Escribí tu consulta…'" :disabled="cargando" />
+          <button v-if="dictado.soportado" type="button" class="btn-secondary !px-3 rounded-full" :class="dictado.escuchando.value ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" :title="dictado.escuchando.value ? 'Parar' : 'Dictar por voz'" @click="dictado.alternar()"><Icono nombre="mic" clase="w-4 h-4" /></button>
           <button type="submit" class="btn-primary !px-3" :disabled="cargando || !texto.trim()"><Icono nombre="send" clase="w-4 h-4" /></button>
         </form>
       </div>
@@ -52,10 +53,15 @@
 import { ref, nextTick, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
+import { useDictado } from '@/util/dictado'
 
 const page = usePage()
 const abierto = ref(false)
 const texto = ref('')
+// Dictado: el texto final reemplaza lo dictado y se manda solo.
+let baseDictado = ''
+const dictado = useDictado((t, final) => { texto.value = (baseDictado ? baseDictado + ' ' : '') + t; if (final) { baseDictado = ''; enviar() } })
+
 const cargando = ref(false)
 const modo = ref('ia')
 const mensajes = ref([])

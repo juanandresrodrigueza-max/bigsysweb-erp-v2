@@ -7,8 +7,9 @@
       <div class="card lg:col-span-2">
         <h2 class="font-bold mb-1">Traer tus datos del sistema anterior o de Excel</h2>
         <p class="text-sm text-marca-muted mb-4">Subí un Excel (.xlsx) o CSV con encabezados. El sistema adivina qué columna es cada cosa y vos confirmás. Si un cliente o artículo ya existe (por CUIT, código o nombre) se actualiza, no se duplica.</p>
-        <form v-if="!preview" @submit.prevent="sub.post('/configuracion/importar/previsualizar', { forceFormData: true, preserveScroll: true })" class="grid sm:grid-cols-3 gap-3 items-end">
+        <form v-if="!preview" @submit.prevent="sub.post('/configuracion/importar/previsualizar', { forceFormData: true, preserveScroll: true })" class="grid sm:grid-cols-4 gap-3 items-end">
           <div><label class="label">Qué vas a importar</label><select v-model="sub.entidad" class="input"><option v-for="e in entidades" :key="e.key" :value="e.key">{{ e.label }}</option></select></div>
+          <div><label class="label">Viene de</label><select v-model="sub.perfil" class="input"><option value="">Excel / CSV genérico</option><option value="tango">Tango Gestión</option><option value="bejerman">Bejerman / Softland</option><option value="colppy">Colppy</option></select></div>
           <div><label class="label">Archivo</label><input type="file" accept=".xlsx,.csv,.txt" @change="sub.archivo = $event.target.files[0]" class="input !py-1.5 text-xs" /></div>
           <button class="btn-primary" :disabled="sub.processing || !sub.archivo">Leer archivo</button>
           <p v-if="sub.errors.archivo" class="text-carmin text-xs sm:col-span-3">{{ sub.errors.archivo }}</p>
@@ -91,7 +92,7 @@ const props = defineProps({ entidades: Array, historial: Array })
 const page = usePage()
 const preview = computed(() => page.props.flash?.preview)
 const entidadActual = computed(() => props.entidades.find(e => e.key === (preview.value?.entidad ?? sub.entidad)) ?? props.entidades[0])
-const sub = useForm({ entidad: 'clientes', archivo: null })
+const sub = useForm({ entidad: 'clientes', archivo: null, perfil: '' })
 const ap = useForm({ entidad: '', archivo: '', filas: [], mapeo: {}, stock_inicial: true, ajustar_stock: false, saldos: true, reemplazar_saldos: false, fecha_saldos: hoyISO() })
 watch(preview, p => { if (p) { ap.entidad = p.entidad; ap.archivo = p.archivo; ap.filas = p.filas; ap.mapeo = Object.fromEntries(p.encabezado.map((_, i) => [String(i), p.mapeo?.[i] ?? null])) } }, { immediate: true })
 function aplicar() { ap.post('/configuracion/importar/aplicar', { preserveScroll: true, onSuccess: () => router.get('/configuracion/importar') }) }

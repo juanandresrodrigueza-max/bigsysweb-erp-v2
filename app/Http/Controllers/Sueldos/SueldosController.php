@@ -135,6 +135,13 @@ class SueldosController extends Controller
         return view('sueldos.recibo', ['liq' => $liq, 'items' => $items, 'b' => $request->user()->business]);
     }
 
+    public function f931(int $id, SueldosService $svc)
+    {
+        $liq = Liquidacion::findOrFail($id);
+        AuditLog::registrar('exportar', $liq, "Exportó el resumen F.931 de {$liq->periodoLabel()}");
+        return response("\xEF\xBB\xBF" . $svc->resumen931($liq), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=f931_{$liq->periodo}_{$liq->tipo}.csv"]);
+    }
+
     public function libro(int $id, SueldosService $svc)
     {
         $liq = Liquidacion::findOrFail($id);

@@ -24,6 +24,7 @@
             <div class="flex flex-wrap gap-2">
               <a :href="`/sueldos/${enCurso.id}/recibo`" target="_blank" class="btn-secondary !py-1 text-xs">Recibos</a>
               <a :href="`/sueldos/${enCurso.id}/libro`" class="btn-secondary !py-1 text-xs">Libro CSV</a>
+              <a :href="`/sueldos/${enCurso.id}/f931`" class="btn-secondary !py-1 text-xs" title="Resumen por empleado para cargar el F.931 / Libro de Sueldos Digital">F.931</a>
               <button v-if="enCurso.estado === 'borrador'" class="btn-primary !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/confirmar`, {}, { preserveScroll: true })">Confirmar y contabilizar</button>
               <button v-if="enCurso.estado === 'confirmada'" class="btn-ghost !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/reabrir`, {}, { preserveScroll: true })">Reabrir</button>
               <button v-if="enCurso.estado === 'confirmada'" class="btn-primary !py-1 text-xs" @click="pagarAbierto = true">Pagar</button>

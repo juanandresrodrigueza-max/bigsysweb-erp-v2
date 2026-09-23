@@ -143,7 +143,8 @@
       <div class="mt-3 flex flex-wrap items-center gap-3">
         <label class="btn-secondary cursor-pointer"><input type="file" accept="image/*" class="hidden" @change="ia.imagen = $event.target.files[0]" /> Subir foto</label>
         <span v-if="ia.imagen" class="text-xs text-marca-muted">{{ ia.imagen.name }}</span>
-        <span class="text-xs text-marca-muted">Audio: próximamente (pegá la transcripción por ahora).</span>
+        <button v-if="dictado.soportado" type="button" class="btn-secondary" :class="dictado.escuchando.value ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" @click="dictado.alternar()"><Icono nombre="mic" clase="w-4 h-4" /> {{ dictado.escuchando.value ? 'Escuchando… (tocá para parar)' : 'Dictar el pedido' }}</button>
+        <span v-else class="text-xs text-marca-muted">El dictado por voz funciona en Chrome, Edge o Safari.</span>
       </div>
       <div v-if="ia.resultado" class="mt-4">
         <p class="text-xs font-bold uppercase tracking-widest text-marca-muted mb-2">Detectado ({{ ia.resultado.modo === 'ia' ? 'con IA' : 'reconocimiento básico' }})</p>
@@ -179,6 +180,7 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
+import { useDictado } from '@/util/dictado'
 
 const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
 const productosCat = ref([...props.productos])
@@ -271,6 +273,8 @@ onMounted(() => {
 // IA
 const abrirIA = ref(false)
 const ia = reactive({ texto: '', imagen: null, cargando: false, resultado: null, error: null })
+let iaBase = ''
+const dictado = useDictado((t, final) => { if (!iaBase && !dictado.escuchando.value) iaBase = ia.texto; ia.texto = (iaBase ? iaBase.trim() + ' ' : '') + t; if (final) iaBase = ia.texto }, { continuo: true })
 async function interpretar() {
   ia.cargando = true; ia.error = null
   try {

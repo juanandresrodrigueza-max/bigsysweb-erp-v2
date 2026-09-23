@@ -74,6 +74,7 @@
         <p class="text-sm text-marca-muted">Pegá el mensaje tal cual te lo mandó el cliente. El sistema identifica cantidades y artículos {{ $page.props.ia ? 'con IA' : '' }} y vos revisás antes de crear el pedido.</p>
         <input v-model="wa.telefono" class="input" placeholder="Teléfono del cliente (opcional)" />
         <textarea v-model="wa.texto" rows="5" class="input" placeholder="Ej: Hola! me mandás 10 bolsas de cemento y 3 hierros del 8 a Colón 1234? soy Marcelo"></textarea>
+        <button v-if="dictado.soportado" type="button" class="btn-secondary !py-1 text-xs" :class="dictado.escuchando.value ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" @click="dictado.alternar()">🎤 {{ dictado.escuchando.value ? 'Escuchando… (tocá para parar)' : 'Dictar el pedido (audio de WhatsApp, teléfono)' }}</button>
       </div>
       <div v-else class="space-y-3">
         <p class="text-xs text-marca-muted">Interpretado ({{ interp.modo === 'ia' ? 'con IA' : 'modo básico' }}). Corregí lo que haga falta.</p>
@@ -102,6 +103,7 @@ import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
+import { useDictado } from '@/util/dictado'
 const props = defineProps({ pedidos: Array, filtros: Object, canales: Object, estados: Object, kpis: Object, abrirId: Number, tiendaActiva: Boolean, tiendaUrl: String, interpretacion: Object })
 const page = usePage()
 const sel = ref(props.pedidos.find(p => p.id === props.abrirId) ?? props.pedidos[0] ?? null)
@@ -110,6 +112,8 @@ const estadoClase = e => ({ nuevo: 'bg-red-50 text-carmin', confirmado: 'bg-lava
 function confirmar(p, tipo) { router.post(`/comprobantes/pedidos/${p.id}/confirmar`, { tipo }, { preserveScroll: true }) }
 function estado(p, e) { router.post(`/comprobantes/pedidos/${p.id}/estado`, { estado: e }, { preserveScroll: true }) }
 const waAbierto = ref(false); const wa = useForm({ texto: '', telefono: '' })
+let waBase = ''
+const dictado = useDictado((t, final) => { wa.texto = (waBase ? waBase.trim() + ' ' : '') + t; if (final) waBase = wa.texto }, { continuo: true })
 const interp = ref(null)
 const cw = useForm({ texto: '', telefono: '', items: [], nombre: '', direccion: '', entrega: 'retiro', notas: '' })
 watch(() => page.props.flash?.interpretacion ?? props.interpretacion, i => { if (i) { interp.value = i; Object.assign(cw, { texto: i.texto, telefono: i.telefono ?? wa.telefono, items: i.items.map(x => ({ ...x })), nombre: i.nombre ?? '', direccion: i.direccion ?? '', entrega: i.entrega ?? 'retiro', notas: i.notas ?? '' }); waAbierto.value = true } }, { immediate: true })

@@ -111,4 +111,20 @@ class ImportacionYPreciosTest extends ErpTestCase
         $this->assertEqualsWithDelta(1000, (float) $p->price, 0.01); $this->assertEqualsWithDelta(800, (float) $p->prices['3'], 0.01);
         $this->postJson('/stock/precios/previsualizar', ['modo' => 'porcentaje', 'porcentaje' => 5, 'campo' => 'cost', 'ids' => [$p->id]])->assertOk()->assertJsonPath('n', 1);
     }
+
+    public function test_los_perfiles_de_tango_bejerman_y_colppy_arman_el_mapeo_solos(): void
+    {
+        $svc = app(ImportadorService::class);
+        $m = $svc->sugerirMapeo('clientes', ['COD_CLIENT', 'RAZON_SOCI', 'CUIT', 'CATEGORIA_IVA', 'E_MAIL', 'TELEFONO_1', 'DOMICILIO', 'LOCALIDAD', 'NRO_LISTA', 'CUPO_CREDITO', 'SALDO'], 'tango');
+        $this->assertSame(['1' => 'nombre', '2' => 'cuit', '3' => 'condicion_iva', '4' => 'email', '5' => 'telefono', '6' => 'direccion', '7' => 'localidad', '8' => 'lista', '9' => 'limite_credito', '10' => 'saldo'], array_map('strval', array_combine(array_map('strval', array_keys($m)), $m)) ? array_combine(array_map('strval', array_keys($m)), $m) : []);
+        $this->assertArrayNotHasKey(0, $m, 'El código interno de Tango se ignora');
+        $m = $svc->sugerirMapeo('articulos', ['Codigo', 'Codigo Barras', 'Descripcion', 'Familia', 'Costo Reposicion', 'Precio 1', 'Precio 2', 'Tasa IVA', 'Existencia', 'Punto Pedido'], 'bejerman');
+        $this->assertSame(['codigo', 'barcode', 'descripcion', 'rubro', 'costo', 'precio1', 'precio2', 'iva', 'stock', 'stock_min'], array_values($m));
+        $m = $svc->sugerirMapeo('proveedores', ['IdProveedor', 'RazonSocial', 'CUIT', 'CondicionIVA', 'Ciudad', 'Saldo'], 'colppy');
+        $this->assertSame(['nombre', 'cuit', 'condicion_iva', 'localidad', 'saldo'], array_values($m));
+        // Con perfil, una columna desconocida cae en las reglas generales.
+        $m = $svc->sugerirMapeo('clientes', ['RAZON_SOCI', 'Vendedor asignado'], 'tango');
+        $this->assertSame('vendedor', $m[1]);
+        $this->post('/configuracion/importar/previsualizar', ['entidad' => 'clientes', 'perfil' => 'otro', 'archivo' => \Illuminate\Http\UploadedFile::fake()->createWithContent('c.csv', "a;b\n1;2")])->assertSessionHasErrors('perfil');
+    }
 }

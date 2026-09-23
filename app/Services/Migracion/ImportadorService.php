@@ -41,6 +41,19 @@ class ImportadorService
         'saldos_proveedores' => ['Loma Negra S.A.', '30-50000000-1', 'FA 0003-00045678', '2026-09-01', '2026-09-30', '1250000'],
     ];
 
+    // Encabezados con los que exportan los sistemas más comunes; con el perfil elegido el mapeo sale armado.
+    public const PERFILES = [
+        'tango' => ['label' => 'Tango Gestión', 'clientes' => ['cod_client' => null, 'razon_soci' => 'nombre', 'nombre_com' => null, 'cuit' => 'cuit', 'id_categoria_iva' => 'condicion_iva', 'categoria_iva' => 'condicion_iva', 'e_mail' => 'email', 'telefono_1' => 'telefono', 'domicilio' => 'direccion', 'localidad' => 'localidad', 'provincia' => 'provincia', 'nro_lista' => 'lista', 'cupo_credito' => 'limite_credito', 'saldo' => 'saldo'],
+                    'proveedores' => ['cod_provee' => null, 'razon_soci' => 'nombre', 'cuit' => 'cuit', 'categoria_iva' => 'condicion_iva', 'e_mail' => 'email', 'telefono_1' => 'telefono', 'domicilio' => 'direccion', 'localidad' => 'localidad', 'provincia' => 'provincia', 'saldo' => 'saldo'],
+                    'articulos' => ['cod_articu' => 'codigo', 'cod_barra' => 'barcode', 'descripcio' => 'descripcion', 'desc_adic' => null, 'rubro' => 'rubro', 'marca' => 'marca', 'unidad_medida_ventas' => 'unidad', 'precio_ultima_compra' => 'costo', 'precio_lista_1' => 'precio1', 'precio_lista_2' => 'precio2', 'precio_lista_3' => 'precio3', 'alicuota_iva' => 'iva', 'stock' => 'stock', 'stock_minimo' => 'stock_min']],
+        'bejerman' => ['label' => 'Bejerman / Softland', 'clientes' => ['codigo' => null, 'razon social' => 'nombre', 'nro. documento' => 'cuit', 'cuit' => 'cuit', 'condicion iva' => 'condicion_iva', 'email' => 'email', 'telefono' => 'telefono', 'calle' => 'direccion', 'localidad' => 'localidad', 'provincia' => 'provincia', 'lista de precios' => 'lista', 'limite credito' => 'limite_credito', 'saldo actual' => 'saldo'],
+                    'proveedores' => ['codigo' => null, 'razon social' => 'nombre', 'cuit' => 'cuit', 'condicion iva' => 'condicion_iva', 'email' => 'email', 'telefono' => 'telefono', 'calle' => 'direccion', 'localidad' => 'localidad', 'provincia' => 'provincia', 'saldo actual' => 'saldo'],
+                    'articulos' => ['codigo' => 'codigo', 'codigo barras' => 'barcode', 'descripcion' => 'descripcion', 'familia' => 'rubro', 'marca' => 'marca', 'unidad' => 'unidad', 'costo reposicion' => 'costo', 'precio 1' => 'precio1', 'precio 2' => 'precio2', 'precio 3' => 'precio3', 'tasa iva' => 'iva', 'existencia' => 'stock', 'punto pedido' => 'stock_min']],
+        'colppy' => ['label' => 'Colppy', 'clientes' => ['idcliente' => null, 'razonsocial' => 'nombre', 'nombrefantasia' => null, 'cuit' => 'cuit', 'condicioniva' => 'condicion_iva', 'email' => 'email', 'telefono' => 'telefono', 'direccion' => 'direccion', 'ciudad' => 'localidad', 'provincia' => 'provincia', 'saldo' => 'saldo'],
+                    'proveedores' => ['idproveedor' => null, 'razonsocial' => 'nombre', 'cuit' => 'cuit', 'condicioniva' => 'condicion_iva', 'email' => 'email', 'telefono' => 'telefono', 'direccion' => 'direccion', 'ciudad' => 'localidad', 'provincia' => 'provincia', 'saldo' => 'saldo'],
+                    'articulos' => ['codigo' => 'codigo', 'codigobarras' => 'barcode', 'descripcion' => 'descripcion', 'categoria' => 'rubro', 'marca' => 'marca', 'unidadmedida' => 'unidad', 'costo' => 'costo', 'precioventa' => 'precio1', 'preciolista2' => 'precio2', 'iva' => 'iva', 'stock' => 'stock', 'stockminimo' => 'stock_min']],
+    ];
+
     public function __construct(private ImportacionPreciosService $lector, private StockService $stock) {}
 
     public function plantillaCsv(string $entidad): string
@@ -67,11 +80,15 @@ class ImportadorService
 
     public function leer(string $path, string $nombre): array { return $this->lector->leer($path, $nombre); }
 
-    public function sugerirMapeo(string $entidad, array $encabezado): array
+    public function sugerirMapeo(string $entidad, array $encabezado, ?string $perfil = null): array
     {
         $m = [];
+        $tabla = $perfil ? (self::PERFILES[$perfil][$entidad] ?? self::PERFILES[$perfil][str_replace('saldos_', '', $entidad)] ?? []) : [];
         foreach ($encabezado as $i => $h) {
             $h = mb_strtolower(trim((string) $h));
+            $hn = preg_replace('/[^a-z0-9]/', '', \Illuminate\Support\Str::ascii($h));
+            // Perfil del sistema de origen: coincidencia exacta del encabezado (ignorando puntuación); si no está, siguen las reglas generales.
+            if ($tabla) { $hit = null; foreach ($tabla as $k => $campo) { if (preg_replace('/[^a-z0-9]/', '', \Illuminate\Support\Str::ascii($k)) === $hn) { $hit = [$campo]; break; } } if ($hit) { if ($hit[0] && ! in_array($hit[0], $m, true)) $m[$i] = $hit[0]; continue; } }
             $campo = match (true) {
                 $entidad === 'articulos' && (str_contains($h, 'barra') || str_contains($h, 'ean')) => 'barcode',
                 $entidad === 'articulos' && (str_contains($h, 'cod') || str_contains($h, 'cód') || str_contains($h, 'sku')) => 'codigo',

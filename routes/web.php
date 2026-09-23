@@ -384,6 +384,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/{id}/pagar-cargas', [$c, 'pagarCargas'])->middleware('permiso:sueldos,crear');
         Route::get('/{id}/recibo/{item?}', [$c, 'recibo']);
         Route::get('/{id}/libro', [$c, 'libro'])->middleware('permiso:sueldos,exportar');
+        Route::get('/{id}/f931', [$c, 'f931'])->middleware('permiso:sueldos,exportar');
     });
 
     // Obras y proyectos
