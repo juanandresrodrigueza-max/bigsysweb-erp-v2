@@ -90,6 +90,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::get('/sistema',                            [\App\Http\Controllers\Superadmin\SistemaController::class, 'configuracion']);
     Route::post('/sistema',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'guardarConfiguracion']);
     Route::post('/sistema/mantenimiento',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'mantenimiento']);
+    Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
+    Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
+    Route::post('/sistema/probar-ia',                 [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarIa']);
     Route::get('/soporte',                            [\App\Http\Controllers\SoporteController::class, 'admin']);
     Route::post('/soporte/{id}/responder',            [\App\Http\Controllers\SoporteController::class, 'adminResponder']);
     Route::post('/sistema/revisar',                   [\App\Http\Controllers\Superadmin\SistemaController::class, 'revisarAhora']);

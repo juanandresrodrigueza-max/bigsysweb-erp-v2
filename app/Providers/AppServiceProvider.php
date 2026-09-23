@@ -18,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Claves de IA y correo cargadas desde el panel superadmin (tienen prioridad sobre el .env).
+        if (! app()->runningUnitTests() || env('SISTEMA_CONFIG_APLICAR')) \App\Models\SistemaConfig::aplicar();
         // Límites de intentos (Fase 17 · Seguridad). El login además bloquea por email + IP desde el controlador.
         RateLimiter::for('login', fn(Request $r) => Limit::perMinute(10)->by(mb_strtolower((string) $r->input('email')) . '|' . $r->ip())->response(fn() => back()->withErrors(['email' => 'Demasiados intentos. Esperá un minuto y probá de nuevo.'])));
         RateLimiter::for('api-auth', fn(Request $r) => Limit::perMinute(10)->by($r->ip()));
