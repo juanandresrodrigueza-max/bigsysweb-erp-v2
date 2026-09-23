@@ -66,6 +66,7 @@ class HandleInertiaRequests extends Middleware
                 'error'   => fn() => $request->session()->get('error'),
                 'pos'     => fn() => $request->session()->get('pos'),
                 'abrir'   => fn() => $request->session()->get('abrir'),
+                'crm_secreto_nuevo' => fn() => $request->session()->get('crm_secreto_nuevo'),
                 'envio_id' => fn() => $request->session()->get('envio_id'),
                 'preview'  => fn() => $request->session()->get('preview'),
                 'interpretacion' => fn() => $request->session()->get('interpretacion'),
@@ -99,6 +100,8 @@ class HandleInertiaRequests extends Middleware
                 'key' => $key, 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'disponible' => $m['disponible'],
             ];
         }
+        // Integración con el CRM activa: botón que pasa al CRM ya logueado (link externo, no Inertia).
+        if (\App\Services\Integraciones\CrmService::activo($user->business)) $grupos['Sistema'][] = ['key' => 'crm', 'label' => 'CRM', 'icono' => 'idcard', 'ruta' => '/integraciones/crm/ir', 'disponible' => true, 'externo' => true];
         return collect($grupos)->map(fn($items, $label) => ['label' => $label, 'items' => $items])->values()->all();
     }
 }

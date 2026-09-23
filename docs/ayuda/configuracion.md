@@ -25,6 +25,16 @@ Percepciones y retenciones de IIBB, IVA y Ganancias, padrones por jurisdicción,
 
 Tienda online propia, portal de clientes, WhatsApp, Mercado Libre, Tiendanube, WooCommerce, Shopify, PedidosYa y Rappi. Los pedidos entran en **Comprobantes → Pedidos** y se confirman con un clic.
 
+## CRM (integración con el CRM de BigSys)
+
+Si tu empresa usa el ERP y el CRM de BigSys, se pasan de uno al otro con un botón, ya logueados, y se hablan por API sin que ninguno escriba en la base del otro.
+
+1. Cargá el **CUIT** de la empresa acá y el mismo en el CRM: es lo que une las dos empresas.
+2. En **Configuración → CRM** poné la URL del CRM, tocá **Generar** para crear el secreto compartido y pegalo en el CRM (Integraciones → ERP BigSys). Pegá acá la clave de API que crea el CRM.
+3. Activá y **Probar conexión**. Aparece **CRM** en el menú: al tocarlo entrás al CRM sin volver a loguearte. En el CRM aparece **ERP BigSys** para volver.
+
+Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente (dueño y administrador → admin; encargado y contador → supervisor; vendedor y cajero → operador; depósito, producción y solo lectura → consulta). El token que viaja dura 60 segundos y sirve una sola vez.
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.

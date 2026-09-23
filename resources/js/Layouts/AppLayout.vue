@@ -14,15 +14,16 @@
       <nav class="flex-1 overflow-y-auto py-3" data-tour="menu">
         <template v-for="grupo in nav" :key="grupo.label">
           <p v-if="abierto && grupo.label" class="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-lavanda">{{ grupo.label }}</p>
-          <Link v-for="item in grupo.items" :key="item.key" :href="item.ruta"
+          <component :is="item.externo ? 'a' : Link" v-for="item in grupo.items" :key="item.key" :href="item.ruta"
                 class="relative flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded-xl text-sm transition"
                 :class="activo(item) ? 'bg-white text-violeta font-semibold shadow-sm' : 'text-white/80 hover:bg-white/15 hover:text-white'"
-                :title="item.label">
+                :title="item.externo ? item.label + ' (abre el CRM ya logueado)' : item.label">
             <span v-if="activo(item)" class="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-carmin"></span>
             <Icono :nombre="item.icono" clase="w-5 h-5 shrink-0" />
             <span v-if="abierto" class="truncate">{{ item.label }}</span>
             <span v-if="abierto && !item.disponible" class="ml-auto text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-white/10 text-lavanda">pronto</span>
-          </Link>
+            <span v-if="abierto && item.externo" class="ml-auto text-[10px] text-lavanda">↗</span>
+          </component>
         </template>
       </nav>
 

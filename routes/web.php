@@ -66,6 +66,9 @@ Route::middleware('auth')->group(function () {
 // Salud para servicios de uptime (público: solo el estado; con token: el detalle).
 Route::get('/salud', [\App\Http\Controllers\Superadmin\SaludController::class, 'publico'])->middleware('throttle:60,1');
 
+// Integración con el CRM: pasar de un sistema al otro ya logueado (token firmado de un solo uso).
+Route::get('/integraciones/crm/entrar', [\App\Http\Controllers\Integraciones\CrmHandoffController::class, 'entrar'])->middleware('throttle:30,1');
+
 // Panel superadmin (BigSys): empresas, planes, cobros, usuarios, sistema.
 Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::get('/',                                   [\App\Http\Controllers\Superadmin\PanelController::class, 'index']);
@@ -111,6 +114,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
 Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/', fn() => redirect(request()->user()?->is_superadmin && ! request()->user()->business_id ? '/admin' : '/dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permiso:dashboard')->name('dashboard');
+    Route::get('/integraciones/crm/ir', [\App\Http\Controllers\Integraciones\CrmHandoffController::class, 'ir']);
     Route::get('/primeros-pasos',            [\App\Http\Controllers\OnboardingController::class, 'index']);
     Route::post('/primeros-pasos/marcar',    [\App\Http\Controllers\OnboardingController::class, 'marcar']);
     Route::post('/primeros-pasos/completar', [\App\Http\Controllers\OnboardingController::class, 'completar']);
@@ -534,6 +538,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/seguridad/webhooks/{id?}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'guardarWebhook'])->middleware('permiso:configuracion,editar');
         Route::delete('/seguridad/webhooks/{id}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'borrarWebhook'])->middleware('permiso:configuracion,editar');
         Route::post('/seguridad/webhooks/{id}/probar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'probarWebhook'])->middleware('permiso:configuracion,editar');
+        Route::get('/crm',                   [\App\Http\Controllers\Configuracion\CrmController::class, 'index']);
+        Route::post('/crm',                  [\App\Http\Controllers\Configuracion\CrmController::class, 'guardar'])->middleware('permiso:configuracion,editar');
+        Route::post('/crm/probar',           [\App\Http\Controllers\Configuracion\CrmController::class, 'probar'])->middleware('permiso:configuracion,editar');
         Route::get('/tienda',                [\App\Http\Controllers\Configuracion\TiendaController::class, 'index']);
         Route::post('/tienda',               [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/fidelizacion',  [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarFidelizacion'])->middleware('permiso:configuracion,editar');
