@@ -15,11 +15,11 @@ class ProductoTest extends ErpTestCase
 {
     public function test_centro_de_ayuda_lista_articulos_busca_y_muestra_la_guia_de_la_pantalla_actual(): void
     {
-        $this->get('/ayuda')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->has('articulos', 23)->where('articulos.0.slug', 'implementacion')->where('articulos.1.slug', 'primeros-pasos'));
+        $this->get('/ayuda')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->has('articulos', 24)->where('articulos.0.slug', 'implementacion')->where('articulos.1.slug', 'primeros-pasos'));
         $this->get('/ayuda/facturar')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->where('articulo.titulo', 'Facturar, presupuestar y remitir')->where('articulo.secciones.0.titulo', 'La factura paso a paso'));
         $this->get('/ayuda/no-existe')->assertNotFound();
         // La búsqueda devuelve la sección exacta, sin acentos y por raíz de palabra.
-        $this->get('/ayuda?q=anular factura')->assertInertia(fn($p) => $p->component('Ayuda', false)->where('resultados.0.slug', 'preguntas-frecuentes')->where('resultados.0.seccion', '¿Cómo anulo una factura emitida?')->has('indice', 23)->where('indice.0.slug', 'implementacion'));
+        $this->get('/ayuda?q=anular factura')->assertInertia(fn($p) => $p->component('Ayuda', false)->where('resultados.0.slug', 'preguntas-frecuentes')->where('resultados.0.seccion', '¿Cómo anulo una factura emitida?')->has('indice', 24)->where('indice.0.slug', 'implementacion'));
         $this->getJson('/ayuda/buscar?q=rebot')->assertOk()->assertJsonPath('0.slug', 'cobrar')->assertJsonPath('0.seccion', 'Errores comunes')->assertJsonPath('0.url', '/ayuda/cobrar#errores-comunes');
         $this->getJson('/ayuda/buscar?q=ARQUEO')->assertJsonPath('0.slug', 'fondos')->assertJsonPath('0.seccion', 'Caja');
         $this->getJson('/ayuda/buscar?q=codigo de barras balanza')->assertJsonPath('0.slug', 'punto-de-venta')->assertJsonPath('0.seccion', 'Balanza e impresora');

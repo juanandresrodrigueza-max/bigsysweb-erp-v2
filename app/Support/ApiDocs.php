@@ -11,6 +11,7 @@ class ApiDocs
 {
     public const GRUPOS = [
         'auth' => ['Autenticación', 'Registro, login y cierre de sesión. El login devuelve el token Bearer que se usa en todo lo demás.'],
+        'exportar' => ['Exportar tablas', 'Mandar las tablas del ERP a otra plataforma (BI, contador, e-commerce, otro sistema): catálogo de tablas y filas paginadas en JSON o CSV, con filtros por fecha y sincronización incremental (actualizado_desde).'],
         'business' => ['Empresa', 'Datos de la empresa del usuario autenticado.'],
         'contacts' => ['Contactos', 'Clientes y proveedores.'],
         'customers' => ['Clientes', 'Alta, consulta y edición de clientes.'],
@@ -33,7 +34,7 @@ class ApiDocs
         'webhooks' => ['Webhooks entrantes', 'Notificaciones de Mercado Pago (público).'],
     ];
 
-    private const ACCIONES = ['index' => 'Listar', 'store' => 'Crear', 'show' => 'Ver', 'update' => 'Actualizar', 'destroy' => 'Eliminar', 'login' => 'Iniciar sesión', 'logout' => 'Cerrar sesión', 'register' => 'Registrar empresa y usuario', 'me' => 'Usuario autenticado', 'open' => 'Abrir turno', 'close' => 'Cerrar turno', 'preview' => 'Vista previa de la factura', 'issue' => 'Emitir con CAE', 'uploadCertificate' => 'Subir certificado ARCA', 'salesSummary' => 'Resumen de ventas', 'topProducts' => 'Artículos más vendidos', 'stockAlerts' => 'Alertas de stock', 'customerStats' => 'Estadísticas de clientes', 'configure' => 'Guardar credenciales', 'createPreference' => 'Crear preferencia de pago', 'paymentStatus' => 'Estado de un pago', 'webhook' => 'Webhook (notificación entrante)', 'syncOrders' => 'Sincronizar pedidos', 'syncStock' => 'Sincronizar stock', 'pipeline' => 'Pipeline', 'addActivity' => 'Agregar actividad', 'completeActivity' => 'Completar actividad', 'start' => 'Iniciar', 'complete' => 'Completar', 'cancel' => 'Cancelar', 'calendar' => 'Calendario', 'entrada' => 'Recibir pedido', 'verificar' => 'Verificación del webhook', 'entrante' => 'Mensaje entrante'];
+    private const ACCIONES = ['index' => 'Listar', 'store' => 'Crear', 'show' => 'Ver', 'update' => 'Actualizar', 'destroy' => 'Eliminar', 'login' => 'Iniciar sesión', 'logout' => 'Cerrar sesión', 'register' => 'Registrar empresa y usuario', 'me' => 'Usuario autenticado', 'open' => 'Abrir turno', 'close' => 'Cerrar turno', 'preview' => 'Vista previa de la factura', 'issue' => 'Emitir con CAE', 'uploadCertificate' => 'Subir certificado ARCA', 'salesSummary' => 'Resumen de ventas', 'topProducts' => 'Artículos más vendidos', 'stockAlerts' => 'Alertas de stock', 'customerStats' => 'Estadísticas de clientes', 'configure' => 'Guardar credenciales', 'createPreference' => 'Crear preferencia de pago', 'paymentStatus' => 'Estado de un pago', 'webhook' => 'Webhook (notificación entrante)', 'syncOrders' => 'Sincronizar pedidos', 'syncStock' => 'Sincronizar stock', 'pipeline' => 'Pipeline', 'addActivity' => 'Agregar actividad', 'completeActivity' => 'Completar actividad', 'start' => 'Iniciar', 'complete' => 'Completar', 'cancel' => 'Cancelar', 'calendar' => 'Calendario', 'entrada' => 'Recibir pedido', 'tabla' => 'Exportar una tabla (JSON o CSV, paginado, incremental)', 'verificar' => 'Verificación del webhook', 'entrante' => 'Mensaje entrante'];
 
     public static function endpoints(): array
     {

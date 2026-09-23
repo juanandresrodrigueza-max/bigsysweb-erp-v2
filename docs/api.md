@@ -44,6 +44,27 @@ Resumen de ventas de un período:
 curl -H "Authorization: Bearer TU_TOKEN" "https://tu-empresa.bigsysweb.com/api/reports/sales?from=2026-09-01&to=2026-09-30"
 ```
 
+## Mandar tus tablas a otra plataforma
+
+Para alimentar un tablero de BI, pasarle todo al contador o sincronizar con otro sistema, usá el grupo **Exportar tablas**:
+
+1. `GET /api/exportar` lista las tablas disponibles (clientes, proveedores, artículos, comprobantes de venta y compra con ítems, cobros y pagos con medios e imputaciones, cuenta corriente, gastos, fondos y movimientos, stock, depósitos, sucursales, plan de cuentas, asientos y líneas, cotizaciones) con sus columnas.
+2. `GET /api/exportar/{tabla}` devuelve filas planas paginadas: `datos`, `total`, `pagina`, `ultima_pagina` y `siguiente` (URL de la página que sigue o `null`).
+3. Filtros: `per_page` (hasta 500), `desde` y `hasta` (fecha propia de la tabla), `actualizado_desde` (solo lo creado o modificado desde esa fecha y hora, para sincronizar de forma incremental), `id_desde` (cursor por id para tablas sin fecha de modificación), `sucursal_id`, y `formato=csv` para bajar un archivo CSV completo (separado por `;`, UTF-8 con BOM, listo para Excel).
+
+```
+curl -H "Authorization: Bearer TU_TOKEN" \
+  "https://tu-empresa.bigsysweb.com/api/exportar/comprobantes_venta?desde=2026-09-01&hasta=2026-09-30&per_page=500"
+
+curl -H "Authorization: Bearer TU_TOKEN" \
+  "https://tu-empresa.bigsysweb.com/api/exportar/articulos?actualizado_desde=2026-09-20T00:00:00"
+
+curl -H "Authorization: Bearer TU_TOKEN" -o asientos.csv \
+  "https://tu-empresa.bigsysweb.com/api/exportar/asientos?formato=csv&desde=2026-01-01"
+```
+
+Receta para sincronizar: carga inicial recorriendo páginas hasta `siguiente = null`; después, cada X minutos, `actualizado_desde` con la hora de la corrida anterior. Si querés enterarte al instante en vez de consultar, sumá webhooks (abajo). La guía paso a paso con ejemplos para Power BI, Google Sheets, Make/Zapier y scripts está en **Ayuda → Mandar tus datos a otras plataformas**.
+
 ## Webhooks salientes
 
 Además de consultar, BigSysWeb puede avisarte: en **Seguridad y API → Webhooks** registrás una URL y los eventos (factura emitida, cobro, stock bajo, pedido nuevo…). Cada aviso es un POST firmado con HMAC-SHA256 en el encabezado `X-BigSys-Firma`; verificalo con el secreto del webhook.

@@ -34,7 +34,7 @@ Copia automática diaria (se puede bajar) y restauración con un clic. Antes de 
 
 - **Verificación en dos pasos** con app del teléfono, por usuario.
 - **Sesiones abiertas**: dónde está abierta tu cuenta; podés cerrarlas.
-- **Tokens de API** para conectar otros sistemas (la documentación está en `/api/docs`) y **webhooks** que avisan a una URL tuya cuando pasa algo.
+- **Tokens de API** para conectar otros sistemas (la documentación está en `/api/docs`) y **webhooks** que avisan a una URL tuya cuando pasa algo. Para sacar las tablas completas hacia un BI, el contador u otro sistema, seguí la guía **Mandar tus datos a otras plataformas (API)**.
 - **Auditoría**: todo lo que hace cada usuario, con antes y después.
 
 ## Suscripción

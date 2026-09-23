@@ -59,7 +59,8 @@
         <div v-if="tokenNuevo" class="p-3 rounded-xl bg-amber-50 text-amber-900 text-xs mb-3"><p class="font-bold">Copiá el token ahora, no se vuelve a mostrar:</p><code class="block break-all select-all mt-1 bg-white rounded p-2">{{ tokenNuevo }}</code><button class="btn-secondary !py-1 text-xs mt-2" @click="copiar(tokenNuevo)">Copiar</button></div>
         <form @submit.prevent="tk.post('/configuracion/seguridad/tokens', { preserveScroll: true, onSuccess: () => tk.reset() })" class="flex gap-2 mb-3"><input v-model="tk.nombre" class="input" placeholder="Nombre (ej. Tienda web)" /><button class="btn-primary whitespace-nowrap" :disabled="tk.processing || !tk.nombre">Crear token</button></form>
         <div v-for="t in tokens" :key="t.id" class="flex items-center justify-between text-sm py-1.5 border-t border-marca-borde/60"><div><p class="font-medium">{{ t.nombre }}</p><p class="text-xs text-marca-muted">creado {{ t.creado }} · último uso {{ t.ultimo_uso }}</p></div><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.delete(`/configuracion/seguridad/tokens/${t.id}`, { preserveScroll: true })">Revocar</button></div>
-        <a href="/api/docs" target="_blank" class="btn-secondary !py-1 text-xs mt-3 inline-flex">Documentación completa de la API ↗</a>
+        <div class="flex flex-wrap gap-2 mt-3"><a href="/api/docs" target="_blank" class="btn-secondary !py-1 text-xs inline-flex">Documentación completa de la API ↗</a><Link href="/ayuda/integrar-otras-plataformas" class="btn-secondary !py-1 text-xs inline-flex">Guía: mandar tus tablas a otra plataforma</Link></div>
+        <p class="text-[11px] text-marca-muted mt-2">Con un token podés bajar todas las tablas (clientes, artículos, comprobantes, cobros, stock, contabilidad) en JSON o CSV desde <code class="font-mono">GET /api/exportar</code>, con filtros por fecha y sincronización incremental.</p>
         <details class="mt-3 text-xs text-marca-muted"><summary class="cursor-pointer font-semibold">Endpoints principales</summary><ul class="mt-1 space-y-0.5 font-mono"><li>GET /api/products · GET /api/products/{id}</li><li>GET /api/contacts · POST /api/contacts</li><li>GET /api/invoices · POST /api/invoices</li><li>GET /api/stock-movements</li><li>GET /api/reports/sales?from=&to=</li></ul></details>
       </div>
 
@@ -101,7 +102,7 @@
 
 <script setup>
 import { ref, watch, nextTick, onMounted } from 'vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import QRCode from 'qrcode'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'

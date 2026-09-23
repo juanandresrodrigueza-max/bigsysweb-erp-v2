@@ -44,6 +44,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('business', [BusinessController::class, 'show']);
     Route::put('business', [BusinessController::class, 'update']);
 
+    // Exportar tablas a otras plataformas (BI, contador, e-commerce)
+    Route::get('exportar',         [\App\Http\Controllers\Api\ExportacionController::class, 'index']);
+    Route::get('exportar/{tabla}', [\App\Http\Controllers\Api\ExportacionController::class, 'tabla']);
+
     Route::apiResource('contacts',        ContactController::class);
     Route::apiResource('customers',       CustomerController::class);
     Route::apiResource('products',        ProductController::class);
