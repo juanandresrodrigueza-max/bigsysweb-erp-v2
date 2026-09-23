@@ -11,6 +11,7 @@
         <Link href="/fondos/valores" class="btn-secondary" title="De dónde vino y a dónde fue cada cheque o cupón">Valores</Link>
         <Link href="/fondos/moneda" class="btn-secondary" title="Cuentas en dólares, cotización y diferencia de cambio">Dólares</Link>
         <Link href="/fondos/cierres" class="btn-secondary" title="Historial de cierres, diferencias por cajero y por caja">Cierres</Link>
+        <Link href="/fondos/previsiones" class="btn-secondary" title="Gastos e ingresos que se repiten todos los meses o cada X meses">Previsiones</Link>
         <button v-if="puede('fondos','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('egreso')" class="btn-secondary">Gasto</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('ingreso')" class="btn-secondary">Ingreso</button>

@@ -7,6 +7,7 @@ Schedule::command('afip:reintentar')->everyFiveMinutes()->withoutOverlapping(); 
 Schedule::command('suscripciones:revisar')->dailyAt('06:00');
 Schedule::command('cotizaciones:actualizar')->twiceDaily(9, 15);
 Schedule::command('abonos:emitir')->dailyAt('07:00');
+Schedule::command('previsiones:procesar')->dailyAt('07:15'); // previsiones recurrentes: registrar automáticas y avisar; recordatorios para facturar abonos
 Schedule::command('cobranzas:recordar')->dailyAt('09:30');
 Schedule::command('backups:diario')->dailyAt('03:00');
 Schedule::command('analista:semanal')->weeklyOn(1, '08:00');

@@ -249,6 +249,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/moneda/actualizar',  [\App\Http\Controllers\Fondos\MonedaController::class, 'actualizar'])->middleware('permiso:fondos,editar');
         Route::post('/moneda/revaluar',    [\App\Http\Controllers\Fondos\MonedaController::class, 'revaluar'])->middleware('permiso:fondos,crear');
         Route::get('/',                        [FondosController::class, 'index']);
+        Route::get('/previsiones',             [\App\Http\Controllers\Fondos\PrevisionesController::class, 'index']);
+        Route::post('/previsiones/{id}/registrar', [\App\Http\Controllers\Fondos\PrevisionesController::class, 'registrar'])->middleware('permiso:fondos,crear');
+        Route::delete('/previsiones/{id}',     [\App\Http\Controllers\Fondos\PrevisionesController::class, 'eliminar'])->middleware('permiso:fondos,editar');
+        Route::post('/previsiones/{id?}',      [\App\Http\Controllers\Fondos\PrevisionesController::class, 'guardar'])->middleware('permiso:fondos,crear');
         Route::post('/cuentas/{id?}',          [FondosController::class, 'guardarCuenta'])->middleware('permiso:fondos,editar');
         Route::post('/movimiento',             [FondosController::class, 'movimiento'])->middleware('permiso:fondos,crear');
         Route::post('/transferir',             [FondosController::class, 'transferir'])->middleware('permiso:fondos,crear');

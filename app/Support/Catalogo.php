@@ -50,7 +50,7 @@ class Catalogo
             $pos = array_flip($orden);
             return $rows->sortBy(fn($r) => $pos[$r['id']] ?? 999)->values();
         }
-        $recientes = DB::table('comprobantes')->where('business_id', Auth::user()?->business_id)->where('direccion', $forma === 'cliente' ? 'venta' : 'compra')->where('estado', 'emitido')->whereNotNull('contact_id')->selectRaw('contact_id, MAX(fecha) as f')->groupBy('contact_id')->orderByDesc('f')->limit(15)->pluck('contact_id')->all();
+        $recientes = DB::table('comprobantes')->where('business_id', Auth::user()?->business_id)->where('direccion', $forma === 'cliente' ? 'venta' : 'compra')->where('estado', 'emitido')->whereNotNull('contact_id')->selectRaw('contact_id, MAX(fecha) as f, MAX(id) as ult')->groupBy('contact_id')->orderByDesc('f')->orderByDesc('ult')->limit(15)->pluck('contact_id')->all();
         $rows = self::queryContactos($forma)->when($recientes, fn($b) => $b->whereIn('id', $recientes), fn($b) => $b->orderBy('name')->limit(20))->get()->map(fn($c) => self::contacto($c, $forma) + ['sugerido' => 'reciente']);
         $pos = array_flip($recientes);
         return $rows->sortBy(fn($r) => $pos[$r['id']] ?? 999)->values();

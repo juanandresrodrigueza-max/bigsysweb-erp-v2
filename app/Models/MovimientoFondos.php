@@ -12,7 +12,7 @@ class MovimientoFondos extends Model
     use BelongsToBusiness;
 
     protected $table = 'movimientos_fondos';
-    protected $fillable = ['business_id', 'cuenta_fondos_id', 'user_id', 'turno_caja_id', 'fecha', 'origen', 'origen_id', 'expense_category_id', 'concepto', 'ingreso', 'egreso', 'referencia', 'conciliado', 'cotizacion'];
+    protected $fillable = ['business_id', 'cuenta_fondos_id', 'user_id', 'turno_caja_id', 'fecha', 'origen', 'origen_id', 'expense_category_id', 'concepto', 'ingreso', 'egreso', 'referencia', 'conciliado', 'cotizacion', 'prevision_id'];
     protected $casts = ['fecha' => 'date', 'ingreso' => 'decimal:2', 'egreso' => 'decimal:2', 'conciliado' => 'boolean'];
 
     public function cuenta(): BelongsTo { return $this->belongsTo(CuentaFondos::class, 'cuenta_fondos_id'); }

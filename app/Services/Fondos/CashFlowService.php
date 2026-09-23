@@ -19,8 +19,8 @@ class CashFlowService
         $saldo = (float) CuentaFondos::withoutGlobalScopes()->where('business_id', $b->id)->where('activa', true)->whereIn('tipo', ['caja', 'banco', 'billetera'])->sum('saldo');
         $sem = fn(?Carbon $f) => $f && $f->gt($hoy) ? min($semanas - 1, (int) floor($hoy->diffInDays($f) / 7)) : 0; // vencido → esta semana
 
-        $filas = ['cobros' => ['label' => 'Cobros de facturas por vencer', 'tipo' => 'in'], 'cheques_in' => ['label' => 'Cheques en cartera a cobrar', 'tipo' => 'in'], 'abonos' => ['label' => 'Abonos recurrentes', 'tipo' => 'in'], 'ventas_contado' => ['label' => 'Ventas de contado estimadas', 'tipo' => 'in'],
-            'pagos' => ['label' => 'Facturas de compra a pagar', 'tipo' => 'out'], 'cheques_out' => ['label' => 'Cheques propios a debitar', 'tipo' => 'out'], 'gastos' => ['label' => 'Gastos recurrentes estimados', 'tipo' => 'out'], 'sueldos' => ['label' => 'Sueldos y cargas sociales', 'tipo' => 'out'], 'compras_estimadas' => ['label' => 'Compras estimadas (reposición)', 'tipo' => 'out']];
+        $filas = ['cobros' => ['label' => 'Cobros de facturas por vencer', 'tipo' => 'in'], 'cheques_in' => ['label' => 'Cheques en cartera a cobrar', 'tipo' => 'in'], 'abonos' => ['label' => 'Abonos recurrentes', 'tipo' => 'in'], 'previsiones_in' => ['label' => 'Ingresos previstos (recurrentes)', 'tipo' => 'in'], 'ventas_contado' => ['label' => 'Ventas de contado estimadas', 'tipo' => 'in'],
+            'pagos' => ['label' => 'Facturas de compra a pagar', 'tipo' => 'out'], 'cheques_out' => ['label' => 'Cheques propios a debitar', 'tipo' => 'out'], 'previsiones_out' => ['label' => 'Previsiones (alquiler, seguros, impuestos, cuotas)', 'tipo' => 'out'], 'gastos' => ['label' => 'Otros gastos estimados (promedio)', 'tipo' => 'out'], 'sueldos' => ['label' => 'Sueldos y cargas sociales', 'tipo' => 'out'], 'compras_estimadas' => ['label' => 'Compras estimadas (reposición)', 'tipo' => 'out']];
         foreach ($filas as &$f) $f['semanas'] = array_fill(0, $semanas, 0.0);
         unset($f);
 
@@ -30,13 +30,17 @@ class CashFlowService
         }
         foreach (Cheque::withoutGlobalScopes()->where('business_id', $b->id)->where('tipo', 'tercero')->where('estado', 'cartera')->get(['monto', 'fecha_pago']) as $ch) $filas['cheques_in']['semanas'][$sem($ch->fecha_pago)] += (float) $ch->monto;
         foreach (Abono::withoutGlobalScopes()->where('business_id', $b->id)->where('activo', true)->get() as $a) { $prox = $a->proximo ? Carbon::parse($a->proximo) : null; $imp = $a->importe(); for ($i = 0; $i < 4 && $prox; $i++) { if ($prox->gt($hoy->copy()->addWeeks($semanas))) break; $filas['abonos']['semanas'][$sem($prox)] += $imp; $prox = $prox->copy()->addMonth(); } }
+        // Previsiones recurrentes: cada vencimiento en su semana (lo ya vencido cae en esta semana).
+        foreach (\App\Models\Prevision::withoutGlobalScopes()->where('business_id', $b->id)->where('activo', true)->get() as $p) {
+            foreach ($p->vencimientosEntre($hoy->copy()->subDays(45), $hoy->copy()->addWeeks($semanas)) as $v) { if ($v->lt($hoy) && $p->ultimo_registrado_en && $p->ultimo_registrado_en->gte($v)) continue; $filas[$p->tipo === 'ingreso' ? 'previsiones_in' : 'previsiones_out']['semanas'][$sem($v)] += (float) $p->monto; }
+        }
         // Ventas de contado: promedio semanal de los últimos 90 días de cobros en efectivo/tarjeta/transferencia ligados a facturas contado
         $contado = (float) Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereIn('tipo', ['FA', 'FB', 'FC'])->where('condicion', 'contado')->where('fecha', '>=', $hoy->copy()->subDays(90))->sum('total') / 13;
         for ($i = 0; $i < $semanas; $i++) $filas['ventas_contado']['semanas'][$i] = round($contado, 2);
 
         foreach (Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'compra')->where('estado', 'emitido')->where('saldo', '>', 0.005)->get(['saldo', 'fecha_vto']) as $c) $filas['pagos']['semanas'][$sem($c->fecha_vto)] += (float) $c->saldo;
         foreach (Cheque::withoutGlobalScopes()->where('business_id', $b->id)->where('tipo', 'propio')->where('estado', 'entregado')->get(['monto', 'fecha_pago']) as $ch) $filas['cheques_out']['semanas'][$sem($ch->fecha_pago)] += (float) $ch->monto;
-        $gastos = (float) MovimientoFondos::withoutGlobalScopes()->where('business_id', $b->id)->where('origen', 'gasto')->where('fecha', '>=', $hoy->copy()->subDays(90))->sum('egreso') / 13;
+        $gastos = (float) MovimientoFondos::withoutGlobalScopes()->where('business_id', $b->id)->where('origen', 'gasto')->whereNull('prevision_id')->where('fecha', '>=', $hoy->copy()->subDays(90))->sum('egreso') / 13;
         $compras = (float) Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'compra')->where('estado', 'emitido')->where('fecha', '>=', $hoy->copy()->subDays(90))->sum('total') / 13;
         for ($i = 0; $i < $semanas; $i++) { $filas['gastos']['semanas'][$i] = round($gastos, 2); $filas['compras_estimadas']['semanas'][$i] = $i < 2 ? 0 : round($compras * 0.6, 2); } // las primeras semanas ya están en "a pagar"
 

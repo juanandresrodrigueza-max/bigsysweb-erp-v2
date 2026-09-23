@@ -26,6 +26,19 @@ Cada cobro con tarjeta es un **cupón** pendiente de liquidación. Cuando llega 
 
 En el punto de venta se cobra en **cuotas** con recargo por plan (Configuración → Empresa → Tarjetas).
 
+## Previsiones: lo que se repite todos los meses (Fondos → Previsiones)
+
+Alquiler, seguros, monotributo, cuotas, servicios, un abono que cobrás por fuera: cargalos una vez con el importe, el día del mes y cada cuántos meses (todos los meses, cada 2, 3, 6 o 12). El sistema:
+
+- Te avisa en la campana unos días antes de cada vencimiento (configurás cuántos).
+- Los mete en el **cash flow de 13 semanas** en la semana que vencen, como egreso o ingreso previsto.
+- Con **Registrar** los pasa a la caja o banco que elijas como gasto o ingreso, y corre al vencimiento siguiente. Si tildás **Registrar solo**, lo hace él el día del vencimiento.
+- El calendario de 12 meses muestra cuánto se paga y cuánto entra cada mes.
+
+## Recordatorios para facturar lo recurrente
+
+Los **abonos** (Comprobantes → Abonos) generan la factura de cada cuota solos, todos los días a las 7. Además, la campana avisa tres días antes de cada vencimiento ("Facturar: …") y, si la factura quedó en borrador para revisar, insiste hasta que la emitas. Así nada recurrente queda sin facturar.
+
 ## Errores comunes
 
 - **El arqueo no cierra**: revisá los retiros y los cobros en efectivo del turno; el detalle está en el cierre.
