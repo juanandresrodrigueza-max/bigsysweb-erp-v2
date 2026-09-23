@@ -41,7 +41,7 @@ class SistemaConfig extends Model
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token'];
 
     public static function get(string $clave, $default = null)
     {

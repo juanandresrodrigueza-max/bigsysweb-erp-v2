@@ -63,6 +63,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/volver',        [\App\Http\Controllers\Superadmin\EmpresasController::class, 'volver']);
 });
 
+// Salud para servicios de uptime (público: solo el estado; con token: el detalle).
+Route::get('/salud', [\App\Http\Controllers\Superadmin\SaludController::class, 'publico'])->middleware('throttle:60,1');
+
 // Panel superadmin (BigSys): empresas, planes, cobros, usuarios, sistema.
 Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::get('/',                                   [\App\Http\Controllers\Superadmin\PanelController::class, 'index']);
@@ -87,6 +90,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::get('/usuarios',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'usuarios']);
     Route::post('/usuarios',                          [\App\Http\Controllers\Superadmin\SistemaController::class, 'nuevoSuperadmin']);
     Route::post('/usuarios/{id}',                     [\App\Http\Controllers\Superadmin\SistemaController::class, 'usuario']);
+    Route::get('/salud',                              [\App\Http\Controllers\Superadmin\SaludController::class, 'index']);
+    Route::post('/salud',                             [\App\Http\Controllers\Superadmin\SaludController::class, 'guardar']);
+    Route::post('/salud/probar',                      [\App\Http\Controllers\Superadmin\SaludController::class, 'probar']);
+    Route::post('/salud/borrar-dsn',                  [\App\Http\Controllers\Superadmin\SaludController::class, 'borrarDsn']);
+    Route::post('/salud/errores/{id}/resolver',       [\App\Http\Controllers\Superadmin\SaludController::class, 'resolver']);
     Route::get('/sistema',                            [\App\Http\Controllers\Superadmin\SistemaController::class, 'configuracion']);
     Route::post('/sistema',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'guardarConfiguracion']);
     Route::post('/sistema/mantenimiento',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'mantenimiento']);

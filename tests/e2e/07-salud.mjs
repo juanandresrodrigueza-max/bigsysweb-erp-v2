@@ -1,0 +1,18 @@
+// Fase 24.2: panel Salud del superadmin y endpoint público.
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'salud-' + n)
+await _login(page, 'super@bigsys.com.ar')
+await page.goto(`${BASE}/admin/salud`); await idle()
+console.log('  controles:', await page.locator('.card .rounded-full').count(), '· estado:', (await page.locator('.badge').first().textContent()).trim(), '· card sentry:', await page.locator('h2:has-text("Monitoreo de errores")').count())
+await shot('01-salud')
+await page.fill('input[placeholder="admin@bigsys.com.ar"]', 'ops@bigsys.com.ar')
+await page.fill('input[placeholder="opcional, para ver el detalle"]', 'tok-e2e')
+await page.click('button:has-text("Guardar")'); await idle(); await page.waitForTimeout(400)
+console.log('  guardado:', (await page.locator('.bg-emerald-50').first().textContent().catch(() => '')).trim().slice(0, 40))
+const r = await page.request.get(`${BASE}/salud`); const j = await r.json()
+console.log('  /salud:', r.status(), Object.keys(j).join(','))
+const r2 = await page.request.get(`${BASE}/salud?token=tok-e2e`); const j2 = await r2.json()
+console.log('  /salud con token:', r2.status(), 'controles', j2.controles?.length)
+console.log('  nav Salud:', await page.locator('nav a:has-text("Salud")').count())
+await fin(browser)

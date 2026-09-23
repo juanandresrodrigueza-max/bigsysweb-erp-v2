@@ -28,6 +28,15 @@ Desde la ficha de la empresa, **Entrar como dueño** para dar soporte. Todo lo q
 - **Correo saliente**: SMTP con prueba de envío.
 - Mensaje global, contacto de soporte y **modo mantenimiento**.
 
+## Salud y monitoreo de errores (Panel → Salud)
+
+Una pantalla con semáforo de todo lo que tiene que estar vivo en el servidor: base de datos, caché, cola de trabajos (worker), tareas programadas (cron), disco, copias de seguridad, comprobantes pendientes de CAE, cotización del dólar, correo, IA y errores de las últimas 24 horas. Cada control dice qué pasa y, al lado, qué hacer si está en rojo.
+
+- **Errores**: cada error real del sistema (no los "página no encontrada" ni las validaciones) queda agrupado por lugar, con cuántas veces pasó, en qué empresa y la traza completa. Marcalos como resueltos cuando los arregles.
+- **Sentry o compatible**: pegá el DSN de tu proyecto (Sentry, GlitchTip, Bugsink o cualquiera que hable el mismo protocolo) y los errores se mandan allá con la traza y la ruta, sin datos personales. **Enviar evento de prueba** confirma que llega. No hace falta instalar nada más.
+- **Aviso por mail**: cargá un correo y, cuando un control pasa a crítico, llega un mail (una vez cada 6 horas por control). La revisión corre sola cada hora.
+- **Uptime externo**: `https://tu-servidor/salud` responde 200 si está bien y 503 si hay algo crítico; ponelo en UptimeRobot, Better Stack o el monitor que uses. Con `?token=` (el token que cargues en la pantalla) devuelve el detalle de cada control.
+
 ## Uso y soporte
 
 **Uso**: qué empresas usan el sistema, cuáles se están enfriando (7 y 14 días sin uso), ranking, módulos más usados y detalle por empresa y usuario. **Soporte**: los tickets de todas las empresas por prioridad; al responder, la empresa recibe una alerta.

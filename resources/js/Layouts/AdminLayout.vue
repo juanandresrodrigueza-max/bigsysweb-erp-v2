@@ -64,6 +64,7 @@ const items = [
   { href: '/admin/uso', label: 'Uso', icono: 'chart' },
   { href: '/admin/soporte', label: 'Soporte', icono: 'info' },
   { href: '/admin/sistema', label: 'Sistema', icono: 'settings' },
+  { href: '/admin/salud', label: 'Salud', icono: 'info' },
   { href: '/admin/auditoria', label: 'Auditoría', icono: 'history' },
 ]
 function activo(i) { const u = page.url.split('?')[0]; return u === i.href || (i.href !== '/admin' && u.startsWith(i.href + '/')) }

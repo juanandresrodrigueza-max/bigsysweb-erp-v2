@@ -26,5 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Monitoreo: cada error real se agrupa en el panel Salud y, con DSN, se manda a Sentry o compatible.
+        $exceptions->report(function (\Throwable $e) {
+            try { app(\App\Services\Monitoreo\ErrorReporter::class)->reportar($e); } catch (\Throwable $x) {}
+        });
     })->create();
