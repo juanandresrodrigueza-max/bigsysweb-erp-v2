@@ -14,7 +14,7 @@ class PresupuestoIAController extends Controller
         $data = $request->validate([
             'texto'  => 'nullable|string|max:5000',
             'imagen' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:8192',
-            'lista'  => 'nullable|integer|min:1|max:5',
+            'lista'  => 'nullable|integer|min:1|max:6',
         ]);
         abort_if(empty($data['texto']) && ! $request->hasFile('imagen'), 422, 'Pegá el mensaje o subí una foto del pedido.');
 

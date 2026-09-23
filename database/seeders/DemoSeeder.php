@@ -76,6 +76,10 @@ class DemoSeeder extends Seeder
             $rubros = collect(['Áridos' => '#c77d00', 'Cementos y cales' => '#6f6a62', 'Hierros' => '#4f3089', 'Ladrillos' => '#e4003f', 'Elaborados' => '#1f9d5b'])
                 ->mapWithKeys(fn($col, $n) => [$n => \App\Models\Rubro::create(['business_id' => $empresa->id, 'nombre' => $n, 'color' => $col])]);
 
+            // Categorías anidadas de ejemplo (tres niveles): Hierros › Hierro aletado › Diámetros chicos
+            $subH = \App\Models\Rubro::create(['business_id' => $empresa->id, 'parent_id' => $rubros['Hierros']->id, 'nombre' => 'Hierro aletado', 'color' => '#4f3089']);
+            $subH2 = \App\Models\Rubro::create(['business_id' => $empresa->id, 'parent_id' => $subH->id, 'nombre' => 'Diámetros chicos (6 a 10 mm)', 'color' => '#4f3089']);
+            \App\Models\Rubro::create(['business_id' => $empresa->id, 'parent_id' => $rubros['Cementos y cales']->id, 'nombre' => 'Cementos', 'color' => '#6f6a62']);
             // [nombre, sku, precio, costo, stock inicial casa central, stock inicial norte, mínimo, unidad, rubro, tipo]
             $productos = collect([
                 ['Cemento x 50 kg', 'CEM50', 9800, 7200, 1500, 400, 200, 'un', 'Cementos y cales', 'producto'], ['Hierro 8 mm x 12 m', 'HIE08', 6500, 4900, 300, 80, 60, 'un', 'Hierros', 'producto'],
@@ -91,6 +95,8 @@ class DemoSeeder extends Seeder
             foreach ([['CEM50', '7790001000011', true], ['HIE08', '7790001000028', true], ['CAL25', '7790001000035', true], ['LAD12', '7790001000042', true], ['ARE01', null, true], ['MAL15', '7790001000059', false]] as [$sku, $bc, $fav]) {
                 $productos->firstWhere('sku', $sku)->forceFill(['barcode' => $bc, 'favorito_pos' => $fav])->save();
             }
+            // Hierros chicos en la subcategoría de tercer nivel, con lista 6 y dos escalas de descuento por cantidad
+            foreach (['HIE08', 'HIE10'] as $sku) { $p = $productos->firstWhere('sku', $sku); $p->forceFill(['rubro_id' => $subH2->id, 'prices' => ($p->prices ?? []) + ['6' => round($p->price * 0.82)], 'desc_cant_min' => 10, 'desc_cant_pct' => 5, 'desc_cant2_min' => 50, 'desc_cant2_pct' => 12])->save(); }
             $stockInicial = collect([
                 ['CEM50', 1500, 400], ['HIE08', 300, 80], ['ARE01', 220, 40], ['LAD12', 12000, 3000], ['CAL25', 150, 30], ['PIE01', 130, 20], ['HIE10', 420, 80], ['MAL15', 220, 40], ['BOL30', 600, 0],
             ]);
@@ -238,7 +244,7 @@ class DemoSeeder extends Seeder
             \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $empresa->id)->where('direccion', 'venta')->whereIn('contact_id', Contact::customers()->where('vendedor_id', $vito->id)->pluck('id'))->update(['vendedor_id' => $vito->id]);
             \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $empresa->id)->where('direccion', 'venta')->whereNull('vendedor_id')->whereRaw('id % 2 = 0')->update(['vendedor_id' => $marta->id]);
             foreach (['CEM50' => [42000, 5, ['1' => 35, '2' => 28, '3' => 40]], 'HIE08' => [9800, 0, ['1' => 30, '2' => 25]]] as $sku => [$pc, $dto, $m]) {
-                $p = $productos->firstWhere('sku', $sku); $p->fill(['precio_compra' => $pc, 'descuento_proveedor' => $dto, 'margenes' => $m, 'desc_cant_min' => 50, 'desc_cant_pct' => 5]); $p->recalcularDesdeCosto(); $p->save();
+                $p = $productos->firstWhere('sku', $sku); $p->fill(['precio_compra' => $pc, 'descuento_proveedor' => $dto, 'margenes' => $m, 'desc_cant_min' => 10, 'desc_cant_pct' => 5, 'desc_cant2_min' => 50, 'desc_cant2_pct' => 12]); $p->recalcularDesdeCosto(); $p->save();
             }
             \App\Models\Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => today()->toDateString(), 'tipo' => 'oficial'], ['compra' => 1420, 'venta' => 1460, 'fuente' => 'manual']);
             $ocs = app(\App\Services\Compras\OrdenCompraService::class);

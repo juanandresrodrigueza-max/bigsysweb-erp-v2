@@ -95,7 +95,7 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div>
           <p class="label">Rubros</p>
-          <div v-for="r in rubros" :key="r.id" class="flex items-center gap-2 py-1 text-sm" :class="r.parent_id ? 'pl-4' : ''">
+          <div v-for="r in rubros" :key="r.id" class="flex items-center gap-2 py-1 text-sm" :style="{ paddingLeft: (r.nivel || 0) * 16 + 'px' }">
             <span class="w-2.5 h-2.5 rounded-full" :style="{ background: r.color || '#6f6a62' }"></span><span class="flex-1">{{ r.nombre }}</span>
             <button @click="rubro.id = r.id; rubro.nombre = r.nombre; rubro.parent_id = r.parent_id; rubro.color = r.color || '#6f6a62'" class="text-xs text-violeta">editar</button>
             <Link :href="`/stock/rubros/${r.id}`" method="delete" as="button" preserve-scroll class="text-xs text-carmin">quitar</Link>
@@ -103,7 +103,7 @@
           <div class="mt-3 p-3 rounded-xl bg-marca-fondo grid grid-cols-[1fr_auto] gap-2 items-end">
             <div><label class="label">{{ rubro.id ? 'Editar rubro' : 'Nuevo rubro' }}</label><input v-model="rubro.nombre" class="input !py-1.5" placeholder="Nombre" /></div>
             <input v-model="rubro.color" type="color" class="w-10 h-9 rounded-lg border border-marca-borde" />
-            <select v-model="rubro.parent_id" class="input !py-1.5 col-span-2"><option :value="null">Rubro principal</option><option v-for="r in rubros.filter(x => !x.parent_id && x.id !== rubro.id)" :key="r.id" :value="r.id">Dentro de {{ r.nombre }}</option></select>
+            <select v-model="rubro.parent_id" class="input !py-1.5 col-span-2"><option :value="null">Categoría principal</option><option v-for="r in rubros.filter(x => !esDescendiente(x, rubro.id))" :key="r.id" :value="r.id">Dentro de {{ r.completo }}</option></select>
             <div class="col-span-2 flex gap-2"><button class="btn-primary !py-1 text-xs" :disabled="!rubro.nombre" @click="rubro.post(`/stock/rubros${rubro.id ? '/' + rubro.id : ''}`, { preserveScroll: true, onSuccess: () => rubro.reset() })">Guardar</button><button v-if="rubro.id" class="btn-ghost !py-1 text-xs" @click="rubro.reset()">Cancelar</button></div>
           </div>
         </div>
@@ -157,5 +157,7 @@ const pr = useForm({ porcentaje: null, campo: 'price', rubro_id: null, proveedor
 
 const configAbierto = ref(false)
 const rubro = useForm({ id: null, nombre: '', parent_id: null, color: '#4f3089' })
+// Un rubro no puede colgar de sí mismo ni de sus propias subcategorías.
+const esDescendiente = (r, id) => { if (!id) return false; let x = r; while (x) { if (x.id === id) return true; x = props.rubros.find(y => y.id === x.parent_id) } return false }
 const dep = useForm({ id: null, nombre: '', business_location_id: null, direccion: '', es_default: false, activo: true })
 </script>

@@ -5,7 +5,7 @@
       <div><label class="label">Condición IVA</label><select v-model="form.condicion_iva" class="input"><option v-for="c in condicionesIva" :key="c">{{ c }}</option></select></div>
       <div><label class="label">CUIT / CUIL</label><input v-model="form.cuit" class="input" placeholder="30-12345678-9" /><p v-if="form.errors.cuit" class="text-carmin text-xs mt-1">{{ form.errors.cuit }}</p></div>
       <div><label class="label">Tipo de cliente</label><select v-model="form.tipo_cliente_id" class="input" @change="aplicarTipo"><option :value="null">Sin tipo</option><option v-for="t in tipos" :key="t.id" :value="t.id">{{ t.nombre }}</option></select></div>
-      <div><label class="label">Lista de precios</label><select v-model.number="form.lista_precios" class="input"><option v-for="n in 5" :key="n" :value="n">Lista {{ n }}</option></select></div>
+      <div><label class="label">Lista de precios</label><select v-model.number="form.lista_precios" class="input"><option v-for="n in 6" :key="n" :value="n">Lista {{ n }}</option></select></div>
       <div><label class="label">Días de pago (cta. cte.)</label><input v-model.number="form.dias_pago" type="number" min="0" class="input" /></div>
       <div><label class="label">Descuento %</label><input v-model.number="form.descuento" type="number" min="0" max="100" step="any" class="input" /></div>
       <div><label class="label">Límite de crédito (0 = sin límite)</label><input v-model.number="form.credit_limit" type="number" min="0" class="input" /></div>

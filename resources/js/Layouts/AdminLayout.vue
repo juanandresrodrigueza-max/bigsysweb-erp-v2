@@ -1,13 +1,13 @@
 <template>
   <Head :title="titulo ? `${titulo} · Superadmin` : 'Superadmin'" />
   <div class="min-h-screen flex bg-marca-fondo">
-    <aside class="hidden md:flex w-64 flex-col shrink-0 text-white" style="background:linear-gradient(180deg,#2a1a52 0%,#1c1a18 60%)">
+    <aside class="hidden md:flex w-64 flex-col shrink-0 text-white" style="background:linear-gradient(180deg,#4f3089 0%,#a42785 100%)">
       <div class="h-16 flex items-center px-5 gap-3 border-b border-white/10">
         <Logo negativo clase="h-7" />
         <span class="ml-auto text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md bg-white/15">Admin</span>
       </div>
       <nav class="flex-1 py-4">
-        <Link v-for="i in items" :key="i.href" :href="i.href" class="relative flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded-xl text-sm transition" :class="activo(i) ? 'bg-white/10 text-white font-semibold' : 'text-white/70 hover:bg-white/5 hover:text-white'">
+        <Link v-for="i in items" :key="i.href" :href="i.href" class="relative flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded-xl text-sm transition" :class="activo(i) ? 'bg-white text-violeta font-semibold shadow-sm' : 'text-white/80 hover:bg-white/15 hover:text-white'">
           <span v-if="activo(i)" class="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-carmin"></span>
           <Icono :nombre="i.icono" clase="w-5 h-5 shrink-0" /><span>{{ i.label }}</span>
         </Link>
@@ -15,7 +15,7 @@
       <div class="p-3 border-t border-white/10">
         <div class="flex items-center gap-3 px-2">
           <span class="w-9 h-9 rounded-full bg-marca-grad flex items-center justify-center text-sm font-bold shrink-0">{{ iniciales }}</span>
-          <div class="min-w-0 flex-1"><p class="text-sm font-semibold truncate">{{ user?.name }}</p><p class="text-[11px] text-white/60 truncate">Superadmin BigSys</p></div>
+          <div class="min-w-0 flex-1"><p class="text-sm font-semibold truncate">{{ user?.name }}</p><p class="text-[11px] text-lavanda truncate">Superadmin BigSys</p></div>
           <Link href="/logout" method="post" as="button" class="p-1.5 rounded-lg hover:bg-white/10 text-white/70" title="Salir"><Icono nombre="logout" clase="w-4 h-4" /></Link>
         </div>
       </div>

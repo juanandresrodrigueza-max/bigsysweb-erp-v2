@@ -14,7 +14,7 @@
           <div><label class="label">Nombre visible</label><input v-model="ft.tienda.nombre" class="input" /></div>
           <div class="sm:col-span-2"><label class="label">Texto de bienvenida</label><input v-model="ft.tienda.descripcion" class="input" placeholder="Ej. Materiales de construcción con entrega en el día en Córdoba" /></div>
           <div><label class="label">WhatsApp de contacto</label><input v-model="ft.tienda.whatsapp" class="input" placeholder="549351..." /></div>
-          <div><label class="label">Lista de precios</label><select v-model.number="ft.tienda.lista_precios" class="input"><option v-for="n in [1,2,3,4,5]" :key="n" :value="n">Lista {{ n }}</option></select></div>
+          <div><label class="label">Lista de precios</label><select v-model.number="ft.tienda.lista_precios" class="input"><option v-for="n in [1,2,3,4,5,6]" :key="n" :value="n">Lista {{ n }}</option></select></div>
           <div><label class="label">Pedido mínimo $</label><input v-model.number="ft.tienda.minimo_pedido" type="number" class="input" /></div>
           <label class="flex items-center gap-2 text-sm mt-6"><input v-model="ft.tienda.iva_incluido" type="checkbox" class="accent-carmin" /> Mostrar precios con IVA incluido</label>
           <label class="flex items-center gap-2 text-sm"><input v-model="ft.tienda.mostrar_stock" type="checkbox" class="accent-carmin" /> Mostrar si hay stock</label>

@@ -70,6 +70,6 @@ class InformesController extends Controller
         if ($c === '') return response()->json(null);
         $p = Product::where('active', true)->where(fn($q) => $q->where('barcode', $c)->orWhere('sku', $c))->first() ?? Product::where('active', true)->where('name', 'like', "%{$c}%")->first();
         if (! $p) return response()->json(null);
-        return response()->json(['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'precio' => $p->precioLista(1), 'precios' => collect([1, 2, 3, 4, 5])->mapWithKeys(fn($l) => [$l => $p->precioLista($l)])->filter(), 'stock' => (float) $p->stock, 'unit' => $p->unit, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'imagen' => $p->imagen]);
+        return response()->json(['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'precio' => $p->precioLista(1), 'precios' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $p->precioLista($l)])->filter(), 'stock' => (float) $p->stock, 'unit' => $p->unit, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct, 'imagen' => $p->imagen]);
     }
 }

@@ -21,7 +21,7 @@
       <h1 class="text-4xl md:text-5xl font-extrabold leading-tight mb-2" style="text-wrap: balance">{{ p.nombre }}</h1>
       <p class="text-sm opacity-70 tabular-nums mb-4">{{ p.sku }}</p>
       <p class="text-7xl md:text-8xl font-black tabular-nums text-white drop-shadow-lg">{{ moneda(p.precio, p.precio % 1 ? 2 : 0) }}</p>
-      <p class="text-lg opacity-80 mt-2">por {{ p.unit }}<span v-if="p.desc_cant_pct > 0"> · llevando {{ cantidad(p.desc_cant_min) }} o más, {{ p.desc_cant_pct }}% de descuento</span></p>
+      <p class="text-lg opacity-80 mt-2">por {{ p.unit }}<span v-if="p.desc_cant2_pct > 0"> · llevando {{ cantidad(p.desc_cant2_min) }} o más, {{ p.desc_cant2_pct }}% de descuento</span><span v-if="p.desc_cant_pct > 0"> · llevando {{ cantidad(p.desc_cant_min) }} o más, {{ p.desc_cant_pct }}% de descuento</span></p>
       <div v-if="Object.keys(p.precios).length > 1" class="flex justify-center gap-6 mt-6 text-sm opacity-80"><span v-for="(v, l) in p.precios" :key="l">Lista {{ l }}: <b class="tabular-nums">{{ moneda(v) }}</b></span></div>
       <p class="mt-8 text-sm opacity-50">Vuelve al inicio en {{ cuenta }} s</p>
     </div>

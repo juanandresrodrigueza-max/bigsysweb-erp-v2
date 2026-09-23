@@ -54,7 +54,7 @@
       </table>
       <div class="grid sm:grid-cols-6 gap-2 items-end">
         <div class="sm:col-span-2"><label class="label">{{ tipoForm.id ? 'Editar' : 'Nuevo' }}</label><input v-model="tipoForm.nombre" class="input" placeholder="Nombre" /></div>
-        <div><label class="label">Lista</label><select v-model.number="tipoForm.lista_precios" class="input"><option v-for="n in 5" :key="n" :value="n">{{ n }}</option></select></div>
+        <div><label class="label">Lista</label><select v-model.number="tipoForm.lista_precios" class="input"><option v-for="n in 6" :key="n" :value="n">{{ n }}</option></select></div>
         <div><label class="label">Días</label><input v-model.number="tipoForm.dias_pago" type="number" class="input" /></div>
         <div><label class="label">Dto %</label><input v-model.number="tipoForm.descuento" type="number" step="any" class="input" /></div>
         <div><label class="label">Límite</label><input v-model.number="tipoForm.limite_credito" type="number" class="input" /></div>

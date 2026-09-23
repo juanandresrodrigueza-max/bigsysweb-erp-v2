@@ -99,7 +99,7 @@ class ClientesController extends Controller
             'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50', 'mobile' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255', 'city' => 'nullable|string|max:100', 'province' => 'nullable|string|max:100', 'postal_code' => 'nullable|string|max:20',
             'tipo_cliente_id' => ['nullable', Rule::exists('tipos_cliente', 'id')->where('business_id', $b)],
-            'credit_limit' => 'nullable|numeric|min:0', 'lista_precios' => 'nullable|integer|min:1|max:5', 'dias_pago' => 'nullable|integer|min:0|max:365', 'interes_mora' => 'nullable|numeric|min:0|max:100', 'vendedor_id' => 'nullable|exists:vendedores,id',
+            'credit_limit' => 'nullable|numeric|min:0', 'lista_precios' => 'nullable|integer|min:1|max:6', 'dias_pago' => 'nullable|integer|min:0|max:365', 'interes_mora' => 'nullable|numeric|min:0|max:100', 'vendedor_id' => 'nullable|exists:vendedores,id',
             'descuento' => 'nullable|numeric|min:0|max:100', 'percepcion_iibb' => 'boolean', 'is_active' => 'boolean', 'notes' => 'nullable|string|max:2000',
         ]);
         if (($data['condicion_iva'] === 'Responsable Inscripto' || $data['condicion_iva'] === 'Monotributista') && empty($data['cuit'])) {
@@ -122,7 +122,7 @@ class ClientesController extends Controller
 
     public function guardarTipo(Request $request, ?int $id = null)
     {
-        $data = $request->validate(['nombre' => 'required|string|max:60', 'lista_precios' => 'required|integer|min:1|max:5', 'dias_pago' => 'required|integer|min:0|max:365', 'descuento' => 'required|numeric|min:0|max:100', 'limite_credito' => 'required|numeric|min:0', 'color' => 'nullable|string|max:10']);
+        $data = $request->validate(['nombre' => 'required|string|max:60', 'lista_precios' => 'required|integer|min:1|max:6', 'dias_pago' => 'required|integer|min:0|max:365', 'descuento' => 'required|numeric|min:0|max:100', 'limite_credito' => 'required|numeric|min:0', 'color' => 'nullable|string|max:10']);
         $t = $id ? TipoCliente::findOrFail($id) : new TipoCliente(['business_id' => $request->user()->business_id]);
         $t->fill($data)->save();
         return back()->with('success', $id ? 'Tipo de cliente actualizado.' : 'Tipo de cliente creado.');

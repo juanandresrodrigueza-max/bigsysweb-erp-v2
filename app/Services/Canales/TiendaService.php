@@ -50,7 +50,7 @@ class TiendaService
         $items = $q->get()->map(function ($p) use ($lista, $ri, $cfg) {
             $precio = $p->precioLista($lista);
             if ($cfg['iva_incluido'] && $ri) $precio = round($precio * (1 + (float) $p->iva / 100), 2);
-            return ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'descripcion' => $p->descripcion_tienda ?: $p->description, 'precio' => $precio, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre ?? 'Otros', 'rubro_orden' => $p->rubro?->orden ?? 999, 'imagen' => $p->imagen, 'stock' => (float) $p->stock, 'sin_stock' => $p->controla_stock && (float) $p->stock <= 0, 'favorito' => $p->favorito_pos, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct];
+            return ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'descripcion' => $p->descripcion_tienda ?: $p->description, 'precio' => $precio, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre ?? 'Otros', 'rubro_orden' => $p->rubro?->orden ?? 999, 'imagen' => $p->imagen, 'stock' => (float) $p->stock, 'sin_stock' => $p->controla_stock && (float) $p->stock <= 0, 'favorito' => $p->favorito_pos, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct];
         });
         return ['config' => $cfg, 'rubros' => $items->groupBy('rubro')->map(fn($g, $r) => ['nombre' => $r, 'orden' => $g->first()['rubro_orden'], 'items' => $g->values()->all()])->sortBy('orden')->values()->all(), 'total' => $items->count()];
     }

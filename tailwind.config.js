@@ -19,7 +19,7 @@ export default {
                 magenta:  { DEFAULT: '#a42785', light: '#f5e6f0' },
                 violeta:  { DEFAULT: '#4f3089', light: '#ece7f5' },
                 gris:     { DEFAULT: '#d6d1ca', light: '#ebe8e3' },
-                marca:    { sidebar: '#1c1a18', fondo: '#faf9f7', texto: '#1c1a18', muted: '#6f6a62', borde: '#e6e2dc' },
+                marca:    { sidebar: '#4f3089', fondo: '#faf9f7', texto: '#1c1a18', muted: '#6f6a62', borde: '#e6e2dc' },
             },
             backgroundImage: {
                 'marca-grad': 'linear-gradient(135deg, #e4003f 0%, #a42785 100%)',

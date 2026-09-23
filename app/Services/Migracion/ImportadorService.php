@@ -20,7 +20,7 @@ class ImportadorService
     public const ENTIDADES = [
         'clientes' => ['label' => 'Clientes', 'campos' => ['nombre' => 'Nombre / razón social', 'cuit' => 'CUIT / DNI', 'condicion_iva' => 'Condición IVA', 'email' => 'Email', 'telefono' => 'Teléfono', 'direccion' => 'Dirección', 'localidad' => 'Localidad', 'provincia' => 'Provincia', 'lista' => 'Lista de precios (1-5)', 'limite_credito' => 'Límite de crédito', 'tipo_cliente' => 'Tipo de cliente', 'saldo' => 'Saldo inicial (debe +, a favor −)', 'notas' => 'Notas']],
         'proveedores' => ['label' => 'Proveedores', 'campos' => ['nombre' => 'Nombre / razón social', 'cuit' => 'CUIT', 'condicion_iva' => 'Condición IVA', 'email' => 'Email', 'telefono' => 'Teléfono', 'direccion' => 'Dirección', 'localidad' => 'Localidad', 'provincia' => 'Provincia', 'saldo' => 'Saldo inicial (les debemos +)', 'notas' => 'Notas']],
-        'articulos' => ['label' => 'Artículos', 'campos' => ['codigo' => 'Código / SKU', 'barcode' => 'Código de barras', 'descripcion' => 'Descripción', 'rubro' => 'Rubro', 'marca' => 'Marca', 'unidad' => 'Unidad', 'costo' => 'Costo', 'precio1' => 'Precio lista 1', 'precio2' => 'Precio lista 2', 'precio3' => 'Precio lista 3', 'precio4' => 'Precio lista 4', 'precio5' => 'Precio lista 5', 'iva' => 'IVA %', 'stock' => 'Stock inicial', 'stock_min' => 'Stock mínimo', 'proveedor' => 'Proveedor']],
+        'articulos' => ['label' => 'Artículos', 'campos' => ['codigo' => 'Código / SKU', 'barcode' => 'Código de barras', 'descripcion' => 'Descripción', 'rubro' => 'Rubro', 'marca' => 'Marca', 'unidad' => 'Unidad', 'costo' => 'Costo', 'precio1' => 'Precio lista 1', 'precio2' => 'Precio lista 2', 'precio3' => 'Precio lista 3', 'precio4' => 'Precio lista 4', 'precio5' => 'Precio lista 5', 'precio6' => 'Precio lista 6', 'iva' => 'IVA %', 'stock' => 'Stock inicial', 'stock_min' => 'Stock mínimo', 'proveedor' => 'Proveedor']],
     ];
 
     public function __construct(private ImportacionPreciosService $lector, private StockService $stock) {}
@@ -90,7 +90,7 @@ class ImportadorService
                         $rub = $val($f, 'rubro'); $rubId = $rub !== '' ? ($rubros[mb_strtolower($rub)] ?? ($rubros[mb_strtolower($rub)] = Rubro::create(['business_id' => $user->business_id, 'nombre' => $rub])->id)) : $p->rubro_id;
                         $prov = $val($f, 'proveedor'); $provId = $prov !== '' ? ($provs[mb_strtolower($prov)] ?? ($provs[mb_strtolower($prov)] = Contact::create(['business_id' => $user->business_id, 'type' => 'supplier', 'name' => $prov, 'condicion_iva' => 'Responsable Inscripto', 'is_active' => true, 'lista_precios' => 1])->id)) : $p->proveedor_id;
                         $prices = $p->prices ?? [];
-                        foreach ([2, 3, 4, 5] as $l) if (($v = $num($val($f, "precio{$l}"))) !== null) $prices[(string) $l] = $v;
+                        foreach ([2, 3, 4, 5, 6] as $l) if (($v = $num($val($f, "precio{$l}"))) !== null) $prices[(string) $l] = $v;
                         $p->fill(array_filter([
                             'name' => $desc, 'sku' => $sku !== '' ? $sku : ($p->sku ?: null), 'barcode' => $bc !== '' ? $bc : $p->barcode, 'rubro_id' => $rubId, 'proveedor_id' => $provId, 'marca' => $val($f, 'marca') ?: $p->marca,
                             'unit' => $val($f, 'unidad') ? mb_strtolower(mb_substr($val($f, 'unidad'), 0, 10)) : ($p->unit ?: 'un'), 'cost' => $num($val($f, 'costo')) ?? $p->cost ?? 0, 'price' => $num($val($f, 'precio1')) ?? $p->price ?? 0,

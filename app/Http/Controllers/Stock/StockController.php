@@ -28,7 +28,7 @@ class StockController extends Controller
 
     private function rubros()
     {
-        return Rubro::with('parent:id,nombre')->orderBy('orden')->orderBy('nombre')->get()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombre, 'parent_id' => $r->parent_id, 'completo' => $r->nombreCompleto(), 'color' => $r->color]);
+        return Rubro::arbol()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombre, 'parent_id' => $r->parent_id, 'nivel' => $r->nivel, 'completo' => $r->nombreCompleto(), 'color' => $r->color])->values();
     }
 
     public function index(Request $request)
@@ -36,7 +36,7 @@ class StockController extends Controller
         $depositos = $this->depositos();
         $q = Product::with('rubro:id,nombre,parent_id,color', 'stocks')
             ->when($request->buscar, fn($q, $b) => $q->where(fn($w) => $w->where('name', 'like', "%$b%")->orWhere('sku', 'like', "%$b%")->orWhere('barcode', $b)->orWhere('marca', 'like', "%$b%")))
-            ->when($request->rubro, fn($q, $r) => $q->where(fn($w) => $w->where('rubro_id', $r)->orWhereIn('rubro_id', Rubro::where('parent_id', $r)->pluck('id'))))
+            ->when($request->rubro, fn($q, $r) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $r)))
             ->when($request->tipo, fn($q, $t) => $q->where('tipo', $t))
             ->when($request->estado === 'bajo_minimo', fn($q) => $q->where('controla_stock', true)->whereColumn('stock', '<=', 'stock_min'))
             ->when($request->estado === 'sin_stock', fn($q) => $q->where('controla_stock', true)->where('stock', '<=', 0))
@@ -47,7 +47,7 @@ class StockController extends Controller
             'id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'tipo' => $p->tipo, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre, 'rubro_color' => $p->rubro?->color, 'marca' => $p->marca,
             'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min, 'bajo' => $p->bajoMinimo(), 'controla' => $p->controla_stock, 'active' => $p->active,
             'price' => (float) $p->price, 'cost' => (float) $p->cost, 'valor' => round((float) $p->stock * (float) $p->cost, 2), 'moneda' => $p->moneda, 'precio_pesos' => $p->precioLista(1),
-            'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado, 'en_tienda' => $p->en_tienda, 'descripcion_tienda' => $p->descripcion_tienda,
+            'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado, 'en_tienda' => $p->en_tienda, 'descripcion_tienda' => $p->descripcion_tienda,
             'por_deposito' => $p->stocks->mapWithKeys(fn($s) => [$s->deposito_id => (float) $s->cantidad]),
         ]);
 
@@ -83,7 +83,7 @@ class StockController extends Controller
             'p' => $p->only('id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'description', 'unit', 'active', 'controla_stock', 'rubro_id', 'proveedor_id', 'stock_min', 'iva', 'perecedero', 'seriado') + [
                 'lotes' => $p->lotes()->with('deposito:id,nombre')->get()->map(fn($l) => ['id' => $l->id, 'etiqueta' => $l->etiqueta(), 'lote' => $l->lote, 'serie' => $l->serie, 'vencimiento' => $l->vencimiento?->format('d/m/Y'), 'vencido' => $l->vencimiento?->isPast() ?? false, 'por_vencer' => $l->vencimiento && ! $l->vencimiento->isPast() && $l->vencimiento->lte(today()->addDays(30)), 'cantidad' => (float) $l->cantidad, 'deposito' => $l->deposito?->nombre]),
                 'rubro' => $p->rubro?->nombreCompleto(), 'proveedor' => $p->proveedor?->name, 'stock' => (float) $p->stock, 'price' => (float) $p->price, 'cost' => (float) $p->cost, 'prices' => $p->prices ?? [], 'precio_pesos' => $p->precioLista(1),
-                'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'moneda' => $p->moneda, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct,
+                'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'moneda' => $p->moneda, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct,
                 'valor' => round((float) $p->stock * (float) $p->cost, 2), 'margen' => (float) $p->cost > 0 ? round(((float) $p->price - (float) $p->cost) / (float) $p->cost * 100, 1) : null,
                 'precio_actualizado' => $p->precio_actualizado_en?->format('d/m/Y'), 'bajo' => $p->bajoMinimo(), 'tipo_label' => Product::TIPOS[$p->tipo] ?? $p->tipo,
                 'stocks' => $p->stocks->map(fn($s) => ['deposito_id' => $s->deposito_id, 'deposito' => $s->deposito?->nombre, 'sucursal' => $s->deposito?->location?->name, 'cantidad' => (float) $s->cantidad, 'ubicacion' => $s->ubicacion]),
@@ -111,7 +111,7 @@ class StockController extends Controller
             'barcode' => 'nullable|string|max:40', 'marca' => 'nullable|string|max:60', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'description' => 'nullable|string|max:500',
             'unit' => 'required|string|max:10', 'iva' => 'required|numeric|min:0|max:27', 'price' => 'required|numeric|min:0', 'cost' => 'required|numeric|min:0', 'prices' => 'nullable|array',
             'stock_min' => 'nullable|numeric|min:0', 'active' => 'boolean', 'controla_stock' => 'boolean', 'stock_inicial' => 'nullable|numeric|min:0', 'deposito_id' => 'nullable|exists:depositos,id',
-            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'en_tienda' => 'boolean', 'descripcion_tienda' => 'nullable|string|max:500',
+            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'desc_cant2_min' => 'nullable|numeric|min:0', 'desc_cant2_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'en_tienda' => 'boolean', 'descripcion_tienda' => 'nullable|string|max:500',
         ]);
         $d['margenes'] = ($d['usar_margenes'] ?? false) ? collect($d['margenes'] ?? [])->filter(fn($v) => $v !== null && $v !== '')->all() ?: null : null;
         $d['moneda'] = $d['moneda'] ?? 'ARS';
@@ -174,7 +174,7 @@ class StockController extends Controller
         $depositos = $this->depositos();
         $depId = (int) ($request->deposito ?: ($depositos->firstWhere('business_location_id', $request->user()->current_location_id)['id'] ?? $depositos->first()['id'] ?? 0));
         $items = Product::where('active', true)->where('controla_stock', true)->with('rubro:id,nombre')
-            ->when($request->rubro, fn($q, $r) => $q->where('rubro_id', $r))
+            ->when($request->rubro, fn($q, $r) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $r)))
             ->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre, 'cost' => (float) $p->cost, 'sistema' => $p->stockEn($depId)]);
 
         return Inertia::render('Stock/Inventario', [
@@ -212,6 +212,7 @@ class StockController extends Controller
     public function guardarRubro(Request $request, ?int $id = null)
     {
         $d = $request->validate(['nombre' => 'required|string|max:80', 'parent_id' => 'nullable|exists:rubros,id', 'color' => 'nullable|string|max:10']);
+        abort_if($id && ! empty($d['parent_id']) && in_array((int) $d['parent_id'], Rubro::conDescendientes($id), true), 422, 'Una categoría no puede colgar de una de sus subcategorías.');
         $r = $id ? Rubro::findOrFail($id) : new Rubro(['business_id' => $request->user()->business_id]);
         $r->fill($d)->save();
         return back()->with('success', 'Rubro guardado.');
@@ -245,7 +246,7 @@ class StockController extends Controller
         $factor = 1 + (float) $d['porcentaje'] / 100;
         $red = (int) ($d['redondeo'] ?? 0);
         $r = fn($v) => $red ? round($v / $red) * $red : round($v, 2);
-        $q = Product::where('active', true)->when($d['rubro_id'] ?? null, fn($q, $x) => $q->where(fn($w) => $w->where('rubro_id', $x)->orWhereIn('rubro_id', Rubro::where('parent_id', $x)->pluck('id'))))->when($d['proveedor_id'] ?? null, fn($q, $x) => $q->where('proveedor_id', $x));
+        $q = Product::where('active', true)->when($d['rubro_id'] ?? null, fn($q, $x) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $x)))->when($d['proveedor_id'] ?? null, fn($q, $x) => $q->where('proveedor_id', $x));
         $n = 0;
         foreach ($q->get() as $p) {
             $upd = [];

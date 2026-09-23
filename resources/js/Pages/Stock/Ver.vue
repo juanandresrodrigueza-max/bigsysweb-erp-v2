@@ -47,7 +47,7 @@
         </div>
         <div class="card">
           <h2 class="font-bold mb-2">Listas de precios</h2>
-          <div v-for="n in [1,2,3,4,5]" :key="n" class="flex justify-between py-1 text-sm border-t border-marca-borde/60 first:border-0"><span class="text-marca-muted">Lista {{ n }}</span><b class="tabular-nums">{{ moneda(n === 1 ? p.price : (p.prices[n] ?? p.price)) }}</b></div>
+          <div v-for="n in [1,2,3,4,5,6]" :key="n" class="flex justify-between py-1 text-sm border-t border-marca-borde/60 first:border-0"><span class="text-marca-muted">Lista {{ n }}</span><b class="tabular-nums">{{ moneda(n === 1 ? p.price : (p.prices[n] ?? p.price)) }}</b></div>
         </div>
         <div v-if="p.description" class="card text-sm text-marca-muted">{{ p.description }}</div>
       </div>

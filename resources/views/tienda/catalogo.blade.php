@@ -20,7 +20,7 @@
           <div class="n">{{ $p['nombre'] }}</div>
           @if ($p['descripcion']) <div class="muted">{{ $p['descripcion'] }}</div> @endif
           <div class="pr">{{ $fmt($p['precio']) }} <span class="muted">/ {{ $p['unit'] }}</span></div>
-          @if ($p['desc_cant_pct'] > 0) <span class="tag">−{{ $p['desc_cant_pct'] }}% llevando {{ rtrim(rtrim(number_format($p['desc_cant_min'], 2, ',', '.'), '0'), ',') }} o más</span> @endif
+          @if (($p['desc_cant2_pct'] ?? 0) > 0) <span class="tag">−{{ $p['desc_cant2_pct'] }}% llevando {{ rtrim(rtrim(number_format($p['desc_cant2_min'], 2, ',', '.'), '0'), ',') }}+</span> @endif @if ($p['desc_cant_pct'] > 0) <span class="tag">−{{ $p['desc_cant_pct'] }}% llevando {{ rtrim(rtrim(number_format($p['desc_cant_min'], 2, ',', '.'), '0'), ',') }} o más</span> @endif
           @if ($cfg['mostrar_stock']) <span class="tag">{{ $p['sin_stock'] ? 'Sin stock: consultar' : 'En stock' }}</span> @endif
           <div class="qty"><button type="button" onclick="cambiar({{ $p['id'] }}, -1)">−</button><span id="q{{ $p['id'] }}">0</span><button type="button" onclick="cambiar({{ $p['id'] }}, 1)">+</button><span class="muted" style="margin-left:auto" id="s{{ $p['id'] }}"></span></div>
         </div>

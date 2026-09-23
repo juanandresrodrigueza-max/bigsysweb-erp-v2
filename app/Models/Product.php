@@ -18,10 +18,10 @@ class Product extends Model
     protected $fillable = [
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
-        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'imagen', 'perecedero', 'seriado', 'en_tienda', 'descripcion_tienda',
+        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'en_tienda', 'descripcion_tienda',
     ];
 
-    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'en_tienda' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2'];
+    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'en_tienda' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2', 'desc_cant2_min' => 'decimal:3', 'desc_cant2_pct' => 'decimal:2'];
 
     // Precio de la lista en pesos. Si el artículo está en dólares, se convierte con la cotización vigente.
     public function precioLista(int $lista = 1): float
@@ -65,6 +65,8 @@ class Product extends Model
     // % de descuento por cantidad que corresponde a esta cantidad (0 si no aplica).
     public function descuentoPorCantidad(float $cantidad): float
     {
+        // Dos escalas: la segunda (cantidad mayor) pisa a la primera.
+        if ((float) $this->desc_cant2_min > 0 && $cantidad >= (float) $this->desc_cant2_min) return (float) $this->desc_cant2_pct;
         return (float) $this->desc_cant_min > 0 && $cantidad >= (float) $this->desc_cant_min ? (float) $this->desc_cant_pct : 0;
     }
 
