@@ -21,7 +21,7 @@ class ImportarController extends Controller
 
     public function previsualizar(Request $request, ImportadorService $svc)
     {
-        $d = $request->validate(['archivo' => 'required|file|max:20480', 'entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES))]);
+        $d = $request->validate(['archivo' => 'required|file|max:20480|mimes:csv,txt,xlsx,xls', 'entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES))]);
         $f = $request->file('archivo');
         $filas = $svc->leer($f->getRealPath(), $f->getClientOriginalName());
         if (count($filas) < 2) return back()->withErrors(['archivo' => 'El archivo no tiene datos (necesita encabezado y al menos una fila).']);

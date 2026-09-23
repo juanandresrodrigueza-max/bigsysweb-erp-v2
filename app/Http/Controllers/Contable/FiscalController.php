@@ -63,7 +63,7 @@ class FiscalController extends Controller
 
     public function arcaAnalizar(Request $request, ArcaVentasService $svc)
     {
-        $request->validate(['archivo' => 'required|file|max:20480']);
+        $request->validate(['archivo' => 'required|file|max:20480|mimes:pdf,xlsx,xls,csv,txt']);
         $r = $svc->analizar(file_get_contents($request->file('archivo')->getRealPath()));
         return back()->with('arca_analisis', $r)->with('success', "Archivo leído: {$r['leidas']} comprobantes, {$r['coinciden']} coinciden, " . count($r['faltan']) . ' faltan en el sistema.');
     }

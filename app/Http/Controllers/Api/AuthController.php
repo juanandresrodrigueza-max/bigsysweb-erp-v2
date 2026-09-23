@@ -20,7 +20,7 @@ class AuthController extends Controller
         $data = $request->validate([
             'name'             => 'required|string|max:255',
             'email'            => 'required|email|unique:users',
-            'password'         => 'required|string|min:8|confirmed',
+            'password'         => \App\Support\Clave::reglas(),
             'business_name'    => 'required|string|max:255',
             'business_email'   => 'required|email|unique:businesses,email',
             'business_phone'   => 'nullable|string|max:30',

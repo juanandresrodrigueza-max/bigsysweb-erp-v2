@@ -46,7 +46,7 @@ class DatosController extends Controller
 
     public function restaurar(Request $request, BackupService $svc)
     {
-        $d = $request->validate(['backup_id' => 'nullable|integer', 'archivo' => 'nullable|file|max:512000', 'confirmacion' => 'required|in:RESTAURAR']);
+        $d = $request->validate(['backup_id' => 'nullable|integer', 'archivo' => 'nullable|file|max:512000|mimes:zip', 'confirmacion' => 'required|in:RESTAURAR']);
         $b = $request->user()->business;
         $path = $request->hasFile('archivo') ? $request->file('archivo')->getRealPath() : Storage::disk('local')->path(Backup::findOrFail($d['backup_id'])->archivo);
         $r = $svc->restaurar($b, $path, $request->user()->id);

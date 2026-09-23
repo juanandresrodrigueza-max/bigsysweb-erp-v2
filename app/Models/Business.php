@@ -34,11 +34,11 @@ class Business extends Model
         'fidelizacion'         => 'array',
         'onboarding_completado_en' => 'datetime',
         'backup_auto'          => 'boolean',
-        'whatsapp_settings'    => 'array',
+        'whatsapp_settings'    => 'encrypted:array',
         'suspended_at'         => 'datetime',
         'afip_produccion'      => 'boolean',
-        'mercadopago_settings' => 'array',
-        'tiendanube_settings'  => 'array',
+        'mercadopago_settings' => 'encrypted:array',
+        'tiendanube_settings'  => 'encrypted:array',
     ];
 
     protected $hidden = ['afip_cert_path', 'afip_key_path', 'mercadopago_settings', 'tiendanube_settings'];

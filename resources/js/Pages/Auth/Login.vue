@@ -15,6 +15,7 @@
         <div class="lg:hidden mb-8"><Logo clase="h-9" /></div>
         <h1 class="text-2xl font-black tracking-tight">Ingresar</h1>
         <p class="text-sm text-marca-muted mt-1 mb-6">Usá el email y la contraseña de tu empresa.</p>
+        <div v-if="flash?.success" class="mb-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">{{ flash.success }}</div>
 
         <form @submit.prevent="form.post('/login')" class="space-y-4">
           <div>
@@ -26,7 +27,7 @@
             <input v-model="form.password" type="password" class="input" autocomplete="current-password" />
             <p v-if="form.errors.email" class="text-carmin text-xs mt-1.5">{{ form.errors.email }}</p>
           </div>
-          <label class="flex items-center gap-2 text-sm text-marca-muted"><input v-model="form.remember" type="checkbox" class="accent-carmin" /> Recordarme</label>
+          <div class="flex items-center justify-between gap-2"><label class="flex items-center gap-2 text-sm text-marca-muted"><input v-model="form.remember" type="checkbox" class="accent-carmin" /> Recordarme</label><Link href="/recuperar" class="text-sm text-violeta font-semibold">¿Olvidaste la contraseña?</Link></div>
           <button type="submit" class="btn-primary w-full" :disabled="form.processing">{{ form.processing ? 'Ingresando…' : 'Ingresar' }}</button>
         </form>
 
@@ -40,7 +41,9 @@
 </template>
 
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 const form = useForm({ email: '', password: '', remember: false })
+const flash = computed(() => usePage().props.flash)
 </script>

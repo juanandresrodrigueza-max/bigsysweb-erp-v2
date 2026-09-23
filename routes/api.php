@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\Route;
 
 // Auth (público)
 Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login',    [AuthController::class, 'login']);
+    Route::post('register', [AuthController::class, 'register'])->middleware('throttle:api-auth');
+    Route::post('login',    [AuthController::class, 'login'])->middleware('throttle:api-auth');
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me',      [AuthController::class, 'me']);
@@ -30,9 +30,9 @@ Route::prefix('auth')->group(function () {
 });
 
 // Webhooks (público)
-Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook']);
-Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook']);
-Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\SuscripcionController::class, 'webhook']);
+Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook'])->middleware('throttle:webhooks');
+Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook'])->middleware('throttle:webhooks');
+Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\SuscripcionController::class, 'webhook'])->middleware('throttle:webhooks');
 
 // Todo lo demás requiere autenticación
 Route::middleware('auth:sanctum')->group(function () {

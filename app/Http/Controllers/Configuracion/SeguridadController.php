@@ -70,6 +70,17 @@ class SeguridadController extends Controller
     }
 
     // --- Sesiones ---
+    // Cambiar la propia contraseña: pide la actual, aplica la política y cierra las otras sesiones.
+    public function cambiarPassword(Request $request)
+    {
+        $d = $request->validate(['password_actual' => 'required|current_password', 'password' => \App\Support\Clave::reglas()]);
+        $u = $request->user();
+        $u->forceFill(['password' => $d['password']])->save();
+        if (config('session.driver') === 'database') DB::table('sessions')->where('user_id', $u->id)->where('id', '!=', $request->session()->getId())->delete();
+        AuditLog::registrar('cambio_clave', $u, 'Cambió su contraseña');
+        return back()->with('success', 'Contraseña cambiada. Se cerraron las otras sesiones de tu usuario.');
+    }
+
     public function cerrarSesiones(Request $request)
     {
         $d = $request->validate(['password' => 'required']);

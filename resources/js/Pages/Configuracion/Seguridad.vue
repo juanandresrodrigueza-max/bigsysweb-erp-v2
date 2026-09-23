@@ -28,6 +28,18 @@
         </div>
         <button v-else class="btn-primary" @click="router.post('/configuracion/seguridad/2fa/iniciar', {}, { preserveScroll: true })">Activar verificación en dos pasos</button>
       </div>
+      <div class="card">
+        <h2 class="font-bold mb-1">Cambiar mi contraseña</h2>
+        <p class="text-sm text-marca-muted mb-3">Mínimo 8 caracteres, con letras y números. Al cambiarla se cierran las otras sesiones de tu usuario.</p>
+        <form @submit.prevent="pw.post('/configuracion/seguridad/password', { preserveScroll: true, onSuccess: () => pw.reset() })" class="space-y-2">
+          <div><label class="label">Contraseña actual</label><input v-model="pw.password_actual" type="password" class="input" autocomplete="current-password" /><p v-if="pw.errors.password_actual" class="text-carmin text-xs mt-1">{{ pw.errors.password_actual }}</p></div>
+          <div class="grid sm:grid-cols-2 gap-2">
+            <div><label class="label">Nueva</label><input v-model="pw.password" type="password" class="input" autocomplete="new-password" /><p v-if="pw.errors.password" class="text-carmin text-xs mt-1">{{ pw.errors.password }}</p></div>
+            <div><label class="label">Repetila</label><input v-model="pw.password_confirmation" type="password" class="input" autocomplete="new-password" /></div>
+          </div>
+          <button class="btn-primary" :disabled="pw.processing || !pw.password || !pw.password_actual">Cambiar contraseña</button>
+        </form>
+      </div>
 
       <div class="card">
         <div class="flex items-center justify-between mb-1"><h2 class="font-bold">Sesiones abiertas</h2><button class="btn-secondary !py-1 text-xs" @click="sesAbierto = true">Cerrar las otras sesiones</button></div>
@@ -98,6 +110,7 @@ const qr = ref(null)
 const dibujarQr = () => { if (props.setup && qr.value) QRCode.toCanvas(qr.value, props.setup.uri, { width: 180, margin: 1 }).catch(() => {}) }
 onMounted(dibujarQr); watch(() => props.setup, () => nextTick(dibujarQr))
 const conf = useForm({ codigo: '' })
+const pw = useForm({ password_actual: '', password: '', password_confirmation: '' })
 const desAbierto = ref(false); const des = useForm({ password: '' })
 const sesAbierto = ref(false); const ses = useForm({ password: '' })
 const tk = useForm({ nombre: '' })

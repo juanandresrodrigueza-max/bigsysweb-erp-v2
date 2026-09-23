@@ -44,7 +44,7 @@ class AfipService
     private function resolvePath(?string $path): string
     {
         if (! $path) return '';
-        return Storage::path($path);
+        return CertificadoCifrado::rutaLegible($path);
     }
 
     public static function forBusiness(Business $business): static

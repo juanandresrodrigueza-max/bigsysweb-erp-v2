@@ -39,7 +39,7 @@ class ImpuestosController extends Controller
 
     public function importarPadron(Request $request, PadronService $svc)
     {
-        $d = $request->validate(['archivo' => 'required|file|max:204800', 'jurisdiccion' => 'required|in:' . implode(',', array_keys(PadronIibb::JURISDICCIONES))]);
+        $d = $request->validate(['archivo' => 'required|file|max:204800|mimes:csv,txt,xlsx,xls,zip', 'jurisdiccion' => 'required|in:' . implode(',', array_keys(PadronIibb::JURISDICCIONES))]);
         $r = $svc->importar($request->file('archivo')->getRealPath(), $d['jurisdiccion'], $request->file('archivo')->getClientOriginalName());
         if (isset($r['error'])) return back()->withErrors(['archivo' => $r['error']]);
         AuditLog::registrar('crear', null, "Importó padrón {$d['jurisdiccion']}: {$r['importadas']} CUIT");

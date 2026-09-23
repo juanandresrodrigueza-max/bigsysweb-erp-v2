@@ -26,29 +26,33 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+    Route::post('/login', [LoginController::class, 'store'])->name('login.store')->middleware('throttle:login');
+    Route::get('/recuperar',               [LoginController::class, 'recuperar'])->name('password.request');
+    Route::post('/recuperar',              [LoginController::class, 'enviarRecuperacion'])->middleware('throttle:login');
+    Route::get('/restablecer/{token}',     [LoginController::class, 'restablecer'])->name('password.reset');
+    Route::post('/restablecer',            [LoginController::class, 'restablecerStore'])->middleware('throttle:login');
 });
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 Route::get('/login/verificar',  [LoginController::class, 'verificar'])->middleware('guest');
-Route::post('/login/verificar', [LoginController::class, 'verificarStore'])->middleware('guest');
+Route::post('/login/verificar', [LoginController::class, 'verificarStore'])->middleware(['guest', 'throttle:login']);
 
 // Página pública de comprobantes: ver, PDF, aprobar presupuesto, pagar (sin login).
-Route::get('/p/{token}',                 [\App\Http\Controllers\PublicoController::class, 'ver']);
-Route::get('/p/{token}/pdf',             [\App\Http\Controllers\PublicoController::class, 'pdf']);
-Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoController::class, 'responder']);
-Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado']);
+Route::get('/p/{token}',                 [\App\Http\Controllers\PublicoController::class, 'ver'])->middleware('throttle:publico');
+Route::get('/p/{token}/pdf',             [\App\Http\Controllers\PublicoController::class, 'pdf'])->middleware('throttle:publico');
+Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoController::class, 'responder'])->middleware('throttle:publico');
+Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado'])->middleware('throttle:publico');
 
 // Tienda propia, menú QR, reservas y portal del cliente (públicos, sin login).
-Route::get('/t/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'catalogo']);
-Route::post('/t/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedir']);
-Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaController::class, 'pedido']);
-Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu']);
-Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa']);
-Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar']);
-Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\OrdenesController::class, 'publico']);
-Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder']);
-Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore']);
-Route::get('/portal/{token}',              [\App\Http\Controllers\PortalController::class, 'ver']);
+Route::get('/t/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'catalogo'])->middleware('throttle:publico');
+Route::post('/t/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedir'])->middleware('throttle:publico');
+Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaController::class, 'pedido'])->middleware('throttle:publico');
+Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu'])->middleware('throttle:publico');
+Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa'])->middleware('throttle:publico');
+Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar'])->middleware('throttle:publico');
+Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\OrdenesController::class, 'publico'])->middleware('throttle:publico');
+Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder'])->middleware('throttle:publico');
+Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore'])->middleware('throttle:publico');
+Route::get('/portal/{token}',              [\App\Http\Controllers\PortalController::class, 'ver'])->middleware('throttle:publico');
 Route::get('/portal/{token}/pagar/{id}',   [\App\Http\Controllers\PortalController::class, 'pagar'])->whereNumber('id');
 
 // Suscripción: accesible aunque la empresa esté bloqueada (es donde se renueva).
@@ -471,6 +475,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/seguridad/2fa/iniciar',   [\App\Http\Controllers\Configuracion\SeguridadController::class, 'iniciar2fa']);
         Route::post('/seguridad/2fa/confirmar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'confirmar2fa']);
         Route::post('/seguridad/2fa/desactivar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'desactivar2fa']);
+        Route::post('/seguridad/password',   [\App\Http\Controllers\Configuracion\SeguridadController::class, 'cambiarPassword']);
         Route::post('/seguridad/sesiones/cerrar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'cerrarSesiones']);
         Route::delete('/seguridad/sesiones/{id}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'cerrarSesion']);
         Route::post('/seguridad/tokens',     [\App\Http\Controllers\Configuracion\SeguridadController::class, 'crearToken'])->middleware('permiso:configuracion,editar');

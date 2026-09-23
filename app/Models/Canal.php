@@ -13,7 +13,7 @@ class Canal extends Model
 
     protected $table = 'canales';
     protected $fillable = ['business_id', 'tipo', 'nombre', 'credenciales', 'activo', 'sync_stock', 'sync_precios', 'importar_pedidos', 'token_entrada', 'ultimo_sync_en', 'ultimo_error', 'pedidos_importados'];
-    protected $casts = ['credenciales' => 'array', 'activo' => 'boolean', 'sync_stock' => 'boolean', 'sync_precios' => 'boolean', 'importar_pedidos' => 'boolean', 'ultimo_sync_en' => 'datetime'];
+    protected $casts = ['credenciales' => 'encrypted:array', 'activo' => 'boolean', 'sync_stock' => 'boolean', 'sync_precios' => 'boolean', 'importar_pedidos' => 'boolean', 'ultimo_sync_en' => 'datetime'];
 
     public const TIPOS = [
         'mercadolibre' => ['label' => 'MercadoLibre', 'campos' => ['access_token' => 'Access token', 'user_id' => 'ID de usuario ML'], 'ayuda' => 'Creá una aplicación en developers.mercadolibre.com.ar y pegá el access token. Los pedidos entran cada vez que sincronizás o por webhook.'],

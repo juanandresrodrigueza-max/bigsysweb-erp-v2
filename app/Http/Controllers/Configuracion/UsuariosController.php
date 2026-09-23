@@ -36,7 +36,7 @@ class UsuariosController extends Controller
         $data = $request->validate([
             'name'       => 'required|string|max:120',
             'email'      => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
-            'password'   => [$id ? 'nullable' : 'required', 'string', 'min:8'],
+            'password'   => [$id ? 'nullable' : 'required', 'string', \App\Support\Clave::regla()],
             'role_id'    => ['required', Rule::exists('roles', 'id')->where('business_id', $b->id)],
             'status'     => 'required|in:active,inactive',
             'sucursales' => 'array',
