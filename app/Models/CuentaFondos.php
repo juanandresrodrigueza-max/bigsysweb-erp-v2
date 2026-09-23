@@ -15,7 +15,7 @@ class CuentaFondos extends Model
     public const TIPOS = ['caja' => 'Caja', 'banco' => 'Banco', 'billetera' => 'Billetera virtual', 'tarjeta' => 'Tarjeta / cupones'];
 
     protected $table = 'cuentas_fondos';
-    protected $fillable = ['business_id', 'business_location_id', 'tipo', 'nombre', 'banco', 'cbu', 'alias', 'moneda', 'saldo', 'saldo_minimo', 'activa', 'es_default'];
+    protected $fillable = ['business_id', 'business_location_id', 'tipo', 'nombre', 'banco', 'cbu', 'alias', 'moneda', 'saldo', 'saldo_minimo', 'activa', 'es_default', 'cotizacion_cierre'];
     protected $casts = ['saldo' => 'decimal:2', 'saldo_minimo' => 'decimal:2', 'activa' => 'boolean', 'es_default' => 'boolean'];
 
     public function location(): BelongsTo { return $this->belongsTo(BusinessLocation::class, 'business_location_id'); }

@@ -51,7 +51,7 @@ class ComprobanteService
                 'orden_trabajo_id' => $data['orden_trabajo_id'] ?? $c->orden_trabajo_id,
                 'estadia_id'      => $data['estadia_id'] ?? $c->estadia_id,
                 'moneda'          => $moneda = strtoupper($data['moneda'] ?? 'ARS'),
-                'cotizacion'      => $cot = ($moneda === 'ARS' ? 1 : (float) ($data['cotizacion'] ?: \App\Models\Cotizacion::valor($user->business_id))),
+                'cotizacion'      => $cot = ($moneda === 'ARS' ? 1 : (float) (($data['cotizacion'] ?? null) ?: \App\Models\Cotizacion::valor($user->business_id))),
             ])->save();
             abort_if($moneda !== 'ARS' && $cot <= 0, 422, 'Cargá la cotización del dólar para facturar en moneda extranjera.');
 

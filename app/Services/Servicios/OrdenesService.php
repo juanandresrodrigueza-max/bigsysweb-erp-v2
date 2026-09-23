@@ -62,7 +62,7 @@ class OrdenesService
     {
         $p = ! empty($d['product_id']) ? Product::find($d['product_id']) : null;
         $precio = (float) ($d['precio_unit'] ?? 0) ?: ($p ? $p->precioLista(1) : 0);
-        $it = $ot->items()->create(['product_id' => $p?->id, 'tipo' => $d['tipo'] ?? ($p && $p->tipo === 'servicio' ? 'mano_obra' : 'material'), 'descripcion' => $d['descripcion'] ?: ($p?->name ?? 'Ítem'), 'cantidad' => $d['cantidad'] ?? 1, 'precio_unit' => $precio, 'total' => round((float) ($d['cantidad'] ?? 1) * $precio, 2)]);
+        $it = $ot->items()->create(['product_id' => $p?->id, 'tipo' => $d['tipo'] ?? ($p && $p->tipo === 'servicio' ? 'mano_obra' : 'material'), 'descripcion' => ($d['descripcion'] ?? '') ?: ($p?->name ?? 'Ítem'), 'cantidad' => $d['cantidad'] ?? 1, 'precio_unit' => $precio, 'total' => round((float) ($d['cantidad'] ?? 1) * $precio, 2)]);
         if ((float) $ot->presupuesto <= 0 || ($d['actualizar_presupuesto'] ?? false)) $ot->update(['presupuesto' => $ot->totalItems()]);
         return $it;
     }
