@@ -133,6 +133,14 @@ class ComprobantesController extends Controller
         return redirect("/comprobantes/{$nuevo->id}/editar")->with('success', "Borrador de {$nuevo->nombreTipo()} creado desde {$origen->numeroFormateado()}. Revisalo y emitilo.");
     }
 
+    // Ítems de la última factura emitida a un cliente, para repetirla con un clic.
+    public function ultimaDe(int $contact)
+    {
+        $c = Comprobante::ventas()->emitidos()->facturas()->where('contact_id', $contact)->with('items.product:id,name,unit,tipo')->orderByDesc('fecha')->orderByDesc('id')->first();
+        if (! $c) return response()->json(['items' => [], 'comprobante' => null]);
+        return response()->json(['comprobante' => ['numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y')], 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva])->values()]);
+    }
+
     // Contingencia ARCA: reintentar el CAE a mano y verificar un comprobante contra ARCA.
     public function reintentarCae(int $id)
     {

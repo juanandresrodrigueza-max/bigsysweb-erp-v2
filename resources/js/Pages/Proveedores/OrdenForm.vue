@@ -103,7 +103,7 @@ import { moneda, hoyISO } from '@/util/formato'
 const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  orden: Object, contactIdInicial: Number, proveedores: Array, productos: Array, rubros: Array })
 const productosCat = ref([...props.productos])
 const proveedoresCat = ref([...props.proveedores])
-function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
 const o = props.orden
 const form = useForm({ contact_id: o?.contact_id ?? props.contactIdInicial ?? null, fecha: o?.fecha ?? hoyISO(), fecha_entrega: o?.fecha_entrega ?? '', notas: o?.notas ?? '', origen: o?.origen ?? 'manual', items: (o?.items ?? []).map(i => ({ ...i })), enviar: false })
 const opcionesProveedores = computed(() => proveedoresCat.value.map(p => ({ id: p.id, label: p.name, sub: p.cuit })))

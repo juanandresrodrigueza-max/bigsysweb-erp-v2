@@ -23,10 +23,12 @@
           </div>
           <div>
             <label class="label">Cliente</label>
-            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesClientes" :url="props.catalogoParcial.clientes ? '/buscar/contactos/cliente' : null" @cargados="f => sumar(clientesCat, f)" placeholder="Buscar cliente por nombre o CUIT…" @elegido="alElegirCliente">
+            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesClientes" :url="'/buscar/contactos/cliente'" @cargados="f => sumar(clientesCat, f)" placeholder="Buscar cliente por nombre o CUIT… (vacío: recientes)" @elegido="alElegirCliente">
               <template #pie><Link href="/clientes" class="block px-3 py-2 text-xs text-carmin font-semibold border-t border-marca-borde">+ Crear cliente nuevo</Link></template>
             </BuscadorSelect>
             <p v-if="form.errors.contact_id" class="text-carmin text-xs mt-1">{{ form.errors.contact_id }}</p>
+            <button v-if="form.contact_id && !form.items.some(i => i.product_id)" type="button" class="text-xs text-violeta font-semibold mt-1" :disabled="repitiendo" @click="repetirUltima">{{ repitiendo ? 'Buscando…' : '↻ Repetir la última factura de este cliente' }}</button>
+            <p v-if="repetida" class="text-xs text-emerald-700 mt-1">{{ repetida }}</p>
             <p v-if="cliente" class="text-xs text-marca-muted mt-1">{{ cliente.condicion_iva }} · Lista {{ cliente.lista_precios }} <span v-if="cliente.descuento">· {{ cliente.descuento }}% dto.</span> · Saldo {{ moneda(cliente.balance, 0) }}<span v-if="cliente.credit_limit > 0"> / límite {{ moneda(cliente.credit_limit, 0) }}</span></p>
           </div>
           <div><label class="label">Fecha</label><input v-model="form.fecha" type="date" class="input" /><p v-if="form.errors.fecha" class="text-carmin text-xs mt-1">{{ form.errors.fecha }}</p></div>
@@ -73,12 +75,12 @@
               <tbody>
                 <tr v-for="(it, i) in form.items" :key="i" class="align-top">
                   <td>
-                    <BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/venta' : null" @cargados="f => sumar(productosCat, f)" placeholder="Buscar artículo…" @elegido="o => alElegirProducto(it, o)" />
+                    <BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="`/buscar/articulos/venta${form.contact_id ? '?contact_id=' + form.contact_id : ''}`" @cargados="f => sumar(productosCat, f)" placeholder="Buscar artículo… (Enter elige, luego cantidad)" :data-fila="i" @elegido="o => { alElegirProducto(it, o); enfocar(i, 'cant') }" />
                     <input v-if="!it.product_id" v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción libre" />
                     <p v-else class="text-[11px] text-marca-muted mt-1">{{ it.descripcion }} <span v-if="stockDe(it) !== null" :class="stockDe(it) < it.cantidad ? 'text-carmin font-semibold' : ''">· stock {{ cantidad(stockDe(it)) }}</span></p>
                   </td>
-                  <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" /></td>
-                  <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" /></td>
+                  <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" :data-cant="i" @keydown.enter.prevent="enfocar(i, 'precio')" @focus="$event.target.select()" /></td>
+                  <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" :data-precio="i" @keydown.enter.prevent="siguienteFila(i)" @focus="$event.target.select()" /></td>
                   <td><input v-model.number="it.descuento" type="number" min="0" max="100" step="any" class="input text-right" /></td>
                   <td><select v-model.number="it.alicuota_iva" class="input !px-1"><option v-for="a in [0,2.5,5,10.5,21,27]" :key="a" :value="a">{{ a }}%</option></select></td>
                   <td class="text-right font-semibold tabular-nums pt-3">{{ moneda(totalItem(it)) }}</td>
@@ -109,6 +111,7 @@
           <div class="grid gap-2 mt-5">
             <button type="button" @click="guardar(true)" class="btn-primary w-full" :disabled="form.processing || !form.items.length">{{ form.processing ? 'Procesando…' : 'Emitir' }}</button>
             <button type="button" @click="guardar(false)" class="btn-secondary w-full" :disabled="form.processing">Guardar borrador</button>
+            <p class="text-[11px] text-marca-muted text-center"><kbd class="px-1 rounded border border-marca-borde">Ctrl</kbd>+<kbd class="px-1 rounded border border-marca-borde">Enter</kbd> emite · <kbd class="px-1 rounded border border-marca-borde">Ctrl</kbd>+<kbd class="px-1 rounded border border-marca-borde">S</kbd> guarda · Enter en cantidad y precio pasa al siguiente</p>
             <Link :href="comprobante ? `/comprobantes/${comprobante.id}` : '/comprobantes'" class="btn-ghost w-full">Cancelar</Link>
           </div>
           <p v-if="!afipConfigurado && esFiscal" class="text-[11px] text-amber-700 mt-3">Sin certificado AFIP se emite simulado (sin CAE).</p>
@@ -152,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -163,7 +166,7 @@ import { moneda, cantidad, hoyISO } from '@/util/formato'
 const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
 const productosCat = ref([...props.productos])
 const clientesCat = ref([...props.clientes])
-function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
 
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
@@ -181,8 +184,8 @@ const letra = computed(() => props.empresa.condicion_iva === 'Responsable Inscri
 const tipoResuelto = computed(() => ({ FX: `Factura ${letra.value}`, NCX: `Nota de crédito ${letra.value}`, NDX: `Nota de débito ${letra.value}` }[form.tipo] ?? null))
 const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'Nuevo presupuesto', REM: 'Nuevo remito', NCX: 'Nueva nota de crédito', NDX: 'Nueva nota de débito' }[form.tipo] ?? 'Nueva factura'))
 
-const opcionesClientes = computed(() => clientesCat.value.map(c => ({ id: c.id, label: c.name, sub: c.cuit ?? c.condicion_iva, extra: c.tipo })))
-const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(p.precios[lista.value]), precios: p.precios, unit: p.unit, iva: p.iva, stock: p.stock })))
+const opcionesClientes = computed(() => clientesCat.value.map(c => ({ id: c.id, label: c.name, sub: c.cuit ?? c.condicion_iva, extra: c.tipo, sugerido: c.sugerido })))
+const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(p.precios[lista.value]), precios: p.precios, unit: p.unit, iva: p.iva, stock: p.stock, sugerido: p.sugerido })))
 const stockDe = it => productosCat.value.find(p => p.id === it.product_id)?.stock ?? null
 
 function alElegirCliente(o) {
@@ -209,6 +212,25 @@ function usarPuntos() {
   form.items.push({ product_id: null, descripcion: `Canje de ${usar} puntos`, cantidad: 1, unidad: 'un', precio_unit: -Math.round(usar * puntos.value.valor_punto * 100) / 100, descuento: 0, alicuota_iva: 0 })
 }
 function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, unidad: null, precio_unit: 0, descuento: cliente.value?.descuento ?? 0, alicuota_iva: 21, ...pre }) }
+// Facturar sin mouse: elegir artículo → cantidad → precio → Enter agrega la fila siguiente y vuelve al buscador.
+function enfocar(i, campo) { nextTick(() => { const el = document.querySelector(campo === 'cant' ? `[data-cant="${i}"]` : campo === 'precio' ? `[data-precio="${i}"]` : `[data-fila="${i}"] input`); el?.focus(); el?.select?.() }) }
+function siguienteFila(i) { if (i === form.items.length - 1) agregar(); enfocar(i + 1, 'fila') }
+function teclasForm(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (form.items.length && !form.processing) guardar(true) }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!form.processing) guardar(false) }
+}
+onMounted(() => window.addEventListener('keydown', teclasForm)); onBeforeUnmount(() => window.removeEventListener('keydown', teclasForm))
+const repitiendo = ref(false), repetida = ref('')
+async function repetirUltima() {
+  repitiendo.value = true; repetida.value = ''
+  try {
+    const r = await fetch(`/comprobantes/ultima-de/${form.contact_id}`, { headers: { Accept: 'application/json' } }); const d = await r.json()
+    if (!d.items?.length) { repetida.value = 'Este cliente no tiene facturas anteriores.'; return }
+    form.items = form.items.filter(i => i.product_id || i.descripcion)
+    d.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); agregar({ ...it, precio_unit: p ? p.precios[lista.value] : it.precio_unit }) })
+    repetida.value = `Se cargaron ${d.items.length} ítems de la ${d.comprobante.numero} (${d.comprobante.fecha}) con los precios de hoy. Revisá cantidades.`
+  } catch (e) { repetida.value = 'No se pudo cargar.' } finally { repitiendo.value = false }
+}
 const netoItem = it => (Number(it.cantidad) || 0) * (Number(it.precio_unit) || 0) * (1 - (Number(it.descuento) || 0) / 100)
 const totalItem = it => netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100)
 const totales = computed(() => {

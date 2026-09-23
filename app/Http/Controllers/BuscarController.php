@@ -12,6 +12,11 @@ class BuscarController extends Controller
     {
         abort_unless(in_array($entidad, ['articulos', 'contactos'], true) && in_array($forma, ['venta', 'compra', 'orden', 'produccion', 'cliente', 'proveedor'], true), 404);
         $ids = array_filter(array_map('intval', explode(',', (string) $request->input('ids', ''))));
-        return response()->json(Catalogo::buscar($entidad, $forma, (string) $request->input('q', ''), $ids));
+        return response()->json(Catalogo::buscar($entidad, $forma, (string) $request->input('q', ''), $ids, $request->integer('contact_id') ?: null));
+    }
+
+    public function global(Request $request)
+    {
+        return response()->json(Catalogo::global((string) $request->input('q', '')));
     }
 }

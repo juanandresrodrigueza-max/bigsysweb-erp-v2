@@ -148,6 +148,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}/emitir',        [ComprobantesController::class, 'emitir'])->middleware('permiso:comprobantes,crear');
+        Route::get('/ultima-de/{contact}',  [ComprobantesController::class, 'ultimaDe'])->whereNumber('contact');
         Route::post('/{id}/reintentar-cae', [ComprobantesController::class, 'reintentarCae'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
         Route::get('/{id}/verificar-arca',  [ComprobantesController::class, 'verificarArca'])->whereNumber('id');
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
@@ -328,6 +329,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/buscar/global', [\App\Http\Controllers\BuscarController::class, 'global']);
     Route::get('/buscar/{entidad}/{forma}', \App\Http\Controllers\BuscarController::class);
     Route::get('/estadisticas/rentabilidad', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/rentabilidad/dim', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'dimension'])->middleware('permiso:estadisticas');

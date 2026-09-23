@@ -59,7 +59,7 @@ import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  formulas: Array, productos: Array, unidades: Object })
 const productosCat = ref([...props.productos])
-function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
 const { puede } = usePermisos()
 const modal = ref(false)
 const vacio = () => ({ id: null, product_id: null, name: '', yield_quantity: 1, tiempo_minutos: null, instructions: '', is_active: true, items: [{ product_id: null, quantity: null, unit: 'un', notes: '' }] })

@@ -63,9 +63,15 @@
 
         <div class="flex-1"></div>
 
+        <button type="button" @click="paleta?.abrir()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde text-sm text-marca-muted hover:border-carmin/50" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">
+          <Icono nombre="search" clase="w-4 h-4" /><span>Buscar…</span><kbd class="text-[10px] px-1.5 py-0.5 rounded border border-marca-borde">Ctrl K</kbd>
+        </button>
+        <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
+
         <Link v-if="empresa?.plan" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
         <CampanaAlertas :alertas="alertas" />
       </header>
+      <Paleta ref="paleta" :nav="nav" />
 
       <!-- Superadmin dando soporte dentro de una empresa -->
       <div v-if="impersonando" class="px-4 md:px-6 py-2 bg-violeta text-white text-sm flex items-center gap-3">
@@ -120,6 +126,7 @@ import Icono from '@/Components/Icono.vue'
 import Logo from '@/Components/Logo.vue'
 import CampanaAlertas from '@/Components/CampanaAlertas.vue'
 import AgenteIA from '@/Components/AgenteIA.vue'
+import Paleta from '@/Components/Paleta.vue'
 
 defineProps({ titulo: { type: String, default: '' } })
 
@@ -139,6 +146,7 @@ const abierto = ref(true)
 const movil = ref(false)
 const selAbierto = ref(false)
 const selRef = ref(null)
+const paleta = ref(null)
 
 const iniciales = computed(() => (user.value?.name ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase())
 

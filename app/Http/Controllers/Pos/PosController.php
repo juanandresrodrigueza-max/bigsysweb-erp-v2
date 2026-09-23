@@ -16,6 +16,8 @@ use Inertia\Inertia;
 // Punto de venta rápido (comercio y minimarket): buscar o escanear, cobrar, ticket.
 class PosController extends Controller
 {
+    public const LIMITE_POS = 400;
+
     public function index(Request $request, PosService $pos)
     {
         $user = $request->user();
@@ -25,15 +27,21 @@ class PosController extends Controller
         $hoy = Comprobante::ventas()->emitidos()->facturas()->where('condicion', 'contado')->where('fecha', today()->toDateString())->where('user_id', $user->id);
 
         // Catálogos grandes: van los favoritos y los primeros por nombre; el resto se busca en el servidor al escribir.
+        // Catálogo del POS: chico para que abra en menos de un segundo (favoritos + los más vendidos de los últimos 90 días); el resto se busca al escribir o con el lector.
         $q = Product::where('active', true)->where('tipo', '!=', 'insumo');
-        $parcial = $q->clone()->count() > \App\Support\Catalogo::LIMITE;
-        $productos = $q->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->limit(\App\Support\Catalogo::LIMITE)->get()->map(fn($p) => $this->fila($p, $ri))->values();
+        $parcial = $q->clone()->count() > self::LIMITE_POS;
+        $productos = $q->with('rubro:id,nombre,color')
+            ->when($parcial, function ($qq) use ($user) {
+                $top = \Illuminate\Support\Facades\DB::table('comprobante_items')->join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->where('comprobantes.business_id', $user->business_id)->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->where('comprobantes.fecha', '>=', now()->subDays(90)->toDateString())->whereNotNull('comprobante_items.product_id')->selectRaw('comprobante_items.product_id, SUM(comprobante_items.cantidad) as c')->groupBy('comprobante_items.product_id')->orderByDesc('c')->limit(self::LIMITE_POS)->pluck('product_id')->all();
+                $qq->where(fn($w) => $w->where('favorito_pos', true)->orWhereIn('id', $top));
+            })
+            ->orderByDesc('favorito_pos')->orderBy('name')->limit(self::LIMITE_POS)->get()->map(fn($p) => $this->fila($p, $ri))->values();
 
         return Inertia::render('Pos/Index', [
             'vertical' => $vertical,
             'productos' => $productos, 'catalogoParcial' => $parcial,
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color', 'parent_id']),
-            'clientes' => Contact::customers()->where('is_active', true)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$pos->consumidorFinal()->id])->orderBy('name')->limit(\App\Support\Catalogo::LIMITE)->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit']),
+            'clientes' => Contact::customers()->where('is_active', true)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$pos->consumidorFinal()->id])->orderBy('name')->limit(300)->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit']),
             'consumidorFinalId' => $pos->consumidorFinal()->id,
             'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
             'caja' => $caja ? ['id' => $caja->id, 'nombre' => $caja->nombre, 'saldo' => (float) $caja->saldo, 'turno' => $caja->turnoAbierto ? ['id' => $caja->turnoAbierto->id, 'desde' => $caja->turnoAbierto->apertura->format('H:i'), 'usuario' => $caja->turnoAbierto->user?->name] : null] : null,

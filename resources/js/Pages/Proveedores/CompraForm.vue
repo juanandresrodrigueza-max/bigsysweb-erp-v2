@@ -99,7 +99,7 @@ import { moneda, hoyISO } from '@/util/formato'
 const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object })
 const productosCat = ref([...props.productos])
 const proveedoresCat = ref([...props.proveedores])
-function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
 const tipos = [['FA', 'Factura A'], ['FB', 'Factura B'], ['FC', 'Factura C'], ['FE', 'Factura E'], ['NCA', 'Nota de crédito A'], ['NCB', 'Nota de crédito B'], ['NCC', 'Nota de crédito C'], ['NDA', 'Nota de débito A'], ['NDB', 'Nota de débito B'], ['NDC', 'Nota de débito C']].map(([key, label]) => ({ key, label }))
 const b = props.compra ?? props.desdeOrden
 const form = useForm({
