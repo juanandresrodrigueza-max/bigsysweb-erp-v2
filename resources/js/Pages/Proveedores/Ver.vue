@@ -111,7 +111,9 @@
               <select v-model="m.datos.tipo" class="input !py-1 text-xs"><option v-for="(lbl, k) in retencionTipos" :key="k" :value="k">{{ lbl }}</option></select>
               <input v-model.number="m.datos.alicuota" type="number" step="any" class="input !py-1 text-xs" placeholder="Alícuota %" @input="m.monto = Math.round((m.datos.base || 0) * (m.datos.alicuota || 0)) / 100" />
               <input v-model="m.datos.certificado" class="input !py-1 text-xs" placeholder="N° certificado" />
-              <input v-model.number="m.datos.base" type="number" step="any" class="input !py-1 text-xs col-span-3" placeholder="Base imponible" @input="m.monto = Math.round((m.datos.base || 0) * (m.datos.alicuota || 0)) / 100" />
+              <input v-model.number="m.datos.base" type="number" step="any" class="input !py-1 text-xs col-span-2" placeholder="Base imponible" @input="m.monto = Math.round((m.datos.base || 0) * (m.datos.alicuota || 0)) / 100" />
+              <button type="button" class="btn-secondary !py-1 text-xs" :disabled="!['iibb','ganancias','iva'].includes(m.datos.tipo)" @click="sugerirRetencion(m)">Sugerir</button>
+              <p v-if="m.datos.motivo" class="col-span-3 text-[11px] text-marca-muted">{{ m.datos.motivo }}</p>
             </div>
             <input v-if="['transferencia','billetera','tarjeta'].includes(m.medio)" v-model="m.referencia" class="input !py-1 text-xs" placeholder="Referencia / N° operación" />
           </div>
@@ -166,6 +168,13 @@ const pagoAbierto = ref(false)
 const pago = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, medios: [{ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {} }], imputaciones: [] })
 const imput = reactive({})
 function cambiarMedio(m) { m.cheque_id = null; m.cuenta_fondos_id = null; m.datos = m.medio === 'retencion' ? { tipo: Object.keys(props.retencionTipos)[0], alicuota: null, base: null, certificado: '' } : m.medio === 'cheque_propio' ? { numero: '', fecha_pago: hoyISO() } : {}; if (m.medio === 'cheque_tercero') m.monto = 0 }
+async function sugerirRetencion(m) {
+  const base = Number(m.datos.base) || props.pendientes.reduce((a, p) => a + Number(p.saldo || 0), 0)
+  const r = await fetch(`/proveedores/${props.proveedor.id}/retencion-sugerida`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify({ tipo: m.datos.tipo, base }) })
+  if (!r.ok) return
+  const d = await r.json()
+  m.datos.base = base; m.datos.alicuota = d.alicuota; m.datos.motivo = d.motivo; m.datos.jurisdiccion = d.jurisdiccion ?? null; m.monto = d.monto
+}
 const totalPago = computed(() => pago.medios.reduce((a, m) => a + (Number(m.monto) || 0), 0))
 const cancelaPago = computed(() => totalPago.value + (Number(pago.descuento) || 0) - (Number(pago.interes) || 0))
 const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (Number(v) || 0), 0))

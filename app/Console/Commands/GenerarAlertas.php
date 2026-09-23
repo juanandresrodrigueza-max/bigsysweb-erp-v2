@@ -122,6 +122,15 @@ class GenerarAlertas extends Command
             }
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'oc_atrasada')->whereNull('resuelta_en')->whereNotIn('modelo_id', $ocs->pluck('id'))->update(['resuelta_en' => now()]);
 
+            // Partidas con vencimiento en 30 días o ya vencidas
+            $lotes = \App\Models\Lote::withoutGlobalScopes()->where('business_id', $id)->where('cantidad', '>', 0)->whereNotNull('vencimiento')->whereDate('vencimiento', '<=', today()->addDays(30))->with('product:id,name,unit')->get();
+            foreach ($lotes as $l) {
+                $vencido = $l->vencimiento->isPast();
+                Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $id, 'tipo' => 'lote_vence', 'modelo' => 'Lote', 'modelo_id' => $l->id],
+                    ['modulo' => 'stock', 'severidad' => $vencido ? 'critica' : 'aviso', 'titulo' => ($vencido ? 'Vencido: ' : 'Por vencer: ') . $l->product?->name . ' · ' . $l->etiqueta(), 'detalle' => number_format((float) $l->cantidad, 2, ',', '.') . ' ' . ($l->product?->unit ?? '') . ($vencido ? ' vencidas. Retiralas de la venta o dalas de baja con un ajuste.' : ' vencen el ' . $l->vencimiento->format('d/m/Y') . '. Priorizá su venta o promocionalas.'), 'url' => "/stock/informes?tipo=vencimientos", 'resuelta_en' => null]);
+            }
+            Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'lote_vence')->whereNull('resuelta_en')->whereNotIn('modelo_id', $lotes->pluck('id'))->update(['resuelta_en' => now()]);
+
             // Acopios por vencer (15 días) o vencidos
             $acopios = Acopio::withoutGlobalScopes()->where('business_id', $id)->whereIn('estado', ['abierto', 'parcial', 'vencido'])->whereNotNull('fecha_limite')->whereDate('fecha_limite', '<=', today()->addDays(15))->with('contact')->get();
             foreach ($acopios as $a) {

@@ -30,6 +30,15 @@ class PagosController extends Controller
         return back()->with('success', 'Orden de pago anulada.');
     }
 
+    // Retención sugerida según configuración, padrón y acumulado del mes (Ganancias RG 830).
+    public function retencionSugerida(Request $request, int $id, \App\Services\Fiscal\ImpuestosService $imp)
+    {
+        $d = $request->validate(['tipo' => 'required|in:iibb,ganancias,iva', 'base' => 'required|numeric|min:0']);
+        $prov = \App\Models\Contact::findOrFail($id);
+        $acum = (float) Pago::where('contact_id', $prov->id)->where('estado', '!=', 'anulado')->whereBetween('fecha', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])->sum('total');
+        return response()->json($imp->retencionSugerida($request->user()->business, $prov, $d['tipo'], (float) $d['base'], $acum) ?? ['alicuota' => 0, 'monto' => 0, 'motivo' => 'Sin regla']);
+    }
+
     public function imprimir(int $id)
     {
         $p = Pago::with(['contact', 'medios.cheque', 'imputaciones.comprobante', 'retenciones', 'business'])->findOrFail($id);

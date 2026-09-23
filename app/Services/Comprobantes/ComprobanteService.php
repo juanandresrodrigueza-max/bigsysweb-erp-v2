@@ -44,6 +44,8 @@ class ComprobanteService
                 'condicion'       => $data['condicion'] ?? 'cta_cte',
                 'es_acopio'       => (bool) ($data['es_acopio'] ?? false),
                 'entrega_pendiente' => (bool) ($data['entrega_pendiente'] ?? ($c->exists ? $c->entrega_pendiente : false)),
+                'fce'             => (bool) ($data['fce'] ?? ($c->exists ? $c->fce : false)),
+                'fce_vto_pago'    => ($data['fce'] ?? false) ? ($data['fce_vto_pago'] ?? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays((int) ($data['dias_vto'] ?? $contact?->dias_pago ?? 30))) : null,
                 'notas'           => $data['notas'] ?? null,
             ])->save();
 
@@ -63,9 +65,19 @@ class ComprobanteService
             }
 
             $c->impuestos()->delete();
-            if ($contact?->percepcion_iibb && $c->esFactura()) {
-                $base = $c->items()->sum('neto');
-                $c->impuestos()->create(['tipo' => 'iibb', 'base' => $base, 'alicuota' => 3, 'monto' => round($base * 0.03, 2)]);
+            if ($c->esFactura() && ($pi = app(\App\Services\Fiscal\ImpuestosService::class)->percepcionIibb($user->business, $contact))) {
+                $base = (float) $c->items()->sum('neto');
+                $cfg = app(\App\Services\Fiscal\ImpuestosService::class)->config($user->business)['percepcion_iibb'];
+                if ($base >= (float) ($cfg['minimo'] ?? 0)) $c->impuestos()->create(['tipo' => 'iibb_' . strtolower($pi['jurisdiccion']), 'base' => $base, 'alicuota' => $pi['alicuota'], 'monto' => round($base * $pi['alicuota'] / 100, 2)]);
+            }
+            // Novedades de facturación: precio distinto al de la lista del cliente queda auditado (quién, cuánto, en qué comprobante).
+            if ($contact && $c->esFactura()) {
+                $lista = (int) ($contact->lista_precios ?: 1);
+                foreach ($c->items as $it) {
+                    if (! $it->product_id || ! ($p = Product::find($it->product_id))) continue;
+                    $ref = $p->precioLista($lista); $dif = $ref > 0 ? ((float) $it->precio_unit - $ref) / $ref * 100 : 0;
+                    if (abs($dif) >= 0.5) AuditLog::registrar('precio_modificado', $c, "{$p->name}: lista {$lista} $ " . number_format($ref, 2, ',', '.') . " → $ " . number_format((float) $it->precio_unit, 2, ',', '.') . ' (' . ($dif > 0 ? '+' : '') . round($dif, 1) . '%) en ' . $c->nombreTipo() . ($c->numeroFormateado() ? ' ' . $c->numeroFormateado() : ' borrador'), ['precio' => $ref], ['precio' => (float) $it->precio_unit, 'articulo' => $p->name, 'lista' => $ref, 'facturado' => (float) $it->precio_unit, 'cantidad' => (float) $it->cantidad, 'diferencia' => round(((float) $it->precio_unit - $ref) * (float) $it->cantidad, 2)]);
+                }
             }
 
             $c->recalcularTotales();

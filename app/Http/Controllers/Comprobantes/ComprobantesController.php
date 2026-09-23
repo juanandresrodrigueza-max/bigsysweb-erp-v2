@@ -90,7 +90,7 @@ class ComprobantesController extends Controller
         return Inertia::render('Comprobantes/Ver', [
             'c' => array_merge($this->resumir($c), [
                 'items' => $c->items->map(fn($i) => ['id' => $i->id, 'product_id' => $i->product_id, 'sku' => $i->product?->sku, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva, 'neto' => (float) $i->neto, 'iva' => (float) $i->iva, 'total' => (float) $i->total, 'entregada' => (float) $i->cantidad_entregada, 'facturada' => (float) $i->cantidad_facturada]),
-                'entrega_pendiente' => $c->entrega_pendiente, 'pendiente_entrega' => $c->pendienteEntrega(), 'pendiente_facturar' => $c->pendienteFacturar(),
+                'entrega_pendiente' => $c->entrega_pendiente, 'pendiente_entrega' => $c->pendienteEntrega(), 'pendiente_facturar' => $c->pendienteFacturar(), 'fce' => $c->fce, 'fce_estado' => $c->fce_estado, 'fce_vto_pago' => $c->fce_vto_pago?->format('d/m/Y'),
                 'url_publica' => $c->estado === 'emitido' ? $c->urlPublica() : null, 'link_pago' => $c->link_pago, 'link_pago_simulado' => $c->link_pago_id === 'simulado',
                 'aprobado_en' => $c->aprobado_en?->format('d/m/Y H:i'), 'rechazado_en' => $c->rechazado_en?->format('d/m/Y H:i'), 'respuesta_cliente' => $c->respuesta_cliente,
                 'envios' => $c->envios()->latest()->limit(5)->get()->map(fn($e) => ['canal' => $e->canal, 'destino' => $e->destino, 'estado' => $e->estado, 'fecha' => $e->created_at->format('d/m H:i')]),
@@ -189,6 +189,8 @@ class ComprobantesController extends Controller
             'dias_vto'        => 'nullable|integer|min:0|max:365',
             'es_acopio'       => 'boolean',
             'entrega_pendiente' => 'boolean',
+            'fce'             => 'boolean',
+            'fce_vto_pago'    => 'nullable|date',
             'notas'           => 'nullable|string|max:2000',
             'items'           => 'required|array|min:1',
             'items.*.product_id'   => 'nullable|integer|exists:products,id',
@@ -207,11 +209,12 @@ class ComprobantesController extends Controller
         $origen = $request->origen_id ? Comprobante::ventas()->with('items')->find($request->origen_id) : null;
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
-                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'notas' => $c->notas,
+                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
             ]) : null,
             'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre', 'user_id']),
+            'cbuFce' => $user->business->cbu_fce,
             'vendedorDefault' => \App\Models\Vendedor::deUsuario($user->id)?->id,
             'tipoInicial' => $c ? preg_replace('/^(F|NC|ND)[ABCE]$/', '$1X', $c->tipo) : $request->input('tipo', 'FX'),
             'origen' => $origen ? ['id' => $origen->id, 'nombre' => $origen->nombreTipo(), 'numero' => $origen->numeroFormateado(), 'contact_id' => $origen->contact_id, 'items' => $origen->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva])] : null,

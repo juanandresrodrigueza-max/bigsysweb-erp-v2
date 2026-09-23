@@ -37,6 +37,14 @@
           </div>
           <p v-if="!p.stocks.length" class="text-sm text-marca-muted">Sin existencias en ningún depósito.</p>
         </div>
+        <div v-if="p.perecedero || p.seriado" class="card">
+          <h2 class="font-bold mb-2">Partidas {{ p.perecedero ? '(vence primero, sale primero)' : '(por número de serie)' }}</h2>
+          <div v-for="l in p.lotes" :key="l.id" class="flex items-center justify-between py-1.5 border-t border-marca-borde/60 first:border-0 text-sm">
+            <div><p class="font-medium" :class="l.vencido ? 'text-carmin' : l.por_vencer ? 'text-amber-600' : ''">{{ l.etiqueta }}</p><p class="text-xs text-marca-muted">{{ l.deposito }}<span v-if="l.vencido"> · vencido</span><span v-else-if="l.por_vencer"> · vence en menos de 30 días</span></p></div>
+            <b class="tabular-nums">{{ cantidad(l.cantidad) }} {{ p.unit }}</b>
+          </div>
+          <p v-if="!p.lotes.length" class="text-sm text-marca-muted">Sin partidas cargadas. Se crean al registrar una compra con lote, vencimiento o serie.</p>
+        </div>
         <div class="card">
           <h2 class="font-bold mb-2">Listas de precios</h2>
           <div v-for="n in [1,2,3,4,5]" :key="n" class="flex justify-between py-1 text-sm border-t border-marca-borde/60 first:border-0"><span class="text-marca-muted">Lista {{ n }}</span><b class="tabular-nums">{{ moneda(n === 1 ? p.price : (p.prices[n] ?? p.price)) }}</b></div>

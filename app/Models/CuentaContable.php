@@ -16,7 +16,7 @@ class CuentaContable extends Model
 
     public const TIPOS = ['activo' => 'Activo', 'pasivo' => 'Pasivo', 'patrimonio' => 'Patrimonio neto', 'ingreso' => 'Ingresos', 'egreso' => 'Egresos'];
 
-    protected $fillable = ['business_id', 'parent_id', 'codigo', 'nombre', 'tipo', 'clave', 'imputable', 'activa'];
+    protected $fillable = ['business_id', 'parent_id', 'codigo', 'nombre', 'tipo', 'clave', 'imputable', 'activa', 'ajustable'];
     protected $casts = ['imputable' => 'boolean', 'activa' => 'boolean'];
 
     public function parent(): BelongsTo { return $this->belongsTo(CuentaContable::class, 'parent_id'); }

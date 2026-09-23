@@ -47,6 +47,11 @@
             <input v-model="form.entrega_pendiente" type="checkbox" class="accent-violeta" />
             <span><b>Entrega pendiente</b> · se factura ahora y la mercadería sale después con remito (en una o varias entregas). El stock se descuenta con cada remito.</span>
           </label>
+          <label v-if="esFactura && cliente && cliente.condicion_iva === 'Responsable Inscripto'" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.fce ? 'border-carmin bg-red-50/40' : 'border-marca-borde'">
+            <input v-model="form.fce" type="checkbox" class="accent-carmin" />
+            <span class="flex-1"><b>Factura de Crédito Electrónica MiPyME</b> · obligatoria si el cliente es empresa grande y el total supera el mínimo vigente. Vence a 30 días y se puede negociar.<span v-if="!cbuFce" class="text-carmin"> Falta el CBU en Configuración → Impuestos.</span></span>
+            <span v-if="form.fce" class="flex items-center gap-1 text-xs whitespace-nowrap">Vto. pago <input v-model="form.fce_vto_pago" type="date" class="input !py-1 text-xs" @click.stop /></span>
+          </label>
         </div>
 
         <div class="card p-0 overflow-hidden">
@@ -146,12 +151,12 @@ import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 
-const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number })
+const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
 
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
-  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, notas: base?.notas ?? '',
+  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, notas: base?.notas ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false,
 })
 const esConversion = !!props.origen

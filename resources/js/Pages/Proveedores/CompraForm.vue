@@ -37,7 +37,12 @@
               <thead><tr><th class="w-[36%]">Artículo (para stock) / descripción</th><th class="w-24 text-right">Cant.</th><th class="w-32 text-right">Costo unit. neto</th><th class="w-20 text-right">Dto %</th><th class="w-20 text-right">IVA</th><th class="text-right">Total</th><th class="w-8"></th></tr></thead>
               <tbody>
                 <tr v-for="(it, i) in form.items" :key="i" class="align-top">
-                  <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" placeholder="Sin artículo (solo gasto)" @elegido="o => { if (o) { it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = sinIva ? 0 : o.iva } }" /><input v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción" /></td>
+                  <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" placeholder="Sin artículo (solo gasto)" @elegido="o => { if (o) { it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = sinIva ? 0 : o.iva } }" /><input v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción" />
+                    <div v-if="prodDe(it)?.perecedero || prodDe(it)?.seriado" class="grid grid-cols-2 gap-1 mt-1">
+                      <input v-if="prodDe(it)?.perecedero" v-model="it.lote" class="input !py-1 text-xs" placeholder="Lote" />
+                      <input v-if="prodDe(it)?.perecedero" v-model="it.vencimiento" type="date" class="input !py-1 text-xs" title="Vencimiento" />
+                      <input v-if="prodDe(it)?.seriado" v-model="it.serie" class="input !py-1 text-xs col-span-2" placeholder="N° de serie (separá con coma si son varios)" />
+                    </div></td>
                   <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" /></td>
                   <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" /></td>
                   <td><input v-model.number="it.descuento" type="number" min="0" max="100" step="any" class="input text-right" /></td>
@@ -105,7 +110,8 @@ const opcionesProductos = computed(() => props.productos.map(p => ({ id: p.id, l
 // Factura C (monotributista) no discrimina IVA: el costo va completo y la alícuota queda en 0.
 const sinIva = computed(() => ['FC', 'NCC', 'NDC'].includes(form.tipo))
 function alElegirProveedor(o) { const p = props.proveedores.find(x => x.id === o?.id); if (p) { form.tipo = p.condicion_iva === 'Responsable Inscripto' ? 'FA' : (p.condicion_iva === 'Monotributista' ? 'FC' : 'FB'); if (sinIva.value) form.items.forEach(it => (it.alicuota_iva = 0)) } }
-function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, unidad: null, precio_unit: 0, descuento: 0, alicuota_iva: sinIva.value ? 0 : 21, ...pre }) }
+function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, unidad: null, precio_unit: 0, descuento: 0, alicuota_iva: sinIva.value ? 0 : 21, lote: '', vencimiento: '', serie: '', ...pre }) }
+const prodDe = it => it.product_id ? props.productos.find(p => p.id === it.product_id) : null
 const netoItem = it => (Number(it.cantidad) || 0) * (Number(it.precio_unit) || 0) * (1 - (Number(it.descuento) || 0) / 100)
 const totalItem = it => netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100)
 const totales = computed(() => { const neto = form.items.reduce((a, it) => a + netoItem(it), 0); const iva = form.items.reduce((a, it) => a + netoItem(it) * (Number(it.alicuota_iva) || 0) / 100, 0); const otros = form.impuestos.reduce((a, i) => a + (Number(i.monto) || 0), 0); return { neto, iva, otros, total: neto + iva + otros } })

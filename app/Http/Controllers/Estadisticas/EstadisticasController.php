@@ -44,7 +44,43 @@ class EstadisticasController extends Controller
         if (config('database.default') !== 'sqlite' && $porMes) { /* strftime es sqlite; en pgsql/mysql se usa to_char/DATE_FORMAT */ }
 
         $top = fn($q, $n = 10) => $q->limit($n)->get();
+
+        // Comparativo con el mismo período del año anterior, en pesos nominales y "de hoy" (reexpresado por IPC si hay índices).
+        [$desdeAnt, $hastaAnt] = [$desde->copy()->subYear(), $hasta->copy()->subYear()];
+        $totalAnt = (float) $ventas($desdeAnt, $hastaAnt)->selectRaw("COALESCE(SUM(({$signo}) * total),0) s")->value('s');
+        $cantAnt = $ventas($desdeAnt, $hastaAnt)->whereIn('tipo', ['FA', 'FB', 'FC', 'FE'])->count();
+        $ipcHoy = \App\Models\IndiceIpc::orderByDesc('periodo')->first();
+        $coefAnt = $ipcHoy ? \App\Models\IndiceIpc::coeficiente($hastaAnt->format('Y-m'), $ipcHoy->periodo) : null;
+        $coefAct = $ipcHoy ? \App\Models\IndiceIpc::coeficiente($hasta->format('Y-m'), $ipcHoy->periodo) : null;
+        $comparativo = [
+            'anterior' => ['desde' => $desdeAnt->toDateString(), 'hasta' => $hastaAnt->toDateString(), 'ventas' => $totalAnt, 'comprobantes' => $cantAnt, 'ticket' => $cantAnt ? round($totalAnt / $cantAnt, 2) : 0],
+            'var_nominal' => $pct($total, $totalAnt),
+            'pesos_hoy' => $coefAnt && $coefAct ? ['anterior' => round($totalAnt * $coefAnt, 2), 'actual' => round($total * $coefAct, 2), 'var_real' => $pct($total * $coefAct, $totalAnt * $coefAnt), 'ipc' => $ipcHoy->periodo] : null,
+            'mensual' => collect(range(11, 0))->map(function ($i) use ($ventas, $signo, $ipcHoy) {
+                $m = now()->subMonths($i); $mAnt = $m->copy()->subYear();
+                $v = (float) $ventas($m->copy()->startOfMonth(), $m->copy()->endOfMonth())->selectRaw("COALESCE(SUM(({$signo}) * total),0) s")->value('s');
+                $va = (float) $ventas($mAnt->copy()->startOfMonth(), $mAnt->copy()->endOfMonth())->selectRaw("COALESCE(SUM(({$signo}) * total),0) s")->value('s');
+                $c = $ipcHoy ? \App\Models\IndiceIpc::coeficiente($m->format('Y-m'), $ipcHoy->periodo) : null;
+                return ['mes' => $m->locale('es')->isoFormat('MMM YY'), 'actual' => $v, 'anterior' => $va, 'actual_hoy' => $c ? round($v * $c, 2) : null];
+            }),
+        ];
+
+        if ($request->export) {
+            $csv = "Sección;Nombre;Monto;Cantidad\n";
+            $add = function ($sec, $rows, $n = 'nombre', $m = 'monto', $c = 'n') use (&$csv) { foreach ($rows as $r) $csv .= implode(';', [$sec, str_replace(';', ',', (string) ($r[$n] ?? $r->$n ?? '')), number_format((float) ($r[$m] ?? $r->$m ?? 0), 2, ',', ''), (string) ($r[$c] ?? $r->$c ?? '')]) . "\n"; };
+            $add('Serie', $serie, 'label', 'monto', 'n');
+            $add('Sucursal', $ventas($desde, $hasta)->join('business_locations', 'business_locations.id', '=', 'comprobantes.business_location_id')->selectRaw("business_locations.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('business_locations.name')->get());
+            $add('Cliente', $ventas($desde, $hasta)->join('contacts', 'contacts.id', '=', 'comprobantes.contact_id')->selectRaw("contacts.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('contacts.name')->orderByDesc('monto')->get());
+            $add('Artículo', $itemsVenta()->join('products', 'products.id', '=', 'comprobante_items.product_id')->selectRaw("products.name as nombre, SUM(({$sig}) * comprobante_items.total) as monto, SUM(({$sig}) * comprobante_items.cantidad) as n")->groupBy('products.name')->orderByDesc('monto')->get());
+            $add('Vendedor', $ventas($desde, $hasta)->join('users', 'users.id', '=', 'comprobantes.user_id')->selectRaw("users.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('users.name')->get());
+            $add('Hora', $ventas($desde, $hasta)->whereNotNull('emitido_en')->selectRaw("CAST(strftime('%H', emitido_en) AS INTEGER) as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('nombre')->orderBy('nombre')->get());
+            $add('Comparativo mensual', $comparativo['mensual'], 'mes', 'actual', 'anterior');
+            \App\Models\AuditLog::registrar('exportar', null, "Exportó estadísticas {$desde->toDateString()} a {$hasta->toDateString()}");
+            return response("\xEF\xBB\xBF" . $csv, 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=estadisticas_{$desde->toDateString()}_{$hasta->toDateString()}.csv"]);
+        }
+
         return Inertia::render('Estadisticas/Index', [
+            'comparativo' => $comparativo,
             'periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'sucursalId' => $sucursal,
             'listaSucursales' => $request->user()->business->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'kpis' => ['ventas' => $total, 'ventas_var' => $pct($total, $totalPrev), 'comprobantes' => $cant, 'comprobantes_var' => $pct($cant, $cantPrev), 'ticket' => $cant ? round($total / $cant, 2) : 0, 'margen' => $neto > 0 ? round(($neto - $costo) / $neto * 100, 1) : null, 'margen_monto' => round($neto - $costo, 2), 'clientes' => $clientesActivos],

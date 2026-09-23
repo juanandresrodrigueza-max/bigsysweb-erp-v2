@@ -17,6 +17,7 @@ const tabs = [
   { href: '/configuracion/usuarios', label: 'Usuarios' },
   { href: '/configuracion/roles', label: 'Roles y permisos' },
   { href: '/configuracion/puntos-venta', label: 'Puntos de venta y AFIP' },
+  { href: '/configuracion/impuestos', label: 'Impuestos' },
   { href: '/configuracion/auditoria', label: 'Auditoría' },
   { href: '/suscripcion', label: 'Suscripción' },
 ]

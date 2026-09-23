@@ -255,6 +255,23 @@ class DemoSeeder extends Seeder
             $fep = $comprobantes->emitir($fep);
             app(\App\Services\Ventas\EntregasService::class)->convertirParcial($fep, 'REM', [$fep->items[0]->id => 1500]);
 
+            // Fase 9: percepciones activas, CBU para FCE, padrón IIBB con los clientes, IPC de los últimos meses, un perecedero con partidas y un precio modificado al facturar
+            $empresa->update(['cbu_fce' => '0170099220000012345678', 'cierre_ejercicio_mes' => 12, 'impuestos' => ['percepcion_iibb' => ['activo' => true, 'jurisdiccion' => 'ARBA', 'alicuota' => 3, 'minimo' => 0, 'solo_padron' => false], 'agente_percepcion' => true, 'agente_retencion' => true]]);
+            foreach (Contact::where('business_id', $empresa->id)->whereNotNull('cuit')->get() as $i => $c) {
+                $cuit = preg_replace('/\D/', '', $c->cuit);
+                if (strlen($cuit) === 11) \App\Models\PadronIibb::updateOrCreate(['jurisdiccion' => 'ARBA', 'cuit' => $cuit], ['alic_percepcion' => [1.5, 2, 3, 4][$i % 4], 'alic_retencion' => [1, 2, 3][$i % 3], 'desde' => today()->startOfMonth(), 'hasta' => today()->endOfMonth(), 'fuente' => 'demo']);
+            }
+            $ipc = 6500;
+            for ($m = 14; $m >= 0; $m--) { $ipc = round($ipc * 1.03, 4); \App\Models\IndiceIpc::updateOrCreate(['periodo' => today()->subMonths($m)->format('Y-m')], ['valor' => $ipc, 'fuente' => 'demo']); }
+            $yogur = Product::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'rubro_id' => $rubros->first()->id, 'name' => 'Sellador acrílico 300 ml', 'sku' => 'SEL300', 'tipo' => 'producto', 'unit' => 'un', 'cost' => 2100, 'price' => 3500, 'iva' => 21, 'stock' => 0, 'stock_min' => 20, 'active' => true, 'controla_stock' => true, 'perecedero' => true, 'proveedor_id' => $loma->id, 'barcode' => '7790001234567']);
+            $lotesSvc = app(\App\Services\Stock\LotesService::class);
+            $stockSvc = app(\App\Services\Stock\StockService::class);
+            $stockSvc->entrada($yogur, 40, 'Compra inicial lote A', null, null, 2100, $central->id, ['lote' => 'A-2311', 'vencimiento' => today()->addDays(12)->toDateString()]);
+            $stockSvc->entrada($yogur, 60, 'Compra lote B', null, null, 2100, $central->id, ['lote' => 'B-2402', 'vencimiento' => today()->addMonths(8)->toDateString()]);
+            $stockSvc->entrada($yogur, 15, 'Remanente vencido', null, null, 2100, $central->id, ['lote' => 'Z-2205', 'vencimiento' => today()->subDays(5)->toDateString()]);
+            $fnov = $comprobantes->guardarBorrador(['contact_id' => Contact::customers()->where('business_id', $empresa->id)->where('credit_limit', 0)->where('name', '!=', 'Consumidor Final')->orderBy('id')->value('id') ?? Contact::customers()->first()->id, 'tipo' => 'FX', 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'items' => [['product_id' => $yogur->id, 'cantidad' => 10, 'precio_unit' => 3100, 'descuento' => 0], ['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 5, 'precio_unit' => $productos->firstWhere('sku', 'CEM50')->price, 'descuento' => 0]]]);
+            $comprobantes->emitir($fnov);
+
             // Contabilidad: asientos de todo lo anterior + extracto bancario de prueba (con dos movimientos que el sistema no tiene)
             app(\App\Services\Contabilidad\ContabilidadService::class)->sincronizar($empresa->id);
             $csv = "Fecha;Concepto;Importe;Saldo\n";

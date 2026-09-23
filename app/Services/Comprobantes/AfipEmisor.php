@@ -19,7 +19,7 @@ class AfipEmisor
 
     public function emitir(Comprobante $c, Business $b): array
     {
-        $afipId = $c->def()['afip'];
+        $afipId = $c->afipTipo();
         if (! $afipId) {
             return ['estado' => 'no_aplica', 'numero' => null];
         }
@@ -88,7 +88,14 @@ class AfipEmisor
             $data['Iva'] = $iva;
         }
         if ($c->origen && $c->origen->esFiscal() && in_array($c->def()['grupo'], ['nc', 'nd'], true)) {
-            $data['CbtesAsoc'] = [['Tipo' => $c->origen->def()['afip'], 'PtoVta' => (int) $c->origen->punto_venta, 'Nro' => (int) $c->origen->numero]];
+            $data['CbtesAsoc'] = [['Tipo' => $c->origen->afipTipo(), 'PtoVta' => (int) $c->origen->punto_venta, 'Nro' => (int) $c->origen->numero]];
+        }
+        if ($c->fce) {
+            // FCE MiPyME: CBU del emisor (opcional 2101), sistema de circulación abierta (27 = SCA) y fecha de vencimiento de pago.
+            $b = $c->business;
+            $data['FchVtoPago'] = ($c->fce_vto_pago ?? $c->fecha_vto ?? $c->fecha)->format('Ymd');
+            $data['Opcionales'] = [['Id' => '2101', 'Valor' => preg_replace('/\D/', '', (string) $b->cbu_fce)], ['Id' => '27', 'Valor' => 'SCA']];
+            if (in_array($c->def()['grupo'], ['nc', 'nd'], true)) $data['Opcionales'][] = ['Id' => '22', 'Valor' => 'N'];
         }
         return $data;
     }

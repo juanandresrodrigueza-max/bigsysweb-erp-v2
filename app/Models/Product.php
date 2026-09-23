@@ -18,10 +18,10 @@ class Product extends Model
     protected $fillable = [
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
-        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'imagen',
+        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'imagen', 'perecedero', 'seriado',
     ];
 
-    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2'];
+    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2'];
 
     // Precio de la lista en pesos. Si el artículo está en dólares, se convierte con la cotización vigente.
     public function precioLista(int $lista = 1): float
@@ -71,6 +71,7 @@ class Product extends Model
     public function rubro(): BelongsTo { return $this->belongsTo(Rubro::class); }
     public function proveedor(): BelongsTo { return $this->belongsTo(Contact::class, 'proveedor_id'); }
     public function stocks(): HasMany { return $this->hasMany(StockDeposito::class); }
+    public function lotes(): HasMany { return $this->hasMany(Lote::class)->where('cantidad', '>', 0)->orderBy('vencimiento'); }
     public function receta(): HasOne { return $this->hasOne(Recipe::class)->where('is_active', true); }
 
     public function saleItems(): HasMany

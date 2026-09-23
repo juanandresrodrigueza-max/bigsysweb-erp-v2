@@ -5,7 +5,28 @@
       <div class="flex flex-wrap items-center gap-2">
         <select :value="sucursalId ?? ''" @change="$inertia.get('/estadisticas', { ...periodo, sucursal: $event.target.value || undefined }, { preserveState: true, replace: true })" class="input w-auto !py-1 text-xs"><option value="">Todas las sucursales</option><option v-for="s in listaSucursales" :key="s.id" :value="s.id">{{ s.name }}</option></select>
         <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="{ sucursal: sucursalId }" />
+        <a :href="`/estadisticas?desde=${periodo.desde}&hasta=${periodo.hasta}${sucursalId ? '&sucursal=' + sucursalId : ''}&export=1`" class="btn-secondary !py-1 text-xs">Exportar CSV</a>
       </div>
+    </div>
+
+    <div class="card mb-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="font-bold">Comparativo con el año anterior</h2>
+        <div class="flex gap-1 bg-marca-fondo rounded-full p-1 text-xs"><button class="px-3 py-1 rounded-full font-semibold" :class="!pesosHoy ? 'bg-white shadow' : 'text-marca-muted'" @click="pesosHoy = false">Pesos nominales</button><button class="px-3 py-1 rounded-full font-semibold" :class="pesosHoy ? 'bg-white shadow' : 'text-marca-muted'" :disabled="!comparativo.pesos_hoy" :title="comparativo.pesos_hoy ? '' : 'Cargá el IPC en Configuración → Impuestos'" @click="comparativo.pesos_hoy && (pesosHoy = true)">Pesos de hoy</button></div>
+      </div>
+      <div class="grid sm:grid-cols-4 gap-3 mb-3 text-sm">
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Mismo período {{ comparativo.anterior.desde.slice(0, 4) }}</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(pesosHoy ? comparativo.pesos_hoy.anterior : comparativo.anterior.ventas, 0) }}</p><p class="text-xs text-marca-muted">{{ comparativo.anterior.comprobantes }} comprobantes · ticket {{ moneda(comparativo.anterior.ticket, 0) }}</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Este período</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(pesosHoy ? comparativo.pesos_hoy.actual : kpis.ventas, 0) }}</p><p class="text-xs text-marca-muted">{{ kpis.comprobantes }} comprobantes · ticket {{ moneda(kpis.ticket, 0) }}</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Variación {{ pesosHoy ? 'real' : 'nominal' }}</p><p class="text-xl font-extrabold tabular-nums" :class="(pesosHoy ? comparativo.pesos_hoy.var_real : comparativo.var_nominal) < 0 ? 'text-carmin' : 'text-emerald-700'">{{ (pesosHoy ? comparativo.pesos_hoy.var_real : comparativo.var_nominal) === null ? '—' : ((pesosHoy ? comparativo.pesos_hoy.var_real : comparativo.var_nominal) > 0 ? '+' : '') + (pesosHoy ? comparativo.pesos_hoy.var_real : comparativo.var_nominal) + '%' }}</p><p class="text-xs text-marca-muted">{{ pesosHoy ? 'descontando inflación (IPC ' + comparativo.pesos_hoy.ipc + ')' : 'sin descontar inflación' }}</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Comprobantes</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.comprobantes }} <span class="text-sm text-marca-muted">vs {{ comparativo.anterior.comprobantes }}</span></p></div>
+      </div>
+      <div class="flex items-end gap-1 h-32">
+        <div v-for="m in comparativo.mensual" :key="m.mes" class="flex-1 flex flex-col items-center justify-end h-full min-w-0" :title="`${m.mes}: ${moneda(m.actual, 0)} · año anterior ${moneda(m.anterior, 0)}`">
+          <div class="w-full flex items-end gap-px h-full"><div class="flex-1 rounded-t bg-marca-borde" :style="{ height: Math.max(1, m.anterior / maxComp * 100) + '%' }"></div><div class="flex-1 rounded-t bg-marca-grad" :style="{ height: Math.max(1, (pesosHoy && m.actual_hoy !== null ? m.actual_hoy : m.actual) / maxComp * 100) + '%' }"></div></div>
+          <span class="text-[9px] text-marca-muted mt-1 truncate w-full text-center">{{ m.mes }}</span>
+        </div>
+      </div>
+      <p class="text-[11px] text-marca-muted mt-1">Gris: mismo mes del año anterior · Color: últimos 12 meses.</p>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
@@ -51,13 +72,15 @@
 </template>
 
 <script setup>
-import { computed, h } from 'vue'
+import { computed, h, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda, cantidad } from '@/util/formato'
-const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, kpis: Object, serie: Array, porSucursal: Array, clientes: Array, articulos: Array, rubros: Array, vendedores: Array, cobros: Array, proveedores: Array, horas: Array })
+const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, kpis: Object, serie: Array, porSucursal: Array, clientes: Array, articulos: Array, rubros: Array, vendedores: Array, cobros: Array, proveedores: Array, horas: Array, comparativo: Object })
+const pesosHoy = ref(false)
+const maxComp = computed(() => Math.max(1, ...props.comparativo.mensual.flatMap(m => [m.actual, m.anterior, m.actual_hoy ?? 0])))
 const maxSerie = computed(() => Math.max(1, ...props.serie.map(s => s.monto)))
 const horaN = hh => Number(props.horas.find(x => Number(x.h) === hh)?.n ?? 0)
 const maxHora = computed(() => Math.max(1, ...props.horas.map(x => Number(x.n))))

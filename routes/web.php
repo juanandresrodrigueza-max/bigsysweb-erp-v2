@@ -108,6 +108,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/lote',                [ComprobantesController::class, 'lote'])->middleware('permiso:comprobantes,crear');
         Route::post('/lote',               [ComprobantesController::class, 'facturarLote'])->middleware('permiso:comprobantes,crear');
         Route::post('/ia/interpretar',     [PresupuestoIAController::class, 'interpretar'])->middleware('permiso:comprobantes,crear');
+        Route::get('/novedades',           [\App\Http\Controllers\Comprobantes\NovedadesController::class, 'index']);
         Route::get('/{id}',                [ComprobantesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
@@ -167,6 +168,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras/{id}/nota-credito', [ComprasController::class, 'notaCredito'])->middleware('permiso:proveedores,crear');
         Route::post('/pagos/{id}/anular',       [PagosController::class, 'anular'])->middleware('permiso:proveedores,anular');
         Route::get('/pagos/{id}/imprimir',      [PagosController::class, 'imprimir']);
+        Route::post('/{id}/retencion-sugerida', [PagosController::class, 'retencionSugerida'])->whereNumber('id');
         Route::get('/{id}',                     [ProveedoresController::class, 'show'])->whereNumber('id');
         Route::post('/{id}',                    [ProveedoresController::class, 'guardar'])->middleware('permiso:proveedores,editar');
         Route::post('/{id}/pagos',              [PagosController::class, 'store'])->middleware('permiso:proveedores,crear');
@@ -182,6 +184,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cuentas/{id}/abrir-turno', [FondosController::class, 'abrirTurno'])->middleware('permiso:fondos,crear');
         Route::post('/turnos/{id}/cerrar',     [FondosController::class, 'cerrarTurno'])->middleware('permiso:fondos,crear');
         Route::get('/turnos/{id}/rendicion',   [FondosController::class, 'rendicion']);
+        Route::get('/valores',                 [\App\Http\Controllers\Fondos\ValoresController::class, 'index']);
         Route::get('/tarjetas',                [\App\Http\Controllers\Fondos\TarjetasController::class, 'index']);
         Route::post('/tarjetas/liquidar',      [\App\Http\Controllers\Fondos\TarjetasController::class, 'liquidar'])->middleware('permiso:fondos,crear');
         Route::post('/tarjetas/liquidaciones/{id}/anular', [\App\Http\Controllers\Fondos\TarjetasController::class, 'anular'])->middleware('permiso:fondos,anular');
@@ -212,6 +215,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/importar',                  [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'index'])->middleware('permiso:stock,editar');
         Route::post('/importar/previsualizar',   [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'previsualizar'])->middleware('permiso:stock,editar');
         Route::post('/importar/aplicar',         [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'aplicar'])->middleware('permiso:stock,editar');
+        Route::get('/informes',                  [\App\Http\Controllers\Stock\InformesController::class, 'index']);
+        Route::post('/informes/minimos',         [\App\Http\Controllers\Stock\InformesController::class, 'aplicarMinimos'])->middleware('permiso:stock,editar');
+        Route::get('/etiquetas',                 [\App\Http\Controllers\Stock\InformesController::class, 'etiquetas']);
+        Route::get('/verificador',               [\App\Http\Controllers\Stock\InformesController::class, 'verificador']);
+        Route::get('/verificar',                 [\App\Http\Controllers\Stock\InformesController::class, 'verificar']);
         Route::get('/{id}',                      [\App\Http\Controllers\Stock\StockController::class, 'show'])->whereNumber('id');
     });
 
@@ -246,6 +254,17 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/conciliacion/{id}/desvincular', [\App\Http\Controllers\Contable\ConciliacionController::class, 'desvincular'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/ignorar',  [\App\Http\Controllers\Contable\ConciliacionController::class, 'ignorar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/registrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrar'])->middleware('permiso:contable,crear');
+        Route::get('/fiscal',                      [\App\Http\Controllers\Contable\FiscalController::class, 'index']);
+        Route::get('/fiscal/exportar',             [\App\Http\Controllers\Contable\FiscalController::class, 'exportar'])->middleware('permiso:contable,exportar');
+        Route::get('/fiscal/libro-digital',        [\App\Http\Controllers\Contable\FiscalController::class, 'libroDigital'])->middleware('permiso:contable,exportar');
+        Route::post('/fiscal/arca/analizar',       [\App\Http\Controllers\Contable\FiscalController::class, 'arcaAnalizar'])->middleware('permiso:contable,crear');
+        Route::post('/fiscal/arca/registrar',      [\App\Http\Controllers\Contable\FiscalController::class, 'arcaRegistrar'])->middleware('permiso:contable,crear');
+        Route::get('/fiscal/retenciones/{id}/certificado', [\App\Http\Controllers\Contable\FiscalController::class, 'certificado']);
+        Route::get('/ejercicio',                   [\App\Http\Controllers\Contable\EjercicioController::class, 'index']);
+        Route::post('/ejercicio/cerrar',           [\App\Http\Controllers\Contable\EjercicioController::class, 'cerrar'])->middleware('permiso:contable,crear');
+        Route::post('/ejercicio/{id}/reabrir',     [\App\Http\Controllers\Contable\EjercicioController::class, 'reabrir'])->middleware('permiso:contable,anular');
+        Route::post('/ejercicio/ajuste',           [\App\Http\Controllers\Contable\EjercicioController::class, 'ajuste'])->middleware('permiso:contable,crear');
+        Route::get('/diario',                      [\App\Http\Controllers\Contable\EjercicioController::class, 'diario']);
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
@@ -297,6 +316,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::delete('/roles/{id}',         [RolesController::class, 'eliminar'])->middleware('permiso:configuracion,anular')->name('roles.eliminar');
 
         Route::get('/auditoria',             [AuditoriaController::class, 'index'])->name('auditoria');
+        Route::get('/impuestos',             [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'index'])->name('impuestos');
+        Route::post('/impuestos',            [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'guardar'])->middleware('permiso:configuracion,editar');
+        Route::post('/impuestos/padron',     [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'importarPadron'])->middleware('permiso:configuracion,editar');
+        Route::post('/impuestos/ipc',        [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'guardarIpc'])->middleware('permiso:configuracion,editar');
+        Route::post('/impuestos/ipc/actualizar', [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'actualizarIpc'])->middleware('permiso:configuracion,editar');
 
         Route::get('/puntos-venta',          [PuntosVentaController::class, 'index'])->name('puntos');
         Route::post('/puntos-venta/{id?}',   [PuntosVentaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('puntos.guardar');

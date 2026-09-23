@@ -59,7 +59,7 @@ class ComprasController extends Controller
             'contact_id' => 'required|integer|exists:contacts,id', 'tipo' => 'required|in:FA,FB,FC,FE,NCA,NCB,NCC,NDA,NDB,NDC', 'numero_proveedor' => 'nullable|string|max:20', 'cae_proveedor' => 'nullable|string|max:20',
             'fecha' => 'required|date', 'fecha_vto' => 'nullable|date', 'dias_vto' => 'nullable|integer|min:0|max:365', 'condicion' => 'nullable|in:contado,cta_cte', 'origen_carga' => 'nullable|in:manual,ocr,afip_csv', 'origen_id' => 'nullable|integer', 'orden_compra_id' => 'nullable|integer|exists:ordenes_compra,id', 'notas' => 'nullable|string|max:2000',
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:255', 'items.*.cantidad' => 'required|numeric|gt:0', 'items.*.unidad' => 'nullable|string|max:10',
-            'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.alicuota_iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27',
+            'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.alicuota_iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27', 'items.*.lote' => 'nullable|string|max:40', 'items.*.vencimiento' => 'nullable|date', 'items.*.serie' => 'nullable|string|max:500',
             'impuestos' => 'nullable|array', 'impuestos.*.tipo' => 'required_with:impuestos|string|max:30', 'impuestos.*.monto' => 'required_with:impuestos|numeric|min:0',
         ]);
         $c = $this->service->guardarBorrador($data, $id ? Comprobante::compras()->findOrFail($id) : null);
@@ -136,7 +136,8 @@ class ComprasController extends Controller
                 'impuestos' => $c->impuestos->map(fn($i) => ['tipo' => $i->tipo, 'monto' => (float) $i->monto])]) : null,
             'contactIdInicial' => (int) $request->input('contact_id') ?: null,
             'proveedores' => Contact::suppliers()->where('is_active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'cuit' => $p->cuit, 'condicion_iva' => $p->condicion_iva, 'dias_pago' => $p->dias_pago, 'balance' => (float) $p->balance]),
-            'productos' => Product::where('active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'iva' => (float) $p->iva, 'cost' => (float) $p->cost, 'stock' => (float) $p->stock]),
+            'productos' => Product::where('active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'iva' => (float) $p->iva, 'cost' => (float) $p->cost, 'stock' => (float) $p->stock, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado]),
+            'fceHabilitado' => true,
             'iaDisponible' => (bool) config('services.anthropic.api_key'),
         ];
     }

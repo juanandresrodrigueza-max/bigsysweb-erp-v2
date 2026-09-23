@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 class StockService
 {
     // Mueve $cantidad (positiva entra, negativa sale) en un depósito. Devuelve el movimiento.
-    public function mover(Product $p, float $cantidad, ?Deposito $deposito, string $tipo, string $motivo, ?Model $origen = null, ?float $costoUnit = null, ?int $locationId = null): ?StockMovement
+    public function mover(Product $p, float $cantidad, ?Deposito $deposito, string $tipo, string $motivo, ?Model $origen = null, ?float $costoUnit = null, ?int $locationId = null, array $lote = []): ?StockMovement
     {
         $p = Product::lockForUpdate()->find($p->id);
         if (! $p || ! $p->controla_stock || abs($cantidad) < 0.0005) {
@@ -35,9 +35,17 @@ class StockService
             $sd->save();
         }
 
+        // Partidas con lote / vencimiento / serie: entradas suman, salidas consumen FEFO.
+        $loteId = null;
+        if ($p->perecedero || $p->seriado) {
+            $ls = app(LotesService::class);
+            if ($cantidad > 0) $loteId = $ls->entrada($p, $deposito, $cantidad, $lote + ['costo' => $costoUnit])?->id;
+            else { $usadas = $ls->salida($p, $deposito, -$cantidad, $lote['serie'] ?? null); $loteId = $usadas[0]['lote']->id ?? null; }
+        }
+
         return StockMovement::create([
             'business_id' => $p->business_id, 'business_location_id' => $deposito?->business_location_id ?? $locationId ?? Auth::user()?->current_location_id,
-            'product_id' => $p->id, 'deposito_id' => $deposito?->id, 'user_id' => Auth::id() ?? $p->business->owner_id,
+            'product_id' => $p->id, 'deposito_id' => $deposito?->id, 'lote_id' => $loteId, 'user_id' => Auth::id() ?? $p->business->owner_id,
             'type' => $tipo, 'quantity' => abs($cantidad), 'stock_before' => $antes, 'stock_after' => (float) $p->stock, 'costo_unit' => $costoUnit ?? (float) $p->cost,
             'reason' => $motivo, 'movable_id' => $origen?->getKey(), 'movable_type' => $origen ? get_class($origen) : null,
             // El kardex lleva la fecha del comprobante u orden que lo originó (si la tiene), no la de carga.
@@ -46,9 +54,9 @@ class StockService
     }
 
     // Atajos legibles desde los otros servicios.
-    public function entrada(Product $p, float $cantidad, string $motivo, ?Model $origen = null, ?Deposito $deposito = null, ?float $costoUnit = null, ?int $locationId = null): ?StockMovement
+    public function entrada(Product $p, float $cantidad, string $motivo, ?Model $origen = null, ?Deposito $deposito = null, ?float $costoUnit = null, ?int $locationId = null, array $lote = []): ?StockMovement
     {
-        return $this->mover($p, abs($cantidad), $deposito, 'in', $motivo, $origen, $costoUnit, $locationId);
+        return $this->mover($p, abs($cantidad), $deposito, 'in', $motivo, $origen, $costoUnit, $locationId, $lote);
     }
 
     public function salida(Product $p, float $cantidad, string $motivo, ?Model $origen = null, ?Deposito $deposito = null, ?int $locationId = null): ?StockMovement

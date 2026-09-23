@@ -53,7 +53,7 @@ class CompraService
                 $product = ! empty($it['product_id']) ? Product::find($it['product_id']) : null;
                 $al = (float) ($it['alicuota_iva'] ?? 21);
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
-                $c->items()->create(['product_id' => $product?->id, 'descripcion' => $it['descripcion'] ?: ($product?->name ?? 'Ítem'), 'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, ...$calc]);
+                $c->items()->create(['product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'), 'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'lote' => $it['lote'] ?? null, 'vencimiento' => $it['vencimiento'] ?? null, 'serie' => $it['serie'] ?? null, ...$calc]);
             }
 
             $c->impuestos()->delete();
@@ -109,7 +109,7 @@ class CompraService
                         $p->recalcularDesdeCosto();
                         $p->save();
                     }
-                    $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id);
+                    $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id, ['lote' => $it->lote, 'vencimiento' => $it->vencimiento, 'serie' => $it->serie]);
                 }
                 $c->forceFill(['stock_impactado' => true])->save();
             }

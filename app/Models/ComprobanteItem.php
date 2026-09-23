@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ComprobanteItem extends Model
 {
-    protected $fillable = ['comprobante_id', 'product_id', 'descripcion', 'cantidad', 'unidad', 'precio_unit', 'descuento', 'alicuota_iva', 'neto', 'iva', 'total', 'orden', 'cantidad_entregada', 'cantidad_facturada', 'origen_item_id'];
+    protected $fillable = ['comprobante_id', 'product_id', 'descripcion', 'cantidad', 'unidad', 'precio_unit', 'descuento', 'alicuota_iva', 'neto', 'iva', 'total', 'orden', 'cantidad_entregada', 'cantidad_facturada', 'origen_item_id', 'lote', 'vencimiento', 'serie'];
 
     protected $casts = ['cantidad' => 'decimal:3', 'precio_unit' => 'decimal:4', 'descuento' => 'decimal:2', 'alicuota_iva' => 'decimal:2', 'neto' => 'decimal:2', 'iva' => 'decimal:2', 'total' => 'decimal:2', 'cantidad_entregada' => 'decimal:3', 'cantidad_facturada' => 'decimal:3'];
 

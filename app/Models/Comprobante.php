@@ -31,7 +31,7 @@ class Comprobante extends Model
     ];
 
     protected $fillable = [
-        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
+        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'fce', 'fce_estado', 'fce_vto_pago', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en',
@@ -40,7 +40,7 @@ class Comprobante extends Model
 
     protected $casts = [
         'fecha' => 'date', 'fecha_vto' => 'date', 'cae_vto' => 'date', 'emitido_en' => 'datetime', 'anulado_en' => 'datetime',
-        'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean', 'entrega_pendiente' => 'boolean', 'aprobado_en' => 'datetime', 'rechazado_en' => 'datetime',
+        'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean', 'entrega_pendiente' => 'boolean', 'fce' => 'boolean', 'fce_vto_pago' => 'date', 'aprobado_en' => 'datetime', 'rechazado_en' => 'datetime',
         'neto' => 'decimal:2', 'exento' => 'decimal:2', 'iva' => 'decimal:2', 'percepciones' => 'decimal:2',
         'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4',
     ];
@@ -87,7 +87,9 @@ class Comprobante extends Model
     public function esFiscal(): bool { return $this->def()['afip'] !== null; }
     public function esFactura(): bool { return $this->def()['grupo'] === 'factura'; }
     public function esNotaCredito(): bool { return $this->def()['grupo'] === 'nc'; }
-    public function nombreTipo(): string { return $this->def()['nombre']; }
+    public function nombreTipo(): string { return $this->fce ? str_replace(['Factura', 'Nota de Crédito', 'Nota de Débito'], ['FCE MiPyME', 'NC FCE MiPyME', 'ND FCE MiPyME'], $this->def()['nombre']) : $this->def()['nombre']; }
+    // Código AFIP: las FCE usan 201/206/211 (y sus NC/ND) en lugar de 1/6/11.
+    public function afipTipo(): ?int { $t = $this->def()['afip']; if (! $t || ! $this->fce) return $t; return match ($this->def()['grupo']) { 'factura' => ['A' => 201, 'B' => 206, 'C' => 211][$this->def()['letra']] ?? $t, 'nd' => ['A' => 202, 'B' => 207, 'C' => 212][$this->def()['letra']] ?? $t, 'nc' => ['A' => 203, 'B' => 208, 'C' => 213][$this->def()['letra']] ?? $t, default => $t }; }
 
     public function numeroFormateado(): ?string
     {

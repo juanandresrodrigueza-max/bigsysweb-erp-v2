@@ -8,6 +8,7 @@
       <div class="flex flex-wrap gap-2">
         <Link href="/fondos/tarjetas" class="btn-secondary">Tarjetas</Link>
         <Link href="/fondos/cheques" class="btn-secondary">Cheques</Link>
+        <Link href="/fondos/valores" class="btn-secondary" title="De dónde vino y a dónde fue cada cheque o cupón">Valores</Link>
         <button v-if="puede('fondos','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('egreso')" class="btn-secondary">Gasto</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('ingreso')" class="btn-secondary">Ingreso</button>

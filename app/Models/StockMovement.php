@@ -13,7 +13,7 @@ class StockMovement extends Model
 
     public const TIPOS = ['in' => 'Entrada', 'out' => 'Salida', 'ajuste' => 'Ajuste', 'transferencia' => 'Transferencia', 'inventario' => 'Inventario', 'produccion' => 'Producción'];
 
-    protected $fillable = ['business_id', 'business_location_id', 'product_id', 'deposito_id', 'user_id', 'type', 'quantity', 'stock_before', 'stock_after', 'costo_unit', 'reason', 'movable_id', 'movable_type'];
+    protected $fillable = ['business_id', 'business_location_id', 'product_id', 'deposito_id', 'user_id', 'lote_id', 'type', 'quantity', 'stock_before', 'stock_after', 'costo_unit', 'reason', 'movable_id', 'movable_type'];
     protected $casts = ['quantity' => 'decimal:3', 'stock_before' => 'decimal:3', 'stock_after' => 'decimal:3', 'costo_unit' => 'decimal:2'];
 
     public function product(): BelongsTo

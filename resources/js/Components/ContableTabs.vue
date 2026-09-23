@@ -8,7 +8,7 @@ import { Link, usePage } from '@inertiajs/vue3'
 const page = usePage()
 const tabs = [
   { href: '/contable', label: 'Resumen' }, { href: '/contable/asientos', label: 'Asientos' }, { href: '/contable/mayor', label: 'Mayor' }, { href: '/contable/iva', label: 'Libros IVA' },
-  { href: '/contable/balance', label: 'Balance' }, { href: '/contable/flujo', label: 'Flujo de fondos' }, { href: '/contable/conciliacion', label: 'Conciliación' }, { href: '/contable/plan', label: 'Plan de cuentas' },
+  { href: '/contable/balance', label: 'Balance' }, { href: '/contable/flujo', label: 'Flujo de fondos' }, { href: '/contable/conciliacion', label: 'Conciliación' }, { href: '/contable/fiscal', label: 'Fiscal' }, { href: '/contable/ejercicio', label: 'Ejercicio' }, { href: '/contable/plan', label: 'Plan de cuentas' },
 ]
 const activa = t => page.url.split('?')[0] === t.href
 </script>

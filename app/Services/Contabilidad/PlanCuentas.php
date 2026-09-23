@@ -50,6 +50,7 @@ class PlanCuentas
         ['4.2.03', 'Intereses ganados', 'ingreso', 'intereses_ganados', true],
         ['4.2.04', 'Descuentos obtenidos', 'ingreso', 'descuentos_obtenidos', true],
         ['4.2.05', 'Diferencias de cambio', 'ingreso', 'dif_cambio', true],
+        ['4.2.06', 'RECPAM (resultado por exposición a la inflación)', 'ingreso', 'recpam', true],
         ['5', 'EGRESOS', 'egreso', null, false],
         ['5.1', 'Costo de ventas', 'egreso', null, false],
         ['5.1.01', 'Costo de mercaderías vendidas', 'egreso', 'cmv', true],
@@ -72,7 +73,7 @@ class PlanCuentas
             $parentCodigo = str_contains($codigo, '.') ? substr($codigo, 0, strrpos($codigo, '.')) : null;
             $c = CuentaContable::withoutGlobalScopes()->firstOrCreate(
                 ['business_id' => $b->id, 'codigo' => $codigo],
-                ['nombre' => $nombre, 'tipo' => $tipo, 'clave' => $clave, 'imputable' => $imputable, 'parent_id' => $parentCodigo ? ($ids[$parentCodigo] ?? null) : null]
+                ['nombre' => $nombre, 'tipo' => $tipo, 'clave' => $clave, 'imputable' => $imputable, 'ajustable' => in_array($clave, ['mercaderias', 'capital', 'resultados'], true), 'parent_id' => $parentCodigo ? ($ids[$parentCodigo] ?? null) : null]
             );
             $ids[$codigo] = $c->id;
         }
