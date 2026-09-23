@@ -258,6 +258,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/importar',                  [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'index'])->middleware('permiso:stock,editar');
         Route::post('/importar/previsualizar',   [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'previsualizar'])->middleware('permiso:stock,editar');
         Route::post('/importar/aplicar',         [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'aplicar'])->middleware('permiso:stock,editar');
+        Route::post('/importar/analizar',        [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'analizar'])->middleware('permiso:stock,editar');
         Route::get('/informes',                  [\App\Http\Controllers\Stock\InformesController::class, 'index']);
         Route::post('/informes/minimos',         [\App\Http\Controllers\Stock\InformesController::class, 'aplicarMinimos'])->middleware('permiso:stock,editar');
         Route::get('/etiquetas',                 [\App\Http\Controllers\Stock\InformesController::class, 'etiquetas']);

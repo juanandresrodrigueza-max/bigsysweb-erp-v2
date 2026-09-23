@@ -243,12 +243,12 @@ class StockController extends Controller
     // Consulta y aplicación de precios en bloque: por %, por margen desde el costo, sobre rubro/proveedor/marca y listas elegidas. Con vista previa y deshacer.
     private function reglasPrecios(): array
     {
-        return ['modo' => 'required|in:porcentaje,margen', 'porcentaje' => 'nullable|numeric|min:-90|max:500', 'campo' => 'required|in:price,cost,ambos', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'marca' => 'nullable|string|max:60', 'listas' => 'nullable|array', 'listas.*' => 'integer|min:1|max:6', 'redondeo' => 'nullable|in:0,1,10,100', 'buscar' => 'nullable|string|max:80'];
+        return ['modo' => 'required|in:porcentaje,margen', 'porcentaje' => 'nullable|numeric|min:-90|max:500', 'campo' => 'required|in:price,cost,ambos', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'marca' => 'nullable|string|max:60', 'listas' => 'nullable|array', 'listas.*' => 'integer|min:1|max:6', 'redondeo' => 'nullable|in:0,1,10,100', 'buscar' => 'nullable|string|max:80', 'ids' => 'nullable|array', 'ids.*' => 'integer'];
     }
 
     private function consultaPrecios(array $d)
     {
-        return Product::where('active', true)->when($d['rubro_id'] ?? null, fn($q, $x) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $x)))->when($d['proveedor_id'] ?? null, fn($q, $x) => $q->where('proveedor_id', $x))->when($d['marca'] ?? null, fn($q, $x) => $q->where('marca', $x))->when($d['buscar'] ?? null, fn($q, $x) => $q->where(fn($w) => $w->where('name', 'like', "%{$x}%")->orWhere('sku', 'like', "%{$x}%")));
+        return Product::where('active', true)->when($d['rubro_id'] ?? null, fn($q, $x) => $q->whereIn('rubro_id', Rubro::conDescendientes((int) $x)))->when($d['proveedor_id'] ?? null, fn($q, $x) => $q->where('proveedor_id', $x))->when($d['marca'] ?? null, fn($q, $x) => $q->where('marca', $x))->when($d['buscar'] ?? null, fn($q, $x) => $q->where(fn($w) => $w->where('name', 'like', "%{$x}%")->orWhere('sku', 'like', "%{$x}%")))->when($d['ids'] ?? null, fn($q, $ids) => $q->whereIn('id', $ids));
     }
 
     // Calcula los valores nuevos de un artículo sin guardarlos.

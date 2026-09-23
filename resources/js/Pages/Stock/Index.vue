@@ -32,11 +32,18 @@
       <select v-model="f.estado" @change="filtrar" class="input"><option value="">Activos</option><option value="bajo_minimo">Bajo mínimo</option><option value="sin_stock">Sin stock</option><option value="inactivos">Inactivos</option><option value="todos">Todos</option></select>
     </div>
 
+    <div v-if="sel.length" class="flex flex-wrap items-center gap-2 mb-3 rounded-xl bg-violeta/10 border border-violeta/30 px-4 py-2 text-sm">
+      <b>{{ sel.length }} artículo{{ sel.length > 1 ? 's' : '' }} seleccionado{{ sel.length > 1 ? 's' : '' }}</b>
+      <button class="btn-primary !py-1 text-xs" @click="pr.ids = [...sel]; preciosAbierto = true">Actualizar precios de estos</button>
+      <button class="btn-ghost !py-1 text-xs" @click="sel = []">Quitar selección</button>
+      <span class="text-xs text-marca-muted">Podés ir marcando en varias páginas.</span>
+    </div>
     <div class="card p-0 overflow-x-auto">
       <table class="table">
-        <thead><tr><th>Artículo</th><th>Rubro</th><th class="text-right">Costo</th><th class="text-right">Precio</th><th v-for="d in depositosActivos" :key="d.id" class="text-right whitespace-nowrap">{{ d.nombre.replace('Depósito ', '') }}</th><th class="text-right">Total</th><th class="text-right">Mín.</th><th class="text-right">Valor</th><th></th></tr></thead>
+        <thead><tr><th class="w-8"><input type="checkbox" class="accent-carmin" :checked="lista.data.length && lista.data.every(p => sel.includes(p.id))" @change="$event.target.checked ? lista.data.forEach(p => !sel.includes(p.id) && sel.push(p.id)) : (sel = sel.filter(id => !lista.data.some(p => p.id === id)))" title="Seleccionar todos los de esta página" /></th><th>Artículo</th><th>Rubro</th><th class="text-right">Costo</th><th class="text-right">Precio</th><th v-for="d in depositosActivos" :key="d.id" class="text-right whitespace-nowrap">{{ d.nombre.replace('Depósito ', '') }}</th><th class="text-right">Total</th><th class="text-right">Mín.</th><th class="text-right">Valor</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="p in lista.data" :key="p.id" class="cursor-pointer" :class="!p.active ? 'opacity-50' : ''" @click="$inertia.visit(`/stock/${p.id}`)">
+          <tr v-for="p in lista.data" :key="p.id" class="cursor-pointer" :class="[!p.active ? 'opacity-50' : '', sel.includes(p.id) ? 'bg-violeta/5' : '']" @click="$inertia.visit(`/stock/${p.id}`)">
+            <td @click.stop><input type="checkbox" class="accent-carmin" :checked="sel.includes(p.id)" @change="$event.target.checked ? sel.push(p.id) : (sel = sel.filter(id => id !== p.id))" /></td>
             <td><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted tabular-nums">{{ p.sku }}<span v-if="p.marca"> · {{ p.marca }}</span><span v-if="p.tipo !== 'producto'" class="badge ml-1" :class="{ insumo: 'bg-gris-light text-marca-muted', elaborado: 'bg-violeta-light text-violeta', servicio: 'bg-lavanda-light text-violeta' }[p.tipo]">{{ p.tipo }}</span></p></td>
             <td><span v-if="p.rubro" class="badge text-white" :style="{ background: p.rubro_color || '#6f6a62' }">{{ p.rubro }}</span></td>
             <td class="text-right tabular-nums text-marca-muted">{{ moneda(p.cost) }}</td>
@@ -47,7 +54,7 @@
             <td class="text-right tabular-nums">{{ p.controla ? moneda(p.valor, 0) : '' }}</td>
             <td class="text-right"><button v-if="puede('stock','editar')" @click.stop="abrirArticulo(p)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
-          <tr v-if="!lista.data.length"><td :colspan="8 + depositosActivos.length" class="text-center text-marca-muted py-10">No hay artículos con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td :colspan="9 + depositosActivos.length" class="text-center text-marca-muted py-10">No hay artículos con estos filtros.</td></tr>
         </tbody>
       </table>
     </div>
@@ -79,7 +86,8 @@
     </Modal>
 
     <!-- Actualizar precios -->
-    <Modal :abierto="preciosAbierto" titulo="Actualizar precios en bloque" ancho="max-w-2xl" @cerrar="preciosAbierto = false">
+    <Modal :abierto="preciosAbierto" :titulo="pr.ids.length ? `Actualizar precios de ${pr.ids.length} artículos seleccionados` : 'Actualizar precios en bloque'" ancho="max-w-2xl" @cerrar="preciosAbierto = false; pr.ids = []">
+      <p v-if="pr.ids.length" class="text-xs text-violeta font-semibold mb-2">Solo se tocan los artículos que marcaste en la lista. Los filtros de rubro, proveedor y marca no aplican.</p>
       <div class="flex gap-1 bg-marca-fondo rounded-xl p-1 mb-4 text-sm">
         <button v-for="m in [['porcentaje', 'Subir o bajar un %'], ['margen', 'Recalcular por margen desde el costo']]" :key="m[0]" @click="pr.modo = m[0]" class="flex-1 py-1.5 rounded-lg font-semibold transition" :class="pr.modo === m[0] ? 'bg-white shadow' : 'text-marca-muted'">{{ m[1] }}</button>
       </div>
@@ -105,7 +113,7 @@
         <p v-else class="text-xs text-marca-muted mt-1">Calculá antes de aplicar para ver cuántos artículos cambian y cómo quedan.</p>
       </div>
       <p class="text-xs text-marca-muted mt-3">Queda en auditoría quién lo hizo y cuándo, y se puede deshacer la última actualización durante 7 días.</p>
-      <template #pie><button class="btn-ghost text-carmin" @click="router.post('/stock/precios/deshacer', {}, { preserveScroll: true, onSuccess: () => (preciosAbierto = false) })">Deshacer la última</button><span class="flex-1"></span><button class="btn-secondary" @click="preciosAbierto = false">Cancelar</button><button class="btn-primary" :disabled="pr.processing || (pr.modo === 'porcentaje' && !pr.porcentaje)" @click="pr.post('/stock/precios', { preserveScroll: true, onSuccess: () => { preciosAbierto = false; prev = null } })">{{ pr.modo === 'margen' ? 'Recalcular' : 'Aplicar ' + (pr.porcentaje ? pr.porcentaje + '%' : '') }}</button></template>
+      <template #pie><button class="btn-ghost text-carmin" @click="router.post('/stock/precios/deshacer', {}, { preserveScroll: true, onSuccess: () => (preciosAbierto = false) })">Deshacer la última</button><span class="flex-1"></span><button class="btn-secondary" @click="preciosAbierto = false">Cancelar</button><button class="btn-primary" :disabled="pr.processing || (pr.modo === 'porcentaje' && !pr.porcentaje)" @click="pr.post('/stock/precios', { preserveScroll: true, onSuccess: () => { preciosAbierto = false; prev = null; pr.ids = []; sel = [] } })">{{ pr.modo === 'margen' ? 'Recalcular' : 'Aplicar ' + (pr.porcentaje ? pr.porcentaje + '%' : '') }}</button></template>
     </Modal>
 
     <!-- Rubros y depósitos -->
@@ -171,7 +179,8 @@ const opcionesArticulos = computed(() => props.lista.data.filter(p => p.controla
 
 const preciosAbierto = ref(false), dolarAbierto = ref(false)
 const dol = useForm({ venta: null })
-const pr = useForm({ modo: 'porcentaje', porcentaje: null, campo: 'price', rubro_id: null, proveedor_id: null, marca: '', listas: [], redondeo: '10', buscar: '' })
+const pr = useForm({ modo: 'porcentaje', porcentaje: null, campo: 'price', rubro_id: null, proveedor_id: null, marca: '', listas: [], redondeo: '10', buscar: '', ids: [] })
+const sel = ref([])
 const prev = ref(null), prevCargando = ref(false)
 const marcas = computed(() => [...new Set((props.lista?.data ?? props.lista ?? []).map(a => a.marca).filter(Boolean))].sort())
 async function previsualizar() { prevCargando.value = true; try { const r = await fetch('/stock/precios/previsualizar', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify(pr.data()) }); prev.value = r.ok ? await r.json() : null } catch (e) { prev.value = null } finally { prevCargando.value = false } }
