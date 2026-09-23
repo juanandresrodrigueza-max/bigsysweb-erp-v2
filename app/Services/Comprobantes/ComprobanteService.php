@@ -46,9 +46,10 @@ class ComprobanteService
             ])->save();
 
             $c->items()->delete();
+            $letraC = str_ends_with($tipo, 'C') && in_array($tipo, ['FC', 'NCC', 'NDC'], true); // monotributista: no discrimina IVA
             foreach (array_values($data['items']) as $i => $it) {
                 $product = ! empty($it['product_id']) ? Product::find($it['product_id']) : null;
-                $al = (float) ($it['alicuota_iva'] ?? $product?->iva ?? 21);
+                $al = $letraC ? 0 : (float) ($it['alicuota_iva'] ?? $product?->iva ?? 21);
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
                 $c->items()->create([
                     'product_id' => $product?->id, 'descripcion' => $it['descripcion'] ?: ($product?->name ?? 'Ítem'),

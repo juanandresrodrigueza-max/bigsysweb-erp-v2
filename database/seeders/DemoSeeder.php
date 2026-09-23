@@ -88,6 +88,9 @@ class DemoSeeder extends Seeder
                 'price' => $p[2], 'prices' => $p[2] ? ['2' => round($p[2] * 0.93), '3' => round($p[2] * 0.9), '4' => round($p[2] * 0.88), '5' => round($p[2] * 0.85)] : null,
                 'cost' => $p[3], 'iva' => 21, 'stock' => 0, 'stock_min' => $p[6], 'unit' => $p[7], 'active' => true, 'precio_actualizado_en' => now()->subDays(20),
             ]));
+            foreach ([['CEM50', '7790001000011', true], ['HIE08', '7790001000028', true], ['CAL25', '7790001000035', true], ['LAD12', '7790001000042', true], ['ARE01', null, true], ['MAL15', '7790001000059', false]] as [$sku, $bc, $fav]) {
+                $productos->firstWhere('sku', $sku)->forceFill(['barcode' => $bc, 'favorito_pos' => $fav])->save();
+            }
             $stockInicial = collect([
                 ['CEM50', 1500, 400], ['HIE08', 300, 80], ['ARE01', 220, 40], ['LAD12', 12000, 3000], ['CAL25', 150, 30], ['PIE01', 130, 20], ['HIE10', 420, 80], ['MAL15', 220, 40], ['BOL30', 600, 0],
             ]);

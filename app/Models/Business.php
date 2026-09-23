@@ -109,10 +109,20 @@ class Business extends Model
             return $core;
         }
         $features = (array) ($plan->features ?? []);
-        if (in_array('*', $features, true)) {
-            return array_keys($todos);
-        }
-        return array_values(array_unique(array_merge($core, array_intersect(array_keys($todos), $features))));
+        $modulos = in_array('*', $features, true) ? array_keys($todos) : array_values(array_unique(array_merge($core, array_intersect(array_keys($todos), $features))));
+        // Los verticales se muestran según el rubro de la empresa: un corralón no necesita ver "Gastronomía".
+        $permitidos = $this->verticalesPermitidos();
+        return array_values(array_filter($modulos, fn($m) => ! in_array($m, ['gastronomia', 'retail', 'minimarket'], true) || in_array($m, $permitidos, true)));
+    }
+
+    public function verticalesPermitidos(): array
+    {
+        return match ($this->vertical) {
+            'gastronomia' => ['gastronomia', 'retail'],
+            'minimarket' => ['minimarket'],
+            'retail', 'corralon', 'otro', null => ['retail'],
+            default => ['retail'],
+        };
     }
 
     public function tieneModulo(string $modulo): bool

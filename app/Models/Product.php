@@ -17,10 +17,10 @@ class Product extends Model
 
     protected $fillable = [
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
-        'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en',
+        'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
     ];
 
-    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime'];
+    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime'];
 
     public function precioLista(int $lista = 1): float
     {

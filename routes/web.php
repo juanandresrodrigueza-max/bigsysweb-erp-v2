@@ -203,6 +203,33 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
 
+    // Punto de venta (comercio y minimarket comparten pantalla)
+    foreach (['retail', 'minimarket'] as $v) {
+        Route::prefix($v)->middleware("permiso:{$v}")->group(function () use ($v) {
+            Route::get('/',            [\App\Http\Controllers\Pos\PosController::class, 'index']);
+            Route::post('/vender',     [\App\Http\Controllers\Pos\PosController::class, 'vender'])->middleware("permiso:{$v},crear");
+            Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
+        });
+    }
+
+    // Gastronomía
+    Route::prefix('gastronomia')->middleware('permiso:gastronomia')->group(function () {
+        Route::get('/',                               [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mesas']);
+        Route::post('/mesas/{id?}',                   [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarMesa'])->middleware('permiso:gastronomia,editar');
+        Route::delete('/mesas/{id}',                  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'eliminarMesa'])->middleware('permiso:gastronomia,editar');
+        Route::post('/comandas',                      [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'abrir'])->middleware('permiso:gastronomia,crear');
+        Route::get('/comandas/{id}',                  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'comanda']);
+        Route::post('/comandas/{id}/items',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'agregar'])->middleware('permiso:gastronomia,crear');
+        Route::delete('/comandas/{id}/items/{item}',  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'quitar'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/enviar',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'enviar'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/cuenta',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cuenta'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/mover',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mover'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/cerrar',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cerrar'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/anular',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'anular'])->middleware('permiso:gastronomia,editar');
+        Route::post('/items/{item}/estado',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'itemEstado'])->middleware('permiso:gastronomia,editar');
+        Route::get('/cocina',                         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cocina']);
+    });
+
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
         Route::post('/empresa',    [EmpresaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('empresa.guardar');
