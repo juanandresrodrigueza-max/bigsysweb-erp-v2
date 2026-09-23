@@ -6,6 +6,7 @@
         <p class="page-subtitle">{{ entero(totales.clientes) }} clientes · por cobrar {{ moneda(totales.por_cobrar, 0) }}</p>
       </div>
       <div class="flex gap-2">
+        <Link href="/clientes/cobranzas" class="btn-secondary">Cobranzas</Link>
         <Link href="/clientes/vendedores" class="btn-secondary">Vendedores</Link>
         <button @click="tiposAbierto = true" class="btn-secondary">Tipos de cliente</button>
         <button @click="editar(null)" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nuevo cliente</button>

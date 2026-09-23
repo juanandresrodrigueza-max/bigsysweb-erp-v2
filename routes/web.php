@@ -30,6 +30,12 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
+// Página pública de comprobantes: ver, PDF, aprobar presupuesto, pagar (sin login).
+Route::get('/p/{token}',                 [\App\Http\Controllers\PublicoController::class, 'ver']);
+Route::get('/p/{token}/pdf',             [\App\Http\Controllers\PublicoController::class, 'pdf']);
+Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoController::class, 'responder']);
+Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado']);
+
 // Suscripción: accesible aunque la empresa esté bloqueada (es donde se renueva).
 Route::middleware('auth')->group(function () {
     Route::get('/suscripcion',          [SuscripcionController::class, 'index'])->name('suscripcion');
@@ -84,6 +90,19 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     // Comprobantes
     Route::prefix('comprobantes')->middleware('permiso:comprobantes')->group(function () {
         Route::get('/',                    [ComprobantesController::class, 'index']);
+        Route::get('/pendientes',              [\App\Http\Controllers\Comprobantes\EntregasController::class, 'pendientes']);
+        Route::post('/{id}/parcial',           [\App\Http\Controllers\Comprobantes\EntregasController::class, 'parcial'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
+        Route::get('/entregas',                [\App\Http\Controllers\Comprobantes\EntregasController::class, 'ordenes']);
+        Route::post('/entregas',               [\App\Http\Controllers\Comprobantes\EntregasController::class, 'crearOrden'])->middleware('permiso:comprobantes,crear');
+        Route::get('/entregas/{id}',           [\App\Http\Controllers\Comprobantes\EntregasController::class, 'verOrden'])->whereNumber('id');
+        Route::get('/entregas/{id}/imprimir',  [\App\Http\Controllers\Comprobantes\EntregasController::class, 'imprimirOrden']);
+        Route::post('/entregas/{id}/estado',   [\App\Http\Controllers\Comprobantes\EntregasController::class, 'estadoOrden'])->middleware('permiso:comprobantes,editar');
+        Route::post('/entregas/items/{id}',    [\App\Http\Controllers\Comprobantes\EntregasController::class, 'marcarItem'])->middleware('permiso:comprobantes,editar');
+        Route::get('/abonos',                  [\App\Http\Controllers\Comprobantes\AbonosController::class, 'index']);
+        Route::post('/abonos/emitir-vencidos', [\App\Http\Controllers\Comprobantes\AbonosController::class, 'emitirVencidos'])->middleware('permiso:comprobantes,crear');
+        Route::post('/abonos/{id}/emitir',     [\App\Http\Controllers\Comprobantes\AbonosController::class, 'emitir'])->middleware('permiso:comprobantes,crear');
+        Route::post('/abonos/{id?}',           [\App\Http\Controllers\Comprobantes\AbonosController::class, 'guardar'])->middleware('permiso:comprobantes,crear');
+        Route::post('/{id}/link-pago',         [ComprobantesController::class, 'linkPago'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
         Route::get('/nuevo',               [ComprobantesController::class, 'create'])->middleware('permiso:comprobantes,crear');
         Route::post('/',                   [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,crear');
         Route::get('/lote',                [ComprobantesController::class, 'lote'])->middleware('permiso:comprobantes,crear');
@@ -102,11 +121,17 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::prefix('clientes')->middleware('permiso:clientes')->group(function () {
         Route::get('/',                        [ClientesController::class, 'index']);
         Route::post('/',                       [ClientesController::class, 'guardar'])->middleware('permiso:clientes,crear');
+        Route::get('/cobranzas',               [\App\Http\Controllers\Clientes\CobranzasController::class, 'index']);
+        Route::post('/cobranzas/configurar',   [\App\Http\Controllers\Clientes\CobranzasController::class, 'configurar'])->middleware('permiso:clientes,editar');
+        Route::post('/cobranzas/correr',       [\App\Http\Controllers\Clientes\CobranzasController::class, 'correr'])->middleware('permiso:clientes,crear');
+        Route::post('/cobranzas/{id}/recordar',    [\App\Http\Controllers\Clientes\CobranzasController::class, 'recordar'])->middleware('permiso:clientes,crear');
+        Route::post('/cobranzas/{id}/refinanciar', [\App\Http\Controllers\Clientes\CobranzasController::class, 'refinanciar'])->middleware('permiso:clientes,crear');
         Route::get('/vendedores',              [\App\Http\Controllers\Clientes\VendedoresController::class, 'index']);
         Route::post('/vendedores/{id?}',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/tipos/{id?}',            [ClientesController::class, 'guardarTipo'])->middleware('permiso:clientes,editar');
         Route::delete('/tipos/{id}',           [ClientesController::class, 'eliminarTipo'])->middleware('permiso:clientes,anular');
         Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
+        Route::get('/{id}/pendientes',         [ClientesController::class, 'pendientesJson'])->whereNumber('id');
         Route::post('/{id}',                   [ClientesController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/{id}/cobros',            [CobrosController::class, 'store'])->middleware('permiso:clientes,crear');
         Route::post('/cobros/{id}/anular',     [CobrosController::class, 'anular'])->middleware('permiso:clientes,anular');
@@ -157,6 +182,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cuentas/{id}/abrir-turno', [FondosController::class, 'abrirTurno'])->middleware('permiso:fondos,crear');
         Route::post('/turnos/{id}/cerrar',     [FondosController::class, 'cerrarTurno'])->middleware('permiso:fondos,crear');
         Route::get('/turnos/{id}/rendicion',   [FondosController::class, 'rendicion']);
+        Route::get('/tarjetas',                [\App\Http\Controllers\Fondos\TarjetasController::class, 'index']);
+        Route::post('/tarjetas/liquidar',      [\App\Http\Controllers\Fondos\TarjetasController::class, 'liquidar'])->middleware('permiso:fondos,crear');
+        Route::post('/tarjetas/liquidaciones/{id}/anular', [\App\Http\Controllers\Fondos\TarjetasController::class, 'anular'])->middleware('permiso:fondos,anular');
+        Route::post('/tarjetas/cupones/{id}/rechazar',     [\App\Http\Controllers\Fondos\TarjetasController::class, 'rechazar'])->middleware('permiso:fondos,editar');
         Route::get('/cheques',                 [ChequesController::class, 'index']);
         Route::post('/cheques/{id}/depositar', [ChequesController::class, 'depositar'])->middleware('permiso:fondos,crear');
         Route::post('/cheques/{id}/rechazar',  [ChequesController::class, 'rechazar'])->middleware('permiso:fondos,editar');
@@ -220,6 +249,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
+
+    // Envíos por mail / WhatsApp desde cualquier pantalla
+    Route::post('/envios',              [\App\Http\Controllers\EnviosController::class, 'enviar']);
+    Route::get('/envios/borrador',      [\App\Http\Controllers\EnviosController::class, 'borrador']);
+    Route::post('/envios/{id}/marcar',  [\App\Http\Controllers\EnviosController::class, 'marcar']);
 
     // Punto de venta (comercio y minimarket comparten pantalla)
     foreach (['retail', 'minimarket'] as $v) {

@@ -6,6 +6,7 @@
         <p class="page-subtitle">Cajas, bancos y billeteras. Disponible {{ moneda(totales.disponible, 0) }} · cheques en cartera {{ moneda(totales.cheques_cartera, 0) }} · cheques propios a debitar {{ moneda(totales.cheques_propios, 0) }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <Link href="/fondos/tarjetas" class="btn-secondary">Tarjetas</Link>
         <Link href="/fondos/cheques" class="btn-secondary">Cheques</Link>
         <button v-if="puede('fondos','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
         <button v-if="puede('fondos','crear')" @click="abrirMov('egreso')" class="btn-secondary">Gasto</button>

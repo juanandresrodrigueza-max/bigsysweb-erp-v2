@@ -33,6 +33,19 @@ class MercadoPagoController extends Controller
 
         if ($type === 'payment' && $id) {
             \Log::info('MercadoPago webhook', ['type' => $type, 'id' => $id]);
+            try {
+                // Buscamos la factura por external_reference "comp:ID" probando con las credenciales de cada empresa que tenga token.
+                foreach (\App\Models\Business::whereNotNull('mercadopago_settings')->get() as $b) {
+                    $token = $b->mercadopago_settings['access_token'] ?? null;
+                    if (! $token) continue;
+                    \MercadoPago\MercadoPagoConfig::setAccessToken($token);
+                    $p = (new \MercadoPago\Client\Payment\PaymentClient())->get((int) $id);
+                    if (! $p || ! str_starts_with((string) $p->external_reference, 'comp:')) continue;
+                    $c = \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->find((int) substr($p->external_reference, 5));
+                    if ($c && $p->status === 'approved') app(\App\Services\Ventas\LinkPagoService::class)->acreditar($c, (float) $p->transaction_amount, 'MP ' . $p->id);
+                    break;
+                }
+            } catch (\Throwable $e) { \Log::warning('MercadoPago webhook: ' . $e->getMessage()); }
         }
 
         return response()->json(['status' => 'ok']);

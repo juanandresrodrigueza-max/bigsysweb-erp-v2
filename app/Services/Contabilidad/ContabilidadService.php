@@ -32,6 +32,7 @@ class ContabilidadService
                 $m instanceof Cobro => $this->asientoCobro($m),
                 $m instanceof Pago => $this->asientoPago($m),
                 $m instanceof MovimientoFondos => $this->asientoFondos($m),
+                $m instanceof \App\Models\LiquidacionTarjeta => $this->asientoLiquidacionTarjeta($m),
                 default => null,
             };
         } catch (\Throwable $e) {
@@ -159,10 +160,22 @@ class ContabilidadService
         return $this->crear($pago->business_id, $pago->business_location_id, $pago->fecha, "Pago {$pago->numeroFormateado()} · {$pago->contact?->name}", 'pago', $pago->id, $lineas);
     }
 
+    private function asientoLiquidacionTarjeta(\App\Models\LiquidacionTarjeta $l): ?Asiento
+    {
+        if ($l->estado !== 'registrada') return null;
+        $lineas = [];
+        $this->linea($lineas, $this->claveCuentaFondos($l->cuenta_fondos_id, 'transferencia'), (float) $l->neto, 0, 'Acreditación de tarjeta');
+        $this->linea($lineas, 'gastos_bancarios', (float) $l->comision + (float) $l->otros, 0, 'Comisión de tarjeta');
+        $this->linea($lineas, 'iva_cf', (float) $l->iva_comision, 0, 'IVA sobre comisión');
+        $this->linea($lineas, 'ret_sufridas', (float) $l->ret_iva + (float) $l->ret_iibb + (float) $l->ret_ganancias, 0, 'Retenciones de la liquidación');
+        $this->linea($lineas, 'tarjetas_cobrar', 0, (float) $l->bruto, 'Cupones liquidados');
+        return $this->crear($l->business_id, $l->business_location_id, $l->fecha, "Liquidación tarjeta {$l->tarjeta} {$l->numero}", 'liquidacion_tarjeta', $l->id, $lineas);
+    }
+
     // Movimientos de fondos que no vienen de cobros ni pagos (gastos, ingresos, transferencias, ajustes, cheques).
     private function asientoFondos(MovimientoFondos $m): ?Asiento
     {
-        if (in_array($m->origen, ['cobro', 'pago'], true)) return null;
+        if (in_array($m->origen, ['cobro', 'pago', 'liquidacion_tarjeta'], true)) return null;
         $cuenta = CuentaFondos::withoutGlobalScopes()->find($m->cuenta_fondos_id);
         $claveCuenta = $this->claveCuentaFondos($m->cuenta_fondos_id, null);
         $monto = (float) $m->ingreso - (float) $m->egreso;

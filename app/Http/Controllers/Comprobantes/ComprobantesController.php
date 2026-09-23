@@ -89,7 +89,12 @@ class ComprobantesController extends Controller
 
         return Inertia::render('Comprobantes/Ver', [
             'c' => array_merge($this->resumir($c), [
-                'items' => $c->items->map(fn($i) => ['id' => $i->id, 'product_id' => $i->product_id, 'sku' => $i->product?->sku, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva, 'neto' => (float) $i->neto, 'iva' => (float) $i->iva, 'total' => (float) $i->total]),
+                'items' => $c->items->map(fn($i) => ['id' => $i->id, 'product_id' => $i->product_id, 'sku' => $i->product?->sku, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva, 'neto' => (float) $i->neto, 'iva' => (float) $i->iva, 'total' => (float) $i->total, 'entregada' => (float) $i->cantidad_entregada, 'facturada' => (float) $i->cantidad_facturada]),
+                'entrega_pendiente' => $c->entrega_pendiente, 'pendiente_entrega' => $c->pendienteEntrega(), 'pendiente_facturar' => $c->pendienteFacturar(),
+                'url_publica' => $c->estado === 'emitido' ? $c->urlPublica() : null, 'link_pago' => $c->link_pago, 'link_pago_simulado' => $c->link_pago_id === 'simulado',
+                'aprobado_en' => $c->aprobado_en?->format('d/m/Y H:i'), 'rechazado_en' => $c->rechazado_en?->format('d/m/Y H:i'), 'respuesta_cliente' => $c->respuesta_cliente,
+                'envios' => $c->envios()->latest()->limit(5)->get()->map(fn($e) => ['canal' => $e->canal, 'destino' => $e->destino, 'estado' => $e->estado, 'fecha' => $e->created_at->format('d/m H:i')]),
+                'email' => $c->contact?->email, 'telefono' => $c->contact?->mobile ?: $c->contact?->phone,
                 'contacto' => $c->contact ? ['id' => $c->contact->id, 'name' => $c->contact->name, 'cuit' => $c->contact->cuit, 'condicion_iva' => $c->contact->condicion_iva, 'address' => $c->contact->address, 'city' => $c->contact->city, 'balance' => (float) $c->contact->balance] : null,
                 'origen' => $c->origen ? ['id' => $c->origen->id, 'nombre' => $c->origen->nombreTipo(), 'numero' => $c->origen->numeroFormateado()] : null,
                 'derivados' => $c->derivados->map(fn($d) => ['id' => $d->id, 'nombre' => $d->nombreTipo(), 'numero' => $d->numeroFormateado(), 'estado' => $d->estado]),
@@ -183,6 +188,7 @@ class ComprobantesController extends Controller
             'condicion'       => 'required|in:contado,cta_cte',
             'dias_vto'        => 'nullable|integer|min:0|max:365',
             'es_acopio'       => 'boolean',
+            'entrega_pendiente' => 'boolean',
             'notas'           => 'nullable|string|max:2000',
             'items'           => 'required|array|min:1',
             'items.*.product_id'   => 'nullable|integer|exists:products,id',
@@ -201,7 +207,7 @@ class ComprobantesController extends Controller
         $origen = $request->origen_id ? Comprobante::ventas()->with('items')->find($request->origen_id) : null;
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
-                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'notas' => $c->notas,
+                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'notas' => $c->notas,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
             ]) : null,
@@ -233,6 +239,13 @@ class ComprobantesController extends Controller
         ];
     }
 
+    public function linkPago(int $id, \App\Services\Ventas\LinkPagoService $links)
+    {
+        $c = Comprobante::ventas()->findOrFail($id);
+        $link = $links->crear($c);
+        return back()->with('success', $c->link_pago_id === 'simulado' ? 'Link de pago simulado creado (sin credenciales de MercadoPago).' : 'Link de pago de MercadoPago creado.');
+    }
+
     private function conversionesPosibles(Comprobante $c): array
     {
         if ($c->estado !== 'emitido') {
@@ -240,8 +253,8 @@ class ComprobantesController extends Controller
         }
         return match ($c->def()['grupo']) {
             'presupuesto' => [['tipo' => 'FX', 'label' => 'Facturar'], ['tipo' => 'REM', 'label' => 'Hacer remito']],
-            'remito'      => $c->derivados->contains(fn($d) => $d->esFactura() && $d->estado !== 'anulado') ? [] : [['tipo' => 'FX', 'label' => 'Facturar']],
-            'factura'     => [['tipo' => 'NCX', 'label' => 'Nota de crédito'], ['tipo' => 'NDX', 'label' => 'Nota de débito'], ...(! $c->es_acopio && ! $c->derivados->contains(fn($d) => $d->tipo === 'REM') ? [['tipo' => 'REM', 'label' => 'Hacer remito']] : [])],
+            'remito'      => $c->pendienteFacturar() > 0 ? [['tipo' => 'FX', 'label' => $c->pendienteFacturar() < $c->items->sum('cantidad') ? 'Facturar lo pendiente' : 'Facturar', 'parcial' => true]] : [],
+            'factura'     => [['tipo' => 'NCX', 'label' => 'Nota de crédito'], ['tipo' => 'NDX', 'label' => 'Nota de débito'], ...($c->entrega_pendiente ? ($c->pendienteEntrega() > 0 ? [['tipo' => 'REM', 'label' => 'Entregar (remito)', 'parcial' => true]] : []) : (! $c->es_acopio && ! $c->derivados->contains(fn($d) => $d->tipo === 'REM') ? [['tipo' => 'REM', 'label' => 'Hacer remito']] : []))],
             default       => [],
         };
     }

@@ -31,7 +31,7 @@ class Comprobante extends Model
     ];
 
     protected $fillable = [
-        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'punto_venta_id', 'origen_id',
+        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en',
@@ -40,7 +40,7 @@ class Comprobante extends Model
 
     protected $casts = [
         'fecha' => 'date', 'fecha_vto' => 'date', 'cae_vto' => 'date', 'emitido_en' => 'datetime', 'anulado_en' => 'datetime',
-        'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean',
+        'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean', 'entrega_pendiente' => 'boolean', 'aprobado_en' => 'datetime', 'rechazado_en' => 'datetime',
         'neto' => 'decimal:2', 'exento' => 'decimal:2', 'iva' => 'decimal:2', 'percepciones' => 'decimal:2',
         'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4',
     ];
@@ -58,6 +58,22 @@ class Comprobante extends Model
     public function imputaciones(): HasMany { return $this->hasMany(CobroImputacion::class); }
     public function acopio(): HasOne { return $this->hasOne(Acopio::class); }
     public function adjuntos(): HasMany { return $this->hasMany(ComprobanteAdjunto::class); }
+    public function abono(): BelongsTo { return $this->belongsTo(Abono::class); }
+    public function envios(): HasMany { return $this->hasMany(Envio::class, 'modelo_id')->where('modelo', 'Comprobante'); }
+
+    // Token para el link público (ver, aprobar presupuesto, pagar). Se crea la primera vez que se pide.
+    public function tokenPublico(): string
+    {
+        if (! $this->public_token) {
+            $this->forceFill(['public_token' => \Illuminate\Support\Str::random(32)])->save();
+        }
+        return $this->public_token;
+    }
+    public function urlPublica(): string { return url('/p/' . $this->tokenPublico()); }
+
+    // Pendientes de entrega (factura con entrega pendiente) o de facturación (remito) por ítem.
+    public function pendienteEntrega(): float { return $this->entrega_pendiente && $this->esFactura() && $this->estado === 'emitido' ? round($this->items->sum(fn($i) => max(0, (float) $i->cantidad - (float) $i->cantidad_entregada)), 3) : 0; }
+    public function pendienteFacturar(): float { return $this->tipo === 'REM' && $this->estado === 'emitido' ? round($this->items->sum(fn($i) => max(0, (float) $i->cantidad - (float) $i->cantidad_facturada)), 3) : 0; }
 
     public function scopeVentas(Builder $q): Builder { return $q->where('direccion', 'venta'); }
     public function scopeCompras(Builder $q): Builder { return $q->where('direccion', 'compra'); }

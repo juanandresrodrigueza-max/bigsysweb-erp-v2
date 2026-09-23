@@ -22,7 +22,7 @@ class FondosService
             'concepto' => $d['concepto'], 'ingreso' => round((float) ($d['ingreso'] ?? 0), 2), 'egreso' => round((float) ($d['egreso'] ?? 0), 2), 'referencia' => $d['referencia'] ?? null,
         ]);
         $cuenta->recalcularSaldo();
-        if (! in_array($m->origen, ['cobro', 'pago'], true)) {
+        if (! in_array($m->origen, ['cobro', 'pago', 'liquidacion_tarjeta'], true)) {
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($m);
         }
         return $m;

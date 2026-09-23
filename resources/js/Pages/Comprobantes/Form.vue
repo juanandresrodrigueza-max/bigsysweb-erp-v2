@@ -43,6 +43,10 @@
             <input v-model="form.es_acopio" type="checkbox" class="accent-violeta" />
             <span><b>Es acopio</b> · el cliente paga ahora y retira la mercadería en partes. El stock no se descuenta hasta cada retiro y el precio queda congelado.</span>
           </label>
+          <label v-if="esFactura && !form.es_acopio && !form.origen_id" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.entrega_pendiente ? 'border-violeta bg-violeta-light' : 'border-marca-borde'">
+            <input v-model="form.entrega_pendiente" type="checkbox" class="accent-violeta" />
+            <span><b>Entrega pendiente</b> · se factura ahora y la mercadería sale después con remito (en una o varias entregas). El stock se descuenta con cada remito.</span>
+          </label>
         </div>
 
         <div class="card p-0 overflow-hidden">
@@ -147,7 +151,7 @@ const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Ob
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
-  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, notas: base?.notas ?? '',
+  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, notas: base?.notas ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false,
 })
 const esConversion = !!props.origen

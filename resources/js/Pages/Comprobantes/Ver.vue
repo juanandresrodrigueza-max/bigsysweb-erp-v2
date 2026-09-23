@@ -13,6 +13,10 @@
             <span v-if="c.es_acopio" class="badge bg-violeta-light text-violeta">Acopio</span>
             <span v-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">CAE {{ c.cae }}</span>
             <span v-else-if="c.afip_estado === 'simulado'" class="badge bg-amber-50 text-amber-700">Sin CAE · simulado</span>
+            <span v-if="c.entrega_pendiente && c.pendiente_entrega > 0" class="badge bg-amber-50 text-amber-700">Entrega pendiente</span>
+            <span v-else-if="c.entrega_pendiente" class="badge bg-emerald-50 text-emerald-700">Entregado</span>
+            <span v-if="c.aprobado_en" class="badge bg-emerald-50 text-emerald-700">Aprobado por el cliente {{ c.aprobado_en }}</span>
+            <span v-if="c.rechazado_en" class="badge bg-carmin-light text-carmin">Rechazado por el cliente {{ c.rechazado_en }}</span>
           </div>
         </div>
       </div>
@@ -23,8 +27,10 @@
         </template>
         <template v-else>
           <a :href="`/comprobantes/${c.id}/imprimir`" target="_blank" class="btn-secondary">Imprimir / PDF</a>
+          <button v-if="c.estado === 'emitido'" @click="envioAbierto = true" class="btn-secondary">Enviar</button>
+          <button v-if="c.estado === 'emitido' && c.estado_cobro !== 'na' && c.saldo > 0 && !c.link_pago && puede('comprobantes','crear')" @click="router.post(`/comprobantes/${c.id}/link-pago`, {}, { preserveScroll: true })" class="btn-secondary">Link de pago</button>
           <Link v-if="c.estado_cobro === 'pendiente' || c.estado_cobro === 'parcial'" :href="`/clientes/${c.contact_id}?cobrar=${c.id}`" class="btn-primary">Registrar cobro</Link>
-          <button v-for="cv in conversiones" :key="cv.tipo" @click="convertir(cv)" class="btn-secondary">{{ cv.label }}</button>
+          <button v-for="cv in conversiones" :key="cv.tipo" @click="cv.parcial ? abrirParcial(cv) : convertir(cv)" class="btn-secondary">{{ cv.label }}</button>
         </template>
         <button v-if="puedeAnular && puede('comprobantes', 'anular')" @click="anularAbierto = true" class="btn-danger">Anular</button>
       </div>
@@ -57,6 +63,11 @@
           </div>
         </div>
 
+        <div v-if="c.respuesta_cliente" class="card text-sm"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-1">Comentario del cliente</p>"{{ c.respuesta_cliente }}"</div>
+        <div v-if="c.entrega_pendiente || c.tipo === 'REM'" class="card text-sm">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">{{ c.tipo === 'REM' ? 'Facturación de este remito' : 'Entregas de esta factura' }}</p>
+          <div v-for="i in c.items" :key="i.id" class="flex justify-between py-1 border-t border-marca-borde first:border-0"><span>{{ i.descripcion }}</span><span class="tabular-nums" :class="(c.tipo === 'REM' ? i.facturada : i.entregada) < i.cantidad ? 'text-amber-700' : 'text-emerald-700'">{{ cantidad(c.tipo === 'REM' ? i.facturada : i.entregada) }} / {{ cantidad(i.cantidad) }} {{ i.unidad }}</span></div>
+        </div>
         <div v-if="c.acopio" class="card">
           <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Acopio · {{ c.acopio.estado }}</h2><span class="text-xs text-marca-muted">Límite {{ c.acopio.fecha_limite }}</span></div>
           <div class="space-y-2">
@@ -72,6 +83,20 @@
       </div>
 
       <div class="space-y-4">
+        <div v-if="c.url_publica" class="card text-sm">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Link para el cliente</p>
+          <div class="flex gap-3 items-start">
+            <canvas ref="qr" class="w-24 h-24 rounded-lg border border-marca-borde shrink-0"></canvas>
+            <div class="min-w-0 flex-1">
+              <a :href="c.url_publica" target="_blank" class="text-violeta font-semibold break-all text-xs">{{ c.url_publica }}</a>
+              <p class="text-[11px] text-marca-muted mt-1">{{ c.tipo === 'PRE' ? 'El cliente ve el presupuesto y lo aprueba o rechaza desde ahí.' : 'El cliente ve el comprobante y descarga el PDF.' }}</p>
+              <template v-if="c.link_pago"><a :href="c.link_pago" target="_blank" class="btn-primary !py-1 text-xs mt-2 inline-flex">Pagar {{ moneda(c.saldo) }}</a><p v-if="c.link_pago_simulado" class="text-[10px] text-amber-700 mt-1">Link simulado: sin credenciales de MercadoPago en Configuración.</p></template>
+              <button @click="copiar" class="btn-ghost !px-2 text-xs mt-1">{{ copiado ? 'Copiado ✓' : 'Copiar link' }}</button>
+            </div>
+          </div>
+          <div v-if="c.envios?.length" class="mt-2 pt-2 border-t border-marca-borde text-xs text-marca-muted"><p v-for="(e, i) in c.envios" :key="i">{{ e.fecha }} · {{ e.canal }} · {{ e.destino }} · <span :class="e.estado === 'enviado' ? 'text-emerald-700' : e.estado === 'error' ? 'text-carmin' : 'text-amber-700'">{{ e.estado }}</span></p></div>
+        </div>
+
         <div class="card">
           <h2 class="font-bold mb-2">Cliente</h2>
           <template v-if="c.contacto">
@@ -127,12 +152,23 @@
         <button class="btn-primary" :disabled="convForm.processing" @click="convForm.transform(d => ({ ...d, tipo: conv.tipo })).post(`/comprobantes/${c.id}/convertir`)">Continuar</button>
       </template>
     </Modal>
+    <Modal :abierto="!!parcial" :titulo="parcial?.label" ancho="max-w-2xl" @cerrar="parcial = null">
+      <p class="text-sm text-marca-muted mb-3">Indicá cuánto {{ parcial?.tipo === 'REM' ? 'entregás' : 'facturás' }} ahora de cada línea. El resto queda pendiente.</p>
+      <table class="table text-sm"><thead><tr><th>Artículo</th><th class="text-right">Pendiente</th><th class="text-right w-32">Ahora</th></tr></thead>
+        <tbody><tr v-for="i in c.items.filter(x => pendItem(x) > 0)" :key="i.id"><td>{{ i.descripcion }}</td><td class="text-right tabular-nums">{{ cantidad(pendItem(i)) }} {{ i.unidad }}</td><td><input v-model.number="pf.items[i.id]" type="number" step="any" min="0" :max="pendItem(i)" class="input !py-1 text-right" /></td></tr></tbody></table>
+      <div v-if="parcial?.tipo === 'FX'" class="mt-3"><label class="label">Condición</label><select v-model="pf.condicion" class="input"><option value="cta_cte">Cuenta corriente</option><option value="contado">Contado</option></select></div>
+      <p v-if="pf.errors.items" class="text-carmin text-xs mt-2">{{ pf.errors.items }}</p>
+      <template #pie><button class="btn-secondary" @click="parcial = null">Cancelar</button><button class="btn-primary" :disabled="pf.processing" @click="pf.transform(d => ({ ...d, tipo: parcial.tipo })).post(`/comprobantes/${c.id}/parcial`)">Emitir</button></template>
+    </Modal>
+    <EnviarModal :abierto="envioAbierto" modelo="Comprobante" :id="c.id" :titulo="`Enviar ${c.nombre} ${c.numero ?? ''}`" @cerrar="envioAbierto = false" />
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { ref, onMounted, watch } from 'vue'
+import { Link, router, useForm } from '@inertiajs/vue3'
+import QRCode from 'qrcode'
+import EnviarModal from '@/Components/EnviarModal.vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
@@ -146,4 +182,12 @@ const anular = useForm({ motivo: '' })
 const conv = ref(null)
 const convForm = useForm({ condicion: props.c.condicion, es_acopio: false })
 function convertir(cv) { conv.value = cv }
+const envioAbierto = ref(false), copiado = ref(false), qr = ref(null)
+const parcial = ref(null)
+const pf = useForm({ items: {}, condicion: 'cta_cte' })
+const pendItem = i => props.c.tipo === 'REM' ? i.cantidad - i.facturada : i.cantidad - i.entregada
+function abrirParcial(cv) { pf.clearErrors(); pf.items = Object.fromEntries(props.c.items.filter(x => pendItem(x) > 0).map(x => [x.id, pendItem(x)])); parcial.value = cv }
+async function copiar() { try { await navigator.clipboard.writeText(props.c.link_pago || props.c.url_publica); copiado.value = true; setTimeout(() => (copiado.value = false), 1500) } catch {} }
+function dibujarQR() { if (qr.value && (props.c.link_pago || props.c.url_publica)) QRCode.toCanvas(qr.value, props.c.link_pago || props.c.url_publica, { width: 96, margin: 1, color: { dark: '#4f3089' } }).catch(() => {}) }
+onMounted(dibujarQR); watch(() => props.c.link_pago, dibujarQR)
 </script>

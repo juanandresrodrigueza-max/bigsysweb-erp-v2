@@ -16,13 +16,15 @@ class Business extends Model
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
         'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
-        'mercadopago_settings', 'tiendanube_settings', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por',
+        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por',
     ];
 
     public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'otro' => 'Otro'];
 
     protected $casts = [
         'is_active'            => 'boolean',
+        'recordatorios'        => 'array',
+        'whatsapp_settings'    => 'array',
         'suspended_at'         => 'datetime',
         'afip_produccion'      => 'boolean',
         'mercadopago_settings' => 'array',

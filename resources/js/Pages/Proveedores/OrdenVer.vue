@@ -8,8 +8,7 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <a :href="`/proveedores/ordenes/${orden.id}/imprimir`" target="_blank" class="btn-secondary"><Icono nombre="print" clase="w-4 h-4" /> Imprimir / PDF</a>
-        <a v-if="orden.proveedor_email" :href="mailto" class="btn-secondary">Enviar por mail</a>
-        <a v-if="orden.proveedor_telefono" :href="whatsapp" target="_blank" class="btn-secondary">WhatsApp</a>
+        <button @click="envioAbierto = true" class="btn-secondary">Enviar al proveedor</button>
         <Link v-if="['borrador','enviada'].includes(orden.estado) && puede('proveedores','editar')" :href="`/proveedores/ordenes/${orden.id}/editar`" class="btn-secondary">Editar</Link>
         <button v-if="orden.estado === 'borrador' && puede('proveedores','crear')" @click="router.post(`/proveedores/ordenes/${orden.id}/enviar`)" class="btn-violeta">Marcar enviada</button>
         <Link v-if="['borrador','enviada','parcial'].includes(orden.estado) && puede('proveedores','crear')" :href="`/proveedores/ordenes/${orden.id}/recibir`" class="btn-primary"><Icono nombre="truck" clase="w-4 h-4" /> Recibir mercadería</Link>
@@ -49,11 +48,13 @@
         </div>
       </div>
     </div>
+    <EnviarModal :abierto="envioAbierto" modelo="OrdenCompra" :id="orden.id" titulo="Enviar orden al proveedor" @cerrar="envioAbierto = false" />
   </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import EnviarModal from '@/Components/EnviarModal.vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -62,6 +63,7 @@ import { usePermisos } from '@/util/permisos'
 
 const props = defineProps({ orden: Object, estados: Object })
 const { puede } = usePermisos()
+const envioAbierto = ref(false)
 const claseEstado = { borrador: 'bg-gris-light text-marca-muted', enviada: 'bg-violeta-light text-violeta', parcial: 'bg-amber-50 text-amber-700', recibida: 'bg-emerald-50 text-emerald-700', cancelada: 'bg-carmin-light text-carmin' }
 const texto = computed(() => `Orden de compra ${props.orden.numero} del ${props.orden.fecha}:\n` + props.orden.items.map(i => `• ${cantidad(i.cantidad)} ${i.unit ?? ''} ${i.descripcion}`).join('\n') + (props.orden.entrega ? `\nEntrega: ${props.orden.entrega}` : '') + (props.orden.notas ? `\n${props.orden.notas}` : ''))
 const mailto = computed(() => `mailto:${props.orden.proveedor_email}?subject=${encodeURIComponent('Orden de compra ' + props.orden.numero)}&body=${encodeURIComponent(texto.value)}`)

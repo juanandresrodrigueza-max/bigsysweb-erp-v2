@@ -6,6 +6,8 @@
         <p class="page-subtitle">Facturas, notas de crédito y débito, remitos y presupuestos de venta.</p>
       </div>
       <div v-if="puede('comprobantes', 'crear')" class="flex gap-2">
+        <Link href="/comprobantes/pendientes" class="btn-secondary">Pendientes</Link>
+        <Link href="/comprobantes/abonos" class="btn-secondary">Abonos</Link>
         <Link href="/comprobantes/lote" class="btn-secondary">Facturación por lote</Link>
         <Link href="/comprobantes/nuevo?tipo=PRE" class="btn-secondary">Presupuesto</Link>
         <Link href="/comprobantes/nuevo" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva factura</Link>

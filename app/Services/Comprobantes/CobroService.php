@@ -59,14 +59,15 @@ class CobroService
                         'cobro_id' => $cobro->id, 'contact_id' => $contact->id,
                     ]);
                     $chequeId = $cheque->id;
-                } elseif ($m['medio'] !== 'retencion') {
+                } elseif ($m['medio'] !== 'retencion' && $m['medio'] !== 'tarjeta') {
                     $cuenta = $this->fondos->cuentaPara($m['medio'], $user, $m['cuenta_fondos_id'] ?? null);
                     if ($cuenta) {
                         $cuentaId = $cuenta->id;
                         $this->fondos->registrar($cuenta, ['fecha' => $cobro->fecha, 'origen' => 'cobro', 'origen_id' => $cobro->id, 'concepto' => "Cobro {$cobro->numeroFormateado()} · {$contact->name}", 'ingreso' => (float) $m['monto'], 'referencia' => $m['referencia'] ?? null]);
                     }
                 }
-                $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null]);
+                $medioRow = $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null]);
+                if ($m['medio'] === 'tarjeta') app(\App\Services\Fondos\TarjetasService::class)->cuponDesdeCobro($cobro, $medioRow);
             }
 
             foreach ($imputaciones as $i) {
@@ -106,6 +107,8 @@ class CobroService
                 $ch?->update(['estado' => 'anulado', 'fecha_estado' => today()]);
             }
             $this->fondos->revertir('cobro', $cobro->id);
+            abort_if(\App\Models\CuponTarjeta::where('cobro_id', $cobro->id)->where('estado', 'liquidado')->exists(), 422, 'Tiene cupones de tarjeta ya liquidados; anulá primero la liquidación.');
+            \App\Models\CuponTarjeta::where('cobro_id', $cobro->id)->delete();
             CuentaCorriente::where('cobro_id', $cobro->id)->delete();
             $cobro->update(['estado' => 'anulado', 'notas' => trim(($cobro->notas ?? '') . "\nAnulado: {$motivo}")]);
             CuentaCorriente::recalcularSaldo($cobro->contact_id);

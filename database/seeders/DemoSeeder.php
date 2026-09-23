@@ -246,6 +246,15 @@ class DemoSeeder extends Seeder
             $ocs->enviar($oc);
             $ocs->guardar(['contact_id' => $acindar->id, 'fecha' => today()->toDateString(), 'fecha_entrega' => today()->addDays(5)->toDateString(), 'origen' => 'manual', 'items' => [['product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 300, 'precio_unit' => 9800]]]);
 
+            // Fase 8: abono recurrente, avisos de cobranza configurados, una factura con entrega pendiente
+            $abonos = app(\App\Services\Ventas\AbonosService::class);
+            $ab = $abonos->guardar(['contact_id' => Contact::customers()->where('credit_limit', 0)->where('name', '!=', 'Consumidor Final')->orderBy('id')->value('id') ?? Contact::customers()->first()->id, 'descripcion' => 'Abono mantenimiento obra', 'items' => [['descripcion' => 'Servicio de mantenimiento · cuota {cuota} · {periodo}', 'cantidad' => 1, 'precio_unit' => 85000, 'alicuota_iva' => 21]], 'condicion' => 'cta_cte', 'frecuencia' => 'mensual', 'dia_emision' => 5, 'desde' => today()->subMonths(2)->startOfMonth()->toDateString(), 'meses_excluidos' => [1], 'emitir_auto' => true]);
+            $abonos->emitir($ab, true); $abonos->emitir($ab, true);
+            $empresa->update(['recordatorios' => ['activo' => true, 'dias' => [-3, 0, 7, 30], 'canales' => ['mail', 'whatsapp'], 'texto' => \App\Services\Ventas\CobranzasService::DEFAULT['texto']]]);
+            $fep = $comprobantes->guardarBorrador(['contact_id' => Contact::customers()->where('credit_limit', 0)->where('name', '!=', 'Consumidor Final')->orderByDesc('id')->value('id') ?? Contact::customers()->first()->id, 'tipo' => 'FX', 'fecha' => today()->subDay()->toDateString(), 'condicion' => 'cta_cte', 'entrega_pendiente' => true, 'notas' => 'Entregar en obra en dos viajes', 'items' => [['product_id' => $productos->firstWhere('sku', 'LAD12')->id, 'cantidad' => 3000, 'precio_unit' => $productos->firstWhere('sku', 'LAD12')->price, 'descuento' => 0], ['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 60, 'precio_unit' => $productos->firstWhere('sku', 'CEM50')->price, 'descuento' => 0]]]);
+            $fep = $comprobantes->emitir($fep);
+            app(\App\Services\Ventas\EntregasService::class)->convertirParcial($fep, 'REM', [$fep->items[0]->id => 1500]);
+
             // Contabilidad: asientos de todo lo anterior + extracto bancario de prueba (con dos movimientos que el sistema no tiene)
             app(\App\Services\Contabilidad\ContabilidadService::class)->sincronizar($empresa->id);
             $csv = "Fecha;Concepto;Importe;Saldo\n";

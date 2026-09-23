@@ -20,22 +20,22 @@
 <button class="btn" onclick="window.print()">Imprimir / PDF</button>
 <div class="hoja">
   <div class="cab">
-    <div><div class="emp">{{ $b->razon_social ?? $b->name }}</div><div>{{ $t->cuenta->nombre }}@if($t->cuenta->location) · {{ $t->cuenta->location->name }}@endif</div></div>
+    <div><div class="emp">{{ $b->razon_social ?? $b->name }}</div><div>{{ $t->cuenta->nombre }}@if($t->cuenta->location) · {{ $t->cuenta->location->name }} @endif </div></div>
     <div><div class="tipo">RENDICIÓN DE TURNO #{{ $t->id }}</div><div class="r">{{ $t->apertura->format('d/m/Y H:i') }} → {{ $t->cierre->format('d/m/Y H:i') }}</div><div class="r">Cajero: {{ $t->user?->name }}</div></div>
   </div>
   <div class="sec"><h4>Recaudación por medio de pago</h4><table>
     <tr><th>Medio</th><th class="r">Según sistema</th><th class="r">Declarado</th><th class="r">Diferencia</th></tr>
     @foreach($keys as $k)@php $e = (float) ($esp[$k] ?? 0); $d = $rend[$k] ?? null; $dif = $d === null ? null : round((float) $d - $e, 2); @endphp
-    <tr><td>{{ $medios[$k] ?? ucfirst($k) }}@if($k==='efectivo') <small style="color:#6f6a62">(saldo de caja)</small>@endif</td><td class="r">{{ $fmt($e) }}</td><td class="r">{{ $d === null ? '—' : $fmt($d) }}</td><td class="r {{ $dif === null || abs($dif) < 0.005 ? '' : ($dif < 0 ? 'neg' : 'pos') }}">{{ $dif === null ? '' : $fmt($dif) }}</td></tr>
+    <tr><td>{{ $medios[$k] ?? ucfirst($k) }}@if($k==='efectivo') <small style="color:#6f6a62">(saldo de caja)</small> @endif </td><td class="r">{{ $fmt($e) }}</td><td class="r">{{ $d === null ? '—' : $fmt($d) }}</td><td class="r {{ $dif === null || abs($dif) < 0.005 ? '' : ($dif < 0 ? 'neg' : 'pos') }}">{{ $dif === null ? '' : $fmt($dif) }}</td></tr>
     @endforeach
     <tr><td><b>Efectivo: inicial / esperado / contado</b></td><td class="r">{{ $fmt($t->saldo_inicial) }} / {{ $fmt($t->saldo_esperado) }}</td><td class="r">{{ $fmt($t->saldo_contado) }}</td><td class="r {{ abs((float)$t->diferencia) < 0.005 ? '' : ((float)$t->diferencia < 0 ? 'neg' : 'pos') }}">{{ $fmt($t->diferencia) }}</td></tr>
   </table></div>
   <div class="sec"><h4>Movimientos de la caja en el turno</h4><table>
     <tr><th>Concepto</th><th>Origen</th><th class="r">Ingreso</th><th class="r">Egreso</th></tr>
-    @forelse($movs as $m)<tr><td>{{ $m->concepto }}</td><td>{{ $m->origen }}</td><td class="r">{{ $m->ingreso > 0 ? $fmt($m->ingreso) : '' }}</td><td class="r">{{ $m->egreso > 0 ? $fmt($m->egreso) : '' }}</td></tr>@empty<tr><td colspan="4" style="color:#6f6a62">Sin movimientos.</td></tr>@endforelse
+    @forelse($movs as $m)<tr><td>{{ $m->concepto }}</td><td>{{ $m->origen }}</td><td class="r">{{ $m->ingreso > 0 ? $fmt($m->ingreso) : '' }}</td><td class="r">{{ $m->egreso > 0 ? $fmt($m->egreso) : '' }}</td></tr> @empty<tr><td colspan="4" style="color:#6f6a62">Sin movimientos.</td></tr> @endforelse
     <tr><td colspan="2"><b>Totales</b></td><td class="r"><b>{{ $fmt($movs->sum('ingreso')) }}</b></td><td class="r"><b>{{ $fmt($movs->sum('egreso')) }}</b></td></tr>
   </table></div>
-  @if($t->notas)<div class="sec"><h4>Notas</h4>{{ $t->notas }}</div>@endif
+  @if($t->notas)<div class="sec"><h4>Notas</h4>{{ $t->notas }}</div> @endif
   <div class="firma"><div>Cajero</div><div>Responsable</div></div>
 </div>
 </body>

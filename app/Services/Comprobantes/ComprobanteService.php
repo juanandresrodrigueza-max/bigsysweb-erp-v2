@@ -43,6 +43,7 @@ class ComprobanteService
                 'fecha_vto'       => ($data['condicion'] ?? 'cta_cte') === 'cta_cte' ? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays($dias) : ($data['fecha'] ?? today()),
                 'condicion'       => $data['condicion'] ?? 'cta_cte',
                 'es_acopio'       => (bool) ($data['es_acopio'] ?? false),
+                'entrega_pendiente' => (bool) ($data['entrega_pendiente'] ?? ($c->exists ? $c->entrega_pendiente : false)),
                 'notas'           => $data['notas'] ?? null,
             ])->save();
 
@@ -55,9 +56,9 @@ class ComprobanteService
                 if ($product && (float) ($it['descuento'] ?? 0) == 0.0 && ($dq = $product->descuentoPorCantidad((float) $it['cantidad'])) > 0) $it['descuento'] = $dq;
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
                 $c->items()->create([
-                    'product_id' => $product?->id, 'descripcion' => $it['descripcion'] ?: ($product?->name ?? 'Ítem'),
+                    'product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'),
                     'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'],
-                    'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, ...$calc,
+                    'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'origen_item_id' => $it['origen_item_id'] ?? null, ...$calc,
                 ]);
             }
 
@@ -110,6 +111,7 @@ class ComprobanteService
 
             $this->impactarCuentaCorriente($c);
             $this->impactarStock($c);
+            $this->registrarEntregasYFacturacion($c);
             if ($c->es_acopio && $c->esFactura()) {
                 $this->crearAcopio($c);
             }
@@ -205,14 +207,43 @@ class ComprobanteService
         CuentaCorriente::recalcularSaldo($c->contact_id);
     }
 
+    // Lleva la cuenta de qué se entregó y qué se facturó, línea por línea (entregas parciales).
+    private function registrarEntregasYFacturacion(Comprobante $c): void
+    {
+        if ($c->esFactura() && ! $c->entrega_pendiente && ! $c->es_acopio) {
+            $c->items()->update(['cantidad_entregada' => DB::raw('cantidad')]);
+        }
+        if ($c->esFactura() && $c->origen && $c->origen->tipo === 'REM') {
+            $c->items()->update(['cantidad_entregada' => DB::raw('cantidad')]);
+        }
+        if ($c->tipo === 'REM' && $c->origen && $c->origen->esFactura()) {
+            $c->items()->update(['cantidad_facturada' => DB::raw('cantidad')]);
+        }
+        foreach ($c->items as $it) {
+            if (! $it->origen_item_id) continue;
+            $oi = ComprobanteItem::find($it->origen_item_id);
+            if (! $oi) continue;
+            if ($c->esFactura()) $oi->update(['cantidad_facturada' => round((float) $oi->cantidad_facturada + (float) $it->cantidad, 3)]);
+            if ($c->tipo === 'REM') $oi->update(['cantidad_entregada' => round((float) $oi->cantidad_entregada + (float) $it->cantidad, 3)]);
+        }
+        // Conversión completa sin ítems vinculados (flujo simple): se marca todo.
+        if ($c->origen && $c->items->every(fn($i) => ! $i->origen_item_id)) {
+            if ($c->esFactura() && $c->origen->tipo === 'REM') $c->origen->items()->update(['cantidad_facturada' => DB::raw('cantidad')]);
+            if ($c->tipo === 'REM' && $c->origen->esFactura()) $c->origen->items()->update(['cantidad_entregada' => DB::raw('cantidad')]);
+        }
+    }
+
     private function impactarStock(Comprobante $c): void
     {
-        if (! $c->def()['stock'] || $c->es_acopio) {
+        if (! $c->def()['stock'] || $c->es_acopio || ($c->esFactura() && $c->entrega_pendiente)) {
             return;
         }
         // Si el origen ya movió stock (remito -> factura o factura -> remito) no se repite.
         if ($c->origen && $c->origen->stock_impactado && in_array($c->def()['grupo'], ['factura', 'remito'], true)) {
             return;
+        }
+        if ($c->esNotaCredito() && $c->origen && $c->origen->esFactura() && ! $c->origen->stock_impactado) {
+            return; // la factura original no movió stock (entrega pendiente / desde remito)
         }
         $sentido = $c->esNotaCredito() ? 1 : -1; // NC devuelve mercadería
         $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);

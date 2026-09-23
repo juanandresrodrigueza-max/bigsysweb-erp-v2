@@ -10,6 +10,7 @@
         <button @click="editarAbierto = true" class="btn-secondary"><Icono nombre="edit" clase="w-4 h-4" /> Editar</button>
         <Link :href="`/comprobantes/nuevo?tipo=PRE&contact_id=${cliente.id}`" class="btn-secondary">Presupuesto</Link>
         <Link :href="`/comprobantes/nuevo?contact_id=${cliente.id}`" class="btn-secondary">Factura</Link>
+        <button @click="enviarDoc('Contact', cliente.id)" class="btn-secondary">Enviar resumen</button>
         <button @click="cobroAbierto = true" class="btn-primary">Registrar cobro</button>
       </div>
     </div>
@@ -86,7 +87,7 @@
           <tr v-for="k in cobros" :key="k.id" :class="{ 'opacity-50 line-through': k.estado === 'anulado' }">
             <td class="font-semibold tabular-nums">{{ k.numero }}</td><td class="text-marca-muted">{{ k.fecha }}</td><td class="text-xs text-marca-muted">{{ k.medios }}</td>
             <td class="text-right tabular-nums font-semibold">{{ moneda(k.total) }}</td><td class="text-right tabular-nums text-marca-muted">{{ k.a_cuenta ? moneda(k.a_cuenta) : '' }}</td>
-            <td class="text-right whitespace-nowrap"><a :href="`/clientes/cobros/${k.id}/imprimir`" target="_blank" class="btn-ghost !px-2 text-xs">Recibo</a><button v-if="k.estado !== 'anulado'" @click="anularCobro(k)" class="btn-ghost !px-2 text-xs text-carmin">Anular</button></td>
+            <td class="text-right whitespace-nowrap"><a :href="`/clientes/cobros/${k.id}/imprimir`" target="_blank" class="btn-ghost !px-2 text-xs">Recibo</a><button v-if="k.estado !== 'anulado'" @click="enviarDoc('Cobro', k.id)" class="btn-ghost !px-2 text-xs">Enviar</button><button v-if="k.estado !== 'anulado'" @click="anularCobro(k)" class="btn-ghost !px-2 text-xs text-carmin">Anular</button></td>
           </tr>
           <tr v-if="!cobros.length"><td colspan="6" class="text-center text-marca-muted py-10">Sin cobros registrados.</td></tr>
         </tbody>
@@ -118,6 +119,7 @@
       <div class="sm:col-span-2"><p class="label">Notas</p><span class="whitespace-pre-line">{{ cliente.notes ?? '—' }}</span></div>
     </div>
 
+    <EnviarModal :abierto="!!envio" :modelo="envio?.modelo" :id="envio?.id" titulo="Enviar al cliente" @cerrar="envio = null" />
     <ClienteModal :abierto="editarAbierto" :cliente="cliente" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" @cerrar="editarAbierto = false" />
 
     <!-- Cobro -->
@@ -134,6 +136,10 @@
             <select v-if="!['cheque','retencion'].includes(m.medio)" v-model="m.cuenta_fondos_id" class="input !py-1 text-xs">
               <option :value="null">Entra en: la cuenta predeterminada</option><option v-for="c in cuentasPara(m.medio)" :key="c.id" :value="c.id">{{ c.nombre }} · {{ moneda(c.saldo, 0) }}</option>
             </select>
+            <div v-if="m.medio === 'tarjeta'" class="grid grid-cols-3 gap-2">
+              <select v-model="m.datos.tarjeta" class="input !py-1 text-xs"><option v-for="t in ['Visa','Mastercard','American Express','Cabal','Naranja','Maestro','Visa Débito','Mastercard Débito','Otra']" :key="t">{{ t }}</option></select>
+              <input v-model="m.datos.numero" class="input !py-1 text-xs" placeholder="N° cupón" /><input v-model.number="m.datos.cuotas" type="number" min="1" class="input !py-1 text-xs" placeholder="Cuotas" />
+            </div>
             <div v-if="m.medio === 'cheque'" class="grid grid-cols-2 gap-2">
               <input v-model="m.datos.numero" class="input !py-1 text-xs" placeholder="N° cheque" /><input v-model="m.datos.banco" class="input !py-1 text-xs" placeholder="Banco" />
               <div><label class="text-[10px] text-marca-muted">Fecha de pago</label><input v-model="m.datos.fecha_pago" type="date" class="input !py-1 text-xs" /></div>
@@ -204,11 +210,14 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'
+import EnviarModal from '@/Components/EnviarModal.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
 const props = defineProps({ cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
-function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : {} }
+function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : {}) }
+const envio = ref(null)
+function enviarDoc(modelo, id) { envio.value = { modelo, id } }
 const tab = ref('cc')
 const tabs = computed(() => [
   { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },

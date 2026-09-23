@@ -73,6 +73,11 @@ class ClientesController extends Controller
         ]);
     }
 
+    public function pendientesJson(int $id)
+    {
+        return response()->json(Comprobante::where('contact_id', $id)->pendientesCobro()->orderBy('fecha_vto')->get()->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha_vto' => $x->fecha_vto?->format('d/m/Y'), 'saldo' => (float) $x->saldo, 'vencido' => $x->vencido()]));
+    }
+
     // Interés por mora sugerido: % mensual del cliente, prorrateado por día sobre cada saldo vencido.
     private function interesMora(Contact $c, $pendientes): float
     {
