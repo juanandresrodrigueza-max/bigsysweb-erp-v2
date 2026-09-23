@@ -47,7 +47,7 @@ class GenerarAlertas extends Command
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'produccion_atrasada')->whereNull('resuelta_en')->whereNotIn('modelo_id', $atrasadas->pluck('id'))->update(['resuelta_en' => now()]);
 
             // Mora: facturas vencidas con saldo
-            $vencidas = Comprobante::withoutGlobalScopes()->where('business_id', $id)->ventas()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005)->whereDate('fecha_vto', '<', today())->get()->groupBy('contact_id');
+            $vencidas = Comprobante::withoutGlobalScopes()->where('business_id', $id)->ventas()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005)->where('fecha_vto', '<', today()->toDateString())->get()->groupBy('contact_id');
             foreach ($vencidas as $contactId => $comps) {
                 $c = Contact::withoutGlobalScopes()->find($contactId);
                 if (! $c) continue;
@@ -117,7 +117,7 @@ class GenerarAlertas extends Command
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'saldo_minimo')->whereNull('resuelta_en')->whereNotIn('modelo_id', $bajas->pluck('id'))->update(['resuelta_en' => now()]);
 
             // Órdenes de compra con entrega atrasada
-            $ocs = \App\Models\OrdenCompra::withoutGlobalScopes()->where('business_id', $id)->whereIn('estado', ['enviada', 'parcial'])->whereNotNull('fecha_entrega')->whereDate('fecha_entrega', '<', today())->with('contact')->get();
+            $ocs = \App\Models\OrdenCompra::withoutGlobalScopes()->where('business_id', $id)->whereIn('estado', ['enviada', 'parcial'])->whereNotNull('fecha_entrega')->where('fecha_entrega', '<', today()->toDateString())->with('contact')->get();
             foreach ($ocs as $oc) {
                 Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $id, 'tipo' => 'oc_atrasada', 'modelo' => 'OrdenCompra', 'modelo_id' => $oc->id],
                     ['business_location_id' => $oc->business_location_id, 'modulo' => 'proveedores', 'severidad' => 'aviso', 'titulo' => "Orden {$oc->numeroFormateado()} sin recibir: {$oc->contact?->name}", 'detalle' => 'Entrega esperada ' . $oc->fecha_entrega->format('d/m/Y') . '. Reclamá al proveedor o cancelá la orden.', 'url' => "/proveedores/ordenes/{$oc->id}", 'resuelta_en' => null]);

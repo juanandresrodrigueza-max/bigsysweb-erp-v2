@@ -38,7 +38,7 @@ class DashboardController extends Controller
         $comprasPrev  = (float) Purchase::deSucursal($sucursal)->whereBetween('created_at', [$desdePrev, $hastaPrev])->sum('total');
 
         $porCobrar = (float) Contact::customers()->where('balance', '>', 0)->sum('balance');
-        $vencido   = (float) Comprobante::ventas()->pendientesCobro()->whereDate('fecha_vto', '<', today())->sum('saldo');
+        $vencido   = (float) Comprobante::ventas()->pendientesCobro()->where('fecha_vto', '<', today()->toDateString())->sum('saldo');
         $porPagar  = (float) Contact::suppliers()->where('balance', '>', 0)->sum('balance');
         $fondos    = (float) \App\Models\CuentaFondos::where('activa', true)->sum('saldo');
         $sinStock  = Product::where('active', true)->whereColumn('stock', '<=', 'stock_min')->count();

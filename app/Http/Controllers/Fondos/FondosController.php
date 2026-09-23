@@ -25,8 +25,8 @@ class FondosController extends Controller
         $cuentaId = (int) $request->input('cuenta') ?: $cuentas->first(fn($c) => $c->activa)?->id;
 
         $movs = $cuentaId ? MovimientoFondos::where('cuenta_fondos_id', $cuentaId)->with(['user:id,name', 'categoria:id,name'])
-            ->when($request->desde, fn($q, $d) => $q->whereDate('fecha', '>=', $d))
-            ->when($request->hasta, fn($q, $h) => $q->whereDate('fecha', '<=', $h))
+            ->when($request->desde, fn($q, $d) => $q->where('fecha', '>=', d))
+            ->when($request->hasta, fn($q, $h) => $q->where('fecha', '<=', h))
             ->orderByDesc('fecha')->orderByDesc('id')->paginate(40)->withQueryString()
             ->through(fn($m) => ['id' => $m->id, 'fecha' => $m->fecha->format('d/m/Y'), 'origen' => $m->origen, 'concepto' => $m->concepto, 'categoria' => $m->categoria?->name, 'ingreso' => (float) $m->ingreso, 'egreso' => (float) $m->egreso, 'referencia' => $m->referencia, 'usuario' => $m->user?->name, 'conciliado' => $m->conciliado, 'origen_id' => $m->origen_id]) : null;
 

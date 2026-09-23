@@ -24,17 +24,31 @@ class CobranzasService
 
     public function config(Business $b): array { return array_replace(self::DEFAULT, $b->recordatorios ?? []); }
 
-    // Deudores con detalle de vencido y mora calculada.
-    public function deudores(): \Illuminate\Support\Collection
+    // Deudores con vencido, días de mora y mora calculada: una sola consulta agrupada sobre comprobantes (escala a miles de clientes).
+    public function deudores(int $limite = 400): \Illuminate\Support\Collection
     {
-        return Contact::customers()->where('balance', '>', 0.005)->with('vendedor:id,nombre')->orderByDesc('balance')->get()->map(function ($c) {
-            $pend = Comprobante::where('contact_id', $c->id)->pendientesCobro()->get();
-            $venc = $pend->filter(fn($p) => $p->vencido());
-            $mora = 0; $diasMax = 0;
-            foreach ($venc as $p) { $d = $p->fecha_vto->diffInDays(today()); $diasMax = max($diasMax, $d); $mora += (float) $p->saldo * (float) $c->interes_mora / 100 / 30 * $d; }
-            $ultimo = Envio::where('contact_id', $c->id)->where('tipo', 'recordatorio')->latest()->first();
-            return ['id' => $c->id, 'nombre' => $c->name, 'email' => $c->email, 'telefono' => $c->mobile ?: $c->phone, 'saldo' => (float) $c->balance, 'vencido' => round($venc->sum(fn($p) => (float) $p->saldo), 2), 'dias' => $diasMax, 'mora' => round($mora, 2), 'interes_mora' => (float) $c->interes_mora, 'vendedor' => $c->vendedor?->nombre, 'facturas' => $venc->count(), 'ultimo_aviso' => $ultimo?->created_at->format('d/m'), 'plan' => PlanPago::where('contact_id', $c->id)->where('estado', 'vigente')->exists()];
-        })->values();
+        $hoy = today()->toDateString();
+        $dias = \App\Support\Sql::diasHasta('fecha_vto', $hoy); // días desde el vencimiento hasta hoy
+        $agg = Comprobante::ventas()->pendientesCobro()
+            ->selectRaw("contact_id, SUM(saldo) as saldo, SUM(CASE WHEN fecha_vto < ? THEN saldo ELSE 0 END) as vencido, MAX(CASE WHEN fecha_vto < ? THEN {$dias} ELSE 0 END) as dias, SUM(CASE WHEN fecha_vto < ? THEN saldo * ({$dias}) ELSE 0 END) as saldo_dias, SUM(CASE WHEN fecha_vto < ? THEN 1 ELSE 0 END) as facturas", [$hoy, $hoy, $hoy, $hoy])
+            ->groupBy('contact_id')->orderByDesc('saldo')->limit($limite)->get()->keyBy('contact_id');
+        if ($agg->isEmpty()) return collect();
+        $ultimos = Envio::whereIn('contact_id', $agg->keys())->where('tipo', 'recordatorio')->selectRaw('contact_id, MAX(created_at) as ultimo')->groupBy('contact_id')->pluck('ultimo', 'contact_id');
+        $planes = PlanPago::where('estado', 'vigente')->whereIn('contact_id', $agg->keys())->pluck('contact_id')->flip();
+        return Contact::whereIn('id', $agg->keys())->with('vendedor:id,nombre')->get()->map(function ($c) use ($agg, $ultimos, $planes) {
+            $a = $agg[$c->id];
+            $mora = (float) $a->saldo_dias * (float) $c->interes_mora / 100 / 30;
+            return ['id' => $c->id, 'nombre' => $c->name, 'email' => $c->email, 'telefono' => $c->mobile ?: $c->phone, 'saldo' => round((float) $a->saldo, 2), 'vencido' => round((float) $a->vencido, 2), 'dias' => (int) round((float) $a->dias), 'mora' => round($mora, 2), 'interes_mora' => (float) $c->interes_mora, 'vendedor' => $c->vendedor?->nombre, 'facturas' => (int) $a->facturas, 'ultimo_aviso' => isset($ultimos[$c->id]) ? \Carbon\Carbon::parse($ultimos[$c->id])->format('d/m') : null, 'plan' => isset($planes[$c->id])];
+        })->sortByDesc('saldo')->values();
+    }
+
+    // Totales de toda la cartera (no solo de los deudores listados): por cobrar, vencido, mora estimada y cantidad de deudores con vencido.
+    public function resumenDeudores(): array
+    {
+        $hoy = today()->toDateString(); $dias = \App\Support\Sql::diasHasta('comprobantes.fecha_vto', $hoy);
+        $r = Comprobante::ventas()->pendientesCobro()->join('contacts', 'contacts.id', '=', 'comprobantes.contact_id')
+            ->selectRaw("COALESCE(SUM(comprobantes.saldo),0) as por_cobrar, COALESCE(SUM(CASE WHEN comprobantes.fecha_vto < ? THEN comprobantes.saldo ELSE 0 END),0) as vencido, COALESCE(SUM(CASE WHEN comprobantes.fecha_vto < ? THEN comprobantes.saldo * ({$dias}) * contacts.interes_mora / 100 / 30 ELSE 0 END),0) as mora, COUNT(DISTINCT CASE WHEN comprobantes.fecha_vto < ? THEN comprobantes.contact_id END) as deudores", [$hoy, $hoy, $hoy])->first();
+        return ['por_cobrar' => round((float) $r->por_cobrar, 2), 'vencido' => round((float) $r->vencido, 2), 'mora' => round((float) $r->mora, 2), 'deudores' => (int) $r->deudores];
     }
 
     // Recordatorio de una factura por el canal elegido, con texto de la empresa.

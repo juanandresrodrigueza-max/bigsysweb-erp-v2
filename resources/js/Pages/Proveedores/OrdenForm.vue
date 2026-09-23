@@ -14,7 +14,7 @@
         <div class="card grid sm:grid-cols-3 gap-4">
           <div class="sm:col-span-3">
             <label class="label">Proveedor</label>
-            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesProveedores" placeholder="Buscar proveedor…" />
+            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesProveedores" :url="props.catalogoParcial.proveedores ? '/buscar/contactos/proveedor' : null" @cargados="f => sumar(proveedoresCat, f)" placeholder="Buscar proveedor…" />
             <p v-if="form.errors.contact_id" class="text-carmin text-xs mt-1">{{ form.errors.contact_id }}</p>
           </div>
           <div><label class="label">Fecha</label><input v-model="form.fecha" type="date" class="input" /></div>
@@ -29,7 +29,7 @@
               <thead><tr><th class="w-[44%]">Artículo</th><th class="w-24 text-right">Stock</th><th class="w-24 text-right">Cant.</th><th class="w-32 text-right">Precio neto</th><th class="text-right">Subtotal</th><th class="w-8"></th></tr></thead>
               <tbody>
                 <tr v-for="(it, i) in form.items" :key="i" class="align-top">
-                  <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" placeholder="Artículo…" @elegido="o => { if (o) { it.descripcion = o.label; it.precio_unit = o.precio_compra; it.stock = o.stock } }" /><input v-model="it.notas" class="input mt-1 !py-1 text-xs" placeholder="Nota para el proveedor (opcional)" /></td>
+                  <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/orden' : null" @cargados="f => sumar(productosCat, f)" placeholder="Artículo…" @elegido="o => { if (o) { it.descripcion = o.label; it.precio_unit = o.precio_compra; it.stock = o.stock } }" /><input v-model="it.notas" class="input mt-1 !py-1 text-xs" placeholder="Nota para el proveedor (opcional)" /></td>
                   <td class="text-right tabular-nums text-marca-muted pt-3">{{ it.stock ?? '' }}</td>
                   <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" /></td>
                   <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" /></td>
@@ -100,11 +100,14 @@ import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, hoyISO } from '@/util/formato'
 
-const props = defineProps({ orden: Object, contactIdInicial: Number, proveedores: Array, productos: Array, rubros: Array })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  orden: Object, contactIdInicial: Number, proveedores: Array, productos: Array, rubros: Array })
+const productosCat = ref([...props.productos])
+const proveedoresCat = ref([...props.proveedores])
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
 const o = props.orden
 const form = useForm({ contact_id: o?.contact_id ?? props.contactIdInicial ?? null, fecha: o?.fecha ?? hoyISO(), fecha_entrega: o?.fecha_entrega ?? '', notas: o?.notas ?? '', origen: o?.origen ?? 'manual', items: (o?.items ?? []).map(i => ({ ...i })), enviar: false })
-const opcionesProveedores = computed(() => props.proveedores.map(p => ({ id: p.id, label: p.name, sub: p.cuit })))
-const opcionesProductos = computed(() => props.productos.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: `stock ${p.stock}`, precio_compra: p.precio_compra, stock: p.stock })))
+const opcionesProveedores = computed(() => proveedoresCat.value.map(p => ({ id: p.id, label: p.name, sub: p.cuit })))
+const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: `stock ${p.stock}`, precio_compra: p.precio_compra, stock: p.stock })))
 const total = computed(() => form.items.reduce((a, i) => a + (Number(i.cantidad) || 0) * (Number(i.precio_unit) || 0), 0))
 function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, precio_unit: 0, notas: '', stock: null, ...pre }) }
 function guardar(enviar) { form.enviar = enviar; form.post(o ? `/proveedores/ordenes/${o.id}` : '/proveedores/ordenes') }

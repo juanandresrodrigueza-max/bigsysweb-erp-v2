@@ -143,8 +143,10 @@ class ImportadorService
             foreach ($filas as $i => $f) {
                 $leidas++;
                 try {
+                    // Savepoint por fila: un error no tumba las demás (PostgreSQL aborta la transacción entera si no).
+                    DB::transaction(function () use ($entidad, $f, $i, $opt, $num, $val, $user, &$creadas, &$act, &$err, &$detalle, &$rubros, &$tipos, &$provs) {
                     if ($entidad === 'articulos') {
-                        $desc = $val($f, 'descripcion'); if ($desc === '') { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': sin descripción'; continue; }
+                        $desc = $val($f, 'descripcion'); if ($desc === '') { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': sin descripción'; return; }
                         $sku = $val($f, 'codigo'); $bc = $val($f, 'barcode');
                         $p = ($sku !== '' ? Product::withTrashed()->where('sku', $sku)->first() : null) ?? ($bc !== '' ? Product::withTrashed()->where('barcode', $bc)->first() : null) ?? Product::withTrashed()->where('name', $desc)->first();
                         $nuevo = ! $p;
@@ -171,25 +173,25 @@ class ImportadorService
                         // Artículos que ya existían: si se pide, el stock se ajusta al valor del archivo (entrada o salida por la diferencia).
                         elseif (! $nuevo && $st !== null && ($opt['ajustar_stock'] ?? false) && $p->controla_stock) { $dif = round($st - (float) $p->stock, 3); if ($dif > 0) $this->stock->entrada($p, $dif, 'Ajuste por importación', null, null, (float) $p->cost); elseif ($dif < 0) $this->stock->salida($p, -$dif, 'Ajuste por importación'); }
                         $nuevo ? $creadas++ : $act++;
-                        continue;
+                        return;
                     }
                     if (str_starts_with($entidad, 'saldos_')) {
                         // Saldo pendiente por comprobante: queda en la cuenta corriente con su fecha y vencimiento (sirve para mora, cobranzas y antigüedad).
                         $tipo = $entidad === 'saldos_clientes' ? 'customer' : 'supplier';
                         $nombre = $val($f, 'nombre'); $cuit = preg_replace('/\D/', '', $val($f, 'cuit'));
                         $c = ($cuit !== '' ? Contact::whereIn('type', [$tipo, 'both'])->whereRaw("replace(replace(cuit,'-',''),' ','') = ?", [$cuit])->first() : null) ?? ($nombre !== '' ? Contact::whereIn('type', [$tipo, 'both'])->whereRaw('lower(name) = ?', [mb_strtolower($nombre)])->first() : null);
-                        if (! $c) { $err++; $detalle[] = 'Fila ' . ($i + 2) . ": no encuentro el " . ($tipo === 'customer' ? 'cliente' : 'proveedor') . " {$nombre} {$cuit} (importalo primero)"; continue; }
-                        $imp = $num($val($f, 'importe')); if ($imp === null || abs($imp) < 0.005) { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': sin importe'; continue; }
+                        if (! $c) { $err++; $detalle[] = 'Fila ' . ($i + 2) . ": no encuentro el " . ($tipo === 'customer' ? 'cliente' : 'proveedor') . " {$nombre} {$cuit} (importalo primero)"; return; }
+                        $imp = $num($val($f, 'importe')); if ($imp === null || abs($imp) < 0.005) { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': sin importe'; return; }
                         $fecha = $this->fecha($val($f, 'fecha')) ?? ($opt['fecha_saldos'] ?? today()->toDateString()); $vto = $this->fecha($val($f, 'vencimiento')) ?? $fecha;
                         $comp = $val($f, 'comprobante') ?: 'Saldo';
                         if ($opt['reemplazar_saldos'] ?? false) { CuentaCorriente::where('contact_id', $c->id)->where('tipo', 'saldo_inicial')->where('concepto', $comp . ' (migración)')->delete(); }
                         CuentaCorriente::create(['business_id' => $c->business_id, 'contact_id' => $c->id, 'fecha' => $fecha, 'fecha_vto' => $vto, 'tipo' => 'saldo_inicial', 'concepto' => $comp . ' (migración)', 'debe' => $imp > 0 ? $imp : 0, 'haber' => $imp < 0 ? -$imp : 0]);
                         CuentaCorriente::recalcularSaldo($c->id);
                         $creadas++;
-                        continue;
+                        return;
                     }
                     // clientes / proveedores
-                    $nombre = $val($f, 'nombre'); if ($nombre === '') { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': sin nombre'; continue; }
+                    $nombre = $val($f, 'nombre'); if ($nombre === '') { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': sin nombre'; return; }
                     $cuit = preg_replace('/\D/', '', $val($f, 'cuit'));
                     $tipo = $entidad === 'clientes' ? 'customer' : 'supplier';
                     $c = ($cuit !== '' ? Contact::where('type', $tipo)->whereRaw("replace(replace(cuit,'-',''),' ','') = ?", [$cuit])->first() : null) ?? Contact::where('type', $tipo)->where('name', $nombre)->first();
@@ -215,6 +217,7 @@ class ImportadorService
                         CuentaCorriente::recalcularSaldo($c->id);
                     }
                     $nuevo ? $creadas++ : $act++;
+                    });
                 } catch (\Throwable $e) { $err++; $detalle[] = 'Fila ' . ($i + 2) . ': ' . $e->getMessage(); }
             }
         });

@@ -321,7 +321,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/buscar/{entidad}/{forma}', \App\Http\Controllers\BuscarController::class);
     Route::get('/estadisticas/rentabilidad', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/rentabilidad/dim', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'dimension'])->middleware('permiso:estadisticas');
     Route::post('/estadisticas/rentabilidad/categorias', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'clasificar'])->middleware('permiso:fondos,editar');
     Route::post('/estadisticas/rentabilidad/config', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'configurar'])->middleware('permiso:configuracion,editar');
 
@@ -407,6 +409,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     foreach (['retail', 'minimarket'] as $v) {
         Route::prefix($v)->middleware("permiso:{$v}")->group(function () use ($v) {
             Route::get('/',            [\App\Http\Controllers\Pos\PosController::class, 'index']);
+            Route::get('/buscar',      [\App\Http\Controllers\Pos\PosController::class, 'buscar']);
             Route::post('/vender',     [\App\Http\Controllers\Pos\PosController::class, 'vender'])->middleware("permiso:{$v},crear");
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
             Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);

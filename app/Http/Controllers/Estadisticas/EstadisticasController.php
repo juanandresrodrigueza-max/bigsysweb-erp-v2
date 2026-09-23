@@ -39,9 +39,8 @@ class EstadisticasController extends Controller
 
         // Serie diaria / mensual según el largo del período
         $porMes = $dias > 62;
-        $serie = $ventas($desde, $hasta)->selectRaw(($porMes ? "strftime('%Y-%m', fecha)" : 'fecha') . " as k, SUM(({$signo}) * total) as monto, SUM(CASE WHEN tipo IN ('FA','FB','FC','FE') THEN 1 ELSE 0 END) as n")->groupBy('k')->orderBy('k')->get()
+        $serie = $ventas($desde, $hasta)->selectRaw(($porMes ? \App\Support\Sql::mes('fecha') : 'fecha') . " as k, SUM(({$signo}) * total) as monto, SUM(CASE WHEN tipo IN ('FA','FB','FC','FE') THEN 1 ELSE 0 END) as n")->groupBy('k')->orderBy('k')->get()
             ->map(fn($r) => ['label' => $porMes ? Carbon::parse($r->k . '-01')->locale('es')->isoFormat('MMM YY') : Carbon::parse($r->k)->format('d/m'), 'monto' => (float) $r->monto, 'n' => (int) $r->n]);
-        if (config('database.default') !== 'sqlite' && $porMes) { /* strftime es sqlite; en pgsql/mysql se usa to_char/DATE_FORMAT */ }
 
         $top = fn($q, $n = 10) => $q->limit($n)->get();
 
@@ -73,7 +72,7 @@ class EstadisticasController extends Controller
             $add('Cliente', $ventas($desde, $hasta)->join('contacts', 'contacts.id', '=', 'comprobantes.contact_id')->selectRaw("contacts.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('contacts.name')->orderByDesc('monto')->get());
             $add('Artículo', $itemsVenta()->join('products', 'products.id', '=', 'comprobante_items.product_id')->selectRaw("products.name as nombre, SUM(({$sig}) * comprobante_items.total) as monto, SUM(({$sig}) * comprobante_items.cantidad) as n")->groupBy('products.name')->orderByDesc('monto')->get());
             $add('Vendedor', $ventas($desde, $hasta)->join('users', 'users.id', '=', 'comprobantes.user_id')->selectRaw("users.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('users.name')->get());
-            $add('Hora', $ventas($desde, $hasta)->whereNotNull('emitido_en')->selectRaw("CAST(strftime('%H', emitido_en) AS INTEGER) as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('nombre')->orderBy('nombre')->get());
+            $add('Hora', $ventas($desde, $hasta)->whereNotNull('emitido_en')->selectRaw("" . \App\Support\Sql::hora('emitido_en') . " as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('nombre')->orderBy('nombre')->get());
             $add('Comparativo mensual', $comparativo['mensual'], 'mes', 'actual', 'anterior');
             \App\Models\AuditLog::registrar('exportar', null, "Exportó estadísticas {$desde->toDateString()} a {$hasta->toDateString()}");
             return response("\xEF\xBB\xBF" . $csv, 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=estadisticas_{$desde->toDateString()}_{$hasta->toDateString()}.csv"]);
@@ -92,7 +91,7 @@ class EstadisticasController extends Controller
             'vendedores' => $ventas($desde, $hasta)->join('users', 'users.id', '=', 'comprobantes.user_id')->selectRaw("users.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('users.name')->orderByDesc('monto')->get(),
             'cobros' => CobroMedio::join('cobros', 'cobros.id', '=', 'cobro_medios.cobro_id')->where('cobros.estado', '!=', 'anulado')->whereBetween('cobros.fecha', [$desde->toDateString(), $hasta->toDateString()])->when($sucursal, fn($q) => $q->where('cobros.business_location_id', $sucursal))->selectRaw('cobro_medios.medio, SUM(cobro_medios.monto) as monto, COUNT(*) as n')->groupBy('cobro_medios.medio')->orderByDesc('monto')->get()->map(fn($r) => ['medio' => Cobro::MEDIOS[$r->medio] ?? $r->medio, 'monto' => (float) $r->monto, 'n' => $r->n]),
             'proveedores' => $top(Comprobante::compras()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'NCA', 'NCB', 'NCC'])->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])->join('contacts', 'contacts.id', '=', 'comprobantes.contact_id')->selectRaw("contacts.id, contacts.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('contacts.id', 'contacts.name')->orderByDesc('monto')),
-            'horas' => $ventas($desde, $hasta)->whereNotNull('emitido_en')->selectRaw("CAST(strftime('%H', emitido_en) AS INTEGER) as h, COUNT(*) as n")->groupBy('h')->orderBy('h')->get(),
+            'horas' => $ventas($desde, $hasta)->whereNotNull('emitido_en')->selectRaw("" . \App\Support\Sql::hora('emitido_en') . " as h, COUNT(*) as n")->groupBy('h')->orderBy('h')->get(),
         ]);
     }
 }

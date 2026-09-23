@@ -22,7 +22,7 @@ class CobranzasController extends Controller
         $deudores = $this->service->deudores();
         return Inertia::render('Clientes/Cobranzas', [
             'deudores' => $deudores,
-            'kpis' => ['por_cobrar' => round($deudores->sum('saldo'), 2), 'vencido' => round($deudores->sum('vencido'), 2), 'mora' => round($deudores->sum('mora'), 2), 'deudores' => $deudores->where('vencido', '>', 0)->count()],
+            'kpis' => $this->service->resumenDeudores(),
             'config' => $this->service->config($b),
             'whatsapp' => ['token' => $b->whatsapp_settings['token'] ?? '', 'phone_id' => $b->whatsapp_settings['phone_id'] ?? '', 'configurado' => ! empty($b->whatsapp_settings['token'])],
             'mailConfigurado' => config('mail.default') !== 'log',

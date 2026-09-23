@@ -16,11 +16,8 @@ class AnalistaSemanal extends Command
     public function handle(AnalistaService $svc): int
     {
         foreach (Business::where('is_active', true)->get() as $b) {
-            try {
-                $h = collect($svc->hallazgos($b))->whereIn('sev', ['critica', 'aviso'])->take(5);
-                foreach ($h as $x) Alerta::emitir(['business_id' => $b->id, 'modulo' => 'estadisticas', 'tipo' => 'analista_' . $x['cat'], 'severidad' => $x['sev'] === 'critica' ? 'critica' : 'aviso', 'titulo' => $x['titulo'], 'detalle' => $x['detalle'], 'url' => '/estadisticas/analista']);
-                $this->line("{$b->name}: " . $h->count() . ' hallazgos');
-            } catch (\Throwable $e) { $this->error("{$b->name}: {$e->getMessage()}"); }
+            \App\Jobs\AnalistaEmpresaJob::dispatch($b); // en cola: recorre todas las ventas y puede llamar a la IA
+            $this->line("{$b->name}: encolado");
         }
         return self::SUCCESS;
     }

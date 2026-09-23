@@ -20,10 +20,10 @@ class ComprasController extends Controller
     public function index(Request $request)
     {
         $q = Comprobante::compras()->with('contact:id,name')
-            ->when($request->estado, fn($q, $e) => $e === 'pendiente' ? $q->pendientesPago() : ($e === 'vencido' ? $q->pendientesPago()->whereDate('fecha_vto', '<', today()) : $q->where('estado', $e)))
+            ->when($request->estado, fn($q, $e) => $e === 'pendiente' ? $q->pendientesPago() : ($e === 'vencido' ? $q->pendientesPago()->where('fecha_vto', '<', today()->toDateString()) : $q->where('estado', $e)))
             ->when($request->contact_id, fn($q, $c) => $q->where('contact_id', $c))
-            ->when($request->desde, fn($q, $d) => $q->whereDate('fecha', '>=', $d))
-            ->when($request->hasta, fn($q, $h) => $q->whereDate('fecha', '<=', $h))
+            ->when($request->desde, fn($q, $d) => $q->where('fecha', '>=', d))
+            ->when($request->hasta, fn($q, $h) => $q->where('fecha', '<=', h))
             ->when($request->buscar, fn($q, $b) => $q->where(fn($w) => $w->where('numero_proveedor', 'like', "%{$b}%")->orWhereHas('contact', fn($c) => $c->where('name', 'like', "%{$b}%"))))
             ->orderByDesc('fecha')->orderByDesc('id');
         $resumen = (clone $q)->selectRaw("COUNT(*) as cantidad, COALESCE(SUM(CASE WHEN estado='emitido' THEN total ELSE 0 END),0) as total, COALESCE(SUM(CASE WHEN estado='emitido' THEN saldo ELSE 0 END),0) as saldo")->first();
@@ -130,13 +130,14 @@ class ComprasController extends Controller
 
     private function datosForm(Request $request, ?Comprobante $c): array
     {
+        [$productos, $prodParcial] = \App\Support\Catalogo::productos('compra', $c ? $c->items->pluck('product_id')->all() : []);
+        [$proveedores, $provParcial] = \App\Support\Catalogo::contactos('proveedor', array_filter([$c?->contact_id, (int) $request->input('contact_id')]));
         return [
             'compra' => $c ? array_merge($this->resumir($c), ['contact_id' => $c->contact_id, 'tipo' => $c->tipo, 'numero_proveedor' => $c->numero_proveedor, 'cae_proveedor' => $c->cae_proveedor, 'origen_id' => $c->origen_id, 'fecha' => $c->fecha->toDateString(), 'fecha_vto' => $c->fecha_vto?->toDateString(), 'condicion' => $c->condicion, 'notas' => $c->notas,
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
                 'impuestos' => $c->impuestos->map(fn($i) => ['tipo' => $i->tipo, 'monto' => (float) $i->monto])]) : null,
             'contactIdInicial' => (int) $request->input('contact_id') ?: null,
-            'proveedores' => Contact::suppliers()->where('is_active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'cuit' => $p->cuit, 'condicion_iva' => $p->condicion_iva, 'dias_pago' => $p->dias_pago, 'balance' => (float) $p->balance]),
-            'productos' => Product::where('active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'iva' => (float) $p->iva, 'cost' => (float) $p->cost, 'stock' => (float) $p->stock, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado]),
+            'proveedores' => $proveedores, 'productos' => $productos, 'catalogoParcial' => ['proveedores' => $provParcial, 'productos' => $prodParcial],
             'fceHabilitado' => true,
             'iaDisponible' => (bool) config('services.anthropic.api_key'),
         ];

@@ -20,7 +20,7 @@ class RentabilidadController extends Controller
         $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
         $hasta = $request->hasta ? Carbon::parse($request->hasta) : now()->endOfMonth();
         $sucursal = $request->sucursal ? (int) $request->sucursal : null;
-        $r = $this->svc->calcular($request->user()->business, $desde, $hasta, $sucursal);
+        $r = $this->svc->calcular($request->user()->business, $desde, $hasta, $sucursal, $request->export ? RentabilidadService::DIMENSIONES : ['articulos']);
         if ($request->export) {
             AuditLog::registrar('exportar', null, "Exportó rentabilidad {$desde->toDateString()} a {$hasta->toDateString()}");
             return response($this->svc->csv($r, $desde->toDateString(), $hasta->toDateString()), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=rentabilidad_{$desde->toDateString()}_{$hasta->toDateString()}.csv"]);
@@ -30,6 +30,16 @@ class RentabilidadController extends Controller
             'listaSucursales' => $request->user()->business->locations()->orderBy('name')->get(['id', 'name']),
             'tipos' => ExpenseCategory::TIPOS, 'imputaciones' => ExpenseCategory::IMPUTACIONES,
         ]);
+    }
+
+    // Una apertura (por rubro, cliente, vendedor, sucursal u obra) a pedido, en JSON: la página las carga al abrir cada solapa.
+    public function dimension(Request $request)
+    {
+        $dim = $request->input('dim'); abort_unless(in_array($dim, RentabilidadService::DIMENSIONES, true), 404);
+        $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
+        $hasta = $request->hasta ? Carbon::parse($request->hasta) : now()->endOfMonth();
+        $r = $this->svc->calcular($request->user()->business, $desde, $hasta, $request->sucursal ? (int) $request->sucursal : null, [$dim], false);
+        return response()->json($r['por'][$dim]);
     }
 
     // Clasifica las categorías de gasto (fijo/variable, directo/indirecto) de una vez.

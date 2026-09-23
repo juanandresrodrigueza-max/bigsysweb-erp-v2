@@ -37,7 +37,7 @@ class Contact extends Model
 
     public function deudaVencidaProveedor(): float
     {
-        return (float) $this->comprobantes()->pendientesPago()->whereDate('fecha_vto', '<', today())->sum('saldo');
+        return (float) $this->comprobantes()->pendientesPago()->where('fecha_vto', '<', today()->toDateString())->sum('saldo');
     }
 
     public function scopeCustomers(Builder $q): Builder { return $q->whereIn('type', ['customer', 'both']); }
@@ -57,6 +57,6 @@ class Contact extends Model
 
     public function deudaVencida(): float
     {
-        return (float) $this->comprobantes()->pendientesCobro()->whereDate('fecha_vto', '<', today())->sum('saldo');
+        return (float) $this->comprobantes()->pendientesCobro()->where('fecha_vto', '<', today()->toDateString())->sum('saldo');
     }
 }

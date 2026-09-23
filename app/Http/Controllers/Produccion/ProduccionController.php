@@ -80,13 +80,14 @@ class ProduccionController extends Controller
 
     public function formulas()
     {
+        [$productos, $prodParcial] = \App\Support\Catalogo::productos('produccion', Recipe::with('items')->get()->flatMap(fn($r) => array_merge([$r->product_id], $r->items->pluck('product_id')->all()))->all());
         return Inertia::render('Produccion/Formulas', [
             'formulas' => Recipe::with('product:id,name,unit,cost,price', 'items.product:id,name,unit,cost')->withCount('ordenes')->orderBy('name')->get()->map(fn($r) => [
                 'id' => $r->id, 'name' => $r->name, 'product_id' => $r->product_id, 'producto' => $r->product?->name, 'unit' => $r->product?->unit, 'yield_quantity' => (float) $r->yield_quantity, 'yield_unit' => $r->yield_unit,
                 'instructions' => $r->instructions, 'tiempo_minutos' => $r->tiempo_minutos, 'is_active' => $r->is_active, 'costo' => (float) $r->costo_calculado, 'costo_unit' => $r->costoUnitario(), 'precio' => (float) ($r->product?->price ?? 0), 'ordenes' => $r->ordenes_count,
                 'items' => $r->items->map(fn($i) => ['product_id' => $i->product_id, 'nombre' => $i->product?->name, 'quantity' => (float) $i->quantity, 'unit' => $i->unit, 'notes' => $i->notes, 'costo' => round((float) $i->quantity * (float) ($i->product?->cost ?? 0), 2)]),
             ]),
-            'productos' => Product::where('active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'tipo' => $p->tipo, 'cost' => (float) $p->cost]),
+            'productos' => $productos, 'catalogoParcial' => ['productos' => $prodParcial],
             'unidades' => Product::UNIDADES,
         ]);
     }

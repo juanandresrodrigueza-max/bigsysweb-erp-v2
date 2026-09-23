@@ -25,14 +25,14 @@
 
     <Modal :abierto="modal" :titulo="form.id ? `Editar ${form.name}` : 'Nueva fórmula'" ancho="max-w-2xl" @cerrar="modal = false">
       <div class="grid sm:grid-cols-2 gap-4">
-        <div class="sm:col-span-2"><label class="label">Producto que se fabrica</label><BuscadorSelect v-model="form.product_id" :opciones="opcionesProductos" placeholder="Buscar artículo…" @elegido="o => { if (o && !form.name) form.name = o.label }" /><p v-if="form.errors.product_id" class="text-carmin text-xs mt-1">{{ form.errors.product_id }}</p></div>
+        <div class="sm:col-span-2"><label class="label">Producto que se fabrica</label><BuscadorSelect v-model="form.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/produccion' : null" @cargados="f => sumar(productosCat, f)" placeholder="Buscar artículo…" @elegido="o => { if (o && !form.name) form.name = o.label }" /><p v-if="form.errors.product_id" class="text-carmin text-xs mt-1">{{ form.errors.product_id }}</p></div>
         <div class="sm:col-span-2"><label class="label">Nombre de la fórmula</label><input v-model="form.name" class="input" placeholder="Ej: Pan francés (tanda 50 kg)" /><p v-if="form.errors.name" class="text-carmin text-xs mt-1">{{ form.errors.name }}</p></div>
         <div><label class="label">Rinde (cantidad producida por tanda)</label><input v-model.number="form.yield_quantity" type="number" step="any" min="0" class="input" /></div>
         <div><label class="label">Tiempo (minutos)</label><input v-model.number="form.tiempo_minutos" type="number" min="0" class="input" /></div>
         <div class="sm:col-span-2">
           <div class="flex items-center justify-between mb-1"><label class="label !mb-0">Insumos por tanda</label><span class="text-xs text-marca-muted tabular-nums">Costo tanda {{ moneda(costoTanda, 0) }} · por unidad {{ moneda(form.yield_quantity ? costoTanda / form.yield_quantity : 0) }}</span></div>
           <div v-for="(it, i) in form.items" :key="i" class="grid grid-cols-[1fr_90px_70px_28px] gap-2 mb-2">
-            <BuscadorSelect v-model="it.product_id" :opciones="opcionesInsumos" placeholder="Insumo…" @elegido="o => { if (o) it.unit = o.unit }" />
+            <BuscadorSelect v-model="it.product_id" :opciones="opcionesInsumos" :url="props.catalogoParcial.productos ? '/buscar/articulos/produccion' : null" @cargados="f => sumar(productosCat, f)" placeholder="Insumo…" @elegido="o => { if (o) it.unit = o.unit }" />
             <input v-model.number="it.quantity" type="number" step="any" min="0" class="input text-right" placeholder="Cant." />
             <select v-model="it.unit" class="input !px-1"><option v-for="(l, k) in unidades" :key="k" :value="k">{{ k }}</option></select>
             <button @click="form.items.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
@@ -57,13 +57,15 @@ import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ formulas: Array, productos: Array, unidades: Object })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  formulas: Array, productos: Array, unidades: Object })
+const productosCat = ref([...props.productos])
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
 const { puede } = usePermisos()
 const modal = ref(false)
 const vacio = () => ({ id: null, product_id: null, name: '', yield_quantity: 1, tiempo_minutos: null, instructions: '', is_active: true, items: [{ product_id: null, quantity: null, unit: 'un', notes: '' }] })
 const form = useForm(vacio())
 function abrir(f = null) { form.clearErrors(); Object.assign(form, vacio(), f ? { id: f.id, product_id: f.product_id, name: f.name, yield_quantity: f.yield_quantity, tiempo_minutos: f.tiempo_minutos, instructions: f.instructions ?? '', is_active: f.is_active, items: f.items.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit: i.unit, notes: i.notes ?? '' })) } : {}); modal.value = true }
-const opcionesProductos = computed(() => props.productos.map(p => ({ id: p.id, label: p.name, sub: p.sku, unit: p.unit })))
-const opcionesInsumos = computed(() => props.productos.filter(p => p.id !== form.product_id).map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: 'costo ' + moneda(p.cost), unit: p.unit })))
-const costoTanda = computed(() => form.items.reduce((a, it) => a + (Number(it.quantity) || 0) * (props.productos.find(p => p.id === it.product_id)?.cost ?? 0), 0))
+const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, unit: p.unit })))
+const opcionesInsumos = computed(() => productosCat.value.filter(p => p.id !== form.product_id).map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: 'costo ' + moneda(p.cost), unit: p.unit })))
+const costoTanda = computed(() => form.items.reduce((a, it) => a + (Number(it.quantity) || 0) * (productosCat.value.find(p => p.id === it.product_id)?.cost ?? 0), 0))
 </script>

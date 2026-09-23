@@ -16,9 +16,10 @@ class BackupsDiario extends Command
     {
         $n = 0;
         foreach (Business::where('is_active', true)->where('backup_auto', true)->get() as $b) {
-            try { $svc->crear($b, 'auto'); $n++; } catch (\Throwable $e) { $this->error("{$b->name}: {$e->getMessage()}"); }
+            // Con QUEUE_CONNECTION=sync corre acá mismo; con database/redis lo toma el worker (php artisan queue:work).
+            try { \App\Jobs\BackupEmpresaJob::dispatch($b, 'auto'); $n++; } catch (\Throwable $e) { $this->error("{$b->name}: {$e->getMessage()}"); }
         }
-        $this->info("Copias generadas: {$n}");
+        $this->info("Copias encoladas: {$n}");
         return self::SUCCESS;
     }
 }

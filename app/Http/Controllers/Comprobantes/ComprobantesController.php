@@ -27,10 +27,10 @@ class ComprobantesController extends Controller
 
         $q = Comprobante::ventas()->with('contact:id,name')
             ->whereIn('tipo', $tiposGrupo)
-            ->when($request->estado, fn($q, $e) => $e === 'pendiente' ? $q->pendientesCobro() : ($e === 'vencido' ? $q->pendientesCobro()->whereDate('fecha_vto', '<', today()) : $q->where('estado', $e)))
+            ->when($request->estado, fn($q, $e) => $e === 'pendiente' ? $q->pendientesCobro() : ($e === 'vencido' ? $q->pendientesCobro()->where('fecha_vto', '<', today()->toDateString()) : $q->where('estado', $e)))
             ->when($request->contact_id, fn($q, $c) => $q->where('contact_id', $c))
-            ->when($request->desde, fn($q, $d) => $q->whereDate('fecha', '>=', $d))
-            ->when($request->hasta, fn($q, $h) => $q->whereDate('fecha', '<=', $h))
+            ->when($request->desde, fn($q, $d) => $q->where('fecha', '>=', d))
+            ->when($request->hasta, fn($q, $h) => $q->where('fecha', '<=', h))
             ->when($request->sucursal === 'actual', fn($q) => $q->deSucursal($user->current_location_id))
             ->when($request->buscar, function ($q, $b) {
                 $q->where(function ($w) use ($b) {
@@ -213,6 +213,9 @@ class ComprobantesController extends Controller
     {
         $user = $request->user();
         $origen = $request->origen_id ? Comprobante::ventas()->with('items')->find($request->origen_id) : null;
+        $idsProd = array_merge($c ? $c->items->pluck('product_id')->all() : [], $origen ? $origen->items->pluck('product_id')->all() : []);
+        [$productos, $productosParcial] = \App\Support\Catalogo::productos('venta', $idsProd);
+        [$clientes, $clientesParcial] = \App\Support\Catalogo::contactos('cliente', array_filter([$c?->contact_id, $origen?->contact_id, (int) $request->input('contact_id')]));
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
                 'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
@@ -230,8 +233,7 @@ class ComprobantesController extends Controller
                 ['key' => 'FX', 'label' => 'Factura (A/B/C según cliente)'], ['key' => 'PRE', 'label' => 'Presupuesto'], ['key' => 'REM', 'label' => 'Remito'],
                 ['key' => 'NCX', 'label' => 'Nota de crédito'], ['key' => 'NDX', 'label' => 'Nota de débito'],
             ],
-            'clientes' => Contact::customers()->where('is_active', true)->with('tipoCliente:id,nombre')->orderBy('name')->get()->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'cuit' => $c->cuit, 'condicion_iva' => $c->condicion_iva, 'lista_precios' => $c->lista_precios, 'dias_pago' => $c->dias_pago, 'descuento' => (float) $c->descuento, 'balance' => (float) $c->balance, 'credit_limit' => (float) $c->credit_limit, 'tipo' => $c->tipoCliente?->nombre]),
-            'productos' => Product::where('active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'precios' => [1 => (float) $p->price, 2 => $p->precioLista(2), 3 => $p->precioLista(3), 4 => $p->precioLista(4), 5 => $p->precioLista(5), 6 => $p->precioLista(6)]]),
+            'clientes' => $clientes, 'productos' => $productos, 'catalogoParcial' => ['clientes' => $clientesParcial, 'productos' => $productosParcial],
             'puntosVenta' => PuntoVenta::where('activo', true)->with('location:id,name')->orderBy('numero')->get()->map(fn($p) => ['id' => $p->id, 'numero' => $p->numero, 'sucursal' => $p->location?->name, 'modo' => $p->modo]),
             'puntoVentaDefault' => $this->service->puntoVentaPorDefecto($user)?->id,
             'empresa' => ['condicion_iva' => $user->business->condicion_iva ?? 'Responsable Inscripto'],

@@ -93,7 +93,7 @@ class EjercicioService
             if (! IndiceIpc::valor($cierre)) throw ValidationException::withMessages(['hasta' => "Falta el IPC de {$cierre}. Cargalo o actualizalo en Configuración → Impuestos."]);
             $cuentas = CuentaContable::where('ajustable', true)->where('imputable', true)->get();
             $movs = DB::table('asiento_lineas')->join('asientos', 'asientos.id', '=', 'asiento_lineas.asiento_id')->where('asientos.business_id', $b->id)->where('asientos.estado', 'confirmado')->whereIn('asiento_lineas.cuenta_id', $cuentas->pluck('id'))
-                ->where('asientos.fecha', '<=', $hasta)->where('asientos.origen', '!=', 'ajuste_inflacion')->selectRaw("asiento_lineas.cuenta_id, strftime('%Y-%m', asientos.fecha) as periodo, SUM(debe - haber) as saldo")->groupBy('asiento_lineas.cuenta_id', 'periodo')->get();
+                ->where('asientos.fecha', '<=', $hasta)->where('asientos.origen', '!=', 'ajuste_inflacion')->selectRaw("asiento_lineas.cuenta_id, " . \App\Support\Sql::mes('asientos.fecha') . " as periodo, SUM(debe - haber) as saldo")->groupBy('asiento_lineas.cuenta_id', 'periodo')->get();
             $user = Auth::user();
             $a = Asiento::create(['business_id' => $b->id, 'business_location_id' => $user->current_location_id, 'user_id' => $user->id, 'numero' => (Asiento::withoutGlobalScopes()->where('business_id', $b->id)->max('numero') ?? 0) + 1, 'fecha' => $hasta, 'concepto' => "Ajuste por inflación (IPC) al " . \Carbon\Carbon::parse($hasta)->format('d/m/Y'), 'origen' => 'ajuste_inflacion', 'total' => 0]);
             $recpam = 0; $tot = 0; $porCuenta = []; $sinIpc = [];

@@ -25,7 +25,7 @@ class ProveedoresController extends Controller
             ->when(! $request->estado || $request->estado === 'activos', fn($q) => $q->where('is_active', true))
             ->orderBy('name');
         $totales = ['proveedores' => (clone $q)->count(), 'por_pagar' => (float) (clone $q)->where('balance', '>', 0)->sum('balance')];
-        $vencido = (float) Comprobante::pendientesPago()->whereDate('fecha_vto', '<', today())->sum('saldo');
+        $vencido = (float) Comprobante::pendientesPago()->where('fecha_vto', '<', today()->toDateString())->sum('saldo');
 
         return Inertia::render('Proveedores/Index', [
             'lista' => $q->paginate(30)->withQueryString()->through(fn($c) => ['id' => $c->id, 'name' => $c->name, 'cuit' => $c->cuit, 'condicion_iva' => $c->condicion_iva, 'email' => $c->email, 'phone' => $c->phone ?: $c->mobile, 'city' => $c->city, 'balance' => (float) $c->balance, 'is_active' => $c->is_active, 'dias_pago' => $c->dias_pago]),

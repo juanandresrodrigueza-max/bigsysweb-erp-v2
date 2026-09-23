@@ -22,14 +22,18 @@ class PosController extends Controller
         $vertical = str_contains($request->path(), 'minimarket') ? 'minimarket' : 'retail';
         $ri = ($user->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
         $caja = CuentaFondos::where('activa', true)->where('tipo', 'caja')->where('business_location_id', $user->current_location_id)->orderByDesc('es_default')->first() ?? CuentaFondos::where('activa', true)->where('tipo', 'caja')->first();
-        $hoy = Comprobante::ventas()->emitidos()->facturas()->where('condicion', 'contado')->whereDate('fecha', today())->where('user_id', $user->id);
+        $hoy = Comprobante::ventas()->emitidos()->facturas()->where('condicion', 'contado')->where('fecha', today()->toDateString())->where('user_id', $user->id);
+
+        // Catálogos grandes: van los favoritos y los primeros por nombre; el resto se busca en el servidor al escribir.
+        $q = Product::where('active', true)->where('tipo', '!=', 'insumo');
+        $parcial = $q->clone()->count() > \App\Support\Catalogo::LIMITE;
+        $productos = $q->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->limit(\App\Support\Catalogo::LIMITE)->get()->map(fn($p) => $this->fila($p, $ri))->values();
 
         return Inertia::render('Pos/Index', [
             'vertical' => $vertical,
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()
-                ->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos]),
+            'productos' => $productos, 'catalogoParcial' => $parcial,
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color', 'parent_id']),
-            'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit']),
+            'clientes' => Contact::customers()->where('is_active', true)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$pos->consumidorFinal()->id])->orderBy('name')->limit(\App\Support\Catalogo::LIMITE)->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit']),
             'consumidorFinalId' => $pos->consumidorFinal()->id,
             'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
             'caja' => $caja ? ['id' => $caja->id, 'nombre' => $caja->nombre, 'saldo' => (float) $caja->saldo, 'turno' => $caja->turnoAbierto ? ['id' => $caja->turnoAbierto->id, 'desde' => $caja->turnoAbierto->apertura->format('H:i'), 'usuario' => $caja->turnoAbierto->user?->name] : null] : null,
@@ -37,6 +41,20 @@ class PosController extends Controller
             'empresaLetra' => $ri ? 'B' : 'C', 'preciosConIva' => $ri,
             'posConfig' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $user->business->pos ?? []),
         ]);
+    }
+
+    // Búsqueda en el servidor para catálogos grandes (nombre, código o barras).
+    public function buscar(Request $request)
+    {
+        $ri = ($request->user()->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
+        $t = '%' . trim((string) $request->q) . '%'; $like = \App\Support\Sql::like();
+        return response()->json(Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')
+            ->where(fn($w) => $w->where('name', $like, $t)->orWhere('sku', $like, $t)->orWhere('barcode', $like, $t))->orderBy('name')->limit(40)->get()->map(fn($p) => $this->fila($p, $ri))->values());
+    }
+
+    private function fila(Product $p, bool $ri): array
+    {
+        return ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos];
     }
 
     // Precio final que ve el cajero: IVA incluido cuando la empresa es RI (el comprobante guarda el neto).

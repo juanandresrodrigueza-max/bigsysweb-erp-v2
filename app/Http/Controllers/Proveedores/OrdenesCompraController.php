@@ -26,7 +26,7 @@ class OrdenesCompraController extends Controller
             'filtros' => $request->only('estado', 'contact_id'),
             'proveedores' => Contact::suppliers()->orderBy('name')->get(['id', 'name']),
             'estados' => OrdenCompra::ESTADOS,
-            'resumen' => ['abiertas' => OrdenCompra::whereIn('estado', ['borrador', 'enviada', 'parcial'])->count(), 'monto_abierto' => (float) OrdenCompra::whereIn('estado', ['borrador', 'enviada', 'parcial'])->sum('total'), 'atrasadas' => OrdenCompra::whereIn('estado', ['enviada', 'parcial'])->whereDate('fecha_entrega', '<', today())->count()],
+            'resumen' => ['abiertas' => OrdenCompra::whereIn('estado', ['borrador', 'enviada', 'parcial'])->count(), 'monto_abierto' => (float) OrdenCompra::whereIn('estado', ['borrador', 'enviada', 'parcial'])->sum('total'), 'atrasadas' => OrdenCompra::whereIn('estado', ['enviada', 'parcial'])->where('fecha_entrega', '<', today()->toDateString())->count()],
         ]);
     }
 
@@ -95,11 +95,12 @@ class OrdenesCompraController extends Controller
 
     private function datosForm(Request $request, ?OrdenCompra $oc): array
     {
+        [$productos, $prodParcial] = \App\Support\Catalogo::productos('orden', $oc ? $oc->items->pluck('product_id')->all() : []);
+        [$proveedores, $provParcial] = \App\Support\Catalogo::contactos('proveedor', array_filter([$oc?->contact_id, (int) $request->input('contact_id')]));
         return [
             'orden' => $oc ? $this->resumir($oc) + ['fecha' => $oc->fecha->toDateString(), 'fecha_entrega' => $oc->fecha_entrega?->toDateString(), 'notas' => $oc->notas, 'items' => $oc->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas])] : null,
             'contactIdInicial' => (int) $request->input('contact_id') ?: null,
-            'proveedores' => Contact::suppliers()->where('is_active', true)->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'cuit' => $p->cuit, 'email' => $p->email]),
-            'productos' => Product::where('active', true)->whereIn('tipo', ['producto', 'insumo'])->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'precio_compra' => (float) ($p->precio_compra ?: $p->cost), 'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min, 'proveedor_id' => $p->proveedor_id]),
+            'proveedores' => $proveedores, 'productos' => $productos, 'catalogoParcial' => ['proveedores' => $provParcial, 'productos' => $prodParcial],
             'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre']),
         ];
     }

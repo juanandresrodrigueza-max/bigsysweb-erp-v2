@@ -28,7 +28,11 @@ class RentabilidadService
         return array_merge(self::DEFAULT, $b->rentabilidad ?? []);
     }
 
-    public function calcular(Business $b, Carbon $desde, Carbon $hasta, ?int $sucursal = null): array
+    public const MAX_FILAS = 500;
+    public const DIMENSIONES = ['articulos', 'rubros', 'clientes', 'vendedores', 'sucursales', 'obras'];
+
+    // $dims: qué aperturas calcular (cada una es una consulta agrupada sobre los ítems del período; la página pide las demás a medida que se abren las solapas).
+    public function calcular(Business $b, Carbon $desde, Carbon $hasta, ?int $sucursal = null, array $dims = ['articulos'], bool $conSerie = true): array
     {
         $cfg = $this->config($b);
         [$d, $h] = [$desde->toDateString(), $hasta->toDateString()];
@@ -118,38 +122,65 @@ class RentabilidadService
         $dim = function (string $campo, string $join, string $nombre, string $groupBy = null) use ($items, $costoExpr, $netoExpr, $signo, $ventas, $indirectosARepartir) {
             $q = $items();
             if ($join) $q->leftJoin(...explode('|', $join));
-            $rows = $q->selectRaw("{$campo} as clave, {$nombre} as nombre, SUM({$netoExpr}) as neto, SUM({$costoExpr}) as costo, SUM(({$signo}) * comprobante_items.cantidad) as cantidad")->groupBy(DB::raw($groupBy ?: $campo . ', ' . $nombre))->orderByDesc('neto')->get();
+            $rows = $q->selectRaw("{$campo} as clave, {$nombre} as nombre, SUM({$netoExpr}) as neto, SUM({$costoExpr}) as costo, SUM(({$signo}) * comprobante_items.cantidad) as cantidad")->groupBy(DB::raw($groupBy ?: $campo . ', ' . $nombre))->orderByDesc('neto')->limit(self::MAX_FILAS)->get(); // las N con más ventas: con catálogos enormes la apertura completa no se lee ni se calcula rápido
             return $rows->map(function ($r) use ($ventas, $indirectosARepartir) {
                 $neto = round((float) $r->neto, 2); $costo = round((float) $r->costo, 2); $mb = round($neto - $costo, 2);
                 $ind = $ventas > 0 ? round($indirectosARepartir * $neto / $ventas, 2) : 0;
                 return ['clave' => $r->clave, 'nombre' => $r->nombre ?: 'Sin asignar', 'cantidad' => round((float) $r->cantidad, 3), 'ventas' => $neto, 'costo' => $costo, 'margen_bruto' => $mb, 'margen_pct' => $neto > 0 ? round($mb / $neto * 100, 1) : null, 'indirectos' => $ind, 'resultado' => round($mb - $ind, 2), 'participacion' => $ventas > 0 ? round($neto / $ventas * 100, 1) : 0];
             })->values()->all();
         };
-        $por = [
-            'articulos' => $dim('comprobante_items.product_id', '', 'COALESCE(products.name, comprobante_items.descripcion)'),
-            'rubros' => $dim('products.rubro_id', 'rubros|rubros.id|=|products.rubro_id', 'COALESCE(rubros.nombre, \'Sin rubro\')'),
-            'clientes' => $dim('comprobantes.contact_id', 'contacts|contacts.id|=|comprobantes.contact_id', 'contacts.name'),
-            'vendedores' => $dim('comprobantes.vendedor_id', 'vendedores|vendedores.id|=|comprobantes.vendedor_id', 'COALESCE(vendedores.nombre, \'Sin vendedor\')'),
-            'sucursales' => $dim('comprobantes.business_location_id', 'business_locations|business_locations.id|=|comprobantes.business_location_id', 'business_locations.name'),
-            'obras' => $dim('comprobantes.proyecto_id', 'proyectos|proyectos.id|=|comprobantes.proyecto_id', 'COALESCE(proyectos.nombre, \'Sin obra\')'),
+        $defs = [
+            'articulos' => ['comprobante_items.product_id', '', 'COALESCE(products.name, comprobante_items.descripcion)'],
+            'rubros' => ['products.rubro_id', 'rubros|rubros.id|=|products.rubro_id', 'COALESCE(rubros.nombre, \'Sin rubro\')'],
+            'clientes' => ['comprobantes.contact_id', 'contacts|contacts.id|=|comprobantes.contact_id', 'contacts.name'],
+            'vendedores' => ['comprobantes.vendedor_id', 'vendedores|vendedores.id|=|comprobantes.vendedor_id', 'COALESCE(vendedores.nombre, \'Sin vendedor\')'],
+            'sucursales' => ['comprobantes.business_location_id', 'business_locations|business_locations.id|=|comprobantes.business_location_id', 'business_locations.name'],
+            'obras' => ['comprobantes.proyecto_id', 'proyectos|proyectos.id|=|comprobantes.proyecto_id', 'COALESCE(proyectos.nombre, \'Sin obra\')'],
         ];
+        $por = [];
+        foreach ($dims as $d) if (isset($defs[$d])) $por[$d] = $dim(...$defs[$d]);
         // Comisiones: costo directo del vendedor.
         $comisPorVend = $comis->keyBy('id');
-        foreach ($por['vendedores'] as &$v) {
+        if (isset($por['vendedores'])) foreach ($por['vendedores'] as &$v) {
             $c = $v['clave'] ? (float) ($comisPorVend->get($v['clave'])['total'] ?? 0) : 0;
             $v['directos'] = round($c, 2); $v['resultado'] = round($v['resultado'] - $c, 2);
         }
         unset($v);
 
-        // ---- Serie mensual (últimos 12 meses, en pesos) -----------------------------------------
+        // ---- Serie mensual (últimos 12 meses): consultas agrupadas por mes. Los meses cerrados se cachean 6 horas; el actual va en vivo. ----
+        $serieDe = function (string $desdeSerie, string $hastaSerie) use ($b, $sucursal, $signo, $costoExpr, $cats, $cfg) {
+        // ---- Serie mensual (últimos 12 meses): una consulta agrupada por mes para cada fuente, no 12 × N. ------
+            $mesExpr = \App\Support\Sql::mes('comprobantes.fecha');
+            $ventasMes = Comprobante::withoutGlobalScopes()->from('comprobantes')->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereIn('tipo', self::TIPOS_VENTA)->whereBetween('fecha', [$desdeSerie, $hastaSerie])->when($sucursal, fn($q) => $q->where('business_location_id', $sucursal))
+                ->selectRaw("{$mesExpr} as mes, COALESCE(SUM(({$signo}) * (neto - descuento + exento)),0) s")->groupBy('mes')->pluck('s', 'mes');
+            $cmvMes = ComprobanteItem::join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->leftJoin('products', 'products.id', '=', 'comprobante_items.product_id')->where('comprobantes.business_id', $b->id)->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', self::TIPOS_VENTA)->whereBetween('comprobantes.fecha', [$desdeSerie, $hastaSerie])->when($sucursal, fn($q) => $q->where('comprobantes.business_location_id', $sucursal))
+                ->selectRaw("{$mesExpr} as mes, COALESCE(SUM({$costoExpr}),0) s")->groupBy('mes')->pluck('s', 'mes');
+            $gastosMes = []; // [mes][tipo] => monto
+            foreach (MovimientoFondos::withoutGlobalScopes()->where('business_id', $b->id)->where('origen', 'gasto')->whereBetween('fecha', [$desdeSerie, $hastaSerie])->selectRaw(\App\Support\Sql::mes('fecha') . ' as mes, expense_category_id, SUM(egreso * COALESCE(cotizacion,1)) as monto')->groupBy('mes', 'expense_category_id')->get() as $g) {
+                $cat = $g->expense_category_id ? $cats->get($g->expense_category_id) : null;
+                $tipo = $cat ? ($cat->tipo_costo ?? 'fijo') : $cfg['sin_categoria'];
+                $gastosMes[$g->mes][$tipo] = ($gastosMes[$g->mes][$tipo] ?? 0) + (float) $g->monto;
+            }
+            $comisMes = $this->comisionesPorMes($b, $desdeSerie, $hastaSerie);
+            $sueldosMes = Liquidacion::withoutGlobalScopes()->where('business_id', $b->id)->where('estado', '!=', 'borrador')->whereBetween('fecha', [$desdeSerie, $hastaSerie])->selectRaw(\App\Support\Sql::mes('fecha') . ' as mes, COALESCE(SUM(total_bruto + total_no_rem + total_contribuciones),0) s')->groupBy('mes')->pluck('s', 'mes');
+            $amortMes = ActivoAmortizacion::join('activos_fijos', 'activos_fijos.id', '=', 'activo_amortizaciones.activo_fijo_id')->where('activos_fijos.business_id', $b->id)->whereBetween('activo_amortizaciones.periodo', [substr($desdeSerie, 0, 7), substr($hastaSerie, 0, 7)])->selectRaw('activo_amortizaciones.periodo as mes, SUM(activo_amortizaciones.monto) s')->groupBy('activo_amortizaciones.periodo')->pluck('s', 'mes');
+            return compact('ventasMes', 'cmvMes', 'gastosMes', 'comisMes', 'sueldosMes', 'amortMes');
+        };
         $serie = [];
+        if ($conSerie) {
+        $mesActual = now()->format('Y-m');
+        $cerrados = \Illuminate\Support\Facades\Cache::remember("rentabilidad.serie.{$b->id}." . ($sucursal ?: 0) . ".{$mesActual}", 6 * 3600, fn() => $serieDe(now()->subMonths(11)->startOfMonth()->toDateString(), now()->subMonth()->endOfMonth()->toDateString()));
+        $vivo = $serieDe(now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString());
+        $ventasMes = collect($cerrados['ventasMes'])->merge($vivo['ventasMes']); $cmvMes = collect($cerrados['cmvMes'])->merge($vivo['cmvMes']);
+        $gastosMes = $cerrados['gastosMes'] + $vivo['gastosMes']; $comisMes = $cerrados['comisMes'] + $vivo['comisMes'];
+        $sueldosMes = collect($cerrados['sueldosMes'])->merge($vivo['sueldosMes']); $amortMes = collect($cerrados['amortMes'])->merge($vivo['amortMes']);
         for ($i = 11; $i >= 0; $i--) {
-            $m = now()->subMonths($i); $md = $m->copy()->startOfMonth()->toDateString(); $mh = $m->copy()->endOfMonth()->toDateString();
-            $vq = Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereIn('tipo', self::TIPOS_VENTA)->whereBetween('fecha', [$md, $mh])->when($sucursal, fn($q) => $q->where('business_location_id', $sucursal));
-            $v = round((float) $vq->selectRaw("COALESCE(SUM(({$signo}) * (neto - descuento + exento)),0) s")->value('s'), 2);
-            $c = round((float) ComprobanteItem::join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->leftJoin('products', 'products.id', '=', 'comprobante_items.product_id')->where('comprobantes.business_id', $b->id)->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', self::TIPOS_VENTA)->whereBetween('comprobantes.fecha', [$md, $mh])->when($sucursal, fn($q) => $q->where('comprobantes.business_location_id', $sucursal))->selectRaw("COALESCE(SUM({$costoExpr}),0) s")->value('s'), 2);
-            $g = $this->costosMes($b, $md, $mh, $m->format('Y-m'), $cats, $cfg);
-            $serie[] = ['mes' => $m->locale('es')->isoFormat('MMM YY'), 'ventas' => $v, 'margen_bruto' => round($v - $c, 2), 'variables' => $g['variables'], 'fijos' => $g['fijos'], 'resultado' => round($v - $c - $g['variables'] - $g['fijos'], 2)];
+            $m = now()->subMonths($i); $k = $m->format('Y-m');
+            $v = round((float) ($ventasMes[$k] ?? 0), 2); $c = round((float) ($cmvMes[$k] ?? 0), 2);
+            $variables = round(($gastosMes[$k]['variable'] ?? 0) + ($comisMes[$k] ?? 0), 2);
+            $fijos = round(($gastosMes[$k]['fijo'] ?? 0) + (float) ($sueldosMes[$k] ?? 0) + (float) ($amortMes[$k] ?? 0), 2);
+            $serie[] = ['mes' => $m->locale('es')->isoFormat('MMM YY'), 'ventas' => $v, 'margen_bruto' => round($v - $c, 2), 'variables' => $variables, 'fijos' => $fijos, 'resultado' => round($v - $c - $variables - $fijos, 2)];
+        }
         }
 
         $sinClasificar = $cats->filter(fn($c) => ! $c->tipo_costo || ! $c->imputacion)->values();
@@ -160,35 +191,34 @@ class RentabilidadService
         ];
     }
 
-    // Costos (sin CMV) de un mes: gastos por categoría + comisiones + sueldos + amortizaciones. Para la serie.
-    private function costosMes(Business $b, string $d, string $h, string $periodo, $cats, array $cfg): array
-    {
-        $variables = 0; $fijos = 0;
-        foreach (MovimientoFondos::withoutGlobalScopes()->where('business_id', $b->id)->where('origen', 'gasto')->whereBetween('fecha', [$d, $h])->selectRaw('expense_category_id, SUM(egreso * COALESCE(cotizacion,1)) as monto')->groupBy('expense_category_id')->get() as $g) {
-            $cat = $g->expense_category_id ? $cats->get($g->expense_category_id) : null;
-            $tipo = $cat ? ($cat->tipo_costo ?? 'fijo') : $cfg['sin_categoria'];
-            if ($tipo === 'variable') $variables += (float) $g->monto; else $fijos += (float) $g->monto;
-        }
-        $com = array_sum(array_column($this->comisionesEmpresa($b, $d, $h), 'total'));
-        $variables += $com;
-        $liq = Liquidacion::withoutGlobalScopes()->where('business_id', $b->id)->where('estado', '!=', 'borrador')->whereBetween('fecha', [$d, $h]);
-        $fijos += (float) $liq->selectRaw('COALESCE(SUM(total_bruto + total_no_rem + total_contribuciones),0) s')->value('s');
-        $fijos += (float) ActivoAmortizacion::join('activos_fijos', 'activos_fijos.id', '=', 'activo_amortizaciones.activo_fijo_id')->where('activos_fijos.business_id', $b->id)->where('activo_amortizaciones.periodo', $periodo)->sum('activo_amortizaciones.monto');
-        return ['variables' => round($variables, 2), 'fijos' => round($fijos, 2)];
-    }
-
-    // Comisiones sin depender del scope global (el servicio de comisiones usa el usuario autenticado).
+    // Comisiones por vendedor en el período, con sumas en SQL (no carga modelos): % sobre lo facturado y % sobre lo cobrado.
     private function comisionesEmpresa(Business $b, string $d, string $h): array
     {
+        $signo = 'CASE WHEN tipo IN (\'NCA\',\'NCB\',\'NCC\') THEN -1 ELSE 1 END';
+        $fact = Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereNotNull('vendedor_id')->whereBetween('fecha', [$d, $h])->whereIn('tipo', self::TIPOS_VENTA)->selectRaw("vendedor_id, COALESCE(SUM(({$signo}) * neto),0) s")->groupBy('vendedor_id')->pluck('s', 'vendedor_id');
+        $cob = \App\Models\Cobro::withoutGlobalScopes()->where('business_id', $b->id)->whereNotNull('vendedor_id')->where('estado', '!=', 'anulado')->whereBetween('fecha', [$d, $h])->selectRaw('vendedor_id, COALESCE(SUM(total),0) s')->groupBy('vendedor_id')->pluck('s', 'vendedor_id');
         $out = [];
         foreach (\App\Models\Vendedor::withoutGlobalScopes()->where('business_id', $b->id)->get() as $v) {
-            $ventas = Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->where('vendedor_id', $v->id)->whereBetween('fecha', [$d, $h])->whereIn('tipo', self::TIPOS_VENTA)->get();
-            $facturado = round($ventas->sum(fn($c) => $c->def()['cc'] * (float) $c->neto), 2);
-            $cobrado = round((float) \App\Models\Cobro::withoutGlobalScopes()->where('business_id', $b->id)->where('vendedor_id', $v->id)->where('estado', '!=', 'anulado')->whereBetween('fecha', [$d, $h])->sum('total'), 2);
-            $total = round($facturado * (float) $v->comision_venta / 100 + $cobrado * (float) $v->comision_cobro / 100, 2);
+            $total = round((float) ($fact[$v->id] ?? 0) * (float) $v->comision_venta / 100 + (float) ($cob[$v->id] ?? 0) * (float) $v->comision_cobro / 100, 2);
             if ($total > 0.005) $out[] = ['id' => $v->id, 'nombre' => $v->nombre, 'total' => $total];
         }
         return $out;
+    }
+
+    // Comisiones totales por mes ('YYYY-MM' => monto) para la serie.
+    private function comisionesPorMes(Business $b, string $d, string $h): array
+    {
+        $vend = \App\Models\Vendedor::withoutGlobalScopes()->where('business_id', $b->id)->get()->keyBy('id');
+        if ($vend->isEmpty()) return [];
+        $signo = 'CASE WHEN tipo IN (\'NCA\',\'NCB\',\'NCC\') THEN -1 ELSE 1 END'; $mes = \App\Support\Sql::mes('fecha');
+        $out = [];
+        foreach (Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereNotNull('vendedor_id')->whereBetween('fecha', [$d, $h])->whereIn('tipo', self::TIPOS_VENTA)->selectRaw("{$mes} as mes, vendedor_id, COALESCE(SUM(({$signo}) * neto),0) s")->groupBy('mes', 'vendedor_id')->get() as $r) {
+            $out[$r->mes] = ($out[$r->mes] ?? 0) + (float) $r->s * (float) ($vend[$r->vendedor_id]->comision_venta ?? 0) / 100;
+        }
+        foreach (\App\Models\Cobro::withoutGlobalScopes()->where('business_id', $b->id)->whereNotNull('vendedor_id')->where('estado', '!=', 'anulado')->whereBetween('fecha', [$d, $h])->selectRaw("{$mes} as mes, vendedor_id, COALESCE(SUM(total),0) s")->groupBy('mes', 'vendedor_id')->get() as $r) {
+            $out[$r->mes] = ($out[$r->mes] ?? 0) + (float) $r->s * (float) ($vend[$r->vendedor_id]->comision_cobro ?? 0) / 100;
+        }
+        return array_map(fn($v) => round($v, 2), $out);
     }
 
     public function csv(array $r, string $desde, string $hasta): string

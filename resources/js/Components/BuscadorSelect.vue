@@ -8,19 +8,28 @@
         <span class="truncate"><span class="font-medium">{{ o.label }}</span><span v-if="o.sub" class="text-marca-muted"> · {{ o.sub }}</span></span>
         <span v-if="o.extra" class="text-xs text-marca-muted shrink-0">{{ o.extra }}</span>
       </button>
-      <p v-if="!filtradas.length" class="px-3 py-3 text-sm text-marca-muted">Sin resultados.</p>
+      <p v-if="!filtradas.length" class="px-3 py-3 text-sm text-marca-muted">{{ buscando ? 'Buscando…' : (url && !texto.trim() ? 'Escribí para buscar.' : 'Sin resultados.') }}</p>
       <slot name="pie" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Icono from '@/Components/Icono.vue'
 
-const props = defineProps({ modelValue: [Number, String, null], opciones: { type: Array, default: () => [] }, placeholder: String, disabled: Boolean })
-const emit = defineEmits(['update:modelValue', 'elegido'])
-const abierto = ref(false), texto = ref(''), idx = ref(0), root = ref(null)
+// `url`: con catálogos grandes las opciones se buscan en el servidor a medida que se escribe; las filas llegan por el evento `cargados`
+// y el padre las suma a su lista, así el filtrado local y la etiqueta del elegido siguen funcionando igual.
+const props = defineProps({ modelValue: [Number, String, null], opciones: { type: Array, default: () => [] }, placeholder: String, disabled: Boolean, url: String })
+const emit = defineEmits(['update:modelValue', 'elegido', 'cargados'])
+const abierto = ref(false), texto = ref(''), idx = ref(0), root = ref(null), buscando = ref(false)
+let timer = null
+watch(texto, t => { if (!props.url || !abierto.value) return; clearTimeout(timer); timer = setTimeout(() => remota(t), 220) })
+async function remota(t) {
+  buscando.value = true
+  try { const r = await fetch(`${props.url}${props.url.includes('?') ? '&' : '?'}q=${encodeURIComponent(t.trim())}`, { headers: { Accept: 'application/json' } }); if (r.ok) emit('cargados', await r.json()) } catch (e) {}
+  finally { buscando.value = false }
+}
 
 const etiqueta = computed(() => props.opciones.find(o => o.id === props.modelValue)?.label ?? '')
 const filtradas = computed(() => {
@@ -28,7 +37,7 @@ const filtradas = computed(() => {
   const base = t ? props.opciones.filter(o => (o.label + ' ' + (o.sub ?? '')).toLowerCase().includes(t)) : props.opciones
   return base.slice(0, 40)
 })
-function abrir() { texto.value = ''; idx.value = 0; abierto.value = true }
+function abrir() { texto.value = ''; idx.value = 0; abierto.value = true; if (props.url && props.opciones.length < 30) remota('') }
 function elegir(o) { if (!o) return; emit('update:modelValue', o.id); emit('elegido', o); abierto.value = false }
 function limpiar() { emit('update:modelValue', null); emit('elegido', null) }
 function mover(d) { idx.value = Math.max(0, Math.min(filtradas.value.length - 1, idx.value + d)) }

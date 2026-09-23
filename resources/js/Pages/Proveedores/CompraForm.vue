@@ -16,7 +16,7 @@
         <div class="card grid sm:grid-cols-2 gap-4">
           <div class="sm:col-span-2">
             <label class="label">Proveedor</label>
-            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesProveedores" placeholder="Buscar proveedor por nombre o CUIT…" @elegido="alElegirProveedor">
+            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesProveedores" :url="props.catalogoParcial.proveedores ? '/buscar/contactos/proveedor' : null" @cargados="f => sumar(proveedoresCat, f)" placeholder="Buscar proveedor por nombre o CUIT…" @elegido="alElegirProveedor">
               <template #pie><Link href="/proveedores?nuevo=1" class="block px-3 py-2 text-xs text-carmin font-semibold border-t border-marca-borde">+ Crear proveedor nuevo</Link></template>
             </BuscadorSelect>
             <p v-if="form.errors.contact_id" class="text-carmin text-xs mt-1">{{ form.errors.contact_id }}</p>
@@ -37,7 +37,7 @@
               <thead><tr><th class="w-[36%]">Artículo (para stock) / descripción</th><th class="w-24 text-right">Cant.</th><th class="w-32 text-right">Costo unit. neto</th><th class="w-20 text-right">Dto %</th><th class="w-20 text-right">IVA</th><th class="text-right">Total</th><th class="w-8"></th></tr></thead>
               <tbody>
                 <tr v-for="(it, i) in form.items" :key="i" class="align-top">
-                  <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" placeholder="Sin artículo (solo gasto)" @elegido="o => { if (o) { it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = sinIva ? 0 : o.iva } }" /><input v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción" />
+                  <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/compra' : null" @cargados="f => sumar(productosCat, f)" placeholder="Sin artículo (solo gasto)" @elegido="o => { if (o) { it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = sinIva ? 0 : o.iva } }" /><input v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción" />
                     <div v-if="prodDe(it)?.perecedero || prodDe(it)?.seriado" class="grid grid-cols-2 gap-1 mt-1">
                       <input v-if="prodDe(it)?.perecedero" v-model="it.lote" class="input !py-1 text-xs" placeholder="Lote" />
                       <input v-if="prodDe(it)?.perecedero" v-model="it.vencimiento" type="date" class="input !py-1 text-xs" title="Vencimiento" />
@@ -89,14 +89,17 @@
 </template>
 
 <script setup>
-import { reactive, computed, onMounted } from 'vue'
+import { reactive, computed, onMounted, ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, hoyISO } from '@/util/formato'
 
-const props = defineProps({ compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object })
+const productosCat = ref([...props.productos])
+const proveedoresCat = ref([...props.proveedores])
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
 const tipos = [['FA', 'Factura A'], ['FB', 'Factura B'], ['FC', 'Factura C'], ['FE', 'Factura E'], ['NCA', 'Nota de crédito A'], ['NCB', 'Nota de crédito B'], ['NCC', 'Nota de crédito C'], ['NDA', 'Nota de débito A'], ['NDB', 'Nota de débito B'], ['NDC', 'Nota de débito C']].map(([key, label]) => ({ key, label }))
 const b = props.compra ?? props.desdeOrden
 const form = useForm({
@@ -104,14 +107,14 @@ const form = useForm({
   fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', notas: b?.notas ?? '',
   items: (b?.items ?? []).map(i => ({ ...i })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i })), registrar: false,
 })
-const proveedor = computed(() => props.proveedores.find(p => p.id === form.contact_id))
-const opcionesProveedores = computed(() => props.proveedores.map(p => ({ id: p.id, label: p.name, sub: p.cuit ?? p.condicion_iva })))
-const opcionesProductos = computed(() => props.productos.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: 'costo ' + moneda(p.cost, 0), unit: p.unit, iva: p.iva })))
+const proveedor = computed(() => proveedoresCat.value.find(p => p.id === form.contact_id))
+const opcionesProveedores = computed(() => proveedoresCat.value.map(p => ({ id: p.id, label: p.name, sub: p.cuit ?? p.condicion_iva })))
+const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: 'costo ' + moneda(p.cost, 0), unit: p.unit, iva: p.iva })))
 // Factura C (monotributista) no discrimina IVA: el costo va completo y la alícuota queda en 0.
 const sinIva = computed(() => ['FC', 'NCC', 'NDC'].includes(form.tipo))
-function alElegirProveedor(o) { const p = props.proveedores.find(x => x.id === o?.id); if (p) { form.tipo = p.condicion_iva === 'Responsable Inscripto' ? 'FA' : (p.condicion_iva === 'Monotributista' ? 'FC' : 'FB'); if (sinIva.value) form.items.forEach(it => (it.alicuota_iva = 0)) } }
+function alElegirProveedor(o) { const p = proveedoresCat.value.find(x => x.id === o?.id); if (p) { form.tipo = p.condicion_iva === 'Responsable Inscripto' ? 'FA' : (p.condicion_iva === 'Monotributista' ? 'FC' : 'FB'); if (sinIva.value) form.items.forEach(it => (it.alicuota_iva = 0)) } }
 function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, unidad: null, precio_unit: 0, descuento: 0, alicuota_iva: sinIva.value ? 0 : 21, lote: '', vencimiento: '', serie: '', ...pre }) }
-const prodDe = it => it.product_id ? props.productos.find(p => p.id === it.product_id) : null
+const prodDe = it => it.product_id ? productosCat.value.find(p => p.id === it.product_id) : null
 const netoItem = it => (Number(it.cantidad) || 0) * (Number(it.precio_unit) || 0) * (1 - (Number(it.descuento) || 0) / 100)
 const totalItem = it => netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100)
 const totales = computed(() => { const neto = form.items.reduce((a, it) => a + netoItem(it), 0); const iva = form.items.reduce((a, it) => a + netoItem(it) * (Number(it.alicuota_iva) || 0) / 100, 0); const otros = form.impuestos.reduce((a, i) => a + (Number(i.monto) || 0), 0); return { neto, iva, otros, total: neto + iva + otros } })

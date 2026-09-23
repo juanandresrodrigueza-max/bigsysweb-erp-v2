@@ -23,7 +23,7 @@
           </div>
           <div>
             <label class="label">Cliente</label>
-            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesClientes" placeholder="Buscar cliente por nombre o CUIT…" @elegido="alElegirCliente">
+            <BuscadorSelect v-model="form.contact_id" :opciones="opcionesClientes" :url="props.catalogoParcial.clientes ? '/buscar/contactos/cliente' : null" @cargados="f => sumar(clientesCat, f)" placeholder="Buscar cliente por nombre o CUIT…" @elegido="alElegirCliente">
               <template #pie><Link href="/clientes" class="block px-3 py-2 text-xs text-carmin font-semibold border-t border-marca-borde">+ Crear cliente nuevo</Link></template>
             </BuscadorSelect>
             <p v-if="form.errors.contact_id" class="text-carmin text-xs mt-1">{{ form.errors.contact_id }}</p>
@@ -73,7 +73,7 @@
               <tbody>
                 <tr v-for="(it, i) in form.items" :key="i" class="align-top">
                   <td>
-                    <BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" placeholder="Buscar artículo…" @elegido="o => alElegirProducto(it, o)" />
+                    <BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/venta' : null" @cargados="f => sumar(productosCat, f)" placeholder="Buscar artículo…" @elegido="o => alElegirProducto(it, o)" />
                     <input v-if="!it.product_id" v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción libre" />
                     <p v-else class="text-[11px] text-marca-muted mt-1">{{ it.descripcion }} <span v-if="stockDe(it) !== null" :class="stockDe(it) < it.cantidad ? 'text-carmin font-semibold' : ''">· stock {{ cantidad(stockDe(it)) }}</span></p>
                   </td>
@@ -132,7 +132,7 @@
           <tbody>
             <tr v-for="(r, i) in ia.resultado.items" :key="i">
               <td class="text-marca-muted">{{ r.pedido }}</td>
-              <td><BuscadorSelect v-model="r.product_id" :opciones="opcionesProductos" placeholder="Elegir artículo…" @elegido="o => { if (o) { r.descripcion = o.label; r.precio_unit = o.precios[lista] } }" /></td>
+              <td><BuscadorSelect v-model="r.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/venta' : null" @cargados="f => sumar(productosCat, f)" placeholder="Elegir artículo…" @elegido="o => { if (o) { r.descripcion = o.label; r.precio_unit = o.precios[lista] } }" /></td>
               <td><input v-model.number="r.cantidad" type="number" step="any" class="input text-right w-20" /></td>
               <td class="text-right"><span class="badge" :class="r.confianza >= 0.7 ? 'bg-emerald-50 text-emerald-700' : r.confianza > 0 ? 'bg-amber-50 text-amber-700' : 'bg-carmin-light text-carmin'">{{ Math.round(r.confianza * 100) }}%</span></td>
             </tr>
@@ -160,7 +160,10 @@ import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 
-const props = defineProps({ proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
+const productosCat = ref([...props.productos])
+const clientesCat = ref([...props.clientes])
+function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const ids = new Set(arr.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) arr.push(f) }) } // en el template los refs llegan desenvueltos
 
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
@@ -170,7 +173,7 @@ const form = useForm({
 })
 const esConversion = !!props.origen
 
-const cliente = computed(() => props.clientes.find(c => c.id === form.contact_id))
+const cliente = computed(() => clientesCat.value.find(c => c.id === form.contact_id))
 const lista = computed(() => cliente.value?.lista_precios ?? 1)
 const esFactura = computed(() => ['FX', 'FA', 'FB', 'FC'].includes(form.tipo))
 const esFiscal = computed(() => !['PRE', 'REM'].includes(form.tipo))
@@ -178,16 +181,16 @@ const letra = computed(() => props.empresa.condicion_iva === 'Responsable Inscri
 const tipoResuelto = computed(() => ({ FX: `Factura ${letra.value}`, NCX: `Nota de crédito ${letra.value}`, NDX: `Nota de débito ${letra.value}` }[form.tipo] ?? null))
 const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'Nuevo presupuesto', REM: 'Nuevo remito', NCX: 'Nueva nota de crédito', NDX: 'Nueva nota de débito' }[form.tipo] ?? 'Nueva factura'))
 
-const opcionesClientes = computed(() => props.clientes.map(c => ({ id: c.id, label: c.name, sub: c.cuit ?? c.condicion_iva, extra: c.tipo })))
-const opcionesProductos = computed(() => props.productos.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(p.precios[lista.value]), precios: p.precios, unit: p.unit, iva: p.iva, stock: p.stock })))
-const stockDe = it => props.productos.find(p => p.id === it.product_id)?.stock ?? null
+const opcionesClientes = computed(() => clientesCat.value.map(c => ({ id: c.id, label: c.name, sub: c.cuit ?? c.condicion_iva, extra: c.tipo })))
+const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(p.precios[lista.value]), precios: p.precios, unit: p.unit, iva: p.iva, stock: p.stock })))
+const stockDe = it => productosCat.value.find(p => p.id === it.product_id)?.stock ?? null
 
 function alElegirCliente(o) {
-  const c = props.clientes.find(x => x.id === o?.id)
+  const c = clientesCat.value.find(x => x.id === o?.id)
   if (!c) return
   form.dias_vto = c.dias_pago
   if (c.dias_pago === 0 && !esConversion) form.condicion = 'contado'
-  form.items.forEach(it => { const p = props.productos.find(x => x.id === it.product_id); if (p) { it.precio_unit = p.precios[c.lista_precios]; it.descuento = c.descuento } })
+  form.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); if (p) { it.precio_unit = p.precios[c.lista_precios]; it.descuento = c.descuento } })
 }
 function alElegirProducto(it, o) {
   if (!o) return
@@ -242,7 +245,7 @@ async function interpretar() {
 }
 function aplicarIA() {
   ia.resultado.items.filter(r => r.product_id).forEach(r => {
-    const p = props.productos.find(x => x.id === r.product_id)
+    const p = productosCat.value.find(x => x.id === r.product_id)
     agregar({ product_id: r.product_id, descripcion: p?.name ?? r.descripcion, cantidad: r.cantidad, unidad: p?.unit, precio_unit: p ? p.precios[lista.value] : r.precio_unit, alicuota_iva: p?.iva ?? 21 })
   })
   abrirIA.value = false; ia.resultado = null; ia.texto = ''; ia.imagen = null

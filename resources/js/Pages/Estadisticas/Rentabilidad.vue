@@ -102,6 +102,7 @@
           <template v-if="config.distribuir_indirectos">Los costos indirectos se reparten proporcional a las ventas de cada fila.</template>
           <template v-else>Los costos indirectos no se reparten (Configurar).</template>
           <template v-if="tab === 'vendedores'"> Las comisiones van como costo directo de cada vendedor.</template>
+          <template v-if="(por[tab] ?? []).length >= 500"> Se muestran los 500 con más ventas.</template>
         </p>
         <div class="overflow-x-auto">
           <table class="tabla text-sm">
@@ -117,11 +118,11 @@
                 <td v-if="config.distribuir_indirectos" class="text-right tabular-nums text-marca-muted">{{ moneda(r.indirectos, 0) }}</td>
                 <td class="text-right tabular-nums font-semibold" :class="r.resultado < 0 ? 'text-carmin' : 'text-emerald-700'">{{ moneda(r.resultado, 0) }}</td>
               </tr>
-              <tr v-if="!filas.length"><td colspan="8" class="text-center text-marca-muted py-6">Sin ventas en el período.</td></tr>
+              <tr v-if="!filas.length"><td colspan="8" class="text-center text-marca-muted py-6">{{ cargandoDim ? 'Calculando…' : 'Sin ventas en el período.' }}</td></tr>
             </tbody>
           </table>
         </div>
-        <button v-if="por[tab].length > 15" class="text-xs text-violeta font-semibold mt-2" @click="verTodo = !verTodo">{{ verTodo ? 'Ver menos' : `Ver los ${por[tab].length}` }}</button>
+        <button v-if="(por[tab] ?? []).length > 15" class="text-xs text-violeta font-semibold mt-2" @click="verTodo = !verTodo">{{ verTodo ? 'Ver menos' : `Ver los ${(por[tab] ?? []).length}` }}</button>
       </div>
     </div>
 
@@ -156,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
@@ -191,7 +192,15 @@ const grupos = computed(() => {
 const tabs = [['articulos', 'Artículo'], ['rubros', 'Rubro'], ['clientes', 'Cliente'], ['vendedores', 'Vendedor'], ['sucursales', 'Sucursal'], ['obras', 'Obra']]
 const tab = ref('articulos')
 const verTodo = ref(false)
-const filas = computed(() => (verTodo.value ? props.por[tab.value] : props.por[tab.value].slice(0, 15)))
+// Las aperturas se piden al servidor al abrir cada solapa (con muchos comprobantes cada una es una consulta pesada).
+const por = reactive({ ...props.por }); const cargandoDim = ref(false)
+watch(tab, async t => {
+  if (por[t]) return
+  cargandoDim.value = true
+  try { const q = new URLSearchParams({ dim: t, desde: props.periodo.desde, hasta: props.periodo.hasta, ...(props.sucursalId ? { sucursal: props.sucursalId } : {}) }); const r = await fetch(`/estadisticas/rentabilidad/dim?${q}`, { headers: { Accept: 'application/json' } }); por[t] = r.ok ? await r.json() : [] } catch (e) { por[t] = [] }
+  finally { cargandoDim.value = false }
+})
+const filas = computed(() => { const l = por[tab.value] ?? []; return verTodo.value ? l : l.slice(0, 15) })
 
 const cfg = useForm({ distribuir_indirectos: !!props.config.distribuir_indirectos, compras_gastos: props.config.compras_gastos, sin_categoria: props.config.sin_categoria })
 const clasifAbierto = ref(false)

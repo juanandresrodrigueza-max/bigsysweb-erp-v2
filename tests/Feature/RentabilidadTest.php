@@ -41,7 +41,7 @@ class RentabilidadTest extends ErpTestCase
         $fondos->registrar($this->banco, ['fecha' => today()->toDateString(), 'origen' => 'gasto', 'expense_category_id' => $flete->id, 'concepto' => 'Flete', 'egreso' => 500]);
         $fondos->registrar($this->banco, ['fecha' => today()->toDateString(), 'origen' => 'gasto', 'concepto' => 'Sin categoría', 'egreso' => 200]);
 
-        $r = app(RentabilidadService::class)->calcular($this->empresa, today()->startOfMonth(), today()->endOfMonth());
+        $r = app(RentabilidadService::class)->calcular($this->empresa, today()->startOfMonth(), today()->endOfMonth(), null, RentabilidadService::DIMENSIONES);
         $k = $r['kpis'];
         $this->assertEqualsWithDelta(10000, $k['ventas'], 0.01);
         $this->assertEqualsWithDelta(6000, $k['margen_bruto'], 0.01);
@@ -96,5 +96,7 @@ class RentabilidadTest extends ErpTestCase
         $this->post('/fondos/categorias', ['name' => 'Fletes urbanos'])->assertSessionHas('success');
         $this->assertSame('variable', ExpenseCategory::where('name', 'Fletes urbanos')->first()->tipo_costo, 'Sugerencia por el nombre al crear desde Fondos');
         $this->get('/estadisticas/rentabilidad?export=1')->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->getJson('/estadisticas/rentabilidad/dim?dim=clientes')->assertOk()->assertJsonIsArray();
+        $this->getJson('/estadisticas/rentabilidad/dim?dim=otra')->assertNotFound();
     }
 }

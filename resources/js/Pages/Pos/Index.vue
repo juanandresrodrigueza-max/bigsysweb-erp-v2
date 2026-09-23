@@ -95,14 +95,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 
-const props = defineProps({ vertical: String, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) } })
+const props = defineProps({ vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) } })
 const page = usePage()
 const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mercadopago: 'MercadoPago', billetera: 'Billetera' }
 const q = ref(''), rubroSel = ref(null), buscador = ref(null)
@@ -112,10 +112,14 @@ const letra = computed(() => cliente.value?.condicion_iva === 'Responsable Inscr
 // Factura A (cliente RI): se muestra neto + IVA aparte; B/C: precio final.
 const precioDe = p => { const f = p.prices?.[cliente.value?.lista_precios ?? 1] ?? p.price; return letra.value === 'A' && props.preciosConIva ? Math.round(f / (1 + p.iva / 100) * 100) / 100 : f }
 const norm = s => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+// Catálogo grande: lo que no está en la página se busca en el servidor y se suma a la lista local (también sirve para el lector de barras).
+const catalogo = ref([...props.productos]); const remotos = ref([]); let timerRemoto = null
+function sumarRemotos(filas) { const ids = new Set(catalogo.value.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) catalogo.value.push(f) }); remotos.value = filas }
+watch(q, t => { if (!props.catalogoParcial || t.trim().length < 2) { remotos.value = []; return } clearTimeout(timerRemoto); timerRemoto = setTimeout(async () => { try { const r = await fetch(`${location.pathname.replace(/\/$/, '')}/buscar?q=${encodeURIComponent(t.trim())}`, { headers: { Accept: 'application/json' } }); if (r.ok) sumarRemotos(await r.json()) } catch (e) {} }, 200) })
 const visibles = computed(() => {
-  if (q.value.trim()) { const t = norm(q.value); return props.productos.filter(p => norm(p.name).includes(t) || norm(p.sku).includes(t) || (p.barcode && p.barcode.includes(q.value.trim()))).slice(0, 60) }
-  if (rubroSel.value) return props.productos.filter(p => p.rubro_id === rubroSel.value || props.rubros.find(r => r.id === p.rubro_id)?.parent_id === rubroSel.value)
-  const fav = props.productos.filter(p => p.favorito); return fav.length ? fav : props.productos.slice(0, 24)
+  if (q.value.trim()) { const t = norm(q.value); return catalogo.value.filter(p => norm(p.name).includes(t) || norm(p.sku).includes(t) || (p.barcode && p.barcode.includes(q.value.trim()))).slice(0, 60) }
+  if (rubroSel.value) return catalogo.value.filter(p => p.rubro_id === rubroSel.value || props.rubros.find(r => r.id === p.rubro_id)?.parent_id === rubroSel.value)
+  const fav = catalogo.value.filter(p => p.favorito); return fav.length ? fav : catalogo.value.slice(0, 24)
 })
 function agregar(p, cant = 1) {
   const ex = ticket.value.find(i => i.product_id === p.id)
@@ -127,7 +131,7 @@ function balanza(t) {
   const cfg = props.posConfig; const pre = cfg.balanza_prefijo || '2'
   if (!/^\d{13}$/.test(t) || !t.startsWith(pre)) return null
   const cod = t.slice(pre.length, pre.length + 5); const val = Number(t.slice(pre.length + 5, pre.length + 10)); const dec = Number(cfg.balanza_decimales ?? 3)
-  const p = props.productos.find(x => x.sku === cod || x.barcode === cod || Number(x.sku) === Number(cod) || (x.barcode && x.barcode.endsWith(cod)))
+  const p = catalogo.value.find(x => x.sku === cod || x.barcode === cod || Number(x.sku) === Number(cod) || (x.barcode && x.barcode.endsWith(cod)))
   if (!p) return null
   const cant = cfg.balanza_modo === 'importe' ? Math.round(val / Math.pow(10, 2) / precioDe(p) * 1000) / 1000 : val / Math.pow(10, dec)
   return { p, cant }
@@ -135,7 +139,7 @@ function balanza(t) {
 function enterBuscar() {
   const t = q.value.trim(); if (!t) return
   const bz = balanza(t); if (bz) { agregar(bz.p, bz.cant); return }
-  const porBarra = props.productos.find(p => p.barcode === t) ?? props.productos.find(p => norm(p.sku) === norm(t))
+  const porBarra = catalogo.value.find(p => p.barcode === t) ?? catalogo.value.find(p => norm(p.sku) === norm(t))
   const p = porBarra ?? visibles.value[0]
   if (p) agregar(p); else { error.value = null }
 }

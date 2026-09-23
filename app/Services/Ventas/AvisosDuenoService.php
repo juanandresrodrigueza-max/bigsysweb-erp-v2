@@ -30,7 +30,7 @@ class AvisosDuenoService
         $banco = (float) CuentaFondos::withoutGlobalScopes()->where('business_id', $id)->where('activa', true)->where('tipo', 'banco')->sum('saldo');
         $pedidos = PedidoWeb::withoutGlobalScopes()->where('business_id', $id)->where('estado', 'nuevo')->count();
         $criticas = Alerta::withoutGlobalScopes()->where('business_id', $id)->whereNull('resuelta_en')->where('severidad', 'critica')->latest()->limit(3)->get();
-        $vencido = (float) Comprobante::withoutGlobalScopes()->where('business_id', $id)->where('direccion', 'venta')->where('estado', 'emitido')->where('saldo', '>', 0.005)->whereDate('fecha_vto', '<', $dia)->sum('saldo');
+        $vencido = (float) Comprobante::withoutGlobalScopes()->where('business_id', $id)->where('direccion', 'venta')->where('estado', 'emitido')->where('saldo', '>', 0.005)->where('fecha_vto', '<', dia)->sum('saldo');
         $f = fn($v) => '$ ' . number_format($v, 0, ',', '.');
         $var = $ayer > 0 ? round(($tot - $ayer) / $ayer * 100) : null;
         $t = "*{$b->name}* · resumen del " . $dia->format('d/m') . "\n";
