@@ -68,7 +68,7 @@ class ClientesController extends Controller
         })->reverse()->values();
 
         $pendientes = Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->get()
-            ->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'fecha_vto' => $x->fecha_vto?->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'vencido' => $x->vencido()]);
+            ->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'fecha_vto' => $x->fecha_vto?->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'moneda' => $x->moneda ?? 'ARS', 'cotizacion' => (float) $x->cotizacion, 'saldo_usd' => ($x->moneda ?? 'ARS') !== 'ARS' && (float) $x->cotizacion > 0 ? round((float) $x->saldo / (float) $x->cotizacion, 2) : null, 'vencido' => $x->vencido()]);
 
         $antiguedad = ['al_dia' => 0, 'v30' => 0, 'v60' => 0, 'v90' => 0, 'mas90' => 0];
         foreach ($pendientes as $p) {

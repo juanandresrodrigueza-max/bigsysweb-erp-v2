@@ -89,12 +89,26 @@
           <tr v-for="k in cobros" :key="k.id" :class="{ 'opacity-50 line-through': k.estado === 'anulado' }">
             <td class="font-semibold tabular-nums">{{ k.numero }}</td><td class="text-marca-muted">{{ k.fecha }}</td><td class="text-xs text-marca-muted">{{ k.medios }}</td>
             <td class="text-right tabular-nums font-semibold">{{ moneda(k.total) }}</td><td class="text-right tabular-nums text-marca-muted">{{ k.a_cuenta ? moneda(k.a_cuenta) : '' }}</td>
-            <td class="text-right whitespace-nowrap"><a :href="`/clientes/cobros/${k.id}/imprimir`" target="_blank" class="btn-ghost !px-2 text-xs">Recibo</a><button v-if="k.estado !== 'anulado'" @click="enviarDoc('Cobro', k.id)" class="btn-ghost !px-2 text-xs">Enviar</button><button v-if="k.estado !== 'anulado'" @click="anularCobro(k)" class="btn-ghost !px-2 text-xs text-carmin">Anular</button></td>
+            <td class="text-right whitespace-nowrap"><a :href="`/clientes/cobros/${k.id}/imprimir`" target="_blank" class="btn-ghost !px-2 text-xs">Recibo</a><button v-if="k.estado !== 'anulado' && k.a_cuenta > 0 && pendientes.length" @click="abrirAplicar(k)" class="btn-ghost !px-2 text-xs text-violeta font-semibold">Aplicar a facturas</button><button v-if="k.estado !== 'anulado'" @click="enviarDoc('Cobro', k.id)" class="btn-ghost !px-2 text-xs">Enviar</button><button v-if="k.estado !== 'anulado'" @click="anularCobro(k)" class="btn-ghost !px-2 text-xs text-carmin">Anular</button></td>
           </tr>
           <tr v-if="!cobros.length"><td colspan="6" class="text-center text-marca-muted py-10">Sin cobros registrados.</td></tr>
         </tbody>
       </table>
     </div>
+
+    <Modal :abierto="!!aplicarDe" :titulo="`Aplicar ${aplicarDe?.numero ?? ''} a facturas`" @cerrar="aplicarDe = null">
+      <p class="text-sm text-marca-muted mb-3">El recibo tiene <b class="tabular-nums">{{ moneda(aplicarDe?.a_cuenta ?? 0) }}</b> a cuenta. Repartilo entre las facturas pendientes.</p>
+      <div class="max-h-64 overflow-y-auto border border-marca-borde rounded-xl divide-y divide-marca-borde/60">
+        <div v-for="p in pendientes" :key="p.id" class="flex items-center gap-2 px-3 py-2 text-sm">
+          <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ p.nombre }} {{ p.numero }} <span v-if="p.saldo_usd" class="badge bg-violeta-light text-violeta !py-0">USD</span></p><p class="text-xs text-marca-muted">vence {{ p.fecha_vto }} · <template v-if="p.saldo_usd">saldo USD {{ p.saldo_usd }} · hoy {{ moneda(p.saldo_usd * (Number(aplicar.cotizacion) || cotizacionUsd || 0)) }}</template><template v-else>saldo {{ moneda(p.saldo) }}</template></p></div>
+          <input v-model.number="imputAplicar[p.id]" type="number" step="any" min="0" class="input w-28 text-right !py-1" placeholder="0" />
+        </div>
+      </div>
+      <div v-if="pendientes.some(p => p.saldo_usd)" class="mt-2 flex items-center gap-2 text-xs"><span class="text-marca-muted">Cotización (USD)</span><input v-model.number="aplicar.cotizacion" type="number" step="any" min="0" class="input !py-1 !w-28 text-right tabular-nums" /></div>
+      <div class="mt-3 text-sm flex justify-between bg-marca-fondo rounded-xl p-3"><span>Imputado</span><b class="tabular-nums" :class="totalAplicar > (aplicarDe?.a_cuenta ?? 0) + 0.005 ? 'text-carmin' : ''">{{ moneda(totalAplicar) }}</b></div>
+      <p v-if="aplicar.errors.imputaciones" class="text-carmin text-xs mt-2">{{ aplicar.errors.imputaciones }}</p>
+      <template #pie><button class="btn-secondary" @click="aplicarDe = null">Cancelar</button><button class="btn-primary" :disabled="aplicar.processing || totalAplicar <= 0 || totalAplicar > (aplicarDe?.a_cuenta ?? 0) + 0.005" @click="enviarAplicar">Aplicar</button></template>
+    </Modal>
 
     <!-- Acopios -->
     <div v-if="tab === 'acopios'" class="grid md:grid-cols-2 gap-4">
@@ -168,11 +182,13 @@
           <div class="flex items-center justify-between"><p class="label">Aplicar a</p><button @click="autoImputar" class="text-xs text-violeta font-semibold">Aplicar automáticamente (más viejo primero)</button></div>
           <div class="max-h-64 overflow-y-auto border border-marca-borde rounded-xl divide-y divide-marca-borde/60">
             <div v-for="p in pendientes" :key="p.id" class="flex items-center gap-2 px-3 py-2 text-sm">
-              <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ p.nombre }} {{ p.numero }}</p><p class="text-xs text-marca-muted">vence {{ p.fecha_vto }} · saldo {{ moneda(p.saldo) }}</p></div>
-              <input v-model.number="imput[p.id]" type="number" step="any" min="0" :max="p.saldo" class="input w-28 text-right !py-1" placeholder="0" />
+              <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ p.nombre }} {{ p.numero }} <span v-if="p.saldo_usd" class="badge bg-violeta-light text-violeta !py-0">USD</span></p><p class="text-xs text-marca-muted">vence {{ p.fecha_vto }} · <template v-if="p.saldo_usd">saldo USD {{ p.saldo_usd }} · hoy {{ moneda(p.saldo_usd * (Number(cobro.cotizacion) || cotizacionUsd || 0)) }}</template><template v-else>saldo {{ moneda(p.saldo) }}</template></p></div>
+              <input v-model.number="imput[p.id]" type="number" step="any" min="0" :max="p.saldo_usd ? Math.round(p.saldo_usd * (Number(cobro.cotizacion) || cotizacionUsd || 0) * 100) / 100 : p.saldo" class="input w-28 text-right !py-1" placeholder="0" />
             </div>
             <p v-if="!pendientes.length" class="px-3 py-4 text-sm text-marca-muted">No hay comprobantes pendientes: el cobro queda a cuenta.</p>
           </div>
+          <p class="text-[10px] text-marca-muted mt-1">Podés dejar todo sin aplicar: el recibo queda a cuenta y se imputa a las facturas después desde el listado de cobros.</p>
+          <div v-if="pendientes.some(p => p.saldo_usd)" class="mt-2 flex items-center gap-2 text-xs"><span class="text-marca-muted">Cotización del recibo (USD)</span><input v-model.number="cobro.cotizacion" type="number" step="any" min="0" class="input !py-1 !w-28 text-right tabular-nums" /><span class="text-marca-muted">la diferencia con la de la factura se registra como diferencia de cambio</span></div>
           <div class="mt-3 text-sm space-y-1 bg-marca-fondo rounded-xl p-3">
             <div class="flex justify-between"><span>Total cobrado</span><b class="tabular-nums">{{ moneda(totalCobro) }}</b></div>
             <div v-if="cobro.descuento > 0" class="flex justify-between text-emerald-700"><span>+ descuento</span><span class="tabular-nums">{{ moneda(cobro.descuento) }}</span></div>
@@ -247,7 +263,7 @@ function abrirMov(m) { if (m.comprobante_id) router.visit(`/comprobantes/${m.com
 
 // Cobro
 const cobroAbierto = ref(false)
-const cobro = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, vendedor_id: null, medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {}, moneda: 'ARS', cotizacion: null }], imputaciones: [] })
+const cobro = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, vendedor_id: null, cotizacion: props.cotizacionUsd || null, medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {}, moneda: 'ARS', cotizacion: null }], imputaciones: [] })
 const cancela = computed(() => totalCobro.value + (Number(cobro.descuento) || 0) - (Number(cobro.interes) || 0))
 const imput = reactive({})
 const totalCobro = computed(() => cobro.medios.reduce((a, m) => a + (Number(m.monto) || 0) * (m.moneda === 'USD' ? (Number(m.cotizacion) || 0) : 1), 0))
@@ -255,11 +271,27 @@ const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (
 function autoImputar() {
   let resto = totalCobro.value
   Object.keys(imput).forEach(k => delete imput[k])
-  for (const p of props.pendientes) { if (resto <= 0) break; const m = Math.min(resto, p.saldo); imput[p.id] = Math.round(m * 100) / 100; resto -= m }
+  const cot = Number(cobro.cotizacion) || props.cotizacionUsd || 0
+  for (const p of props.pendientes) { if (resto <= 0) break; const saldoHoy = p.saldo_usd ? p.saldo_usd * cot : p.saldo; const m = Math.min(resto, saldoHoy); imput[p.id] = Math.round(m * 100) / 100; resto -= m }
 }
 function registrarCobro() {
   cobro.imputaciones = Object.entries(imput).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ comprobante_id: Number(id), monto: Number(v) }))
   cobro.post(`/clientes/${props.cliente.id}/cobros`, { preserveScroll: true, onSuccess: () => { cobroAbierto.value = false; cobro.reset(); Object.keys(imput).forEach(k => delete imput[k]) } })
+}
+// Aplicar a facturas un recibo que quedó a cuenta
+const aplicarDe = ref(null)
+const imputAplicar = reactive({})
+const aplicar = useForm({ cotizacion: props.cotizacionUsd || null, imputaciones: [] })
+const totalAplicar = computed(() => Object.values(imputAplicar).reduce((a, v) => a + (Number(v) || 0), 0))
+function abrirAplicar(k) {
+  Object.keys(imputAplicar).forEach(x => delete imputAplicar[x]); aplicar.clearErrors()
+  let resto = k.a_cuenta; const cot = Number(aplicar.cotizacion) || props.cotizacionUsd || 0
+  for (const p of props.pendientes) { if (resto <= 0) break; const saldoHoy = p.saldo_usd ? p.saldo_usd * cot : p.saldo; const m = Math.min(resto, saldoHoy); imputAplicar[p.id] = Math.round(m * 100) / 100; resto -= m }
+  aplicarDe.value = k
+}
+function enviarAplicar() {
+  aplicar.imputaciones = Object.entries(imputAplicar).filter(([, v]) => Number(v) > 0).map(([id, v]) => ({ comprobante_id: Number(id), monto: Number(v) }))
+  aplicar.post(`/clientes/cobros/${aplicarDe.value.id}/aplicar`, { preserveScroll: true, onSuccess: () => (aplicarDe.value = null) })
 }
 function anularCobro(k) { const motivo = window.prompt(`Motivo para anular ${k.numero}:`); if (motivo) router.post(`/clientes/cobros/${k.id}/anular`, { motivo }, { preserveScroll: true }) }
 

@@ -14,13 +14,20 @@ class PagosController extends Controller
     {
         $proveedor = Contact::suppliers()->findOrFail($contactId);
         $data = $request->validate([
-            'fecha' => 'required|date', 'notas' => 'nullable|string|max:500', 'descuento' => 'nullable|numeric|min:0', 'interes' => 'nullable|numeric|min:0',
+            'fecha' => 'required|date', 'notas' => 'nullable|string|max:500', 'descuento' => 'nullable|numeric|min:0', 'interes' => 'nullable|numeric|min:0', 'cotizacion' => 'nullable|numeric|min:0',
             'medios' => 'required|array|min:1', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Pago::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0',
             'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.moneda' => 'nullable|in:ARS,USD', 'medios.*.cotizacion' => 'nullable|numeric|min:0', 'medios.*.cheque_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array',
             'imputaciones' => 'nullable|array', 'imputaciones.*.comprobante_id' => 'required|integer', 'imputaciones.*.monto' => 'required|numeric|min:0',
         ]);
         $pago = $service->registrar($proveedor, $data);
         return back()->with('success', "Orden de pago {$pago->numeroFormateado()} registrada por $ " . number_format((float) $pago->total, 2, ',', '.') . '.');
+    }
+
+    public function aplicar(Request $request, int $id, PagoService $service)
+    {
+        $data = $request->validate(['cotizacion' => 'nullable|numeric|min:0', 'imputaciones' => 'required|array|min:1', 'imputaciones.*.comprobante_id' => 'required|integer', 'imputaciones.*.monto' => 'required|numeric|min:0']);
+        $pago = $service->aplicarACuenta(Pago::findOrFail($id), $data);
+        return back()->with('success', "Orden de pago {$pago->numeroFormateado()} aplicada. Queda a cuenta $ " . number_format((float) $pago->a_cuenta, 2, ',', '.') . '.');
     }
 
     public function anular(Request $request, int $id, PagoService $service)

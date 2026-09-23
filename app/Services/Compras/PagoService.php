@@ -44,11 +44,12 @@ class PagoService
             if ($totalImputado > $cancela + 0.005) {
                 throw ValidationException::withMessages(['imputaciones' => 'Lo imputado supera lo que cancela esta orden (pagado + descuento − interés).']);
             }
+            $cotHoy = (float) ($data['cotizacion'] ?? 0) ?: (float) ($medios->firstWhere('moneda', 'USD')['cotizacion'] ?? 0) ?: (float) \App\Models\Cotizacion::valor($user->business_id);
 
             $ultimo = (int) Pago::withoutGlobalScopes()->where('business_id', $user->business_id)->max('numero');
             $pago = Pago::create([
                 'business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'contact_id' => $proveedor->id, 'user_id' => $user->id,
-                'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'descuento' => $descuento, 'interes' => $interes, 'a_cuenta' => round($cancela - $totalImputado, 2), 'notas' => $data['notas'] ?? null,
+                'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'descuento' => $descuento, 'interes' => $interes, 'a_cuenta' => round($cancela - $totalImputado, 2), 'notas' => $data['notas'] ?? null, 'cotizacion' => $cotHoy ?: null,
             ]);
 
             foreach ($medios as $m) {
@@ -88,16 +89,19 @@ class PagoService
                 $pago->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $d ?: null, 'moneda' => $m['moneda'], 'cotizacion' => $m['cotizacion'], 'monto_me' => $m['monto_me']]);
             }
 
+            $difTotal = 0; $aplicadoTotal = 0;
             foreach ($imputaciones as $i) {
                 $comp = Comprobante::compras()->lockForUpdate()->findOrFail($i['comprobante_id']);
                 abort_if($comp->contact_id !== $proveedor->id, 422, 'El comprobante no pertenece al proveedor.');
-                $monto = min((float) $i['monto'], (float) $comp->saldo);
+                [$monto, $baja, $dif] = \App\Services\Comprobantes\CobroService::aplicarEnMonedaExtranjera($comp, (float) $i['monto'], $cotHoy);
                 if ($monto <= 0) continue;
-                $pago->imputaciones()->create(['comprobante_id' => $comp->id, 'monto' => $monto]);
-                $comp->decrement('saldo', $monto);
+                $pago->imputaciones()->create(['comprobante_id' => $comp->id, 'monto' => $monto, 'dif_cambio' => $dif]);
+                $comp->decrement('saldo', $baja);
+                $difTotal += $dif; $aplicadoTotal += $monto;
             }
+            if (abs($difTotal) > 0.005 || abs($aplicadoTotal - $totalImputado) > 0.005) $pago->forceFill(['a_cuenta' => round($cancela - $aplicadoTotal, 2)])->save();
 
-            CuentaCorriente::create(['business_id' => $user->business_id, 'contact_id' => $proveedor->id, 'pago_id' => $pago->id, 'fecha' => $pago->fecha, 'tipo' => 'pago', 'concepto' => "Orden de pago {$pago->numeroFormateado()}" . ($descuento > 0 ? ' (con descuento)' : ''), 'debe' => 0, 'haber' => $cancela]);
+            CuentaCorriente::create(['business_id' => $user->business_id, 'contact_id' => $proveedor->id, 'pago_id' => $pago->id, 'fecha' => $pago->fecha, 'tipo' => 'pago', 'concepto' => "Orden de pago {$pago->numeroFormateado()}" . ($descuento > 0 ? ' (con descuento)' : '') . (abs($difTotal) > 0.005 ? ' · dif. de cambio $ ' . number_format($difTotal, 2, ',', '.') : ''), 'debe' => 0, 'haber' => round($cancela - $difTotal, 2)]);
             CuentaCorriente::recalcularSaldo($proveedor->id);
 
             AuditLog::registrar('crear', $pago, "Pago {$pago->numeroFormateado()} a {$proveedor->name} por $ " . number_format($total, 2, ',', '.'));
@@ -107,12 +111,49 @@ class PagoService
         });
     }
 
+    // Aplica el saldo "a cuenta" de una orden de pago ya registrada a facturas de compra pendientes.
+    public function aplicarACuenta(Pago $pago, array $data): Pago
+    {
+        return DB::transaction(function () use ($pago, $data) {
+            abort_if($pago->estado === 'anulado', 422, 'La orden de pago está anulada.');
+            $pago = Pago::lockForUpdate()->findOrFail($pago->id);
+            $disponible = round((float) $pago->a_cuenta, 2);
+            abort_if($disponible <= 0, 422, 'Esta orden de pago no tiene saldo a cuenta para aplicar.');
+            $cotHoy = (float) ($data['cotizacion'] ?? 0) ?: (float) $pago->cotizacion ?: (float) \App\Models\Cotizacion::valor($pago->business_id);
+            $pedido = array_sum(array_map(fn($i) => (float) $i['monto'], $data['imputaciones'] ?? []));
+            if ($pedido > $disponible + 0.005) throw ValidationException::withMessages(['imputaciones' => 'Lo imputado supera el saldo a cuenta ($ ' . number_format($disponible, 2, ',', '.') . ').']);
+
+            $difTotal = 0; $aplicado = 0;
+            foreach ($data['imputaciones'] ?? [] as $i) {
+                $comp = Comprobante::compras()->lockForUpdate()->findOrFail($i['comprobante_id']);
+                abort_if($comp->contact_id !== $pago->contact_id, 422, 'El comprobante no pertenece al proveedor.');
+                [$monto, $baja, $dif] = \App\Services\Comprobantes\CobroService::aplicarEnMonedaExtranjera($comp, min((float) $i['monto'], $disponible - $aplicado), $cotHoy);
+                if ($monto <= 0) continue;
+                $pago->imputaciones()->create(['comprobante_id' => $comp->id, 'monto' => $monto, 'dif_cambio' => $dif]);
+                $comp->decrement('saldo', $baja);
+                $difTotal += $dif; $aplicado += $monto;
+            }
+            abort_if($aplicado <= 0, 422, 'No se aplicó nada: indicá montos sobre facturas pendientes.');
+            $pago->forceFill(['a_cuenta' => round($disponible - $aplicado, 2), 'notas' => trim(($pago->notas ?? '') . "\nAplicado a facturas $ " . number_format($aplicado, 2, ',', '.') . ' el ' . today()->format('d/m/Y'))])->save();
+
+            if (abs($difTotal) > 0.005) {
+                CuentaCorriente::create(['business_id' => $pago->business_id, 'contact_id' => $pago->contact_id, 'pago_id' => $pago->id, 'fecha' => today(), 'tipo' => 'ajuste', 'concepto' => "Dif. de cambio al aplicar orden de pago {$pago->numeroFormateado()}", 'debe' => $difTotal > 0 ? $difTotal : 0, 'haber' => $difTotal < 0 ? -$difTotal : 0]);
+                app(\App\Services\Contabilidad\ContabilidadService::class)->asientoPorClaves($pago->business_id, $pago->business_location_id, today(), "Dif. de cambio aplicación orden de pago {$pago->numeroFormateado()}", 'pago', $pago->id, $difTotal > 0
+                    ? [['clave' => 'dif_cambio_neg', 'debe' => $difTotal], ['clave' => 'proveedores', 'haber' => $difTotal, 'contact_id' => $pago->contact_id]]
+                    : [['clave' => 'proveedores', 'debe' => -$difTotal, 'contact_id' => $pago->contact_id], ['clave' => 'dif_cambio', 'haber' => -$difTotal]]);
+            }
+            CuentaCorriente::recalcularSaldo($pago->contact_id);
+            AuditLog::registrar('editar', $pago, "Aplicó $ " . number_format($aplicado, 2, ',', '.') . " a cuenta de la orden de pago {$pago->numeroFormateado()} a facturas");
+            return $pago->fresh(['imputaciones']);
+        });
+    }
+
     public function anular(Pago $pago, string $motivo = ''): void
     {
         DB::transaction(function () use ($pago, $motivo) {
             abort_if($pago->estado === 'anulado', 422, 'Ya está anulada.');
             foreach ($pago->imputaciones as $i) {
-                Comprobante::where('id', $i->comprobante_id)->increment('saldo', (float) $i->monto);
+                Comprobante::where('id', $i->comprobante_id)->increment('saldo', round((float) $i->monto - (float) $i->dif_cambio, 2));
             }
             $pago->imputaciones()->delete();
             foreach ($pago->medios as $m) {

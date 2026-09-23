@@ -138,7 +138,7 @@ class Comprobante extends Model
         $total = round($neto + $iva + $percep, 2);
         $this->forceFill([
             'neto' => round($neto, 2), 'iva' => round($iva, 2), 'percepciones' => $percep, 'total' => $total,
-            'saldo' => $this->estado === 'emitido' && $this->def()['cc'] > 0 ? round($total - (float) $this->imputaciones()->sum('monto'), 2) : ($this->def()['cc'] > 0 ? $total : 0),
+            'saldo' => $this->estado === 'emitido' && $this->def()['cc'] > 0 ? round($total - ((float) $this->imputaciones()->sum('monto') - (float) $this->imputaciones()->sum('dif_cambio')), 2) : ($this->def()['cc'] > 0 ? $total : 0),
         ])->save();
     }
 }

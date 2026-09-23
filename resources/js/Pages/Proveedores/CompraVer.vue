@@ -46,6 +46,7 @@
               <div class="flex justify-between"><span class="text-marca-muted">IVA</span><span class="tabular-nums">{{ moneda(c.iva) }}</span></div>
               <div v-for="(imp, i) in c.impuestos" :key="i" class="flex justify-between"><span class="text-marca-muted capitalize">{{ imp.tipo }}</span><span class="tabular-nums">{{ moneda(imp.monto) }}</span></div>
               <div class="flex justify-between text-lg font-extrabold pt-1 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ moneda(c.total) }}</span></div>
+              <div v-if="c.moneda && c.moneda !== 'ARS'" class="flex justify-between text-xs text-violeta"><span>En {{ c.moneda }} a {{ moneda(c.cotizacion, 2) }}</span><span class="tabular-nums font-semibold">{{ c.moneda }} {{ Number(c.total_me).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span></div>
               <div v-if="c.estado_pago !== 'na' && c.estado === 'emitido'" class="flex justify-between" :class="c.saldo > 0 ? 'text-carmin font-semibold' : 'text-emerald-700'"><span>Saldo a pagar</span><span class="tabular-nums">{{ moneda(c.saldo) }}</span></div>
             </div>
           </div>

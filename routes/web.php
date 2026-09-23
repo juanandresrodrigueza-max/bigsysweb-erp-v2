@@ -201,6 +201,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/{id}',                   [ClientesController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/{id}/cobros',            [CobrosController::class, 'store'])->middleware('permiso:clientes,crear');
         Route::post('/cobros/{id}/anular',     [CobrosController::class, 'anular'])->middleware('permiso:clientes,anular');
+        Route::post('/cobros/{id}/aplicar',    [CobrosController::class, 'aplicar'])->middleware('permiso:clientes,crear');
         Route::get('/cobros/{id}/imprimir',    [CobrosController::class, 'imprimir']);
         Route::post('/acopios/{id}/retiros',   [AcopiosController::class, 'retirar'])->middleware('permiso:clientes,crear');
     });
@@ -232,6 +233,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras/{id}/anular',     [ComprasController::class, 'anular'])->middleware('permiso:proveedores,anular');
         Route::post('/compras/{id}/nota-credito', [ComprasController::class, 'notaCredito'])->middleware('permiso:proveedores,crear');
         Route::post('/pagos/{id}/anular',       [PagosController::class, 'anular'])->middleware('permiso:proveedores,anular');
+        Route::post('/pagos/{id}/aplicar',      [PagosController::class, 'aplicar'])->middleware('permiso:proveedores,crear');
         Route::get('/pagos/{id}/imprimir',      [PagosController::class, 'imprimir']);
         Route::post('/{id}/retencion-sugerida', [PagosController::class, 'retencionSugerida'])->whereNumber('id');
         Route::get('/{id}',                     [ProveedoresController::class, 'show'])->whereNumber('id');

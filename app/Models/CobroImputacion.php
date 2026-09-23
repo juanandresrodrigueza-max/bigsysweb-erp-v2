@@ -9,7 +9,7 @@ class CobroImputacion extends Model
 {
     protected $table = 'cobro_imputaciones';
     public $timestamps = false;
-    protected $fillable = ['cobro_id', 'comprobante_id', 'monto'];
+    protected $fillable = ['cobro_id', 'comprobante_id', 'monto', 'dif_cambio'];
     protected $casts = ['monto' => 'decimal:2'];
 
     public function cobro(): BelongsTo { return $this->belongsTo(Cobro::class); }

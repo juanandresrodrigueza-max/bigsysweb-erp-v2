@@ -27,6 +27,15 @@
           <div><label class="label">Fecha del comprobante</label><input v-model="form.fecha" type="date" class="input" /><p v-if="form.errors.fecha" class="text-carmin text-xs mt-1">{{ form.errors.fecha }}</p></div>
           <div><label class="label">Vencimiento (vacío = plazo del proveedor)</label><input v-model="form.fecha_vto" type="date" class="input" /></div>
           <div><label class="label">CAE (opcional)</label><input v-model="form.cae_proveedor" class="input tabular-nums" /></div>
+          <div>
+            <label class="label">Moneda</label>
+            <div class="flex items-center gap-2">
+              <select v-model="form.moneda" class="input !w-28"><option value="ARS">Pesos</option><option value="USD">Dólares</option></select>
+              <template v-if="form.moneda === 'USD'"><span class="text-xs text-marca-muted">cotización</span><input v-model.number="form.cotizacion" type="number" step="any" min="0" class="input text-right tabular-nums" placeholder="$ por USD" /></template>
+            </div>
+            <p v-if="form.errors.cotizacion" class="text-carmin text-xs mt-1">{{ form.errors.cotizacion }}</p>
+            <p v-else-if="form.moneda === 'USD'" class="text-[10px] text-marca-muted mt-1">Cargá los precios en dólares: se guardan en pesos a esta cotización y la deuda queda en USD.</p>
+          </div>
           <div><label class="label">Condición</label><select v-model="form.condicion" class="input"><option value="cta_cte">Cuenta corriente</option><option value="contado">Contado</option></select></div>
         </div>
 
@@ -34,7 +43,7 @@
           <div class="flex items-center justify-between px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Ítems</h2><button type="button" @click="agregar()" class="btn-secondary !py-1 text-xs"><Icono nombre="plus" clase="w-3.5 h-3.5" /> Agregar</button></div>
           <div class="overflow-x-auto">
             <table class="table min-w-[720px]">
-              <thead><tr><th class="w-[36%]">Artículo (para stock) / descripción</th><th class="w-24 text-right">Cant.</th><th class="w-32 text-right">Costo unit. neto</th><th class="w-20 text-right">Dto %</th><th class="w-20 text-right">IVA</th><th class="text-right">Total</th><th class="w-8"></th></tr></thead>
+              <thead><tr><th class="w-[36%]">Artículo (para stock) / descripción</th><th class="w-24 text-right">Cant.</th><th class="w-32 text-right">Costo unit. neto{{ form.moneda === 'USD' ? ' (USD)' : '' }}</th><th class="w-20 text-right">Dto %</th><th class="w-20 text-right">IVA</th><th class="text-right">Total</th><th class="w-8"></th></tr></thead>
               <tbody>
                 <tr v-for="(it, i) in form.items" :key="i" class="align-top">
                   <td><BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/compra' : null" @cargados="f => sumar(productosCat, f)" placeholder="Sin artículo (solo gasto)" @elegido="o => { if (o) { it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = sinIva ? 0 : o.iva } }" /><input v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción" />
@@ -74,7 +83,8 @@
             <div class="flex justify-between"><span class="text-marca-muted">Neto</span><span class="tabular-nums">{{ moneda(totales.neto) }}</span></div>
             <div class="flex justify-between"><span class="text-marca-muted">IVA</span><span class="tabular-nums">{{ moneda(totales.iva) }}</span></div>
             <div v-if="totales.otros" class="flex justify-between"><span class="text-marca-muted">Percepciones</span><span class="tabular-nums">{{ moneda(totales.otros) }}</span></div>
-            <div class="flex justify-between text-lg font-extrabold pt-2 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ moneda(totales.total) }}</span></div>
+            <div class="flex justify-between text-lg font-extrabold pt-2 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ form.moneda === 'USD' ? 'USD ' + totales.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : moneda(totales.total) }}</span></div>
+            <div v-if="form.moneda === 'USD'" class="flex justify-between text-xs text-marca-muted"><span>En pesos a {{ moneda(form.cotizacion || 0, 2) }}</span><span class="tabular-nums">{{ moneda(totales.total * (Number(form.cotizacion) || 0)) }}</span></div>
           </div>
           <p v-if="ocr.totalLeido && Math.abs(ocr.totalLeido - totales.total) > 1" class="text-xs text-amber-700 mt-2">La factura dice {{ moneda(ocr.totalLeido) }}: revisá ítems e impuestos.</p>
           <div class="grid gap-2 mt-5">
@@ -96,7 +106,7 @@ import Icono from '@/Components/Icono.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, hoyISO } from '@/util/formato'
 
-const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object, cotizacionUsd: { type: Number, default: 0 } })
 const productosCat = ref([...props.productos])
 const proveedoresCat = ref([...props.proveedores])
 function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
@@ -105,7 +115,8 @@ const b = props.compra ?? props.desdeOrden
 const form = useForm({
   contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null, orden_compra_id: b?.orden_compra_id ?? null,
   fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', notas: b?.notas ?? '',
-  items: (b?.items ?? []).map(i => ({ ...i })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i })), registrar: false,
+  moneda: b?.moneda ?? 'ARS', cotizacion: (b?.moneda === 'USD' ? b?.cotizacion : null) || props.cotizacionUsd || null,
+  items: (b?.items ?? []).map(i => ({ ...i, precio_unit: i.precio_unit_me ?? i.precio_unit })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i })), registrar: false,
 })
 const proveedor = computed(() => proveedoresCat.value.find(p => p.id === form.contact_id))
 const opcionesProveedores = computed(() => proveedoresCat.value.map(p => ({ id: p.id, label: p.name, sub: p.cuit ?? p.condicion_iva })))

@@ -46,12 +46,17 @@ class CompraService
                 'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id, 'orden_compra_id' => $data['orden_compra_id'] ?? $c->orden_compra_id,
                 'fecha' => $data['fecha'], 'fecha_vto' => isset($data['fecha_vto']) && $data['fecha_vto'] ? $data['fecha_vto'] : \Carbon\Carbon::parse($data['fecha'])->addDays($dias),
                 'condicion' => $data['condicion'] ?? 'cta_cte', 'notas' => $data['notas'] ?? null,
+                'moneda' => $moneda = strtoupper($data['moneda'] ?? 'ARS'),
+                'cotizacion' => $cot = ($moneda === 'ARS' ? 1 : (float) (($data['cotizacion'] ?? null) ?: \App\Models\Cotizacion::valor($user->business_id))),
             ])->save();
+            abort_if($moneda !== 'ARS' && $cot <= 0, 422, 'Cargá la cotización del dólar para registrar una compra en moneda extranjera.');
 
             $c->items()->delete();
             foreach (array_values($data['items']) as $i => $it) {
                 $product = ! empty($it['product_id']) ? Product::find($it['product_id']) : null;
                 $al = (float) ($it['alicuota_iva'] ?? 21);
+                // Compra en dólares: los precios vienen en USD y se guardan en pesos a la cotización de la factura.
+                if ($moneda !== 'ARS') $it['precio_unit'] = round((float) $it['precio_unit'] * $cot, 2);
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
                 $c->items()->create(['product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'), 'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'lote' => $it['lote'] ?? null, 'vencimiento' => $it['vencimiento'] ?? null, 'serie' => $it['serie'] ?? null, ...$calc]);
             }
@@ -68,6 +73,7 @@ class CompraService
             if ($otros > 0) {
                 $c->forceFill(['percepciones' => (float) $c->percepciones + $otros, 'total' => round((float) $c->total + $otros, 2), 'saldo' => $c->estado === 'emitido' ? round((float) $c->saldo + $otros, 2) : round((float) $c->total + $otros, 2)])->save();
             }
+            if ($moneda !== 'ARS') $c->forceFill(['total_me' => round((float) $c->fresh()->total / $cot, 2), 'neto_me' => round((float) $c->fresh()->neto / $cot, 2)])->save();
             return $c->fresh(['items', 'contact']);
         });
     }

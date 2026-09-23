@@ -19,11 +19,17 @@ Lo que le pediste a cada proveedor y qué falta recibir. Se arman a mano o desde
 
 Al registrar: entra el stock, se actualiza el costo del artículo (y el precio si tiene margen), queda la deuda en la cuenta corriente del proveedor y se hace el asiento con el IVA crédito.
 
+## Compras en dólares
+
+En el formulario de compra elegí **Moneda: Dólares** y cargá la cotización del día. Los precios se cargan en USD; el sistema los guarda en pesos a esa cotización (costo del artículo incluido) y la deuda con el proveedor queda expresada en USD. Al pagar, si la cotización cambió, se registra la diferencia de cambio automáticamente.
+
 ## Pagar
 
 Desde la ficha del proveedor, **Registrar pago**: elegís facturas, medio (transferencia, efectivo, cheque propio, e-cheq) y el sistema **sugiere las retenciones** que corresponden (Ganancias con el mínimo mensual acumulado, IIBB según padrón, IVA). Se emite el certificado de retención y queda para el SICORE.
 
 Los cheques propios quedan en Fondos → Cheques hasta que se debitan; el sistema avisa los que vencen esta semana.
+
+- **Pago a cuenta**: podés pagar sin elegir facturas (anticipo). Después, en la pestaña **Pagos**, **Aplicar a facturas** lo imputa a las facturas que llegaron.
 
 ## Cuenta corriente y vencimientos
 

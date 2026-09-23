@@ -57,7 +57,7 @@ class ComprasController extends Controller
     {
         $data = $request->validate([
             'contact_id' => 'required|integer|exists:contacts,id', 'tipo' => 'required|in:FA,FB,FC,FE,NCA,NCB,NCC,NDA,NDB,NDC', 'numero_proveedor' => 'nullable|string|max:20', 'cae_proveedor' => 'nullable|string|max:20',
-            'fecha' => 'required|date', 'fecha_vto' => 'nullable|date', 'dias_vto' => 'nullable|integer|min:0|max:365', 'condicion' => 'nullable|in:contado,cta_cte', 'origen_carga' => 'nullable|in:manual,ocr,afip_csv', 'origen_id' => 'nullable|integer', 'orden_compra_id' => 'nullable|integer|exists:ordenes_compra,id', 'notas' => 'nullable|string|max:2000',
+            'fecha' => 'required|date', 'fecha_vto' => 'nullable|date', 'dias_vto' => 'nullable|integer|min:0|max:365', 'condicion' => 'nullable|in:contado,cta_cte', 'moneda' => 'nullable|in:ARS,USD', 'cotizacion' => 'nullable|numeric|min:0', 'origen_carga' => 'nullable|in:manual,ocr,afip_csv', 'origen_id' => 'nullable|integer', 'orden_compra_id' => 'nullable|integer|exists:ordenes_compra,id', 'notas' => 'nullable|string|max:2000',
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:255', 'items.*.cantidad' => 'required|numeric|gt:0', 'items.*.unidad' => 'nullable|string|max:10',
             'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.alicuota_iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27', 'items.*.lote' => 'nullable|string|max:40', 'items.*.vencimiento' => 'nullable|date', 'items.*.serie' => 'nullable|string|max:500',
             'impuestos' => 'nullable|array', 'impuestos.*.tipo' => 'required_with:impuestos|string|max:30', 'impuestos.*.monto' => 'required_with:impuestos|numeric|min:0',
@@ -133,19 +133,19 @@ class ComprasController extends Controller
         [$productos, $prodParcial] = \App\Support\Catalogo::productos('compra', $c ? $c->items->pluck('product_id')->all() : []);
         [$proveedores, $provParcial] = \App\Support\Catalogo::contactos('proveedor', array_filter([$c?->contact_id, (int) $request->input('contact_id')]));
         return [
-            'compra' => $c ? array_merge($this->resumir($c), ['contact_id' => $c->contact_id, 'tipo' => $c->tipo, 'numero_proveedor' => $c->numero_proveedor, 'cae_proveedor' => $c->cae_proveedor, 'origen_id' => $c->origen_id, 'fecha' => $c->fecha->toDateString(), 'fecha_vto' => $c->fecha_vto?->toDateString(), 'condicion' => $c->condicion, 'notas' => $c->notas,
-                'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
+            'compra' => $c ? array_merge($this->resumir($c), ['contact_id' => $c->contact_id, 'tipo' => $c->tipo, 'numero_proveedor' => $c->numero_proveedor, 'cae_proveedor' => $c->cae_proveedor, 'origen_id' => $c->origen_id, 'fecha' => $c->fecha->toDateString(), 'fecha_vto' => $c->fecha_vto?->toDateString(), 'condicion' => $c->condicion, 'notas' => $c->notas, 'moneda' => $c->moneda ?? 'ARS', 'cotizacion' => (float) $c->cotizacion,
+                'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'precio_unit_me' => ($c->moneda ?? 'ARS') !== 'ARS' && (float) $c->cotizacion > 0 ? round((float) $i->precio_unit / (float) $c->cotizacion, 4) : null, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
                 'impuestos' => $c->impuestos->map(fn($i) => ['tipo' => $i->tipo, 'monto' => (float) $i->monto])]) : null,
             'contactIdInicial' => (int) $request->input('contact_id') ?: null,
             'proveedores' => $proveedores, 'productos' => $productos, 'catalogoParcial' => ['proveedores' => $provParcial, 'productos' => $prodParcial],
             'fceHabilitado' => true,
-            'iaDisponible' => (bool) config('services.anthropic.api_key'),
+            'iaDisponible' => (bool) config('services.anthropic.api_key'), 'cotizacionUsd' => \App\Models\Cotizacion::valor($request->user()->business_id),
         ];
     }
 
     private function resumir(Comprobante $c): array
     {
         return ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombreTipo(), 'letra' => $c->def()['letra'], 'grupo' => $c->def()['grupo'], 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'fecha_vto' => $c->fecha_vto?->format('d/m/Y'),
-            'proveedor' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'estado' => $c->estado, 'estado_pago' => $c->estadoCobro(), 'vencido' => $c->estadoCobro() === 'pendiente' && $c->fecha_vto && $c->fecha_vto->lt(today()), 'origen_carga' => $c->origen_carga, 'condicion' => $c->condicion];
+            'proveedor' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'estado' => $c->estado, 'estado_pago' => $c->estadoCobro(), 'vencido' => $c->estadoCobro() === 'pendiente' && $c->fecha_vto && $c->fecha_vto->lt(today()), 'origen_carga' => $c->origen_carga, 'condicion' => $c->condicion, 'moneda' => $c->moneda ?? 'ARS', 'cotizacion' => (float) $c->cotizacion, 'total_me' => (float) $c->total_me];
     }
 }

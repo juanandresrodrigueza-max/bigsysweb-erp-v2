@@ -17,7 +17,7 @@ class Pago extends Model
         'billetera' => 'Billetera virtual', 'tarjeta' => 'Tarjeta', 'retencion' => 'Retención',
     ];
 
-    protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'user_id', 'numero', 'fecha', 'total', 'descuento', 'interes', 'a_cuenta', 'estado', 'notas'];
+    protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'user_id', 'numero', 'fecha', 'total', 'descuento', 'interes', 'a_cuenta', 'estado', 'notas', 'cotizacion'];
     protected $casts = ['fecha' => 'date', 'total' => 'decimal:2', 'a_cuenta' => 'decimal:2', 'descuento' => 'decimal:2', 'interes' => 'decimal:2'];
 
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }

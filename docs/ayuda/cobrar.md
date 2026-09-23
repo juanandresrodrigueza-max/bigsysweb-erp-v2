@@ -10,6 +10,9 @@ resumen: Cómo registrar un cobro, imputarlo a facturas, manejar cheques y tarje
 
 Desde la ficha del cliente, **Registrar cobro**, o desde la factura, **Registrar cobro**. Elegís uno o varios medios (efectivo, transferencia, cheque, tarjeta, Mercado Pago) y a qué facturas se imputa. Si el cliente paga de más, queda **a cuenta** para la próxima.
 
+- **Recibo a cuenta (sin facturas)**: podés registrar el cobro sin imputarlo a ningún comprobante; queda como saldo a favor del cliente. Después, en la pestaña **Cobros** de la ficha, el botón **Aplicar a facturas** reparte ese saldo entre las facturas pendientes.
+- **Facturas en dólares**: en la lista de pendientes aparece el saldo en USD y su valor en pesos a la cotización del recibo (que podés cambiar). Si cobrás a una cotización distinta de la de la factura, el sistema registra la **diferencia de cambio** sola: la factura queda cancelada en USD y la ganancia o pérdida va a resultado, sin ensuciar la cuenta corriente.
+
 - **Efectivo** entra en la caja activa. **Transferencia** en el banco que elijas.
 - **Cheque**: se carga con número, banco y fecha de pago; queda en cartera en **Fondos → Cheques** hasta que lo depositás o lo endosás.
 - **Tarjeta**: queda como cupón pendiente en **Fondos → Tarjetas**; cuando la tarjeta liquida, registrás la liquidación con sus comisiones.

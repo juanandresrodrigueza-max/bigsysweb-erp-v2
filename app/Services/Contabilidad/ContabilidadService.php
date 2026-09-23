@@ -135,8 +135,11 @@ class ContabilidadService
         }
         if ((float) $cobro->descuento > 0) $this->linea($lineas, 'descuentos_otorgados', (float) $cobro->descuento, 0, 'Descuento en recibo');
         if ((float) $cobro->interes > 0) $this->linea($lineas, 'intereses_ganados', 0, (float) $cobro->interes, 'Interés cobrado');
-        // Lo que cancela deuda: medios + descuento − interés.
-        $this->linea($lineas, 'deudores', 0, round((float) $cobro->total + (float) $cobro->descuento - (float) $cobro->interes, 2), $cobro->contact?->name, $cobro->contact_id);
+        // Lo que cancela deuda: medios + descuento − interés, menos la diferencia de cambio de las facturas en dólares (que va a resultado).
+        $dif = round((float) $cobro->imputaciones()->sum('dif_cambio'), 2);
+        $this->linea($lineas, 'deudores', 0, round((float) $cobro->total + (float) $cobro->descuento - (float) $cobro->interes - $dif, 2), $cobro->contact?->name, $cobro->contact_id);
+        if ($dif > 0.005) $this->linea($lineas, 'dif_cambio', 0, $dif, 'Diferencia de cambio en cobro');
+        elseif ($dif < -0.005) $this->linea($lineas, 'dif_cambio_neg', -$dif, 0, 'Diferencia de cambio en cobro');
         return $this->crear($cobro->business_id, $cobro->business_location_id, $cobro->fecha, "Cobro {$cobro->numeroFormateado()} · {$cobro->contact?->name}", 'cobro', $cobro->id, $lineas);
     }
 
@@ -144,7 +147,11 @@ class ContabilidadService
     {
         if ($pago->estado === 'anulado') return null;
         $lineas = [];
-        $this->linea($lineas, 'proveedores', round((float) $pago->total + (float) $pago->descuento - (float) $pago->interes, 2), 0, $pago->contact?->name, $pago->contact_id);
+        // Facturas en dólares: si se pagan más pesos que los registrados es pérdida por diferencia de cambio; menos, ganancia.
+        $dif = round((float) $pago->imputaciones()->sum('dif_cambio'), 2);
+        $this->linea($lineas, 'proveedores', round((float) $pago->total + (float) $pago->descuento - (float) $pago->interes - $dif, 2), 0, $pago->contact?->name, $pago->contact_id);
+        if ($dif > 0.005) $this->linea($lineas, 'dif_cambio_neg', $dif, 0, 'Diferencia de cambio en pago');
+        elseif ($dif < -0.005) $this->linea($lineas, 'dif_cambio', 0, -$dif, 'Diferencia de cambio en pago');
         if ((float) $pago->descuento > 0) $this->linea($lineas, 'descuentos_obtenidos', 0, (float) $pago->descuento, 'Descuento del proveedor');
         if ((float) $pago->interes > 0) $this->linea($lineas, 'intereses_perdidos', (float) $pago->interes, 0, 'Interés pagado');
         foreach ($pago->medios as $m) {
