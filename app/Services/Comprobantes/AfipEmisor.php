@@ -25,7 +25,7 @@ class AfipEmisor
         $afipId = $c->afipTipo();
         if (! $afipId) return ['estado' => 'no_aplica', 'numero' => null];
         if (! $this->configurado($b)) return ['estado' => 'simulado', 'numero' => null, 'cae' => null, 'cae_vto' => null];
-        if ($c->tipo === 'FE') return ['estado' => 'simulado', 'numero' => null, 'cae' => null, 'cae_vto' => null, 'aviso' => 'La factura E (exportación) se autoriza por WSFEX, que todavía no está integrado: se emite sin CAE.'];
+        if ($c->esExportacion()) return $this->emitirExportacion($c, $b);
 
         $pv = (int) $c->punto_venta;
         try {
@@ -60,12 +60,59 @@ class AfipEmisor
         ];
     }
 
+    // Factura de exportación (E): va por WSFEX, con su propio contador de Id y sin IVA.
+    private function emitirExportacion(Comprobante $c, Business $b): array
+    {
+        $pv = (int) $c->punto_venta; $afipId = (int) $c->afipTipo();
+        try {
+            $afip   = AfipService::forBusiness($b);
+            $numero = $afip->fexGetLastVoucher($pv, $afipId) + 1;
+            $id     = $afip->fexGetLastId() + 1;
+            $data   = $this->armarDatosFex($c, $afipId, $numero, $id);
+            $res    = $afip->fexAuthorize($data);
+        } catch (\Throwable $e) {
+            $msg = $e->getMessage();
+            Log::error('ARCA WSFEX error', ['comprobante' => $c->id, 'e' => $msg]);
+            if (AfipErrores::esConexion($msg)) return ['estado' => 'pendiente', 'numero' => null, 'error' => $msg, 'explicacion' => AfipErrores::explicar($msg)];
+            return ['estado' => 'rechazado', 'error' => $msg, 'explicacion' => AfipErrores::explicar($msg), 'numero' => null];
+        }
+        if (($res['Resultado'] ?? '') !== 'A' || empty($res['CAE'])) return ['estado' => 'rechazado', 'error' => 'WSFEX no aprobó el comprobante: ' . ($res['Motivos_Obs'] ?: 'sin detalle'), 'explicacion' => AfipErrores::explicar($res['Motivos_Obs'] ?? ''), 'numero' => null];
+        return ['estado' => 'aprobado', 'numero' => $numero, 'cae' => $res['CAE'], 'cae_vto' => ! empty($res['CAEFchVto']) ? \Carbon\Carbon::createFromFormat('Ymd', (string) $res['CAEFchVto']) : null, 'respuesta' => $res, 'enviado' => $data];
+    }
+
+    // Elemento Cmp de FEXAuthorize. Importes en la moneda de la factura (DOL con cotización, o PES).
+    public function armarDatosFex(Comprobante $c, int $afipId, int $numero, int $id): array
+    {
+        $cli = $c->contact; $ex = $c->exportacion ?? []; $paises = config('arca_paises');
+        $enMe = $c->enMonedaExtranjera();
+        $monto = fn($ars) => round($enMe ? (float) $ars / max(0.0001, (float) $c->cotizacion) : (float) $ars, 2);
+        $items = $c->items->map(fn($i) => ['Pro_codigo_ea' => mb_substr((string) ($i->product?->sku ?: $i->product_id ?: 'S/C'), 0, 30), 'Pro_ds' => mb_substr($i->descripcion, 0, 4000), 'Pro_qty' => (float) $i->cantidad, 'Pro_umed' => (int) ($ex['tipo_expo'] ?? 1) === 2 ? 7 : 7, 'Pro_precio_uni' => round($monto($i->precio_unit) * (1 - (float) $i->descuento / 100), 6), 'Pro_total_item' => $monto($i->neto)])->values()->all();
+        $total = round(array_sum(array_column($items, 'Pro_total_item')), 2);
+        $tipoExpo = (int) ($ex['tipo_expo'] ?? 1);
+        $pais = (string) ($ex['pais'] ?? $cli?->pais_codigo ?? '');
+        $data = [
+            'Id' => $id, 'Fecha_cbte' => $c->fecha->format('Ymd'), 'Cbte_Tipo' => $afipId, 'Punto_vta' => (int) $c->punto_venta, 'Cbte_nro' => $numero,
+            'Tipo_expo' => $tipoExpo, 'Permiso_existente' => $tipoExpo === 1 ? (! empty($ex['permiso_embarque']) ? 'S' : 'N') : '',
+            'Dst_cmp' => (int) $pais, 'Cliente' => mb_substr((string) ($cli?->name ?? ''), 0, 80), 'Cuit_pais_cliente' => (int) preg_replace('/\D/', '', (string) ($cli?->cuit_pais ?: ($paises['cuit_pais'][$pais] ?? '0'))),
+            'Domicilio_cliente' => mb_substr(trim(($cli?->address ?? '') . ' ' . ($cli?->city ?? '') . ' ' . ($paises['paises'][$pais] ?? '')), 0, 100), 'Id_impositivo' => mb_substr((string) ($cli?->id_impositivo ?? ''), 0, 50),
+            'Moneda_Id' => $enMe ? ($ex['moneda_arca'] ?? 'DOL') : 'PES', 'Moneda_ctz' => $enMe ? round((float) $c->cotizacion, 6) : 1,
+            'Obs_comerciales' => mb_substr((string) ($ex['obs_comerciales'] ?? ''), 0, 1000), 'Imp_total' => $total, 'Obs' => mb_substr((string) ($c->notas ?? ''), 0, 1000),
+            'Forma_pago' => mb_substr((string) ($ex['forma_pago'] ?? ($c->condicion === 'contado' ? 'Contado' : 'Cuenta corriente')), 0, 50),
+            'Incoterms' => $tipoExpo === 1 ? ($ex['incoterm'] ?? 'FOB') : '', 'Incoterms_Ds' => $tipoExpo === 1 ? mb_substr((string) ($paises['incoterms'][$ex['incoterm'] ?? 'FOB'] ?? ''), 0, 20) : '',
+            'Idioma_cbte' => 1, 'Items' => $items,
+        ];
+        if ($tipoExpo === 1 && ! empty($ex['permiso_embarque'])) $data['Permisos'] = [['Id_permiso' => $ex['permiso_embarque'], 'Dst_merc' => (int) $pais]];
+        if ($tipoExpo !== 1) $data['Fecha_pago'] = ($c->fecha_vto ?? $c->fecha)->format('Ymd');
+        if (in_array($c->def()['grupo'], ['nc', 'nd'], true) && $c->origen && $c->origen->esExportacion() && $c->origen->numero) $data['Cmps_asoc'] = [['Cbte_tipo' => $c->origen->afipTipo(), 'Cbte_punto_vta' => (int) $c->origen->punto_venta, 'Cbte_nro' => (int) $c->origen->numero, 'Cbte_cuit' => (int) preg_replace('/\D/', '', (string) $c->business->cuit)]];
+        return $data;
+    }
+
     // Consulta el comprobante en ARCA y compara con lo guardado.
     public function verificar(Comprobante $c, Business $b): array
     {
         if (! $this->configurado($b) || ! $c->afipTipo() || ! $c->numero) return ['ok' => false, 'detalle' => 'Sin certificado o sin número: no hay nada que verificar.'];
         try {
-            $info = AfipService::forBusiness($b)->getVoucherInfo((int) $c->numero, (int) $c->punto_venta, (int) $c->afipTipo());
+            $info = $c->esExportacion() ? AfipService::forBusiness($b)->fexGetVoucherInfo((int) $c->punto_venta, (int) $c->afipTipo(), (int) $c->numero) : AfipService::forBusiness($b)->getVoucherInfo((int) $c->numero, (int) $c->punto_venta, (int) $c->afipTipo());
         } catch (\Throwable $e) { return ['ok' => false, 'detalle' => AfipErrores::explicar($e->getMessage())['que']]; }
         if (! $info) return ['ok' => false, 'detalle' => 'ARCA no tiene registrado este comprobante.'];
         $coincide = (string) ($info['CodAutorizacion'] ?? '') === (string) $c->cae && abs((float) ($info['ImpTotal'] ?? 0) - (float) $c->total) < 0.01;

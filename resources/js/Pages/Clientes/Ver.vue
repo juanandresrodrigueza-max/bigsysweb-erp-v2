@@ -122,7 +122,7 @@
     </div>
 
     <EnviarModal :abierto="!!envio" :modelo="envio?.modelo" :id="envio?.id" titulo="Enviar al cliente" @cerrar="envio = null" />
-    <ClienteModal :abierto="editarAbierto" :cliente="cliente" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" @cerrar="editarAbierto = false" />
+    <ClienteModal :abierto="editarAbierto" :cliente="cliente" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" :paises="paises" :cuitPais="cuitPais" @cerrar="editarAbierto = false" />
 
     <!-- Cobro -->
     <Modal :abierto="cobroAbierto" titulo="Registrar cobro" ancho="max-w-3xl" @cerrar="cobroAbierto = false">
@@ -229,7 +229,7 @@ import ClienteModal from '@/Components/ClienteModal.vue'
 import EnviarModal from '@/Components/EnviarModal.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
-const props = defineProps({ cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
+const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : {}) }
 const envio = ref(null)

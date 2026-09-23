@@ -4,6 +4,11 @@
       <div class="sm:col-span-2"><label class="label">Nombre / Razón social</label><input v-model="form.name" class="input" /><p v-if="form.errors.name" class="text-carmin text-xs mt-1">{{ form.errors.name }}</p></div>
       <div><label class="label">Condición IVA</label><select v-model="form.condicion_iva" class="input"><option v-for="c in condicionesIva" :key="c">{{ c }}</option></select></div>
       <div><label class="label">CUIT / CUIL</label><div class="flex gap-1"><input v-model="form.cuit" class="input" placeholder="30-12345678-9" /><button type="button" class="btn-secondary !px-2 text-xs whitespace-nowrap" :disabled="padron.cargando || (form.cuit || '').replace(/\D/g, '').length !== 11" title="Trae razón social, domicilio y condición IVA del padrón de ARCA" @click="consultarPadron">{{ padron.cargando ? '…' : 'Padrón' }}</button></div><p v-if="form.errors.cuit" class="text-carmin text-xs mt-1">{{ form.errors.cuit }}</p><p v-if="padron.msg" class="text-xs mt-1" :class="padron.ok ? 'text-emerald-700' : 'text-carmin'">{{ padron.msg }}</p></div>
+      <template v-if="form.condicion_iva === 'Exterior'">
+        <div><label class="label">País (ARCA)</label><select v-model="form.pais_codigo" class="input" @change="form.cuit_pais = cuitPais[form.pais_codigo] ?? form.cuit_pais"><option :value="null">Elegir…</option><option v-for="(n, k) in paises" :key="k" :value="k">{{ n }}</option></select></div>
+        <div><label class="label">CUIT país (tabla ARCA)</label><input v-model="form.cuit_pais" class="input tabular-nums" placeholder="55000002002" /><p class="text-[11px] text-marca-muted mt-1">Persona jurídica del país; si ARCA informa otro, corregilo acá.</p></div>
+        <div><label class="label">Identificación fiscal en su país</label><input v-model="form.id_impositivo" class="input" placeholder="CNPJ, RUT, VAT…" /></div>
+      </template>
       <div><label class="label">Tipo de cliente</label><select v-model="form.tipo_cliente_id" class="input" @change="aplicarTipo"><option :value="null">Sin tipo</option><option v-for="t in tipos" :key="t.id" :value="t.id">{{ t.nombre }}</option></select></div>
       <div><label class="label">Lista de precios</label><select v-model.number="form.lista_precios" class="input"><option v-for="n in 6" :key="n" :value="n">Lista {{ n }}</option></select></div>
       <div><label class="label">Días de pago (cta. cte.)</label><input v-model.number="form.dias_pago" type="number" min="0" class="input" /></div>
@@ -36,9 +41,9 @@ import { reactive, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import Modal from '@/Components/Modal.vue'
 
-const props = defineProps({ abierto: Boolean, cliente: Object, tipos: Array, condicionesIva: Array, vendedores: { type: Array, default: () => [] } })
+const props = defineProps({ abierto: Boolean, cliente: Object, tipos: Array, condicionesIva: Array, vendedores: { type: Array, default: () => [] }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['cerrar'])
-const vacio = { id: null, name: '', condicion_iva: 'Consumidor Final', cuit: '', tipo_cliente_id: null, lista_precios: 1, dias_pago: 0, descuento: 0, credit_limit: 0, percepcion_iibb: false, percepcion_iva: false, percepcion_ganancias: false, interes_mora: 0, vendedor_id: null, email: '', phone: '', address: '', city: '', province: '', notes: '', is_active: true }
+const vacio = { id: null, name: '', condicion_iva: 'Consumidor Final', cuit: '', tipo_cliente_id: null, lista_precios: 1, dias_pago: 0, descuento: 0, credit_limit: 0, percepcion_iibb: false, percepcion_iva: false, percepcion_ganancias: false, pais_codigo: null, cuit_pais: '', id_impositivo: '', interes_mora: 0, vendedor_id: null, email: '', phone: '', address: '', city: '', province: '', notes: '', is_active: true }
 const form = useForm({ ...vacio })
 watch(() => props.abierto, v => { if (v) { form.clearErrors(); Object.assign(form, { ...vacio, ...(props.cliente ?? {}) }) } })
 function aplicarTipo() { const t = props.tipos.find(x => x.id === form.tipo_cliente_id); if (t) { form.lista_precios = t.lista_precios; form.dias_pago = t.dias_pago; form.descuento = Number(t.descuento); form.credit_limit = Number(t.limite_credito) } }

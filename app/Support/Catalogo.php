@@ -31,7 +31,7 @@ class Catalogo
     {
         $base = ['id' => $c->id, 'name' => $c->name, 'cuit' => $c->cuit, 'condicion_iva' => $c->condicion_iva];
         return $base + match ($forma) {
-            'cliente' => ['lista_precios' => $c->lista_precios, 'dias_pago' => $c->dias_pago, 'descuento' => (float) $c->descuento, 'balance' => (float) $c->balance, 'credit_limit' => (float) $c->credit_limit, 'tipo' => $c->tipoCliente?->nombre, 'address' => $c->address, 'city' => $c->city, 'percepcion_iibb' => (bool) $c->percepcion_iibb, 'percepcion_iva' => (bool) $c->percepcion_iva, 'percepcion_ganancias' => (bool) $c->percepcion_ganancias],
+            'cliente' => ['lista_precios' => $c->lista_precios, 'dias_pago' => $c->dias_pago, 'descuento' => (float) $c->descuento, 'balance' => (float) $c->balance, 'credit_limit' => (float) $c->credit_limit, 'tipo' => $c->tipoCliente?->nombre, 'address' => $c->address, 'city' => $c->city, 'percepcion_iibb' => (bool) $c->percepcion_iibb, 'percepcion_iva' => (bool) $c->percepcion_iva, 'percepcion_ganancias' => (bool) $c->percepcion_ganancias, 'pais_codigo' => $c->pais_codigo],
             'proveedor' => ['dias_pago' => $c->dias_pago, 'balance' => (float) $c->balance, 'email' => $c->email],
             default => [],
         };

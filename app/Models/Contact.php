@@ -12,12 +12,12 @@ class Contact extends Model
 {
     use SoftDeletes, BelongsToBusiness;
 
-    public const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final', 'No Responsable'];
+    public const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final', 'No Responsable', 'Exterior'];
 
     protected $fillable = [
         'business_id', 'type', 'tipo_cliente_id', 'name', 'email', 'phone', 'mobile', 'document_type', 'document', 'cuit',
         'condicion_iva', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'interes_mora', 'vendedor_id',
-        'descuento', 'percepcion_iibb', 'jurisdiccion_iibb', 'alicuota_percepcion_iibb', 'alicuota_retencion_iibb', 'exento_iibb', 'percepcion_iva', 'percepcion_ganancias', 'retiene_ganancias', 'balance', 'is_active', 'notes', 'crm_external_id', 'portal_token', 'puntos',
+        'descuento', 'percepcion_iibb', 'jurisdiccion_iibb', 'alicuota_percepcion_iibb', 'alicuota_retencion_iibb', 'exento_iibb', 'percepcion_iva', 'percepcion_ganancias', 'retiene_ganancias', 'balance', 'is_active', 'notes', 'crm_external_id', 'portal_token', 'puntos', 'pais_codigo', 'cuit_pais', 'id_impositivo',
     ];
 
     protected $casts = [
@@ -48,6 +48,8 @@ class Contact extends Model
     // Tipo de factura según condición IVA de la empresa y del cliente.
     public static function letraPara(Business $business, ?Contact $contact): string
     {
+        // Cliente del exterior: factura E (exportación), cualquiera sea la condición de la empresa.
+        if ($contact && $contact->condicion_iva === 'Exterior') return 'E';
         $emp = $business->condicion_iva ?? 'Responsable Inscripto';
         if ($emp === 'Responsable Inscripto') {
             return ($contact && $contact->condicion_iva === 'Responsable Inscripto') ? 'A' : 'B';

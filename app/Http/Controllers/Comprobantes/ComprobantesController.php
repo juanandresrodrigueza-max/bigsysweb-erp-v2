@@ -105,6 +105,7 @@ class ComprobantesController extends Controller
                 'sucursal' => $c->location?->name, 'usuario' => $c->user?->name, 'notas' => $c->notas, 'afip_respuesta' => $c->afip_respuesta,
                 'neto' => (float) $c->neto, 'iva' => (float) $c->iva, 'percepciones' => (float) $c->percepciones,
                 'impuestos' => $c->impuestos->map(fn($t) => ['tipo' => $t->tipo, 'nombre' => \App\Models\ComprobanteImpuesto::descripcion($t->tipo), 'alicuota' => (float) $t->alicuota, 'monto' => (float) $t->monto]),
+                'exportacion' => $c->esExportacion() ? ($c->exportacion ?? []) + ['pais_nombre' => config('arca_paises.paises.' . ($c->exportacion['pais'] ?? $c->contact?->pais_codigo ?? ''), $c->contact?->pais_codigo)] : null,
                 'arba_ws' => app(\App\Services\Fiscal\CotService::class)->configurado($c->business),
                 'transporte' => $c->tipo === 'REM' ? ['transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega, 'cot' => $c->cot] : null,
             ]),
@@ -250,6 +251,7 @@ class ComprobantesController extends Controller
             'fce_vto_pago'    => 'nullable|date',
             'notas'           => 'nullable|string|max:2000',
             'moneda'          => 'nullable|in:ARS,USD',
+            'exportacion'     => 'nullable|array', 'exportacion.tipo_expo' => 'nullable|integer|in:1,2,4', 'exportacion.incoterm' => 'nullable|string|max:3', 'exportacion.permiso_embarque' => 'nullable|string|max:40', 'exportacion.pais' => 'nullable|string|max:4', 'exportacion.moneda_arca' => 'nullable|string|max:3', 'exportacion.forma_pago' => 'nullable|string|max:50', 'exportacion.obs_comerciales' => 'nullable|string|max:1000',
             'cotizacion'      => 'nullable|numeric|min:0',
             'proyecto_id'     => 'nullable|integer|exists:proyectos,id',
             // Remito: datos de transporte (para el COT de ARBA y el pie del remito).
@@ -280,7 +282,7 @@ class ComprobantesController extends Controller
         [$clientes, $clientesParcial] = \App\Support\Catalogo::contactos('cliente', array_filter([$c?->contact_id, $origen?->contact_id, (int) $request->input('contact_id')]));
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
-                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'sin_arca' => $c->sin_arca, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
+                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'sin_arca' => $c->sin_arca, 'exportacion' => $c->exportacion, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
                 'transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
@@ -296,7 +298,7 @@ class ComprobantesController extends Controller
                 ['key' => 'FX', 'label' => 'Factura (A/B/C según cliente)'], ['key' => 'PRE', 'label' => 'Presupuesto'], ['key' => 'REM', 'label' => 'Remito'],
                 ['key' => 'NCX', 'label' => 'Nota de crédito'], ['key' => 'NDX', 'label' => 'Nota de débito'],
             ],
-            'clientes' => $clientes, 'productos' => $productos, 'catalogoParcial' => ['clientes' => $clientesParcial, 'productos' => $productosParcial],
+            'clientes' => $clientes, 'productos' => $productos, 'catalogoParcial' => ['clientes' => $clientesParcial, 'productos' => $productosParcial], 'arcaPaises' => ['incoterms' => config('arca_paises.incoterms'), 'tipos_expo' => config('arca_paises.tipos_expo'), 'monedas' => config('arca_paises.monedas'), 'paises' => config('arca_paises.paises')],
             'puntosVenta' => PuntoVenta::where('activo', true)->with('location:id,name')->orderBy('numero')->get()->map(fn($p) => ['id' => $p->id, 'numero' => $p->numero, 'sucursal' => $p->location?->name, 'modo' => $p->modo]),
             'puntoVentaDefault' => $this->service->puntoVentaPorDefecto($user)?->id,
             'empresa' => ['condicion_iva' => $user->business->condicion_iva ?? 'Responsable Inscripto'],

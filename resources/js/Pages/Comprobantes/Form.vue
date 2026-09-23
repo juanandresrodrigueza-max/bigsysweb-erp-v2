@@ -97,6 +97,18 @@
           <p v-if="form.errors.items" class="text-carmin text-xs px-4 pb-3">{{ form.errors.items }}</p>
         </div>
 
+        <div v-if="esExportacion" class="card">
+          <div class="flex items-center justify-between mb-1"><h2 class="font-bold">Exportación (Factura E)</h2><span class="text-[11px] text-marca-muted">Va a ARCA por WSFEX · sin IVA</span></div>
+          <p v-if="!cliente?.pais_codigo" class="text-xs text-carmin mb-2">El cliente no tiene país cargado: editalo en Clientes (condición "Exterior", país y CUIT país).</p>
+          <div class="grid sm:grid-cols-3 gap-3">
+            <div><label class="label">Tipo</label><select v-model.number="form.exportacion.tipo_expo" class="input"><option v-for="(l, k) in arcaPaises.tipos_expo" :key="k" :value="Number(k)">{{ l }}</option></select></div>
+            <div v-if="form.exportacion.tipo_expo === 1"><label class="label">Incoterm</label><select v-model="form.exportacion.incoterm" class="input"><option v-for="(l, k) in arcaPaises.incoterms" :key="k" :value="k">{{ l }}</option></select></div>
+            <div v-if="form.exportacion.tipo_expo === 1"><label class="label">Permiso de embarque</label><input v-model="form.exportacion.permiso_embarque" class="input" placeholder="Opcional" /></div>
+            <div><label class="label">Moneda para ARCA</label><select v-model="form.exportacion.moneda_arca" class="input" :disabled="form.moneda !== 'USD'"><option v-for="(l, k) in arcaPaises.monedas" :key="k" :value="k">{{ l }}</option></select><p class="text-[11px] text-marca-muted mt-1">{{ form.moneda === 'USD' ? 'Los importes van en esta moneda con la cotización cargada.' : 'En pesos se informa PES.' }}</p></div>
+            <div><label class="label">Forma de pago</label><input v-model="form.exportacion.forma_pago" class="input" placeholder="Transferencia anticipada, carta de crédito…" /></div>
+            <div class="sm:col-span-3"><label class="label">Observaciones comerciales</label><input v-model="form.exportacion.obs_comerciales" class="input" /></div>
+          </div>
+        </div>
         <div v-if="form.tipo === 'REM'" class="card">
           <div class="flex items-center justify-between mb-1"><h2 class="font-bold">Transporte (remito electrónico)</h2><span class="text-[11px] text-marca-muted">Sale impreso y arma el archivo del COT de ARBA</span></div>
           <div class="grid sm:grid-cols-3 gap-3">
@@ -182,7 +194,7 @@ import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 import { useDictado } from '@/util/dictado'
 
-const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String, arcaPaises: { type: Object, default: () => ({ incoterms: {}, tipos_expo: {}, monedas: {}, paises: {} }) } })
 const productosCat = ref([...props.productos])
 const clientesCat = ref([...props.clientes])
 function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
@@ -190,7 +202,7 @@ function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
-  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, sin_arca: base?.sin_arca ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
+  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, sin_arca: base?.sin_arca ?? false, exportacion: { tipo_expo: 1, incoterm: 'FOB', permiso_embarque: '', moneda_arca: 'DOL', forma_pago: '', obs_comerciales: '', ...(base?.exportacion ?? {}) }, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
   transportista: base?.transportista ?? '', transportista_cuit: base?.transportista_cuit ?? '', patente: base?.patente ?? '', bultos: base?.bultos ?? null, peso_kg: base?.peso_kg ?? null, domicilio_entrega: base?.domicilio_entrega ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false, moneda: base?.moneda ?? 'ARS', cotizacion: base?.cotizacion && base.cotizacion !== 1 ? base.cotizacion : null, proyecto_id: base?.proyecto_id ?? (new URLSearchParams(location.search).get('proyecto_id') ? Number(new URLSearchParams(location.search).get('proyecto_id')) : null),
 })
@@ -200,7 +212,8 @@ const cliente = computed(() => clientesCat.value.find(c => c.id === form.contact
 const lista = computed(() => cliente.value?.lista_precios ?? 1)
 const esFactura = computed(() => ['FX', 'FA', 'FB', 'FC'].includes(form.tipo))
 const esFiscal = computed(() => !['PRE', 'REM'].includes(form.tipo))
-const letra = computed(() => props.empresa.condicion_iva === 'Responsable Inscripto' ? (cliente.value?.condicion_iva === 'Responsable Inscripto' ? 'A' : 'B') : 'C')
+const esExportacion = computed(() => esFiscal.value && cliente.value?.condicion_iva === 'Exterior')
+const letra = computed(() => cliente.value?.condicion_iva === 'Exterior' ? 'E' : props.empresa.condicion_iva === 'Responsable Inscripto' ? (cliente.value?.condicion_iva === 'Responsable Inscripto' ? 'A' : 'B') : 'C')
 const tipoResuelto = computed(() => ({ FX: `Factura ${letra.value}`, NCX: `Nota de crédito ${letra.value}`, NDX: `Nota de débito ${letra.value}` }[form.tipo] ?? null))
 const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'Nuevo presupuesto', REM: 'Nuevo remito', NCX: 'Nueva nota de crédito', NDX: 'Nueva nota de débito' }[form.tipo] ?? 'Nueva factura'))
 
@@ -217,7 +230,7 @@ function alElegirCliente(o) {
 }
 function alElegirProducto(it, o) {
   if (!o) return
-  it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = o.iva; it.precio_unit = o.precios[lista.value]; it.descuento = cliente.value?.descuento ?? 0
+  it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = esExportacion.value ? 0 : o.iva; it.precio_unit = o.precios[lista.value]; it.descuento = cliente.value?.descuento ?? 0
   if (!it.cantidad) it.cantidad = 1
 }
 const puntos = ref(null)

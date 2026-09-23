@@ -39,7 +39,7 @@
     </div>
     <Paginacion :links="lista.links" :desde="lista.from" :hasta="lista.to" :total="lista.total" />
 
-    <ClienteModal :abierto="modal" :cliente="seleccionado" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" @cerrar="modal = false" />
+    <ClienteModal :abierto="modal" :cliente="seleccionado" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" :paises="paises" :cuitPais="cuitPais" @cerrar="modal = false" />
 
     <Modal :abierto="tiposAbierto" titulo="Tipos de cliente" ancho="max-w-2xl" @cerrar="tiposAbierto = false">
       <p class="text-sm text-marca-muted mb-3">Cada tipo define lista de precios, plazo de pago, descuento y límite por defecto para los clientes nuevos, y sirve para agrupar en reportes.</p>
@@ -75,7 +75,7 @@ import Paginacion from '@/Components/Paginacion.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'
 import { moneda, entero } from '@/util/formato'
 
-const props = defineProps({ lista: Object, totales: Object, filtros: Object, tipos: Array, condicionesIva: Array })
+const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  lista: Object, totales: Object, filtros: Object, tipos: Array, condicionesIva: Array })
 const f = reactive({ buscar: props.filtros.buscar ?? '', tipo_cliente_id: props.filtros.tipo_cliente_id ?? '', estado: props.filtros.estado ?? 'activos' })
 function filtrar() { router.get('/clientes', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
 const modal = ref(false), seleccionado = ref(null), tiposAbierto = ref(false)

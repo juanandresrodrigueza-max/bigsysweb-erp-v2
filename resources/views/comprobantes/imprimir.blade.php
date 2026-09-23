@@ -58,6 +58,7 @@
     <div><b>Cliente:</b> {{ $c->contact?->name ?? 'Consumidor Final' }}</div>
     <div><b>CUIT/DNI:</b> {{ $c->contact?->cuit ?? $c->contact?->document ?? '-' }}</div>
     <div><b>Domicilio:</b> {{ trim(($c->contact?->address ?? '') . ' ' . ($c->contact?->city ?? '')) ?: '-' }}</div>
+    @if($c->esExportacion())<div><b>País:</b> {{ config('arca_paises.paises.' . ($c->contact?->pais_codigo ?? ''), $c->contact?->pais_codigo ?? '-') }} @if($c->contact?->id_impositivo)· <b>Id. fiscal:</b> {{ $c->contact->id_impositivo }}@endif @if(($c->exportacion['incoterm'] ?? null) && (int) ($c->exportacion['tipo_expo'] ?? 1) === 1)· <b>Incoterm:</b> {{ $c->exportacion['incoterm'] }}@endif @if($c->exportacion['permiso_embarque'] ?? null)· <b>Permiso de embarque:</b> {{ $c->exportacion['permiso_embarque'] }}@endif</div>@endif
     <div><b>Cond. IVA:</b> {{ $c->contact?->condicion_iva ?? 'Consumidor Final' }} &nbsp; <b>Cond. venta:</b> {{ $c->condicion === 'contado' ? 'Contado' : 'Cuenta corriente' }} @if($c->es_acopio)<span class="badge">ACOPIO</span>@endif</div>
   </div>
   <table>
@@ -80,6 +81,7 @@
     @endif
     @foreach($c->impuestos as $t)<tr><td>{{ \App\Models\ComprobanteImpuesto::descripcion($t->tipo) }} {{ rtrim(rtrim(number_format((float) $t->alicuota, 2, ',', ''), '0'), ',') }}%</td><td class="r">{{ $fmt($t->monto) }}</td></tr>@endforeach
     @if($c->percepciones > 0 && $c->impuestos->isEmpty())<tr><td>Percepciones</td><td class="r">{{ $fmt($c->percepciones) }}</td></tr>@endif
+    @if($c->esExportacion())<tr><td colspan="2" style="font-size:10px;color:#6f6a62">Operación de exportación · exenta de IVA (art. 8 inc. d, Ley de IVA)</td></tr>@endif
     <tr class="g"><td>TOTAL</td><td class="r">{{ $fmt($c->total) }}</td></tr>
     @if(($c->moneda ?? 'ARS') !== 'ARS')<tr><td>Moneda {{ $c->moneda }} · cotización {{ number_format((float) $c->cotizacion, 2, ',', '.') }}</td><td class="r">{{ $c->moneda }} {{ number_format((float) $c->total_me, 2, ',', '.') }}</td></tr>@endif
   </table></div>

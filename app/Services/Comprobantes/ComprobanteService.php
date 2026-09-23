@@ -48,6 +48,7 @@ class ComprobanteService
                 'fce'             => (bool) ($data['fce'] ?? ($c->exists ? $c->fce : false)),
                 // Interno = no se informa a ARCA. Una nota sobre un comprobante interno también es interna.
                 'sin_arca'        => (bool) ($data['sin_arca'] ?? ($c->exists ? $c->sin_arca : false)) || (bool) ($origen?->sin_arca ?? false),
+                'exportacion'     => $data['exportacion'] ?? ($c->exists ? $c->exportacion : ($origen?->exportacion ?? null)),
                 'fce_vto_pago'    => ($data['fce'] ?? false) ? ($data['fce_vto_pago'] ?? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays((int) ($data['dias_vto'] ?? $contact?->dias_pago ?? 30))) : null,
                 'notas'           => $data['notas'] ?? null,
                 'proyecto_id'     => $data['proyecto_id'] ?? $c->proyecto_id,
@@ -62,7 +63,7 @@ class ComprobanteService
             abort_if($moneda !== 'ARS' && $cot <= 0, 422, 'Cargá la cotización del dólar para facturar en moneda extranjera.');
 
             $c->items()->delete();
-            $letraC = str_ends_with($tipo, 'C') && in_array($tipo, ['FC', 'NCC', 'NDC'], true); // monotributista: no discrimina IVA
+            $letraC = in_array($tipo, ['FC', 'NCC', 'NDC', 'FE', 'NCE', 'NDE'], true); // monotributista: no discrimina IVA; exportación: exenta de IVA
             foreach (array_values($data['items']) as $i => $it) {
                 $product = ! empty($it['product_id']) ? Product::find($it['product_id']) : null;
                 $al = $letraC ? 0 : (float) ($it['alicuota_iva'] ?? $product?->iva ?? 21);

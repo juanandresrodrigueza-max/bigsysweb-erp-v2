@@ -11,6 +11,7 @@ class AfipService
 {
     private Afip $afip;
     private Business $business;
+    private ?Wsfex $wsfex = null;
 
     public function __construct(Business $business)
     {
@@ -38,6 +39,13 @@ class AfipService
         $r = $this->afip->ElectronicBilling->GetVoucherInfo($numero, $puntoVenta, $tipoComprobante);
         return $r ? json_decode(json_encode($r), true) : null;
     }
+
+    // --- Exportación (WSFEX) ---
+    private function wsfex(): Wsfex { return $this->wsfex ??= new Wsfex($this->afip, (bool) $this->business->afip_produccion); }
+    public function fexGetLastVoucher(int $pv, int $tipo): int { return $this->wsfex()->ultimoComprobante($pv, $tipo); }
+    public function fexGetLastId(): int { return $this->wsfex()->ultimoId(); }
+    public function fexAuthorize(array $cmp): array { return $this->wsfex()->autorizar($cmp); }
+    public function fexGetVoucherInfo(int $pv, int $tipo, int $nro): ?array { return $this->wsfex()->consultar($pv, $tipo, $nro); }
 
     public function getServerStatus(): array
     {

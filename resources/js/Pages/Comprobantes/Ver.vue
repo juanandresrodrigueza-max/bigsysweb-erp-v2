@@ -84,6 +84,15 @@
           <Link :href="`/clientes/${c.contact_id}?retirar=${c.acopio.id}`" class="btn-violeta mt-4">Registrar retiro</Link>
         </div>
 
+        <div v-if="c.exportacion" class="card text-sm">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Exportación · Factura E</p>
+          <div class="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-marca-muted">
+            <p><b class="text-marca-texto">Destino:</b> {{ c.exportacion.pais_nombre || '-' }}</p>
+            <p><b class="text-marca-texto">Tipo:</b> {{ { 1: 'bienes', 2: 'servicios', 4: 'otros' }[c.exportacion.tipo_expo ?? 1] }}<span v-if="c.exportacion.incoterm"> · {{ c.exportacion.incoterm }}</span></p>
+            <p v-if="c.exportacion.permiso_embarque"><b class="text-marca-texto">Permiso de embarque:</b> {{ c.exportacion.permiso_embarque }}</p>
+            <p v-if="c.exportacion.forma_pago"><b class="text-marca-texto">Pago:</b> {{ c.exportacion.forma_pago }}</p>
+          </div>
+        </div>
         <div v-if="c.transporte" class="card text-sm">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Transporte · remito electrónico</p><span v-if="c.transporte.cot" class="badge bg-emerald-50 text-emerald-700">COT {{ c.transporte.cot }}</span><span v-else-if="c.estado === 'emitido'" class="badge bg-amber-50 text-amber-700">Sin COT</span></div>
           <div class="grid sm:grid-cols-2 gap-x-4 gap-y-1 text-marca-muted">

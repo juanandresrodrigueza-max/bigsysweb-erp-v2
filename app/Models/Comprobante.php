@@ -24,9 +24,11 @@ class Comprobante extends Model
         'NDA' => ['nombre' => 'Nota de Débito A',   'letra' => 'A', 'afip' => 2,    'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
         'NDB' => ['nombre' => 'Nota de Débito B',   'letra' => 'B', 'afip' => 7,    'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
         'NDC' => ['nombre' => 'Nota de Débito C',   'letra' => 'C', 'afip' => 12,   'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
+        'NDE' => ['nombre' => 'Nota de Débito E',   'letra' => 'E', 'afip' => 20,   'cc' => 1,  'stock' => false, 'grupo' => 'nd'],
         'NCA' => ['nombre' => 'Nota de Crédito A',  'letra' => 'A', 'afip' => 3,    'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
         'NCB' => ['nombre' => 'Nota de Crédito B',  'letra' => 'B', 'afip' => 8,    'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
         'NCC' => ['nombre' => 'Nota de Crédito C',  'letra' => 'C', 'afip' => 13,   'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
+        'NCE' => ['nombre' => 'Nota de Crédito E',  'letra' => 'E', 'afip' => 21,   'cc' => -1, 'stock' => true,  'grupo' => 'nc'],
         'REM' => ['nombre' => 'Remito',             'letra' => 'R', 'afip' => null, 'cc' => 0,  'stock' => true,  'grupo' => 'remito'],
         'PRE' => ['nombre' => 'Presupuesto',        'letra' => 'P', 'afip' => null, 'cc' => 0,  'stock' => false, 'grupo' => 'presupuesto'],
     ];
@@ -36,14 +38,14 @@ class Comprobante extends Model
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id',
-        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id', 'transportista', 'transportista_cuit', 'patente', 'bultos', 'peso_kg', 'domicilio_entrega', 'cot', 'sin_arca',
+        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id', 'transportista', 'transportista_cuit', 'patente', 'bultos', 'peso_kg', 'domicilio_entrega', 'cot', 'sin_arca', 'exportacion',
     ];
 
     protected $casts = [
         'fecha' => 'date', 'fecha_vto' => 'date', 'cae_vto' => 'date', 'emitido_en' => 'datetime', 'anulado_en' => 'datetime',
         'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean', 'entrega_pendiente' => 'boolean', 'fce' => 'boolean', 'fce_vto_pago' => 'date', 'aprobado_en' => 'datetime', 'rechazado_en' => 'datetime',
         'neto' => 'decimal:2', 'exento' => 'decimal:2', 'iva' => 'decimal:2', 'percepciones' => 'decimal:2',
-        'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4', 'sin_arca' => 'boolean',
+        'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4', 'sin_arca' => 'boolean', 'exportacion' => 'array',
     ];
 
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }
@@ -93,6 +95,7 @@ class Comprobante extends Model
 
     public function def(): array { return self::TIPOS[$this->tipo] ?? ['nombre' => $this->tipo, 'letra' => '', 'afip' => null, 'cc' => 0, 'stock' => false, 'grupo' => 'otro']; }
     public function esFiscal(): bool { return $this->def()['afip'] !== null; }
+    public function esExportacion(): bool { return $this->def()['letra'] === 'E'; }
     public function esFactura(): bool { return $this->def()['grupo'] === 'factura'; }
     public function esNotaCredito(): bool { return $this->def()['grupo'] === 'nc'; }
     public function nombreTipo(): string { if ($this->sin_arca) return 'Comprobante interno'; return $this->fce ? str_replace(['Factura', 'Nota de Crédito', 'Nota de Débito'], ['FCE MiPyME', 'NC FCE MiPyME', 'ND FCE MiPyME'], $this->def()['nombre']) : $this->def()['nombre']; }
