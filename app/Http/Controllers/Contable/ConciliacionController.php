@@ -41,8 +41,8 @@ class ConciliacionController extends Controller
 
     public function importar(Request $request, ConciliacionService $svc)
     {
-        $d = $request->validate(['cuenta_fondos_id' => 'required|exists:cuentas_fondos,id', 'archivo' => 'required|file|max:5120']);
-        $ext = $svc->importar(CuentaFondos::findOrFail($d['cuenta_fondos_id']), file_get_contents($request->file('archivo')->getRealPath()), $request->file('archivo')->getClientOriginalName());
+        $d = $request->validate(['cuenta_fondos_id' => 'required|exists:cuentas_fondos,id', 'archivo' => 'required|file|max:15360|mimes:pdf,xlsx,xls,csv,txt']);
+        $ext = $svc->importarArchivo(CuentaFondos::findOrFail($d['cuenta_fondos_id']), $request->file('archivo')->getRealPath(), $request->file('archivo')->getClientOriginalName());
         $conc = ExtractoItem::where('extracto_id', $ext->id)->where('estado', 'conciliado')->count();
         return back()->with('success', "Importados {$ext->items} renglones; {$conc} conciliados automáticamente.");
     }

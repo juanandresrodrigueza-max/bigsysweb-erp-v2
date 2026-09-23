@@ -17,47 +17,27 @@ class ConciliacionService
 {
     public function __construct(private FondosService $fondos) {}
 
-    // Lee un CSV (separador ; , o tab) detectando columnas por el encabezado: fecha, descripción, débito/crédito o importe, saldo, referencia.
+    // Importa el extracto en cualquier formato (PDF, Excel, CSV, texto): el lector lo normaliza y acá se guarda y se concilia.
     public function importar(CuentaFondos $cuenta, string $contenido, ?string $nombreArchivo = null): ExtractoBancario
     {
-        $contenido = preg_replace('/^\xEF\xBB\xBF/', '', $contenido);
-        $lineas = array_values(array_filter(preg_split('/\r\n|\r|\n/', $contenido), fn($l) => trim($l) !== ''));
-        if (count($lineas) < 2) throw ValidationException::withMessages(['archivo' => 'El archivo está vacío o no tiene renglones.']);
-        $sep = collect([';', ',', "\t", '|'])->sortByDesc(fn($s) => substr_count($lineas[0], $s))->first();
-        $header = array_map(fn($h) => $this->norm($h), str_getcsv($lineas[0], $sep));
-        $col = fn(array $alias) => collect($alias)->map(fn($a) => array_search($a, $header, true))->first(fn($i) => $i !== false);
+        $tmp = tempnam(sys_get_temp_dir(), 'ext'); file_put_contents($tmp, $contenido);
+        try { return $this->importarArchivo($cuenta, $tmp, $nombreArchivo ?: 'extracto.csv'); } finally { @unlink($tmp); }
+    }
 
-        $iFecha = $col(['fecha', 'fecha operacion', 'fecha mov', 'date', 'fecha valor', 'f operacion']);
-        $iDesc = $col(['descripcion', 'concepto', 'detalle', 'movimiento', 'leyenda', 'description', 'operacion']);
-        $iDeb = $col(['debito', 'debitos', 'debe', 'egreso', 'egresos', 'salida', 'debit']);
-        $iCred = $col(['credito', 'creditos', 'haber', 'ingreso', 'ingresos', 'entrada', 'credit']);
-        $iImp = $col(['importe', 'monto', 'amount', 'valor', 'importe pesos']);
-        $iSaldo = $col(['saldo', 'balance']);
-        $iRef = $col(['referencia', 'comprobante', 'nro comprobante', 'numero', 'id operacion', 'reference', 'codigo']);
-        if ($iFecha === null || ($iImp === null && $iDeb === null && $iCred === null)) {
-            throw ValidationException::withMessages(['archivo' => 'No encontré las columnas. Necesito al menos "Fecha" y "Importe" (o "Débito"/"Crédito"). Encabezado leído: ' . implode(' | ', $header)]);
-        }
-
-        return DB::transaction(function () use ($cuenta, $lineas, $sep, $iFecha, $iDesc, $iDeb, $iCred, $iImp, $iSaldo, $iRef, $nombreArchivo) {
+    public function importarArchivo(CuentaFondos $cuenta, string $path, string $nombreArchivo): ExtractoBancario
+    {
+        $filas = app(ExtractoLectorService::class)->leer($path, $nombreArchivo);
+        return DB::transaction(function () use ($cuenta, $filas, $nombreArchivo) {
             $ext = ExtractoBancario::create(['business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'user_id' => Auth::id(), 'archivo' => $nombreArchivo]);
             $n = 0; $fechas = []; $saldoFinal = null;
-            foreach (array_slice($lineas, 1) as $l) {
-                $r = str_getcsv($l, $sep);
-                $fecha = $this->fecha($r[$iFecha] ?? '');
-                if (! $fecha) continue;
-                $monto = $iImp !== null ? $this->num($r[$iImp] ?? '') : ($this->num($r[$iCred] ?? '') - abs($this->num($r[$iDeb] ?? '')));
-                if (abs($monto) < 0.005) continue;
-                $desc = trim((string) ($iDesc !== null ? ($r[$iDesc] ?? '') : 'Movimiento')) ?: 'Movimiento';
-                $ref = $iRef !== null ? trim((string) ($r[$iRef] ?? '')) : null;
-                $saldo = $iSaldo !== null ? $this->num($r[$iSaldo] ?? '') : null;
-                // No duplicar renglones ya importados (misma cuenta, fecha, monto y descripción).
-                if (ExtractoItem::where('cuenta_fondos_id', $cuenta->id)->where('fecha', $fecha)->where('monto', round($monto, 2))->where('descripcion', mb_substr($desc, 0, 250))->exists()) continue;
-                ExtractoItem::create(['extracto_id' => $ext->id, 'business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'fecha' => $fecha, 'descripcion' => mb_substr($desc, 0, 250), 'referencia' => $ref ? mb_substr($ref, 0, 80) : null, 'monto' => round($monto, 2), 'saldo' => $saldo]);
-                $n++; $fechas[] = $fecha; if ($saldo !== null) $saldoFinal = $saldo;
+            foreach ($filas as $f) {
+                if (ExtractoItem::where('cuenta_fondos_id', $cuenta->id)->where('fecha', $f['fecha'])->where('monto', $f['monto'])->where('descripcion', mb_substr($f['descripcion'], 0, 250))->exists()) continue;
+                ExtractoItem::create(['extracto_id' => $ext->id, 'business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'fecha' => $f['fecha'], 'descripcion' => mb_substr($f['descripcion'], 0, 250), 'referencia' => $f['referencia'] ? mb_substr((string) $f['referencia'], 0, 80) : null, 'monto' => $f['monto'], 'saldo' => $f['saldo']]);
+                $n++; $fechas[] = $f['fecha']; if ($f['saldo'] !== null) $saldoFinal = $f['saldo'];
             }
             if (! $n) throw ValidationException::withMessages(['archivo' => 'No había renglones nuevos para importar (o ya estaban cargados).']);
             $ext->update(['items' => $n, 'desde' => min($fechas), 'hasta' => max($fechas), 'saldo_final' => $saldoFinal]);
-            AuditLog::registrar('crear', $ext, "Importó extracto de {$cuenta->nombre}: {$n} renglones");
+            AuditLog::registrar('crear', $ext, "Importó extracto de {$cuenta->nombre} ({$nombreArchivo}): {$n} renglones");
             $this->conciliarAutomatico($cuenta);
             return $ext->fresh();
         });

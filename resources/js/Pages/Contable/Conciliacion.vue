@@ -61,9 +61,9 @@
     </div>
 
     <Modal :abierto="impAbierto" titulo="Importar extracto bancario" @cerrar="impAbierto = false">
-      <p class="text-sm text-marca-muted mb-3">Exportá los movimientos del home banking en CSV (o Excel guardado como CSV). Reconoce columnas <b>Fecha</b>, <b>Concepto</b>, <b>Importe</b> (o Débito / Crédito) y <b>Saldo</b>. No duplica lo ya importado.</p>
+      <p class="text-sm text-marca-muted mb-3">Subí el extracto tal como lo baja el home banking: <b>PDF</b>, <b>Excel</b>, <b>CSV</b> o texto, de cualquier banco. El sistema detecta solo el formato, lee fecha, concepto, importe y saldo, y concilia automáticamente lo que coincide.</p>
       <select v-model="imp.cuenta_fondos_id" class="input mb-3"><option v-for="b in bancos" :key="b.id" :value="b.id">{{ b.nombre }}</option></select>
-      <input type="file" accept=".csv,.txt" class="input !py-1.5 text-xs" @change="imp.archivo = $event.target.files[0]" />
+      <input type="file" accept=".pdf,.xlsx,.xls,.csv,.txt" class="input !py-1.5 text-xs" @change="imp.archivo = $event.target.files[0]" />
       <p v-if="imp.errors.archivo" class="text-carmin text-xs mt-2">{{ imp.errors.archivo }}</p>
       <template #pie><button class="btn-secondary" @click="impAbierto = false">Cancelar</button><button class="btn-primary" :disabled="imp.processing || !imp.archivo" @click="imp.post('/contable/conciliacion/importar', { forceFormData: true, onSuccess: () => (impAbierto = false) })">{{ imp.processing ? 'Importando…' : 'Importar y conciliar' }}</button></template>
     </Modal>
