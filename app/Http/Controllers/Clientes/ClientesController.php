@@ -40,6 +40,22 @@ class ClientesController extends Controller
         ]);
     }
 
+    // Consulta el padrón de ARCA por CUIT (razón social, domicilio, condición IVA) para completar la ficha.
+    public function padron(Request $request, string $cuit)
+    {
+        if (! \App\Support\Cuit::valido($cuit)) return response()->json(['error' => 'El CUIT no es válido (revisá el dígito verificador).'], 422);
+        $b = $request->user()->business;
+        if (! app(\App\Services\Comprobantes\AfipEmisor::class)->configurado($b)) return response()->json(['error' => 'Para consultar el padrón hace falta el certificado de ARCA (Configuración → Puntos de venta).'], 422);
+        try {
+            $p = \App\Services\Afip\AfipService::forBusiness($b)->padron($cuit);
+        } catch (\Throwable $e) {
+            $ex = \App\Services\Afip\AfipErrores::explicar($e->getMessage());
+            return response()->json(['error' => "{$ex['que']} {$ex['como']}"], 422);
+        }
+        if (! $p) return response()->json(['error' => 'ARCA no tiene ese CUIT en el padrón.'], 404);
+        return response()->json($p);
+    }
+
     public function show(int $id, Request $request)
     {
         $c = Contact::customers()->with('tipoCliente')->findOrFail($id);
@@ -95,7 +111,7 @@ class ClientesController extends Controller
     {
         $b = $request->user()->business_id;
         $data = $request->validate([
-            'name' => 'required|string|max:255', 'cuit' => 'nullable|string|max:20', 'condicion_iva' => ['required', Rule::in(Contact::CONDICIONES_IVA)],
+            'name' => 'required|string|max:255', 'cuit' => ['nullable', 'string', 'max:20', function ($a, $v, $fail) { if ($v !== null && $v !== '' && ! \App\Support\Cuit::valido($v)) $fail('El CUIT no es válido (revisá el dígito verificador).'); }], 'condicion_iva' => ['required', Rule::in(Contact::CONDICIONES_IVA)],
             'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50', 'mobile' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255', 'city' => 'nullable|string|max:100', 'province' => 'nullable|string|max:100', 'postal_code' => 'nullable|string|max:20',
             'tipo_cliente_id' => ['nullable', Rule::exists('tipos_cliente', 'id')->where('business_id', $b)],

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('alertas:generar')->everyFifteenMinutes();
+Schedule::command('afip:reintentar')->everyFiveMinutes()->withoutOverlapping(); // contingencia: comprobantes pendientes de CAE
 Schedule::command('suscripciones:revisar')->dailyAt('06:00');
 Schedule::command('cotizaciones:actualizar')->twiceDaily(9, 15);
 Schedule::command('abonos:emitir')->dailyAt('07:00');

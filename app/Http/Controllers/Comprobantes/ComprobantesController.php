@@ -133,6 +133,24 @@ class ComprobantesController extends Controller
         return redirect("/comprobantes/{$nuevo->id}/editar")->with('success', "Borrador de {$nuevo->nombreTipo()} creado desde {$origen->numeroFormateado()}. Revisalo y emitilo.");
     }
 
+    // Contingencia ARCA: reintentar el CAE a mano y verificar un comprobante contra ARCA.
+    public function reintentarCae(int $id)
+    {
+        $c = Comprobante::ventas()->findOrFail($id);
+        $r = $this->service->reintentarCae($c);
+        return match ($r['estado']) {
+            'aprobado' => back()->with('success', "ARCA autorizó el comprobante: {$c->fresh()->numeroFormateado()} · CAE {$r['cae']}."),
+            'rechazado' => back()->with('error', 'ARCA lo rechazó: ' . ($r['explicacion']['que'] ?? '') . ' ' . ($r['explicacion']['como'] ?? '') . ' (' . $r['error'] . ')'),
+            default => back()->with('error', 'ARCA sigue sin responder. Se vuelve a intentar solo cada 5 minutos.'),
+        };
+    }
+
+    public function verificarArca(int $id)
+    {
+        $c = Comprobante::ventas()->findOrFail($id);
+        return response()->json($this->service->verificarEnArca($c));
+    }
+
     public function imprimir(int $id)
     {
         $c = Comprobante::ventas()->with(['items', 'contact', 'business', 'location'])->findOrFail($id);
@@ -248,7 +266,7 @@ class ComprobantesController extends Controller
             'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'fecha_vto' => $c->fecha_vto?->format('d/m/Y'),
             'cliente' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'total_me' => (float) $c->total_me, 'proyecto' => $c->proyecto_id ? ['id' => $c->proyecto_id, 'codigo' => $c->proyecto?->codigo, 'nombre' => $c->proyecto?->nombre] : null,
             'estado' => $c->estado, 'estado_cobro' => $c->estadoCobro(), 'vencido' => $c->vencido(), 'afip_estado' => $c->afip_estado,
-            'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal(),
+            'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'afip_error' => $c->afip_estado === 'pendiente' ? (($c->afip_respuesta['explicacion']['que'] ?? null) ? ($c->afip_respuesta['explicacion']['que'] . ' ' . ($c->afip_respuesta['explicacion']['como'] ?? '')) : ($c->afip_respuesta['error'] ?? null)) : null, 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal(),
         ];
     }
 

@@ -26,11 +26,21 @@
           <span class="w-2.5 h-2.5 rounded-full" :class="afip.configurado ? 'bg-emerald-500' : 'bg-amber-500'"></span>
           <span class="text-sm">{{ afip.configurado ? `Configurado · CUIT ${afip.cuit} · ${afip.produccion ? 'Producción' : 'Homologación'}` : 'Sin certificado: las facturas se emiten simuladas (sin CAE).' }}</span>
         </div>
-        <ol class="text-sm text-marca-muted space-y-1 mb-4 list-decimal pl-5">
-          <li>Generá el certificado en AFIP (Administrador de Relaciones → WSFE).</li>
-          <li>Subí acá el certificado (.crt) y la clave privada (.key).</li>
+        <ol class="text-sm text-marca-muted space-y-1 mb-3 list-decimal pl-5">
+          <li>Generá el certificado en ARCA (Administrador de Relaciones → Facturación Electrónica / WSFE) y autorizalo para este CUIT.</li>
+          <li>Subí acá el certificado (.crt) y la clave privada (.key). Quedan cifrados.</li>
           <li>Verificá el CUIT y el modo (homologación para probar, producción para facturar de verdad) en la pestaña Empresa.</li>
+          <li>Dale de alta el punto de venta en ARCA como "Web Services" con el mismo número que acá.</li>
+          <li>Probá la conexión y emití una factura de prueba en homologación antes de pasar a producción.</li>
         </ol>
+        <div v-if="afip.configurado" class="flex flex-wrap items-center gap-2 mb-3">
+          <button class="btn-violeta !py-1 text-xs" :disabled="probando" @click="probar">{{ probando ? 'Probando…' : 'Probar conexión con ARCA' }}</button>
+          <span v-if="afip.pendientes" class="badge bg-carmin-light text-carmin">{{ afip.pendientes }} comprobante(s) pendiente(s) de CAE</span>
+        </div>
+        <div v-if="prueba" class="rounded-xl border p-3 mb-3 text-sm" :class="prueba.ok ? 'border-emerald-200 bg-emerald-50' : 'border-carmin/30 bg-carmin-light'">
+          <p class="font-bold mb-1">Prueba en {{ prueba.modo }}: {{ prueba.ok ? 'todo OK' : 'con problemas' }}</p>
+          <div v-for="p in prueba.pasos" :key="p.nombre" class="flex items-start gap-2 py-0.5"><span class="mt-1 w-2 h-2 rounded-full shrink-0" :class="p.ok ? 'bg-emerald-500' : 'bg-carmin'"></span><span><b>{{ p.nombre }}</b> · {{ p.detalle }}</span></div>
+        </div>
         <form @submit.prevent="cert.post('/configuracion/afip/certificados', { forceFormData: true, preserveScroll: true })" class="grid sm:grid-cols-2 gap-3">
           <div><label class="label">Certificado (.crt / .pem)</label><input type="file" @change="cert.cert = $event.target.files[0]" class="input !py-1.5 text-xs" /><p v-if="cert.errors.cert" class="text-carmin text-xs mt-1">{{ cert.errors.cert }}</p></div>
           <div><label class="label">Clave privada (.key)</label><input type="file" @change="cert.key = $event.target.files[0]" class="input !py-1.5 text-xs" /><p v-if="cert.errors.key" class="text-carmin text-xs mt-1">{{ cert.errors.key }}</p></div>
@@ -56,13 +66,15 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 
-const props = defineProps({ puntos: Array, sucursales: Array, afip: Object })
+const props = defineProps({ puntos: Array, sucursales: Array, afip: Object, prueba: Object })
+const probando = ref(false)
+function probar() { probando.value = true; router.post('/configuracion/afip/probar', {}, { preserveScroll: true, onFinish: () => (probando.value = false) }) }
 const modal = ref(false)
 const form = useForm({ id: null, numero: (Math.max(0, ...props.puntos.map(p => p.numero)) + 1), business_location_id: null, modo: 'electronico', activo: true })
 const cert = useForm({ cert: null, key: null })

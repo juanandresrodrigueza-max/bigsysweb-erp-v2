@@ -148,6 +148,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}/emitir',        [ComprobantesController::class, 'emitir'])->middleware('permiso:comprobantes,crear');
+        Route::post('/{id}/reintentar-cae', [ComprobantesController::class, 'reintentarCae'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
+        Route::get('/{id}/verificar-arca',  [ComprobantesController::class, 'verificarArca'])->whereNumber('id');
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
         Route::post('/{id}/convertir',     [ComprobantesController::class, 'convertir'])->middleware('permiso:comprobantes,crear');
         Route::get('/{id}/imprimir',       [ComprobantesController::class, 'imprimir']);
@@ -169,6 +171,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/fidelizacion',            [\App\Http\Controllers\Clientes\FidelizacionController::class, 'index']);
         Route::post('/fidelizacion/ajustar',   [\App\Http\Controllers\Clientes\FidelizacionController::class, 'ajustar'])->middleware('permiso:clientes,editar');
         Route::get('/{id}/puntos',             [\App\Http\Controllers\Clientes\FidelizacionController::class, 'consultar'])->whereNumber('id');
+        Route::get('/padron/{cuit}',           [ClientesController::class, 'padron']);
         Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/pendientes',         [ClientesController::class, 'pendientesJson'])->whereNumber('id');
         Route::post('/{id}',                   [ClientesController::class, 'guardar'])->middleware('permiso:clientes,editar');
@@ -499,6 +502,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
         Route::get('/puntos-venta',          [PuntosVentaController::class, 'index'])->name('puntos');
         Route::post('/puntos-venta/{id?}',   [PuntosVentaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('puntos.guardar');
+        Route::post('/afip/probar',          [PuntosVentaController::class, 'probar'])->middleware('permiso:configuracion,editar');
         Route::post('/afip/certificados',    [PuntosVentaController::class, 'certificados'])->middleware('permiso:configuracion,editar')->name('afip.certificados');
     });
 

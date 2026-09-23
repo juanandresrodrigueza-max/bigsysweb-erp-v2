@@ -2,6 +2,8 @@
     $fmt = fn($n) => '$ ' . number_format((float) $n, 2, ',', '.');
     $fiscal = $c->esFiscal();
     $simulado = $c->afip_estado === 'simulado';
+    $pendiente = $c->afip_estado === 'pendiente';
+    $qr = $fiscal && $c->cae ? \App\Services\Afip\QrArca::imagen($c) : null;
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -82,7 +84,7 @@
   </table></div>
   @if($c->notas)<div style="padding:0 16px 12px;color:#6f6a62">{{ $c->notas }}</div>@endif
   <div class="pie">
-    <div>@if($fiscal && $c->cae)CAE: <b>{{ $c->cae }}</b> · Vto CAE: {{ $c->cae_vto?->format('d/m/Y') }}@elseif($fiscal && $simulado)<span class="badge">SIN CAE · comprobante simulado, no válido como factura</span>@elseif($c->tipo==='PRE')Presupuesto válido por 7 días.@endif</div>
+    <div style="display:flex;align-items:center;gap:10px">@if($qr)<img src="{{ $qr }}" alt="QR ARCA" style="width:82px;height:82px">@endif<span>@if($fiscal && $c->cae)Comprobante Autorizado · CAE: <b>{{ $c->cae }}</b> · Vto CAE: {{ $c->cae_vto?->format('d/m/Y') }}@elseif($fiscal && $pendiente)<span class="badge">PENDIENTE DE CAE · ARCA no respondió al emitir; se reintenta automáticamente. No válido como factura hasta que tenga CAE.</span>@elseif($fiscal && $simulado)<span class="badge">SIN CAE · comprobante simulado, no válido como factura</span>@elseif($c->tipo==='PRE')Presupuesto válido por 7 días.@endif</span></div>
     <div>BigSysWeb · {{ now()->format('d/m/Y H:i') }}</div>
   </div>
 </div>

@@ -50,6 +50,9 @@
   <hr>
   @if($fiscal && $c->cae)
     <div class="s">CAE {{ $c->cae }} · Vto {{ $c->cae_vto?->format('d/m/Y') }}</div>
+    @if($qr = \App\Services\Afip\QrArca::imagen($c, 2))<div class="c" style="margin-top:4px"><img src="{{ $qr }}" alt="QR" style="width:96px;height:96px"></div>@endif
+  @elseif($c->afip_estado === 'pendiente')
+    <div class="s c">PENDIENTE DE CAE · se reintenta automáticamente</div>
   @elseif($c->afip_estado === 'simulado')
     <div class="s c">COMPROBANTE NO VÁLIDO COMO FACTURA (simulado)</div>
   @endif

@@ -13,6 +13,7 @@
             <span v-if="c.es_acopio" class="badge bg-violeta-light text-violeta">Acopio</span>
             <span v-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">CAE {{ c.cae }}</span>
             <span v-else-if="c.afip_estado === 'simulado'" class="badge bg-amber-50 text-amber-700">Sin CAE · simulado</span>
+            <span v-else-if="c.afip_estado === 'pendiente'" class="badge bg-carmin-light text-carmin">Pendiente de CAE</span>
             <span v-if="c.entrega_pendiente && c.pendiente_entrega > 0" class="badge bg-amber-50 text-amber-700">Entrega pendiente</span>
             <span v-else-if="c.entrega_pendiente" class="badge bg-emerald-50 text-emerald-700">Entregado</span>
             <span v-if="c.aprobado_en" class="badge bg-emerald-50 text-emerald-700">Aprobado por el cliente {{ c.aprobado_en }}</span>
@@ -126,8 +127,16 @@
         </div>
 
         <div v-if="c.afip_estado === 'aprobado'" class="card text-sm">
-          <h2 class="font-bold mb-2">AFIP</h2>
+          <h2 class="font-bold mb-2">ARCA</h2>
           <p>CAE <b class="tabular-nums">{{ c.cae }}</b></p><p class="text-marca-muted">Vence {{ c.cae_vto }}</p>
+          <button class="btn-secondary !py-1 text-xs mt-2" :disabled="verificando" @click="verificarArca">{{ verificando ? 'Consultando…' : 'Verificar en ARCA' }}</button>
+          <p v-if="verificacion" class="text-xs mt-2 rounded-lg p-2" :class="verificacion.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin'">{{ verificacion.detalle }}</p>
+        </div>
+        <div v-else-if="c.afip_estado === 'pendiente'" class="card text-sm border-carmin/40">
+          <h2 class="font-bold mb-1">Pendiente de CAE</h2>
+          <p class="text-marca-muted mb-2">ARCA no respondió cuando se emitió. El comprobante ya impactó en cuenta corriente y stock, pero no es válido como factura hasta tener CAE. El sistema reintenta solo cada 5 minutos.</p>
+          <p v-if="c.afip_error" class="text-xs bg-amber-50 text-amber-900 rounded-lg p-2 mb-2">{{ c.afip_error }}</p>
+          <Link :href="`/comprobantes/${c.id}/reintentar-cae`" method="post" as="button" class="btn-primary !py-1 text-xs">Reintentar ahora</Link>
         </div>
       </div>
     </div>
@@ -180,6 +189,8 @@ import { usePermisos } from '@/util/permisos'
 const props = defineProps({ c: Object, conversiones: Array, puedeAnular: Boolean })
 const { puede } = usePermisos()
 const anularAbierto = ref(false)
+const verificando = ref(false), verificacion = ref(null)
+async function verificarArca() { verificando.value = true; try { const r = await fetch(`/comprobantes/${props.c.id}/verificar-arca`, { headers: { Accept: 'application/json' } }); verificacion.value = await r.json() } catch (e) { verificacion.value = { ok: false, detalle: 'No se pudo consultar.' } } finally { verificando.value = false } }
 const anular = useForm({ motivo: '' })
 const conv = ref(null)
 const convForm = useForm({ condicion: props.c.condicion, es_acopio: false })

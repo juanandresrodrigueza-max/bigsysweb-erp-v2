@@ -116,9 +116,12 @@ class ComprobanteService
 
             $res = $this->afip->emitir($c, $business);
             if ($res['estado'] === 'rechazado') {
-                throw ValidationException::withMessages(['afip' => 'AFIP rechazó el comprobante: ' . $res['error']]);
+                $ex = $res['explicacion'] ?? null;
+                throw ValidationException::withMessages(['afip' => 'ARCA rechazó el comprobante: ' . ($ex ? "{$ex['que']} {$ex['como']} (detalle: {$res['error']})" : $res['error'])]);
             }
-            $numero = $res['numero'] ?? $pv->proximoNumero($c->tipo);
+            // Contingencia: ARCA no respondió. El comprobante sale sin número fiscal ni CAE y se reintenta solo (afip:reintentar).
+            $pendiente = $res['estado'] === 'pendiente';
+            $numero = $pendiente ? null : ($res['numero'] ?? $pv->proximoNumero($c->tipo));
             if ($res['estado'] === 'aprobado') {
                 $pv->sincronizarUltimo($c->tipo, $numero);
             }
@@ -126,7 +129,7 @@ class ComprobanteService
             $c->forceFill([
                 'numero' => $numero, 'estado' => 'emitido', 'emitido_en' => now(),
                 'afip_estado' => $res['estado'], 'cae' => $res['cae'] ?? null, 'cae_vto' => $res['cae_vto'] ?? null,
-                'afip_respuesta' => $res['respuesta'] ?? null,
+                'afip_respuesta' => $res['respuesta'] ?? ($pendiente ? ['error' => $res['error'] ?? null, 'explicacion' => $res['explicacion'] ?? null, 'intentos' => 1] : null),
                 'saldo' => $c->def()['cc'] > 0 ? $c->total : 0,
             ])->save();
 
@@ -146,6 +149,34 @@ class ComprobanteService
             try { app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($c->fresh(['contact', 'business'])); } catch (\Throwable $e) { \Log::warning('Puntos: ' . $e->getMessage()); }
             return $c->fresh();
         });
+    }
+
+    // Vuelve a pedir el CAE de un comprobante pendiente (contingencia). Si ARCA lo autoriza, recién ahí recibe su número fiscal.
+    public function reintentarCae(Comprobante $c): array
+    {
+        abort_unless($c->estado === 'emitido' && $c->afip_estado === 'pendiente', 422, 'Este comprobante no está pendiente de CAE.');
+        $pv = $c->puntoVenta;
+        $res = $this->afip->emitir($c->fresh(['items', 'contact', 'impuestos', 'origen']), $c->business);
+        $previo = $c->afip_respuesta ?? [];
+        if ($res['estado'] === 'aprobado') {
+            $pv?->sincronizarUltimo($c->tipo, $res['numero']);
+            $c->forceFill(['numero' => $res['numero'], 'afip_estado' => 'aprobado', 'cae' => $res['cae'], 'cae_vto' => $res['cae_vto'], 'afip_respuesta' => $res['respuesta'] ?? null])->save();
+            CuentaCorriente::where('comprobante_id', $c->id)->update(['concepto' => $c->nombreTipo() . ' ' . $c->numeroFormateado()]);
+            Alerta::where('modelo', 'Comprobante')->where('modelo_id', $c->id)->where('tipo', 'cae_pendiente')->update(['resuelta_en' => now()]);
+            AuditLog::registrar('emitir', $c, "ARCA autorizó {$c->nombreTipo()} {$c->numeroFormateado()} (estaba pendiente)");
+            return ['estado' => 'aprobado', 'cae' => $res['cae'], 'numero' => $res['numero']];
+        }
+        if ($res['estado'] === 'rechazado') {
+            $c->forceFill(['afip_respuesta' => ['error' => $res['error'], 'explicacion' => $res['explicacion'] ?? null, 'intentos' => (int) ($previo['intentos'] ?? 0) + 1, 'rechazado' => true]])->save();
+            return ['estado' => 'rechazado', 'error' => $res['error'], 'explicacion' => $res['explicacion'] ?? null];
+        }
+        $c->forceFill(['afip_respuesta' => ['error' => $res['error'] ?? null, 'explicacion' => $res['explicacion'] ?? null, 'intentos' => (int) ($previo['intentos'] ?? 0) + 1]])->save();
+        return ['estado' => 'pendiente', 'error' => $res['error'] ?? null];
+    }
+
+    public function verificarEnArca(Comprobante $c): array
+    {
+        return $this->afip->verificar($c, $c->business);
     }
 
     public function anular(Comprobante $c, string $motivo = ''): Comprobante
