@@ -147,6 +147,22 @@ class Business extends Model
         return array_values(array_unique(array_merge($base, (array) ($this->verticales_extra ?? []))));
     }
 
+    // Datos del emisor para facturar e imprimir: los de la sucursal si tiene CUIT propio, si no los de la empresa.
+    // Devuelve una copia de la empresa con los datos fiscales reemplazados, así todo lo que ya usa "la empresa" sigue funcionando.
+    public function emisorPara(?BusinessLocation $loc): Business
+    {
+        if (! $loc || ! $loc->tieneCuitPropio()) return $this;
+        $e = clone $this;
+        $e->forceFill(['cuit' => $loc->cuit, 'razon_social' => $loc->razon_social ?: $this->razon_social, 'condicion_iva' => $loc->condicion_iva ?: $this->condicion_iva,
+            'iibb' => $loc->iibb ?: $this->iibb, 'inicio_actividades' => $loc->inicio_actividades ?: $this->inicio_actividades,
+            'address' => $loc->address ?: $this->address, 'city' => $loc->city ?: $this->city, 'province' => $loc->province ?: $this->province, 'phone' => $loc->phone ?: $this->phone, 'email' => $loc->email ?: $this->email,
+            'afip_cert_path' => $loc->afip_cert_path, 'afip_key_path' => $loc->afip_key_path, 'afip_produccion' => $loc->afip_produccion ?? $this->afip_produccion]);
+        $e->sucursalEmisora = $loc;
+        return $e;
+    }
+
+    public ?BusinessLocation $sucursalEmisora = null;
+
     public function tieneModulo(string $modulo): bool
     {
         return in_array($modulo, $this->modulosActivos(), true);

@@ -12,7 +12,7 @@ class QrArca
     public static function datos(Comprobante $c): ?array
     {
         if (! $c->cae || ! $c->afipTipo() || ! $c->numero) return null;
-        $b = $c->business; $cli = $c->contact;
+        $b = $c->emisor(); $cli = $c->contact;
         $cuitCli = $cli?->cuit ? preg_replace('/\D/', '', $cli->cuit) : null;
         return [
             'ver' => 1,

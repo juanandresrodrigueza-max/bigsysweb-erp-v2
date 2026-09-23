@@ -10,9 +10,10 @@
       <div class="card">
         <h2 class="font-bold mb-1">Libro IVA Digital</h2>
         <p class="text-sm text-marca-muted mb-3">Archivos de comprobantes y alícuotas con el formato de ARCA (RG 4597) para importar directo en el servicio Libro de IVA Digital.</p>
+        <div v-if="sucursalesCuit.length" class="mb-2"><label class="label">CUIT que presenta</label><select v-model="libroSucursal" class="input !py-1 text-xs"><option :value="null">Casa central · todo lo que no es de una sucursal con CUIT propio no se separa: elegí una sucursal</option><option v-for="s in sucursalesCuit" :key="s.id" :value="s.id">{{ s.nombre }} · CUIT {{ s.cuit }}</option></select><p class="text-[10px] text-marca-muted mt-1">Cada CUIT presenta su propio Libro IVA: elegí la sucursal para bajar solo sus comprobantes.</p></div>
         <div class="flex gap-2">
-          <a :href="`/contable/fiscal/libro-digital?libro=ventas&desde=${periodo.desde}&hasta=${periodo.hasta}`" class="btn-primary !py-1.5 text-xs">Ventas (.zip)</a>
-          <a :href="`/contable/fiscal/libro-digital?libro=compras&desde=${periodo.desde}&hasta=${periodo.hasta}`" class="btn-secondary !py-1.5 text-xs">Compras (.zip)</a>
+          <a :href="`/contable/fiscal/libro-digital?libro=ventas&desde=${periodo.desde}&hasta=${periodo.hasta}${libroSucursal ? '&sucursal=' + libroSucursal : ''}`" class="btn-primary !py-1.5 text-xs">Ventas (.zip)</a>
+          <a :href="`/contable/fiscal/libro-digital?libro=compras&desde=${periodo.desde}&hasta=${periodo.hasta}${libroSucursal ? '&sucursal=' + libroSucursal : ''}`" class="btn-secondary !py-1.5 text-xs">Compras (.zip)</a>
         </div>
       </div>
       <div class="card">
@@ -81,7 +82,8 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
-const props = defineProps({ periodo: Object, retenciones: Array, resumenRetenciones: Array, percepciones: Array, totalPercepciones: Number, ultimoAnalisis: Object })
+const libroSucursal = ref(null)
+const props = defineProps({ periodo: Object, sucursalesCuit: { type: Array, default: () => [] }, retenciones: Array, resumenRetenciones: Array, percepciones: Array, totalPercepciones: Number, ultimoAnalisis: Object })
 const exp = t => `/contable/fiscal/exportar?tipo=${t}&desde=${props.periodo.desde}&hasta=${props.periodo.hasta}`
 const arca = useForm({ archivo: null })
 const sel = ref([])

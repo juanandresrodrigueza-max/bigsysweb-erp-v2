@@ -132,6 +132,6 @@ class PosController extends Controller
     {
         $c = Comprobante::ventas()->with(['items', 'contact', 'business', 'location', 'user', 'imputaciones.cobro.medios'])->findOrFail($id);
         $cobro = $c->imputaciones->first()?->cobro;
-        return view('comprobantes.ticket', ['c' => $c, 'b' => $c->business, 'cobro' => $cobro, 'vuelto' => (float) $request->query('vuelto', 0)]);
+        return view('comprobantes.ticket', ['c' => $c, 'b' => $c->emisor(), 'cobro' => $cobro, 'vuelto' => (float) $request->query('vuelto', 0)]);
     }
 }

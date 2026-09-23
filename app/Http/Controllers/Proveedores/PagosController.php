@@ -49,6 +49,6 @@ class PagosController extends Controller
     public function imprimir(int $id)
     {
         $p = Pago::with(['contact', 'medios.cheque', 'imputaciones.comprobante', 'retenciones', 'business'])->findOrFail($id);
-        return view('comprobantes.orden_pago', ['p' => $p, 'b' => $p->business]);
+        return view('comprobantes.orden_pago', ['p' => $p, 'b' => $p->business->emisorPara(\App\Models\BusinessLocation::find($p->business_location_id))]);
     }
 }

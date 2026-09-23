@@ -19,7 +19,8 @@ class DashboardController extends Controller
         if (! $request->user()->business_id) return redirect($request->user()->is_superadmin ? '/admin' : '/login');
         $user     = $request->user();
         $periodo  = $request->input('periodo', 'mes');
-        $sucursal = $user->current_location_id;
+        // Casa central: con "ver consolidado" el tablero suma todas las sucursales.
+        $sucursal = $user->ver_consolidado ? null : $user->current_location_id;
         [$desde, $hasta]         = $this->rango($periodo);
         [$desdePrev, $hastaPrev] = $this->rangoAnterior($desde, $hasta);
 

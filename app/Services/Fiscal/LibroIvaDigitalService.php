@@ -14,10 +14,10 @@ class LibroIvaDigitalService
     private function s(?string $v, int $len): string { return str_pad(mb_substr(mb_strtoupper((string) $v), 0, $len), $len, ' '); }
     private function d(int $v, int $len): string { return str_pad((string) $v, $len, '0', STR_PAD_LEFT); }
 
-    public function ventas(Business $b, string $desde, string $hasta): array
+    public function ventas(Business $b, string $desde, string $hasta, ?int $sucursalId = null): array
     {
         $cbtes = ''; $alics = '';
-        foreach ($this->comprobantes('venta', $desde, $hasta) as $c) {
+        foreach ($this->comprobantes('venta', $desde, $hasta, $sucursalId) as $c) {
             [$doc, $nro] = $this->documento($c);
             $porAl = $this->porAlicuota($c);
             $exento = (float) $c->exento + (float) ($porAl['0']['neto'] ?? 0);
@@ -33,10 +33,10 @@ class LibroIvaDigitalService
         return ['LIBRO_IVA_DIGITAL_VENTAS_CBTE.txt' => $cbtes, 'LIBRO_IVA_DIGITAL_VENTAS_ALICUOTAS.txt' => $alics];
     }
 
-    public function compras(Business $b, string $desde, string $hasta): array
+    public function compras(Business $b, string $desde, string $hasta, ?int $sucursalId = null): array
     {
         $cbtes = ''; $alics = '';
-        foreach ($this->comprobantes('compra', $desde, $hasta) as $c) {
+        foreach ($this->comprobantes('compra', $desde, $hasta, $sucursalId) as $c) {
             [$doc, $nro] = $this->documento($c);
             [$pv, $num] = array_pad(explode('-', (string) $c->numero_proveedor), 2, '0');
             $porAl = $this->porAlicuota($c);
@@ -53,9 +53,10 @@ class LibroIvaDigitalService
         return ['LIBRO_IVA_DIGITAL_COMPRAS_CBTE.txt' => $cbtes, 'LIBRO_IVA_DIGITAL_COMPRAS_ALICUOTAS.txt' => $alics];
     }
 
-    private function comprobantes(string $direccion, string $desde, string $hasta)
+    // Con sucursal: solo los comprobantes de esa sucursal (una sucursal con CUIT propio presenta su propio libro).
+    private function comprobantes(string $direccion, string $desde, string $hasta, ?int $sucursalId = null)
     {
-        return Comprobante::with('contact', 'items', 'impuestos')->where('direccion', $direccion)->where('estado', 'emitido')->fiscales()
+        return Comprobante::with('contact', 'items', 'impuestos')->where('direccion', $direccion)->where('estado', 'emitido')->fiscales()->when($sucursalId, fn($q) => $q->where('business_location_id', $sucursalId))
             ->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => $t['afip'] !== null)))->whereBetween('fecha', [$desde, $hasta])->orderBy('fecha')->orderBy('id')->get();
     }
 

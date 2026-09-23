@@ -111,7 +111,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/soporte/{id}/responder',   [\App\Http\Controllers\SoporteController::class, 'responder']);
     Route::post('/soporte/{id}/cerrar',      [\App\Http\Controllers\SoporteController::class, 'cerrar']);
 
-    Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->name('sucursal.cambiar');
+    Route::post('/sucursal/consolidado', [SucursalController::class, 'consolidado']);
+    Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->whereNumber('id')->name('sucursal.cambiar');
     Route::post('/empresa/{id}',  [\App\Http\Controllers\EmpresaSwitchController::class, 'cambiar'])->whereNumber('id')->name('empresa.cambiar');
     Route::get('/contador/empresas', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'index']);
     // Centro de ayuda y tour
@@ -487,6 +488,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/empresa/mercadopago', [EmpresaController::class, 'guardarMercadoPago'])->middleware('permiso:configuracion,editar');
 
         Route::get('/sucursales',            [SucursalesController::class, 'index'])->name('sucursales');
+        Route::post('/sucursales/{id}/certificados', [SucursalesController::class, 'certificados'])->middleware('permiso:configuracion,editar');
         Route::post('/sucursales/{id?}',     [SucursalesController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('sucursales.guardar');
 
         Route::get('/usuarios',              [UsuariosController::class, 'index'])->name('usuarios');

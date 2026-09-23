@@ -29,6 +29,7 @@ class FiscalController extends Controller
         $percep = \App\Models\ComprobanteImpuesto::whereHas('comprobante', fn($q) => $q->ventas()->emitidos()->fiscales()->whereBetween('fecha', [$desde, $hasta]))->where(fn($w) => $w->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->with('comprobante.contact:id,name,cuit')->get();
         return Inertia::render('Contable/Fiscal', [
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
+            'sucursalesCuit' => $request->user()->business->locations()->whereNotNull('cuit')->orderBy('name')->get()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'cuit' => $l->cuit])->values(),
             'retenciones' => $rets->map(fn($r) => ['id' => $r->id, 'fecha' => $r->fecha->format('d/m/Y'), 'tipo' => Retencion::TIPOS[$r->tipo] ?? $r->tipo, 'proveedor' => $r->contact?->name, 'cuit' => $r->contact?->cuit, 'pago' => $r->pago?->numero, 'pago_id' => $r->pago_id, 'base' => (float) $r->base, 'alicuota' => (float) $r->alicuota, 'monto' => (float) $r->monto, 'certificado' => $r->certificado]),
             'resumenRetenciones' => $rets->groupBy('tipo')->map(fn($g, $t) => ['tipo' => Retencion::TIPOS[$t] ?? $t, 'n' => $g->count(), 'monto' => round($g->sum('monto'), 2)])->values(),
             'percepciones' => $percep->map(fn($i) => ['id' => $i->id, 'fecha' => $i->comprobante->fecha->format('d/m/Y'), 'comprobante' => $i->comprobante->nombreTipo() . ' ' . $i->comprobante->numeroFormateado(), 'comprobante_id' => $i->comprobante_id, 'cliente' => $i->comprobante->contact?->name, 'jurisdiccion' => \App\Models\ComprobanteImpuesto::etiqueta($i->tipo), 'base' => (float) $i->base, 'alicuota' => (float) $i->alicuota, 'monto' => (float) $i->monto * ($i->comprobante->def()['cc'] < 0 ? -1 : 1)]),
@@ -55,7 +56,8 @@ class FiscalController extends Controller
     {
         [$desde, $hasta] = $this->periodo($request);
         $b = $request->user()->business;
-        $archivos = $request->libro === 'compras' ? $svc->compras($b, $desde, $hasta) : $svc->ventas($b, $desde, $hasta);
+        $suc = $request->sucursal ? (int) $request->sucursal : null;
+        $archivos = $request->libro === 'compras' ? $svc->compras($b, $desde, $hasta, $suc) : $svc->ventas($b, $desde, $hasta, $suc);
         $zip = $svc->zip($archivos, 'libro');
         AuditLog::registrar('exportar', null, "Libro IVA Digital " . ($request->libro ?: 'ventas') . " {$desde} a {$hasta}");
         return response()->download($zip, 'LIBRO_IVA_DIGITAL_' . strtoupper($request->libro ?: 'ventas') . "_{$desde}_{$hasta}.zip")->deleteFileAfterSend(true);

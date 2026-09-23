@@ -7,6 +7,15 @@ use Illuminate\Http\Request;
 
 class SucursalController extends Controller
 {
+    // Casa central: ver el tablero y las estadísticas de todas las sucursales juntas.
+    public function consolidado(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user->esDueno() || $user->puede('estadisticas'), 403);
+        $user->forceFill(['ver_consolidado' => ! $user->ver_consolidado])->save();
+        return back()->with('success', $user->ver_consolidado ? 'Estás viendo el consolidado de todas las sucursales.' : 'Volviste a ver solo tu sucursal.');
+    }
+
     public function cambiar(Request $request, int $id)
     {
         $user = $request->user();

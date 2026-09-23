@@ -191,7 +191,7 @@ class ComprobantesController extends Controller
     public function imprimir(int $id)
     {
         $c = Comprobante::ventas()->with(['items', 'contact', 'business', 'location', 'impuestos'])->findOrFail($id);
-        return view('comprobantes.imprimir', ['c' => $c, 'b' => $c->business]);
+        return view('comprobantes.imprimir', ['c' => $c, 'b' => $c->emisor()]);
     }
 
     public function lote(Request $request)

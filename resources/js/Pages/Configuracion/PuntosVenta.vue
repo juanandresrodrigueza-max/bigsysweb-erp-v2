@@ -52,7 +52,7 @@
     <Modal :abierto="modal" :titulo="form.id ? 'Editar punto de venta' : 'Nuevo punto de venta'" @cerrar="modal = false">
       <div class="grid sm:grid-cols-2 gap-4">
         <div><label class="label">Número</label><input v-model.number="form.numero" type="number" min="1" max="9999" class="input" /><p v-if="form.errors.numero" class="text-carmin text-xs mt-1">{{ form.errors.numero }}</p></div>
-        <div><label class="label">Sucursal</label><select v-model="form.business_location_id" class="input"><option :value="null">General</option><option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.name }}</option></select></div>
+        <div><label class="label">Sucursal</label><select v-model="form.business_location_id" class="input"><option :value="null">General</option><option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.name }}{{ s.cuit ? ' · CUIT propio ' + s.cuit : '' }}</option></select></div>
         <div><label class="label">Modo</label><select v-model="form.modo" class="input"><option value="electronico">Electrónico (AFIP)</option><option value="manual">Manual / talonario</option></select></div>
         <label class="flex items-center gap-2 text-sm mt-6"><input v-model="form.activo" type="checkbox" class="accent-carmin" /> Activo</label>
       </div>

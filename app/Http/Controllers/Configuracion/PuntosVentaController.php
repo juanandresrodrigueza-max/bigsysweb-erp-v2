@@ -17,7 +17,7 @@ class PuntosVentaController extends Controller
         $b = $request->user()->business;
         return Inertia::render('Configuracion/PuntosVenta', [
             'puntos' => PuntoVenta::with('location:id,name')->orderBy('numero')->get()->map(fn($p) => ['id' => $p->id, 'numero' => $p->numero, 'modo' => $p->modo, 'activo' => $p->activo, 'business_location_id' => $p->business_location_id, 'sucursal' => $p->location?->name]),
-            'sucursales' => $b->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'sucursales' => $b->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'cuit']),
             'afip' => ['configurado' => $afip->configurado($b), 'cuit' => $b->cuit, 'produccion' => $b->afip_produccion, 'cert' => (bool) $b->afip_cert_path, 'key' => (bool) $b->afip_key_path, 'pendientes' => \App\Models\Comprobante::where('estado', 'emitido')->where('afip_estado', 'pendiente')->count()],
             'prueba' => session('afip_prueba'),
         ]);

@@ -41,7 +41,8 @@ class HandleInertiaRequests extends Middleware
             ] : null,
             'sucursales' => fn() => $user ? [
                 'actual' => $user->currentLocation ? ['id' => $user->currentLocation->id, 'nombre' => $user->currentLocation->name] : null,
-                'lista'  => $user->sucursalesAccesibles()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'ciudad' => $l->city])->values(),
+                'lista'  => $user->sucursalesAccesibles()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'ciudad' => $l->city, 'cuit' => $l->cuit])->values(),
+                'consolidado' => (bool) $user->ver_consolidado, 'puede_consolidar' => $user->esDueno() || $user->puede('estadisticas'),
             ] : null,
             'nav' => fn() => $user ? $this->nav($user) : [],
             // Contador con varias empresas: selector en el encabezado.

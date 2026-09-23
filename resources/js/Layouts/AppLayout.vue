@@ -47,7 +47,7 @@
         <div class="relative" ref="selRef" data-tour="sucursal">
           <button @click="selAbierto = !selAbierto" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde hover:border-carmin/50 text-sm">
             <Icono nombre="pin" clase="w-4 h-4 text-carmin" />
-            <span class="font-semibold max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span>
+            <span class="font-semibold max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span><span v-if="sucursales?.consolidado" class="badge bg-violeta-light text-violeta !py-0 text-[10px]">consolidado</span>
             <Icono v-if="(sucursales?.lista?.length ?? 0) > 1" nombre="chevron" clase="w-4 h-4 text-marca-muted" />
           </button>
           <div v-if="selAbierto && sucursales?.lista?.length > 1" class="absolute left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
@@ -57,6 +57,11 @@
               <span class="w-2 h-2 rounded-full" :class="s.id === sucursales.actual?.id ? 'bg-carmin' : 'bg-marca-borde'"></span>
               <span class="flex-1"><span class="font-semibold">{{ s.nombre }}</span><span v-if="s.ciudad" class="text-marca-muted"> · {{ s.ciudad }}</span></span>
               <Icono v-if="s.id === sucursales.actual?.id" nombre="check" clase="w-4 h-4 text-carmin" />
+            </Link>
+            <Link v-if="sucursales.puede_consolidar" href="/sucursal/consolidado" method="post" as="button" preserve-scroll class="w-full text-left flex items-center gap-3 px-4 py-2.5 border-t border-marca-borde hover:bg-marca-fondo text-sm" @click="selAbierto = false" title="El tablero y las estadísticas suman todas las sucursales (casa central)">
+              <span class="w-2 h-2 rounded-full" :class="sucursales.consolidado ? 'bg-violeta' : 'bg-marca-borde'"></span>
+              <span class="flex-1 font-semibold">Ver consolidado de todas</span>
+              <Icono v-if="sucursales.consolidado" nombre="check" clase="w-4 h-4 text-violeta" />
             </Link>
           </div>
         </div>

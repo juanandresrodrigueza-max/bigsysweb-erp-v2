@@ -86,7 +86,7 @@ class AfipService
     // Punto único de creación: en pruebas se reemplaza por un doble (app()->instance('afip.fake', ...)).
     public static function forBusiness(Business $business): object
     {
-        if (app()->bound('afip.fake')) return app('afip.fake');
+        if (app()->bound('afip.fake')) { $f = app('afip.fake'); if (property_exists($f, 'emisor')) $f->emisor = $business; return $f; }
         return new static($business);
     }
 }

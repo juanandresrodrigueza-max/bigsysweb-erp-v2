@@ -122,8 +122,13 @@ class ComprobanteService
                 throw ValidationException::withMessages(['contact_id' => 'El cliente supera su límite de crédito. Cobrá al contado o ampliá el límite.']);
             }
 
-            $business = $c->business;
+            $business = $c->emisor();
             $pv = $c->puntoVenta ?? $this->puntoVentaPorDefecto(Auth::user());
+            // Sucursal con CUIT propio: numera con sus propios puntos de venta (los de ARCA de ese CUIT), nunca con los de la casa central.
+            if ($c->location?->tieneCuitPropio() && $c->esFiscal() && (! $pv || $pv->business_location_id !== $c->business_location_id)) {
+                $pv = PuntoVenta::where('activo', true)->where('business_location_id', $c->business_location_id)->orderBy('numero')->first();
+                abort_if(! $pv, 422, "La sucursal {$c->location->name} factura con su propio CUIT ({$c->location->cuit}) y no tiene un punto de venta propio. Crealo en Configuración → Puntos de venta.");
+            }
             abort_if(! $pv, 422, 'Configurá un punto de venta antes de emitir.');
             $c->punto_venta = $pv->numero;
             $c->punto_venta_id = $pv->id;

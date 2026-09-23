@@ -24,6 +24,7 @@ class AfipEmisor
     {
         $afipId = $c->afipTipo();
         if (! $afipId) return ['estado' => 'no_aplica', 'numero' => null];
+        $b = $c->emisor(); // sucursal con CUIT propio: factura con su certificado
         if (! $this->configurado($b)) return ['estado' => 'simulado', 'numero' => null, 'cae' => null, 'cae_vto' => null];
         if ($c->esExportacion()) return $this->emitirExportacion($c, $b);
 
@@ -103,13 +104,14 @@ class AfipEmisor
         ];
         if ($tipoExpo === 1 && ! empty($ex['permiso_embarque'])) $data['Permisos'] = [['Id_permiso' => $ex['permiso_embarque'], 'Dst_merc' => (int) $pais]];
         if ($tipoExpo !== 1) $data['Fecha_pago'] = ($c->fecha_vto ?? $c->fecha)->format('Ymd');
-        if (in_array($c->def()['grupo'], ['nc', 'nd'], true) && $c->origen && $c->origen->esExportacion() && $c->origen->numero) $data['Cmps_asoc'] = [['Cbte_tipo' => $c->origen->afipTipo(), 'Cbte_punto_vta' => (int) $c->origen->punto_venta, 'Cbte_nro' => (int) $c->origen->numero, 'Cbte_cuit' => (int) preg_replace('/\D/', '', (string) $c->business->cuit)]];
+        if (in_array($c->def()['grupo'], ['nc', 'nd'], true) && $c->origen && $c->origen->esExportacion() && $c->origen->numero) $data['Cmps_asoc'] = [['Cbte_tipo' => $c->origen->afipTipo(), 'Cbte_punto_vta' => (int) $c->origen->punto_venta, 'Cbte_nro' => (int) $c->origen->numero, 'Cbte_cuit' => (int) preg_replace('/\D/', '', (string) $c->emisor()->cuit)]];
         return $data;
     }
 
     // Consulta el comprobante en ARCA y compara con lo guardado.
     public function verificar(Comprobante $c, Business $b): array
     {
+        $b = $c->emisor();
         if (! $this->configurado($b) || ! $c->afipTipo() || ! $c->numero) return ['ok' => false, 'detalle' => 'Sin certificado o sin número: no hay nada que verificar.'];
         try {
             $info = $c->esExportacion() ? AfipService::forBusiness($b)->fexGetVoucherInfo((int) $c->punto_venta, (int) $c->afipTipo(), (int) $c->numero) : AfipService::forBusiness($b)->getVoucherInfo((int) $c->numero, (int) $c->punto_venta, (int) $c->afipTipo());
@@ -173,7 +175,7 @@ class AfipEmisor
         }
         if (in_array($c->def()['grupo'], ['nc', 'nd'], true)) {
             if ($c->origen && $c->origen->esFiscal() && $c->origen->numero) {
-                $data['CbtesAsoc'] = [['Tipo' => $c->origen->afipTipo(), 'PtoVta' => (int) $c->origen->punto_venta, 'Nro' => (int) $c->origen->numero, 'Cuit' => (int) preg_replace('/\D/', '', (string) $c->business->cuit), 'CbteFch' => $c->origen->fecha->format('Ymd')]];
+                $data['CbtesAsoc'] = [['Tipo' => $c->origen->afipTipo(), 'PtoVta' => (int) $c->origen->punto_venta, 'Nro' => (int) $c->origen->numero, 'Cuit' => (int) preg_replace('/\D/', '', (string) $c->emisor()->cuit), 'CbteFch' => $c->origen->fecha->format('Ymd')]];
             } else {
                 // Sin comprobante asociado ARCA exige el período que ajusta la nota.
                 $data['PeriodoAsoc'] = ['FchDesde' => $c->fecha->copy()->startOfMonth()->format('Ymd'), 'FchHasta' => $c->fecha->format('Ymd')];
@@ -181,7 +183,7 @@ class AfipEmisor
         }
         if ($c->fce) {
             // FCE MiPyME: CBU del emisor (opcional 2101), sistema de circulación abierta (27 = SCA) y fecha de vencimiento de pago.
-            $b = $c->business;
+            $b = $c->emisor();
             $data['FchVtoPago'] = ($c->fce_vto_pago ?? $c->fecha_vto ?? $c->fecha)->format('Ymd');
             $data['Opcionales'] = [['Id' => '2101', 'Valor' => preg_replace('/\D/', '', (string) $b->cbu_fce)], ['Id' => '27', 'Valor' => 'SCA']];
             if (in_array($c->def()['grupo'], ['nc', 'nd'], true)) $data['Opcionales'][] = ['Id' => '22', 'Valor' => 'N'];

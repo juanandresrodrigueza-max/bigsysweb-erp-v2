@@ -53,6 +53,8 @@ class Comprobante extends Model
     public function vendedor(): BelongsTo { return $this->belongsTo(Vendedor::class); }
     public function ordenCompra(): BelongsTo { return $this->belongsTo(OrdenCompra::class); }
     public function location(): BelongsTo { return $this->belongsTo(BusinessLocation::class, 'business_location_id'); }
+    // Quién emite: la sucursal con CUIT propio o la empresa.
+    public function emisor(): Business { return $this->business->emisorPara($this->location); }
     public function puntoVenta(): BelongsTo { return $this->belongsTo(PuntoVenta::class); }
     public function origen(): BelongsTo { return $this->belongsTo(Comprobante::class, 'origen_id'); }
     public function derivados(): HasMany { return $this->hasMany(Comprobante::class, 'origen_id'); }

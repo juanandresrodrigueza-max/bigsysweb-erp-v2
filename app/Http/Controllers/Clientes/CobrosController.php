@@ -41,6 +41,6 @@ class CobrosController extends Controller
     public function imprimir(int $id)
     {
         $cobro = Cobro::with(['contact', 'medios', 'imputaciones.comprobante', 'business'])->findOrFail($id);
-        return view('comprobantes.recibo', ['r' => $cobro, 'b' => $cobro->business]);
+        return view('comprobantes.recibo', ['r' => $cobro, 'b' => $cobro->business->emisorPara(\App\Models\BusinessLocation::find($cobro->business_location_id))]);
     }
 }

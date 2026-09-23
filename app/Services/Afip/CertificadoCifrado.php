@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Storage;
 // Certificado y clave privada de AFIP cifrados en disco (extensión .enc). Para usarlos se descifran a un archivo temporal solo legible por el proceso.
 class CertificadoCifrado
 {
-    public static function guardar(Business $b, string $nombre, string $contenido): string
+    public static function guardar(Business $b, string $nombre, string $contenido, ?int $sucursalId = null): string
     {
-        $path = "afip/{$b->id}/{$nombre}.enc";
+        $path = "afip/{$b->id}/" . ($sucursalId ? "suc-{$sucursalId}/" : '') . "{$nombre}.enc";
         Storage::disk('local')->put($path, Crypt::encryptString($contenido));
         // Si quedaba una versión sin cifrar, se borra.
         Storage::disk('local')->delete("afip/{$b->id}/{$nombre}");

@@ -20,7 +20,7 @@ class PublicoController extends Controller
     public function ver(string $token, Request $request)
     {
         $c = $this->buscar($token);
-        return view('publico.comprobante', ['c' => $c, 'b' => $c->business, 'pago' => $request->query('pago')]);
+        return view('publico.comprobante', ['c' => $c, 'b' => $c->emisor(), 'pago' => $request->query('pago')]);
     }
 
     public function pdf(string $token, EnvioService $envios)

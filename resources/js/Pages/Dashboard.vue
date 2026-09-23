@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
       <div>
         <h1 class="page-title">Hola, {{ nombre }}</h1>
-        <p class="page-subtitle">Así va {{ $page.props.sucursales?.actual?.nombre ?? 'tu negocio' }} {{ etiquetaPeriodo }}.</p>
+        <p class="page-subtitle">Así va {{ $page.props.sucursales?.consolidado ? 'tu negocio en todas las sucursales' : ($page.props.sucursales?.actual?.nombre ?? 'tu negocio') }} {{ etiquetaPeriodo }}.<span v-if="$page.props.sucursales?.consolidado" class="badge bg-violeta-light text-violeta ml-2">Consolidado</span></p>
       </div>
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1">
         <button v-for="p in periodos" :key="p.key" @click="cambiar(p.key)" class="px-3 py-1 rounded-full text-xs font-semibold transition" :class="periodo === p.key ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">{{ p.label }}</button>
