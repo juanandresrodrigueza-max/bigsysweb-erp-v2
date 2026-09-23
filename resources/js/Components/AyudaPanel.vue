@@ -12,12 +12,15 @@
         <div class="flex-1 overflow-y-auto px-4 py-3 text-sm">
           <template v-if="q.trim().length >= 2">
             <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-1">Resultados</p>
-            <Link v-for="r in resultados" :key="r.slug" :href="`/ayuda/${r.slug}`" class="block py-2 border-t border-marca-borde/60 first:border-0 hover:text-carmin" @click="cerrar"><p class="font-semibold">{{ r.titulo }}</p><p class="text-xs text-marca-muted">…{{ r.fragmento }}…</p></Link>
+            <Link v-for="r in resultados" :key="r.url" :href="r.url" class="block py-2 border-t border-marca-borde/60 first:border-0 hover:text-carmin" @click="cerrar"><p class="font-semibold">{{ r.titulo }} <span class="text-marca-muted font-normal">› {{ r.seccion }}</span></p><p class="text-xs text-marca-muted">…{{ r.fragmento }}…</p></Link>
             <p v-if="!resultados.length && !cargando" class="text-marca-muted">Nada con esas palabras.</p>
           </template>
           <template v-else>
             <p v-if="cargando" class="text-marca-muted">Cargando…</p>
-            <div v-else-if="articulo" class="ayuda-prose" v-html="articulo.html"></div>
+            <template v-else-if="articulo">
+              <div v-if="articulo.secciones?.length" class="flex flex-wrap gap-1 mb-3"><a v-for="s in articulo.secciones" :key="s.ancla" href="#" class="badge bg-marca-fondo text-marca-muted hover:text-carmin" @click.prevent="irA(s.ancla)">{{ s.titulo }}</a></div>
+              <div class="ayuda-prose" ref="cuerpo" v-html="articulo.html"></div>
+            </template>
             <div v-else>
               <p class="text-marca-muted mb-2">Esta pantalla no tiene guía propia todavía. Estas pueden servir:</p>
               <Link v-for="a in sugeridos" :key="a.slug" :href="`/ayuda/${a.slug}`" class="block py-1.5 border-t border-marca-borde/60 first:border-0 hover:text-carmin" @click="cerrar"><p class="font-semibold">{{ a.titulo }}</p><p class="text-xs text-marca-muted">{{ a.resumen }}</p></Link>
@@ -40,7 +43,8 @@ import { Link, usePage } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 const emit = defineEmits(['tour'])
 const page = usePage()
-const abierto = ref(false), q = ref(''), resultados = ref([]), articulo = ref(null), sugeridos = ref([]), tour = ref([]), cargando = ref(false)
+const abierto = ref(false), q = ref(''), resultados = ref([]), articulo = ref(null), sugeridos = ref([]), tour = ref([]), cargando = ref(false), cuerpo = ref(null)
+function irA(ancla) { cuerpo.value?.querySelector('#' + CSS.escape(ancla))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 let timer = null
 async function abrir() {
   abierto.value = true; cargando.value = true; q.value = ''

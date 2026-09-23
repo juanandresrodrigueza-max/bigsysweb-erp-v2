@@ -119,6 +119,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/ayuda/manual',          [\App\Http\Controllers\AyudaController::class, 'manual']);
     Route::get('/ayuda/contexto',        [\App\Http\Controllers\AyudaController::class, 'contexto']);
     Route::get('/ayuda/buscar',          [\App\Http\Controllers\AyudaController::class, 'buscar']);
+    Route::post('/ayuda/preguntar',      [\App\Http\Controllers\AyudaController::class, 'preguntar'])->middleware('throttle:30,1');
     Route::post('/ayuda/tour-visto',     [\App\Http\Controllers\AyudaController::class, 'tourVisto']);
     Route::post('/ayuda/tour-reiniciar', [\App\Http\Controllers\AyudaController::class, 'tourReiniciar']);
     Route::get('/ayuda/guia/{nombre}',   [\App\Http\Controllers\AyudaController::class, 'guia']);

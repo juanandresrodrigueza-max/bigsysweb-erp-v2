@@ -18,8 +18,19 @@ class ProductoTest extends ErpTestCase
         $this->get('/ayuda')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->has('articulos', 23)->where('articulos.0.slug', 'implementacion')->where('articulos.1.slug', 'primeros-pasos'));
         $this->get('/ayuda/facturar')->assertOk()->assertInertia(fn($p) => $p->component('Ayuda', false)->where('articulo.titulo', 'Facturar, presupuestar y remitir')->where('articulo.secciones.0.titulo', 'La factura paso a paso'));
         $this->get('/ayuda/no-existe')->assertNotFound();
-        $this->get('/ayuda?q=anular factura')->assertInertia(fn($p) => $p->component('Ayuda', false)->where('resultados.0.slug', 'facturar'));
-        $this->getJson('/ayuda/buscar?q=rebot')->assertOk()->assertJsonPath('0.slug', 'cobrar');
+        // La búsqueda devuelve la sección exacta, sin acentos y por raíz de palabra.
+        $this->get('/ayuda?q=anular factura')->assertInertia(fn($p) => $p->component('Ayuda', false)->where('resultados.0.slug', 'preguntas-frecuentes')->where('resultados.0.seccion', '¿Cómo anulo una factura emitida?')->has('indice', 23)->where('indice.0.slug', 'implementacion'));
+        $this->getJson('/ayuda/buscar?q=rebot')->assertOk()->assertJsonPath('0.slug', 'cobrar')->assertJsonPath('0.seccion', 'Errores comunes')->assertJsonPath('0.url', '/ayuda/cobrar#errores-comunes');
+        $this->getJson('/ayuda/buscar?q=ARQUEO')->assertJsonPath('0.slug', 'fondos')->assertJsonPath('0.seccion', 'Caja');
+        $this->getJson('/ayuda/buscar?q=codigo de barras balanza')->assertJsonPath('0.slug', 'punto-de-venta')->assertJsonPath('0.seccion', 'Balanza e impresora');
+        $this->get('/ayuda/fondos')->assertInertia(fn($p) => $p->where('articulo.secciones.0.ancla', 'caja'));
+        $this->assertStringContainsString('<h2 id="caja">', app(\App\Services\Producto\AyudaService::class)->articulo('fondos')['html']);
+        // Pregunta en lenguaje natural: sin IA devuelve las secciones; con IA responde citando fuentes.
+        $this->postJson('/ayuda/preguntar', ['q' => '¿cómo anulo una factura?'])->assertOk()->assertJsonPath('ia', false)->assertJsonPath('respuesta', null)->assertJsonPath('fuentes.0.slug', 'preguntas-frecuentes');
+        config(['services.anthropic.api_key' => 'sk-test']);
+        \Illuminate\Support\Facades\Http::fake(['api.anthropic.com/*' => \Illuminate\Support\Facades\Http::response(['content' => [['text' => 'Con una nota de crédito: desde la factura, Convertir → Nota de crédito.']]])]);
+        $this->postJson('/ayuda/preguntar', ['q' => '¿cómo anulo una factura?'])->assertOk()->assertJsonPath('ia', true)->assertJsonPath('respuesta', 'Con una nota de crédito: desde la factura, Convertir → Nota de crédito.')->assertJsonCount(6, 'fuentes');
+        \Illuminate\Support\Facades\Http::assertSent(fn($r) => str_contains($r['messages'][0]['content'], '¿Cómo anulo una factura emitida?'));
         $this->getJson('/ayuda/contexto?ruta=/comprobantes/nuevo')->assertOk()->assertJsonPath('articulo.slug', 'facturar')->assertJsonCount(6, 'tour');
         $this->getJson('/ayuda/contexto?ruta=/retail')->assertJsonPath('articulo.slug', 'punto-de-venta');
         $this->getJson('/ayuda/contexto?ruta=/obras/3')->assertJsonPath('articulo.slug', 'obras');

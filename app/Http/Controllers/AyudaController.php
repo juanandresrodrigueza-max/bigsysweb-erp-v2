@@ -19,7 +19,7 @@ class AyudaController extends Controller
         abort_if($slug && ! $articulo, 404);
         return Inertia::render('Ayuda', [
             'articulos' => $this->ayuda->lista(), 'articulo' => $articulo, 'q' => $q,
-            'resultados' => $q !== '' ? $this->ayuda->buscar($q) : [],
+            'resultados' => $q !== '' ? $this->ayuda->buscar($q) : [], 'indice' => $this->ayuda->indice(), 'ia' => (bool) config('services.anthropic.api_key'),
             'soporte' => ['whatsapp' => \App\Models\SistemaConfig::get('soporte_whatsapp'), 'email' => \App\Models\SistemaConfig::get('soporte_email')],
             'guias' => collect(['arca', 'asistente', 'atajos', 'mercado-argentino', 'seguridad', 'api'])->filter(fn($g) => file_exists(base_path("docs/{$g}.md")))->values(),
         ]);
@@ -29,7 +29,7 @@ class AyudaController extends Controller
     public function manual()
     {
         $arts = array_map(fn($a) => $this->ayuda->articulo($a['slug']), $this->ayuda->lista());
-        return view('ayuda.manual', ['articulos' => $arts]);
+        return view('ayuda.manual', ['articulos' => $arts, 'indice' => $this->ayuda->indice()]);
     }
 
     // Ayuda de la pantalla actual, para el panel lateral.
@@ -43,6 +43,12 @@ class AyudaController extends Controller
     public function buscar(Request $request)
     {
         return response()->json($this->ayuda->buscar((string) $request->query('q', '')));
+    }
+
+    public function preguntar(Request $request)
+    {
+        $d = $request->validate(['q' => 'required|string|min:3|max:300']);
+        return response()->json($this->ayuda->preguntar($d['q']));
     }
 
     // Guías técnicas de docs/ (ARCA, asistente, atajos…) renderizadas.

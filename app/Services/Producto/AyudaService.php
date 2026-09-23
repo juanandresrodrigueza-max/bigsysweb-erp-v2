@@ -13,7 +13,8 @@ class AyudaService
 
     public function articulos(): array
     {
-        $ver = @filemtime($this->dir()) ?: 0;
+        // La versión del caché sigue a la última modificación de cualquier artículo (editar un archivo alcanza para refrescar).
+        $ver = max(array_map('filemtime', glob($this->dir() . '/*.md') ?: []) ?: [0]);
         return Cache::remember("ayuda.articulos.{$ver}", 3600, function () {
             $out = [];
             foreach (glob($this->dir() . '/*.md') ?: [] as $f) {
@@ -44,32 +45,76 @@ class AyudaService
     {
         $a = $this->articulos()[$slug] ?? null;
         if (! $a) return null;
-        return ['slug' => $a['slug'], 'titulo' => $a['titulo'], 'modulo' => $a['modulo'], 'resumen' => $a['resumen'], 'html' => Str::markdown($a['texto'], ['html_input' => 'strip', 'allow_unsafe_links' => false]), 'secciones' => $this->secciones($a['texto'])];
+        $html = Str::markdown($a['texto'], ['html_input' => 'strip', 'allow_unsafe_links' => false]);
+        // Cada título de sección lleva su ancla, para llegar directo desde la búsqueda.
+        $html = preg_replace_callback('/<h2>(.*?)<\/h2>/s', fn($m) => '<h2 id="' . Str::slug(html_entity_decode(strip_tags($m[1]))) . '">' . $m[1] . '</h2>', $html);
+        return ['slug' => $a['slug'], 'titulo' => $a['titulo'], 'modulo' => $a['modulo'], 'resumen' => $a['resumen'], 'html' => $html, 'secciones' => array_map(fn($x) => ['titulo' => $x['titulo'], 'ancla' => $x['ancla']], $this->secciones($a['texto']))];
     }
 
-    private function secciones(string $md): array
+    // Parte el markdown en secciones (## título + cuerpo). La introducción, si la hay, es la sección sin título.
+    public function secciones(string $md): array
     {
-        preg_match_all('/^##\s+(.+)$/m', $md, $m);
-        return array_map(fn($t) => ['titulo' => $t, 'ancla' => Str::slug($t)], $m[1]);
+        $partes = preg_split('/^##\s+(.+)$/m', $md, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $out = [];
+        if (trim($partes[0] ?? '') !== '') $out[] = ['titulo' => 'Introducción', 'ancla' => '', 'texto' => trim($partes[0])];
+        for ($i = 1; $i < count($partes); $i += 2) $out[] = ['titulo' => trim($partes[$i]), 'ancla' => Str::slug($partes[$i]), 'texto' => trim($partes[$i + 1] ?? '')];
+        return $out;
     }
 
-    // Búsqueda simple: puntúa título, resumen y cuerpo; devuelve hasta 8 con el fragmento donde aparece.
-    public function buscar(string $q): array
+    // Índice completo: artículos con sus secciones (para navegar por sección).
+    public function indice(): array
     {
-        $q = Str::lower(trim($q)); if (mb_strlen($q) < 2) return [];
-        $palabras = array_filter(preg_split('/\s+/', $q));
+        return array_values(array_map(fn($a) => ['slug' => $a['slug'], 'titulo' => $a['titulo'], 'modulo' => $a['modulo'], 'secciones' => array_values(array_filter(array_map(fn($x) => ['titulo' => $x['titulo'], 'ancla' => $x['ancla']], $this->secciones($a['texto'])), fn($x) => $x['ancla'] !== ''))], $this->articulos()));
+    }
+
+    private static function norm(string $t): string { return Str::lower(Str::ascii($t)); }
+    private static function raiz(string $p): string { return mb_strlen($p) >= 5 ? mb_substr($p, 0, mb_strlen($p) - 2) : $p; }
+    private const VACIAS = ['como', 'para', 'que', 'una', 'uno', 'los', 'las', 'del', 'con', 'por', 'sin', 'mi', 'el', 'la', 'de', 'en', 'un', 'se', 'al', 'lo', 'es', 'hago', 'puedo', 'donde', 'cuando'];
+
+    // Búsqueda por sección: puntúa título del artículo, título de la sección y cuerpo, sin acentos y por raíz de palabra
+    // ("anular" encuentra "anula" y "anulo"). Devuelve hasta 10 secciones con el fragmento donde aparece.
+    public function buscar(string $q, int $max = 10): array
+    {
+        $qn = self::norm(trim($q)); if (mb_strlen($qn) < 2) return [];
+        $palabras = array_values(array_filter(preg_split('/[^a-z0-9]+/', $qn), fn($p) => mb_strlen($p) >= 2 && ! in_array($p, self::VACIAS, true)));
+        if (! $palabras) $palabras = array_values(array_filter(preg_split('/[^a-z0-9]+/', $qn)));
         $res = [];
         foreach ($this->articulos() as $a) {
-            $titulo = Str::lower($a['titulo']); $texto = Str::lower($a['texto']); $pts = 0;
-            // Raíz de la palabra (anular → anul) para que "anular" encuentre "anula" y "anulo".
-            foreach ($palabras as $p) { $raiz = mb_strlen($p) >= 5 ? mb_substr($p, 0, mb_strlen($p) - 2) : $p; if (str_contains($titulo, $raiz)) $pts += 10; $pts += min(5, substr_count($texto, $raiz)) + 2 * min(3, substr_count($texto, $p)); }
-            if ($pts === 0) continue;
-            $p0 = $palabras[array_key_first($palabras)]; $pos = mb_strpos($texto, $p0); if ($pos === false) $pos = mb_strpos($texto, mb_strlen($p0) >= 5 ? mb_substr($p0, 0, mb_strlen($p0) - 2) : $p0);
-            $frag = $pos !== false ? trim(preg_replace('/[#*`\[\]_>]+/', '', mb_substr($a['texto'], max(0, $pos - 60), 180))) : $a['resumen'];
-            $res[] = ['slug' => $a['slug'], 'titulo' => $a['titulo'], 'modulo' => $a['modulo'], 'fragmento' => Str::limit($frag, 170), 'puntos' => $pts];
+            $tituloA = self::norm($a['titulo']);
+            foreach ($this->secciones($a['texto']) as $sec) {
+                $tituloS = self::norm($sec['titulo']); $texto = self::norm($sec['texto']); $pts = 0; $hits = 0;
+                foreach ($palabras as $p) {
+                    $r = self::raiz($p); $n = substr_count($texto, $r);
+                    if (str_contains($tituloA, $r)) $pts += 4;
+                    if (str_contains($tituloS, $r)) $pts += 20; // el título de la sección pesa más que las menciones en el cuerpo
+                    if ($n) { $hits++; $pts += min(6, $n) + 2 * min(3, substr_count($texto, $p)); }
+                }
+                if ($pts === 0) continue;
+                if (count($palabras) > 1 && $hits === count($palabras)) $pts += 8; // todas las palabras en la misma sección
+                if (str_contains($texto, $qn)) $pts += 12; // la frase entera
+                $p0 = $palabras[0]; $pos = mb_strpos($texto, $p0); if ($pos === false) $pos = mb_strpos($texto, self::raiz($p0));
+                $frag = $pos !== false ? trim(preg_replace('/[#*`\[\]_>]+/', '', mb_substr($sec['texto'], max(0, $pos - 60), 190))) : Str::limit(preg_replace('/[#*`\[\]_>]+/', '', $sec['texto']), 190);
+                $res[] = ['slug' => $a['slug'], 'titulo' => $a['titulo'], 'modulo' => $a['modulo'], 'seccion' => $sec['titulo'], 'ancla' => $sec['ancla'], 'url' => '/ayuda/' . $a['slug'] . ($sec['ancla'] ? '#' . $sec['ancla'] : ''), 'fragmento' => Str::limit($frag, 180), 'puntos' => $pts];
+            }
         }
         usort($res, fn($x, $y) => $y['puntos'] <=> $x['puntos']);
-        return array_slice($res, 0, 8);
+        return array_slice($res, 0, $max);
+    }
+
+    // Pregunta en lenguaje natural: con clave de IA responde usando las secciones que más coinciden como contexto y cita las fuentes.
+    public function preguntar(string $q): array
+    {
+        $fuentes = $this->buscar($q, 6);
+        $key = config('services.anthropic.api_key');
+        if (! $key || ! $fuentes) return ['respuesta' => null, 'fuentes' => $fuentes, 'ia' => (bool) $key];
+        $contexto = collect($fuentes)->map(function ($f) { $sec = collect($this->secciones($this->articulos()[$f['slug']]['texto']))->firstWhere('ancla', $f['ancla']); return "### {$f['titulo']} › {$f['seccion']}\n" . ($sec['texto'] ?? ''); })->implode("\n\n");
+        try {
+            $r = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => $key, 'anthropic-version' => '2023-06-01'])->timeout(25)->post('https://api.anthropic.com/v1/messages', ['model' => config('services.anthropic.model'), 'max_tokens' => 500,
+                'system' => 'Sos la ayuda de BigSysWeb, un ERP para PyMEs argentinas. Respondé la pregunta del usuario SOLO con la información de las guías que te paso, en español rioplatense, corto y con pasos concretos (dónde hacer clic). Si las guías no lo cubren, decilo y sugerí escribir a soporte. No inventes pantallas ni botones.',
+                'messages' => [['role' => 'user', 'content' => "Guías:\n\n{$contexto}\n\nPregunta: {$q}"]]]);
+            $texto = $r->successful() ? trim((string) ($r->json('content.0.text') ?? '')) : null;
+        } catch (\Throwable $e) { $texto = null; }
+        return ['respuesta' => $texto ?: null, 'fuentes' => $fuentes, 'ia' => true];
     }
 
     // Artículo que corresponde a la pantalla actual (la ruta más específica gana).
