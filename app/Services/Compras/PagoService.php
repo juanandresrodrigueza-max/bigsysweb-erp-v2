@@ -90,6 +90,7 @@ class PagoService
             CuentaCorriente::recalcularSaldo($proveedor->id);
 
             AuditLog::registrar('crear', $pago, "Pago {$pago->numeroFormateado()} a {$proveedor->name} por $ " . number_format($total, 2, ',', '.'));
+            app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($pago->fresh(['medios', 'contact']));
             return $pago->fresh(['medios', 'imputaciones', 'retenciones']);
         });
     }
@@ -119,6 +120,7 @@ class PagoService
             $pago->update(['estado' => 'anulado', 'notas' => trim(($pago->notas ?? '') . "\nAnulada: {$motivo}")]);
             CuentaCorriente::recalcularSaldo($pago->contact_id);
             AuditLog::registrar('anular', $pago, "Anuló pago {$pago->numeroFormateado()}: {$motivo}");
+            app(\App\Services\Contabilidad\ContabilidadService::class)->anular('pago', $pago->id, $motivo);
         });
     }
 }

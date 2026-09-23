@@ -22,6 +22,9 @@ class FondosService
             'concepto' => $d['concepto'], 'ingreso' => round((float) ($d['ingreso'] ?? 0), 2), 'egreso' => round((float) ($d['egreso'] ?? 0), 2), 'referencia' => $d['referencia'] ?? null,
         ]);
         $cuenta->recalcularSaldo();
+        if (! in_array($m->origen, ['cobro', 'pago'], true)) {
+            app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($m);
+        }
         return $m;
     }
 
@@ -29,6 +32,7 @@ class FondosService
     {
         $movs = MovimientoFondos::where('origen', $origen)->where('origen_id', $origenId)->get();
         $cuentas = $movs->pluck('cuenta_fondos_id')->unique();
+        foreach ($movs as $mv) { app(\App\Services\Contabilidad\ContabilidadService::class)->anular('fondos', $mv->id); }
         MovimientoFondos::whereIn('id', $movs->pluck('id'))->delete();
         CuentaFondos::whereIn('id', $cuentas)->get()->each->recalcularSaldo();
     }
@@ -73,7 +77,7 @@ class FondosService
         abort_if($caja->tipo !== 'caja', 422, 'Solo las cajas tienen turnos.');
         abort_if($caja->turnoAbierto, 422, 'La caja ya tiene un turno abierto.');
         $t = TurnoCaja::create(['business_id' => $caja->business_id, 'cuenta_fondos_id' => $caja->id, 'user_id' => Auth::id(), 'apertura' => now(), 'saldo_inicial' => $saldoInicial]);
-        $dif = round($saldoInicial - (float) $caja->saldo, 2);
+        $dif = round($saldoInicial - (float) $caja->fresh()->saldo, 2);
         if (abs($dif) > 0.005) {
             $this->registrar($caja, ['origen' => 'apertura', 'origen_id' => $t->id, 'concepto' => 'Ajuste de apertura de turno', 'ingreso' => max(0, $dif), 'egreso' => max(0, -$dif)]);
         }

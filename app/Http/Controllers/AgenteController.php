@@ -82,6 +82,7 @@ class AgenteController extends Controller
             'bajo_minimo'    => Product::where('active', true)->where('controla_stock', true)->whereColumn('stock', '<=', 'stock_min')->count(),
             'stock_valorizado' => (float) Product::where('active', true)->where('controla_stock', true)->selectRaw('COALESCE(SUM(stock * cost),0) as v')->value('v'),
             'ordenes_abiertas' => \App\Models\ProductionOrder::whereIn('status', ['pending', 'in_progress'])->count(),
+            'resultado_mes'  => $user->business_id ? app(\App\Services\Contabilidad\ContabilidadService::class)->resultado($user->business_id, $hoy->copy()->startOfMonth()->toDateString(), $hoy->copy()->endOfMonth()->toDateString()) : null,
             'alertas'        => Alerta::visiblesPara($user)->activas()->latest()->limit(5)->pluck('titulo')->all(),
             'modulos'        => $user->modulosVisibles(),
         ];
@@ -115,6 +116,7 @@ Datos del negocio (sucursal y empresa del usuario):
 - Clientes: {$c['clientes']}
 - Productos activos: {$c['productos']}, bajo mínimo: {$c['bajo_minimo']}, stock valorizado a costo: {$fmt($c['stock_valorizado'])}
 - Órdenes de producción abiertas: {$c['ordenes_abiertas']}
+- Resultado contable del mes: ingresos {$fmt($c['resultado_mes']['total_ingresos'] ?? 0)}, egresos {$fmt($c['resultado_mes']['total_egresos'] ?? 0)}, resultado {$fmt($c['resultado_mes']['resultado'] ?? 0)}
 Alertas activas:
 {$alertas}
 
@@ -129,6 +131,8 @@ Cómo se hacen las cosas:
 - Pagar a un proveedor: Proveedores > ficha > "Registrar pago": transferencia, efectivo, cheque propio, endoso de cheque de tercero o retención; se imputa a facturas y se imprime la orden de pago.
 - Stock: cada sucursal tiene depósitos; el stock se ve por depósito y total. Desde Stock: nuevo artículo (con listas de precios 1 a 5), ajustar stock desde la ficha del artículo, "Transferir" entre depósitos, "Inventario" para contar un depósito completo, "Actualizar precios" por porcentaje (por rubro o proveedor), y "Movimientos" para el kardex.
 - Producción: en Producción > Fórmulas se define qué insumos lleva cada producto elaborado (el costo se calcula solo). Luego "Orden de producción": elegís fórmula y cantidad; al "Terminar" se descuentan los insumos y entra el producto terminado al depósito con su costo actualizado.
+- Contable: los asientos se generan solos con cada operación. En Contable hay Resumen (resultado del período), Asientos (libro diario, con asiento manual), Mayor por cuenta, Libros IVA ventas y compras (exportables a CSV), Balance de sumas y saldos, Flujo de fondos (mes a mes y proyección a 30 días), Conciliación bancaria (se importa el CSV del home banking y se cruza solo) y Plan de cuentas.
+- Estadísticas: ventas por día/mes, por sucursal, mejores clientes, artículos más vendidos, rubros, vendedores, medios de cobro, proveedores y horas de venta, con selector de período.
 - Fondos: cajas, bancos y billeteras con saldo en tiempo real. Gasto, Ingreso y Transferir desde Fondos; turnos de caja con apertura y cierre; cartera de cheques en Fondos > Cheques (depositar, acreditar, rechazar).
 - Sin certificado AFIP las facturas se emiten simuladas (sin CAE). Se carga en Configuración > Puntos de venta y AFIP.
 Para cambiar de sucursal: selector arriba a la izquierda del encabezado. Para ver alertas: campana arriba a la derecha.

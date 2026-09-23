@@ -44,6 +44,7 @@ class SuscripcionService
             PuntoVenta::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'numero' => 1, 'modo' => 'electronico']);
             CuentaFondos::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'tipo' => 'caja', 'nombre' => 'Caja', 'es_default' => true]);
             \App\Models\Deposito::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'nombre' => 'Depósito principal', 'es_default' => true]);
+            \App\Services\Contabilidad\PlanCuentas::crear($empresa);
 
             $plan = Plan::findOrFail($d['plan_id']);
             $modo = $d['modo'] ?? 'trial';

@@ -72,6 +72,7 @@ class DashboardController extends Controller
                 'bajo_minimo' => (clone $prodActivos)->whereColumn('stock', '<=', 'stock_min')->count(),
                 'sin_stock' => (clone $prodActivos)->where('stock', '<=', 0)->count(),
                 'faltantes' => (clone $prodActivos)->whereColumn('stock', '<=', 'stock_min')->orderByRaw('stock - stock_min')->limit(5)->get()->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'stock' => (float) $p->stock, 'min' => (float) $p->stock_min, 'unit' => $p->unit]),
+                'resultado' => $user->puede('contable') ? app(\App\Services\Contabilidad\ContabilidadService::class)->resultado($user->business_id, now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()) : null,
                 'produccion' => $user->puede('produccion') ? [
                     'en_curso' => \App\Models\ProductionOrder::where('status', 'in_progress')->count(), 'pendientes' => \App\Models\ProductionOrder::where('status', 'pending')->count(),
                     'atrasadas' => \App\Models\ProductionOrder::whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->count(),

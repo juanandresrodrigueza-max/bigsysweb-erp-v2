@@ -79,6 +79,7 @@ class CobroService
             CuentaCorriente::recalcularSaldo($contact->id);
 
             AuditLog::registrar('crear', $cobro, "Cobro {$cobro->numeroFormateado()} a {$contact->name} por $ " . number_format($total, 2, ',', '.'));
+            app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($cobro->fresh(['medios', 'contact']));
             return $cobro->fresh(['medios', 'imputaciones']);
         });
     }
@@ -101,6 +102,7 @@ class CobroService
             $cobro->update(['estado' => 'anulado', 'notas' => trim(($cobro->notas ?? '') . "\nAnulado: {$motivo}")]);
             CuentaCorriente::recalcularSaldo($cobro->contact_id);
             AuditLog::registrar('anular', $cobro, "Anuló cobro {$cobro->numeroFormateado()}: {$motivo}");
+            app(\App\Services\Contabilidad\ContabilidadService::class)->anular('cobro', $cobro->id, $motivo);
         });
     }
 }

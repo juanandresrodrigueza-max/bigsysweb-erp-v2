@@ -179,6 +179,30 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/formulas/{id?}',           [\App\Http\Controllers\Produccion\ProduccionController::class, 'guardarFormula'])->middleware('permiso:produccion,editar');
     });
 
+    // Contable
+    Route::prefix('contable')->middleware('permiso:contable')->group(function () {
+        Route::get('/',                            [\App\Http\Controllers\Contable\ContableController::class, 'index']);
+        Route::post('/sincronizar',                [\App\Http\Controllers\Contable\ContableController::class, 'sincronizar'])->middleware('permiso:contable,crear');
+        Route::get('/asientos',                    [\App\Http\Controllers\Contable\ContableController::class, 'asientos']);
+        Route::post('/asientos',                   [\App\Http\Controllers\Contable\ContableController::class, 'guardarAsiento'])->middleware('permiso:contable,crear');
+        Route::post('/asientos/{id}/anular',       [\App\Http\Controllers\Contable\ContableController::class, 'anularAsiento'])->middleware('permiso:contable,anular');
+        Route::get('/plan',                        [\App\Http\Controllers\Contable\ContableController::class, 'plan']);
+        Route::post('/plan/{id?}',                 [\App\Http\Controllers\Contable\ContableController::class, 'guardarCuenta'])->middleware('permiso:contable,editar');
+        Route::get('/mayor',                       [\App\Http\Controllers\Contable\ContableController::class, 'mayor']);
+        Route::get('/iva',                         [\App\Http\Controllers\Contable\ContableController::class, 'iva']);
+        Route::get('/balance',                     [\App\Http\Controllers\Contable\ContableController::class, 'balance']);
+        Route::get('/flujo',                       [\App\Http\Controllers\Contable\ContableController::class, 'flujo']);
+        Route::get('/conciliacion',                [\App\Http\Controllers\Contable\ConciliacionController::class, 'index']);
+        Route::post('/conciliacion/importar',      [\App\Http\Controllers\Contable\ConciliacionController::class, 'importar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/automatica',    [\App\Http\Controllers\Contable\ConciliacionController::class, 'automatica'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/{id}/vincular', [\App\Http\Controllers\Contable\ConciliacionController::class, 'vincular'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/{id}/desvincular', [\App\Http\Controllers\Contable\ConciliacionController::class, 'desvincular'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/{id}/ignorar',  [\App\Http\Controllers\Contable\ConciliacionController::class, 'ignorar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/{id}/registrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrar'])->middleware('permiso:contable,crear');
+    });
+
+    Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
+
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
         Route::post('/empresa',    [EmpresaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('empresa.guardar');

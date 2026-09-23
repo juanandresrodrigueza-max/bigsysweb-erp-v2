@@ -118,6 +118,8 @@ class DemoSeeder extends Seeder
                 ExpenseCategory::create(['business_id' => $empresa->id, 'name' => $n, 'color' => $col]);
             }
 
+            \App\Services\Contabilidad\PlanCuentas::crear($empresa);
+
             // Un mes de facturas, algunas cobradas, dos presupuestos y un acopio, pasando por el servicio real.
             Auth::login($dueno);
             $comprobantes = app(ComprobanteService::class);
@@ -225,6 +227,19 @@ class DemoSeeder extends Seeder
             // Transferencia entre depósitos e inventario reciente
             $stock->transferir($depCentral, $depNorte, [['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 100], ['product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 20]], today()->subDays(3)->toDateString(), 'Reposición Norte');
             $stock->cerrarInventario($depNorte, [$productos->firstWhere('sku', 'LAD12')->id => 1985, $productos->firstWhere('sku', 'CAL25')->id => 20, $productos->firstWhere('sku', 'PIE01')->id => 11.5], today()->subDays(2)->toDateString(), 'Conteo mensual');
+
+            // Contabilidad: asientos de todo lo anterior + extracto bancario de prueba (con dos movimientos que el sistema no tiene)
+            app(\App\Services\Contabilidad\ContabilidadService::class)->sincronizar($empresa->id);
+            $csv = "Fecha;Concepto;Importe;Saldo\n";
+            $saldoExt = 0;
+            foreach (\App\Models\MovimientoFondos::where('cuenta_fondos_id', $banco->id)->orderBy('fecha')->orderBy('id')->get() as $mv) {
+                $imp = (float) $mv->ingreso - (float) $mv->egreso; $saldoExt += $imp;
+                if ($mv->id % 7 === 0) continue; // algunos movimientos del sistema todavía no llegaron al banco
+                $csv .= $mv->fecha->format('d/m/Y') . ';' . str_replace(';', ',', mb_strtoupper(mb_substr($mv->concepto, 0, 40))) . ';' . number_format($imp, 2, ',', '.') . ';' . number_format($saldoExt, 2, ',', '.') . "\n";
+            }
+            $csv .= today()->subDays(2)->format('d/m/Y') . ";COMISION MANTENIMIENTO CUENTA;-12.500,00;" . number_format($saldoExt - 12500, 2, ',', '.') . "\n";
+            $csv .= today()->subDays(1)->format('d/m/Y') . ";IMPUESTO LEY 25413 DEBITOS;-8.320,50;" . number_format($saldoExt - 20820.5, 2, ',', '.') . "\n";
+            app(\App\Services\Contabilidad\ConciliacionService::class)->importar($banco, $csv, 'galicia_septiembre.csv');
 
             Alerta::emitir(['business_id' => $empresa->id, 'modulo' => 'configuracion', 'tipo' => 'afip_cert', 'severidad' => 'info', 'titulo' => 'Certificado AFIP sin cargar', 'detalle' => 'Las facturas salen simuladas hasta que cargues certificado y clave en Configuración > Puntos de venta y AFIP.', 'url' => '/configuracion/puntos-venta']);
             Auth::logout();

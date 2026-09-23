@@ -111,6 +111,7 @@ class CompraService
             }
 
             AuditLog::registrar('crear', $c, "Registró compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->contact?->name}");
+            app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             return $c->fresh();
         });
     }
@@ -134,6 +135,7 @@ class CompraService
             }
             $c->forceFill(['estado' => 'anulado', 'anulado_en' => now(), 'saldo' => 0, 'stock_impactado' => false, 'notas' => trim(($c->notas ?? '') . "\nAnulada: {$motivo}")])->save();
             AuditLog::registrar('anular', $c, "Anuló compra {$c->numeroFormateado()}: {$motivo}");
+            app(\App\Services\Contabilidad\ContabilidadService::class)->anular('compra', $c->id, $motivo);
             return $c;
         });
     }

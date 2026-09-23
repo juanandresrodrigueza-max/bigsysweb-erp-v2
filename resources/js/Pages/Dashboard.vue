@@ -60,6 +60,12 @@
           </div>
           <p v-else class="text-sm text-marca-muted">Nada por debajo del mínimo.</p>
         </div>
+        <div v-if="operacion.resultado" class="card lg:col-span-3 grid sm:grid-cols-4 gap-3 items-center">
+          <div class="sm:col-span-1"><h2 class="font-bold">Resultado del mes</h2><p class="text-xs text-marca-muted">Según la contabilidad automática.</p><Link href="/contable" class="text-xs text-carmin font-semibold">Ver contable</Link></div>
+          <div class="p-3 rounded-xl bg-emerald-50"><p class="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Ingresos</p><p class="text-lg font-extrabold tabular-nums text-emerald-700">{{ moneda(operacion.resultado.total_ingresos, 0) }}</p></div>
+          <div class="p-3 rounded-xl bg-carmin-light"><p class="text-[11px] font-bold uppercase tracking-widest text-carmin">Egresos</p><p class="text-lg font-extrabold tabular-nums text-carmin">{{ moneda(operacion.resultado.total_egresos, 0) }}</p></div>
+          <div class="p-3 rounded-xl text-white" :class="operacion.resultado.resultado >= 0 ? 'bg-violeta-grad' : 'bg-carmin'"><p class="text-[11px] font-bold uppercase tracking-widest opacity-80">Resultado</p><p class="text-lg font-extrabold tabular-nums">{{ moneda(operacion.resultado.resultado, 0) }}</p></div>
+        </div>
         <div v-if="operacion.produccion" class="card">
           <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Producción</h2><Link href="/produccion" class="text-xs text-carmin font-semibold">Ver órdenes</Link></div>
           <div class="grid grid-cols-2 gap-3">
