@@ -23,7 +23,7 @@ class MisEmpresasController extends Controller
 
     private function resumen(Business $b, string $desde, string $hasta): array
     {
-        $ventas = Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->whereBetween('fecha', [$desde, $hasta])->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NCA', 'NCB', 'NCC', 'NDA', 'NDB', 'NDC']);
+        $ventas = Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->where('estado', 'emitido')->where('sin_arca', false)->whereBetween('fecha', [$desde, $hasta])->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NCA', 'NCB', 'NCC', 'NDA', 'NDB', 'NDC']);
         $compras = Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'compra')->where('estado', 'emitido')->whereBetween('fecha', [$desde, $hasta]);
         $signo = fn($q) => (float) $q->clone()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->sum('iva') - (float) $q->clone()->whereIn('tipo', ['NCA', 'NCB', 'NCC'])->sum('iva');
         $debito = $signo($ventas); $credito = (float) $compras->clone()->sum('iva');

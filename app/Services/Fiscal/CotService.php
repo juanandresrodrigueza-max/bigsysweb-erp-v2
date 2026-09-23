@@ -2,7 +2,9 @@
 
 namespace App\Services\Fiscal;
 
+use App\Models\Business;
 use App\Models\Comprobante;
+use Illuminate\Support\Facades\Http;
 
 // Remito electrónico: archivo para obtener el COT (Código de Operación de Traslado) de ARBA, según el diseño de registro
 // del aplicativo/web service "Remito Electrónico" (registros 01 encabezado, 02 remito, 03 productos, 04 pie). Se sube en la web de ARBA
@@ -33,6 +35,42 @@ class CotService
         }
         $lineas[] = implode('|', ['04', (string) $c->items->count()]);
         return implode("\r\n", $lineas) . "\r\n";
+    }
+
+    // --- Web service de ARBA: se sube el archivo y devuelve el COT en el momento ---
+    private const URL_PROD = 'https://cot.arba.gov.ar/TransporteBienes/SeguridadCliente/presentarRemitos.do';
+    private const URL_TEST = 'http://cot.test.arba.gov.ar/TransporteBienes/SeguridadCliente/presentarRemitos.do';
+
+    public function configurado(Business $b): bool { return ! empty($b->arba_settings['clave']); }
+
+    public function pedir(Comprobante $c): array
+    {
+        $b = $c->business;
+        abort_unless($this->configurado($b), 422, 'Cargá la clave CIT de ARBA en Configuración → Impuestos para pedir el COT desde acá.');
+        $archivo = $this->archivo($c); $nombre = $this->nombreArchivo($c);
+        $url = ($b->arba_settings['produccion'] ?? true) ? self::URL_PROD : self::URL_TEST;
+        $r = Http::timeout(30)->asMultipart()->attach('file', $archivo, $nombre)->post($url, ['user' => preg_replace('/\D/', '', (string) ($b->arba_settings['usuario'] ?: $b->cuit)), 'password' => $b->arba_settings['clave']]);
+        if (! $r->successful()) throw new \RuntimeException("ARBA respondió HTTP {$r->status()}.");
+        $res = $this->interpretar($r->body());
+        if ($res['error']) throw new \RuntimeException('ARBA rechazó el remito: ' . $res['error']);
+        $c->forceFill(['cot' => $res['cot']])->save();
+        \App\Models\AuditLog::registrar('editar', $c, "COT {$res['cot']} obtenido de ARBA por web service");
+        return $res;
+    }
+
+    // Respuesta XML de ARBA: <COT><tipoError/><codigoError/><mensajeError/><validacionesRemitos><remito><numeroUnico/><procesado>SI|NO</procesado><cot/><errores>...</errores></remito>...
+    public function interpretar(string $xml): array
+    {
+        $x = @simplexml_load_string(trim($xml));
+        if (! $x) return ['cot' => null, 'error' => 'Respuesta ilegible de ARBA: ' . mb_substr(strip_tags($xml), 0, 120)];
+        if (! empty((string) $x->mensajeError) || (! empty((string) $x->tipoError) && (string) $x->tipoError !== '' && (string) $x->tipoError !== '0')) return ['cot' => null, 'error' => trim((string) $x->mensajeError ?: (string) $x->tipoError)];
+        $rem = $x->validacionesRemitos->remito[0] ?? null;
+        if (! $rem) return ['cot' => null, 'error' => 'ARBA no devolvió el remito.'];
+        if (strtoupper((string) $rem->procesado) !== 'SI' || empty((string) $rem->cot)) {
+            $errs = []; foreach ($rem->errores->error ?? [] as $e) $errs[] = trim((string) $e->descripcion ?: (string) $e);
+            return ['cot' => null, 'error' => implode(' · ', array_filter($errs)) ?: 'Remito no procesado.'];
+        }
+        return ['cot' => (string) $rem->cot, 'numero_unico' => (string) $rem->numeroUnico, 'error' => null];
     }
 
     public function nombreArchivo(Comprobante $c): string

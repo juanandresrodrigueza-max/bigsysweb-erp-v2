@@ -77,7 +77,7 @@ class ComprobantesController extends Controller
             $c = $this->service->emitir($c);
             // Canje de puntos: la línea de descuento ya viene en los ítems; acá se descuentan los puntos del cliente.
             if ((float) ($data['canje_puntos'] ?? 0) > 0 && $c->contact) app(\App\Services\Ventas\FidelizacionService::class)->canjear($c->contact, (float) $data['canje_puntos'], "Canje en {$c->nombreTipo()} {$c->numeroFormateado()}");
-            $msg = "{$c->nombreTipo()} {$c->numeroFormateado()} emitido" . ($c->afip_estado === 'simulado' ? ' (simulado, sin CAE: configurá AFIP para emitir de verdad).' : '.');
+            $msg = "{$c->nombreTipo()} {$c->numeroFormateado()} emitido" . ($c->afip_estado === 'simulado' ? ' (simulado, sin CAE: configurá AFIP para emitir de verdad).' : ($c->sin_arca ? ' (interno, no informado a ARCA).' : '.'));
             return redirect("/comprobantes/{$c->id}")->with('success', $msg);
         }
         return redirect("/comprobantes/{$c->id}")->with('success', 'Borrador guardado.');
@@ -105,6 +105,7 @@ class ComprobantesController extends Controller
                 'sucursal' => $c->location?->name, 'usuario' => $c->user?->name, 'notas' => $c->notas, 'afip_respuesta' => $c->afip_respuesta,
                 'neto' => (float) $c->neto, 'iva' => (float) $c->iva, 'percepciones' => (float) $c->percepciones,
                 'impuestos' => $c->impuestos->map(fn($t) => ['tipo' => $t->tipo, 'nombre' => \App\Models\ComprobanteImpuesto::descripcion($t->tipo), 'alicuota' => (float) $t->alicuota, 'monto' => (float) $t->monto]),
+                'arba_ws' => app(\App\Services\Fiscal\CotService::class)->configurado($c->business),
                 'transporte' => $c->tipo === 'REM' ? ['transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega, 'cot' => $c->cot] : null,
             ]),
             'conversiones' => $this->conversionesPosibles($c),
@@ -166,6 +167,15 @@ class ComprobantesController extends Controller
     {
         $c = Comprobante::ventas()->with(['items.product', 'contact', 'business'])->findOrFail($id);
         return response($cot->archivo($c), 200, ['Content-Type' => 'text/plain; charset=ISO-8859-1', 'Content-Disposition' => 'attachment; filename="' . $cot->nombreArchivo($c) . '"']);
+    }
+
+    public function pedirCot(int $id, \App\Services\Fiscal\CotService $cot)
+    {
+        $c = Comprobante::ventas()->with(['items.product', 'contact', 'business'])->findOrFail($id);
+        try { $r = $cot->pedir($c); }
+        catch (\RuntimeException $e) { return back()->with('error', $e->getMessage()); }
+        catch (\Illuminate\Http\Client\ConnectionException $e) { return back()->with('error', 'No se pudo conectar con ARBA. Probá de nuevo o bajá el archivo y subilo en la web.'); }
+        return back()->with('success', "ARBA devolvió el COT {$r['cot']}. Ya sale impreso en el remito.");
     }
 
     public function guardarCot(int $id, Request $request)
@@ -236,6 +246,7 @@ class ComprobantesController extends Controller
             'es_acopio'       => 'boolean',
             'entrega_pendiente' => 'boolean',
             'fce'             => 'boolean',
+            'sin_arca'        => 'boolean',
             'fce_vto_pago'    => 'nullable|date',
             'notas'           => 'nullable|string|max:2000',
             'moneda'          => 'nullable|in:ARS,USD',
@@ -269,7 +280,7 @@ class ComprobantesController extends Controller
         [$clientes, $clientesParcial] = \App\Support\Catalogo::contactos('cliente', array_filter([$c?->contact_id, $origen?->contact_id, (int) $request->input('contact_id')]));
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
-                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
+                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'sin_arca' => $c->sin_arca, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
                 'transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
@@ -300,7 +311,7 @@ class ComprobantesController extends Controller
             'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'fecha_vto' => $c->fecha_vto?->format('d/m/Y'),
             'cliente' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'total_me' => (float) $c->total_me, 'proyecto' => $c->proyecto_id ? ['id' => $c->proyecto_id, 'codigo' => $c->proyecto?->codigo, 'nombre' => $c->proyecto?->nombre] : null,
             'estado' => $c->estado, 'estado_cobro' => $c->estadoCobro(), 'vencido' => $c->vencido(), 'afip_estado' => $c->afip_estado,
-            'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'afip_error' => $c->afip_estado === 'pendiente' ? (($c->afip_respuesta['explicacion']['que'] ?? null) ? ($c->afip_respuesta['explicacion']['que'] . ' ' . ($c->afip_respuesta['explicacion']['como'] ?? '')) : ($c->afip_respuesta['error'] ?? null)) : null, 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal(),
+            'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'afip_error' => $c->afip_estado === 'pendiente' ? (($c->afip_respuesta['explicacion']['que'] ?? null) ? ($c->afip_respuesta['explicacion']['que'] . ' ' . ($c->afip_respuesta['explicacion']['como'] ?? '')) : ($c->afip_respuesta['error'] ?? null)) : null, 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal() && ! $c->sin_arca, 'interno' => (bool) $c->sin_arca,
         ];
     }
 

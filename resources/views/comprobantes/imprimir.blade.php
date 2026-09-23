@@ -1,6 +1,7 @@
 @php
     $fmt = fn($n) => '$ ' . number_format((float) $n, 2, ',', '.');
-    $fiscal = $c->esFiscal();
+    $interno = (bool) $c->sin_arca;
+    $fiscal = $c->esFiscal() && ! $interno;
     $simulado = $c->afip_estado === 'simulado';
     $pendiente = $c->afip_estado === 'pendiente';
     $qr = $fiscal && $c->cae ? \App\Services\Afip\QrArca::imagen($c) : null;
@@ -33,7 +34,7 @@
 <body>
 <button class="btn" onclick="window.print()">Imprimir / PDF</button>
 <div class="hoja">
-  @if($simulado)<div class="marca">SIMULADO</div>@elseif($c->tipo === 'PRE')<div class="marca">PRESUPUESTO</div>@elseif($c->estado === 'anulado')<div class="marca">ANULADO</div>@endif
+  @if($interno)<div class="marca">NO VÁLIDO COMO FACTURA</div>@elseif($simulado)<div class="marca">SIMULADO</div>@elseif($c->tipo === 'PRE')<div class="marca">PRESUPUESTO</div>@elseif($c->estado === 'anulado')<div class="marca">ANULADO</div>@endif
   <div class="cab">
     <div>
       <div class="emp">{{ $b->razon_social ?? $b->name }}</div>
@@ -42,7 +43,7 @@
       <div>Tel: {{ $b->phone }} · {{ $b->email }}</div>
       <div><b>{{ $b->condicion_iva }}</b></div>
     </div>
-    <div class="letra"><b>{{ $c->def()['letra'] }}</b>@if($fiscal)<small>COD. {{ str_pad($c->def()['afip'], 3, '0', STR_PAD_LEFT) }}</small>@endif</div>
+    <div class="letra"><b>{{ $interno ? 'X' : $c->def()['letra'] }}</b>@if($fiscal)<small>COD. {{ str_pad($c->def()['afip'], 3, '0', STR_PAD_LEFT) }}</small>@endif</div>
     <div>
       <div class="tipo">{{ strtoupper($c->nombreTipo()) }}</div>
       <div class="num">N° {{ $c->numeroFormateado() ?? 'BORRADOR' }}</div>
@@ -92,7 +93,7 @@
   @endif
   @if($c->notas)<div style="padding:0 16px 12px;color:#6f6a62">{{ $c->notas }}</div>@endif
   <div class="pie">
-    <div style="display:flex;align-items:center;gap:10px">@if($qr)<img src="{{ $qr }}" alt="QR ARCA" style="width:82px;height:82px">@endif<span>@if($fiscal && $c->cae)Comprobante Autorizado · CAE: <b>{{ $c->cae }}</b> · Vto CAE: {{ $c->cae_vto?->format('d/m/Y') }}@elseif($fiscal && $pendiente)<span class="badge">PENDIENTE DE CAE · ARCA no respondió al emitir; se reintenta automáticamente. No válido como factura hasta que tenga CAE.</span>@elseif($fiscal && $simulado)<span class="badge">SIN CAE · comprobante simulado, no válido como factura</span>@elseif($c->tipo==='PRE')Presupuesto válido por 7 días.@endif</span></div>
+    <div style="display:flex;align-items:center;gap:10px">@if($qr)<img src="{{ $qr }}" alt="QR ARCA" style="width:82px;height:82px">@endif<span>@if($fiscal && $c->cae)Comprobante Autorizado · CAE: <b>{{ $c->cae }}</b> · Vto CAE: {{ $c->cae_vto?->format('d/m/Y') }}@elseif($fiscal && $pendiente)<span class="badge">PENDIENTE DE CAE · ARCA no respondió al emitir; se reintenta automáticamente. No válido como factura hasta que tenga CAE.</span>@elseif($fiscal && $simulado)<span class="badge">SIN CAE · comprobante simulado, no válido como factura</span>@elseif($interno)<span class="badge">COMPROBANTE INTERNO · documento no válido como factura, no informado a ARCA</span>@elseif($c->tipo==='PRE')Presupuesto válido por 7 días.@endif</span></div>
     <div>BigSysWeb · {{ now()->format('d/m/Y H:i') }}</div>
   </div>
 </div>

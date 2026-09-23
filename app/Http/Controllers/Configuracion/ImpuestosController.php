@@ -19,7 +19,7 @@ class ImpuestosController extends Controller
     {
         $b = $request->user()->business;
         return Inertia::render('Configuracion/Impuestos', [
-            'config' => $imp->config($b), 'cbu_fce' => $b->cbu_fce, 'cierre_mes' => (int) ($b->cierre_ejercicio_mes ?: 12),
+            'config' => $imp->config($b), 'cbu_fce' => $b->cbu_fce, 'arba' => ['usuario' => $b->arba_settings['usuario'] ?? '', 'clave_set' => ! empty($b->arba_settings['clave']), 'produccion' => $b->arba_settings['produccion'] ?? true], 'cierre_mes' => (int) ($b->cierre_ejercicio_mes ?: 12),
             'jurisdicciones' => PadronIibb::JURISDICCIONES,
             'padrones' => PadronIibb::selectRaw('jurisdiccion, COUNT(*) as n, MAX(updated_at) as actualizado')->groupBy('jurisdiccion')->get()->map(fn($r) => ['jurisdiccion' => $r->jurisdiccion, 'nombre' => PadronIibb::JURISDICCIONES[$r->jurisdiccion] ?? $r->jurisdiccion, 'n' => $r->n, 'actualizado' => $r->actualizado ? \Carbon\Carbon::parse($r->actualizado)->format('d/m/Y') : null]),
             'ipc' => IndiceIpc::orderByDesc('periodo')->limit(24)->get(['periodo', 'valor', 'fuente']),
@@ -30,9 +30,14 @@ class ImpuestosController extends Controller
     {
         $d = $request->validate([
             'impuestos' => 'required|array', 'cbu_fce' => 'nullable|string|max:22', 'cierre_mes' => 'required|integer|min:1|max:12',
+            'arba_usuario' => 'nullable|string|max:20', 'arba_clave' => 'nullable|string|max:120', 'arba_produccion' => 'boolean',
         ]);
         $b = $request->user()->business;
-        $b->update(['impuestos' => $d['impuestos'], 'cbu_fce' => $d['cbu_fce'] ? preg_replace('/\D/', '', $d['cbu_fce']) : null, 'cierre_ejercicio_mes' => $d['cierre_mes']]);
+        $arba = $b->arba_settings ?? [];
+        $arba['usuario'] = $d['arba_usuario'] ?? null; $arba['produccion'] = (bool) ($d['arba_produccion'] ?? true);
+        if (! empty($d['arba_clave'])) $arba['clave'] = $d['arba_clave'];
+        $b->arba_settings = $arba;
+        $b->update(['impuestos' => $d['impuestos'], 'cbu_fce' => ($d['cbu_fce'] ?? null) ? preg_replace('/\D/', '', $d['cbu_fce']) : null, 'cierre_ejercicio_mes' => $d['cierre_mes']]);
         AuditLog::registrar('editar', $b, 'Actualizó la configuración de impuestos');
         return back()->with('success', 'Configuración fiscal guardada.');
     }

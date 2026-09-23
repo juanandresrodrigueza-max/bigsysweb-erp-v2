@@ -33,6 +33,7 @@ class ComprobanteService
             abort_if($c->exists && $c->estado !== 'borrador', 422, 'Solo se pueden editar comprobantes en borrador.');
 
             $dias = (int) ($data['dias_vto'] ?? $contact?->dias_pago ?? $contact?->tipoCliente?->dias_pago ?? 0);
+            $origen = ($data['origen_id'] ?? $c->origen_id) ? Comprobante::find($data['origen_id'] ?? $c->origen_id) : null;
             $c->fill([
                 'contact_id'      => $contact?->id,
                 'vendedor_id'     => $data['vendedor_id'] ?? $c->vendedor_id ?? $contact?->vendedor_id ?? \App\Models\Vendedor::deUsuario($user->id)?->id,
@@ -45,6 +46,8 @@ class ComprobanteService
                 'es_acopio'       => (bool) ($data['es_acopio'] ?? false),
                 'entrega_pendiente' => (bool) ($data['entrega_pendiente'] ?? ($c->exists ? $c->entrega_pendiente : false)),
                 'fce'             => (bool) ($data['fce'] ?? ($c->exists ? $c->fce : false)),
+                // Interno = no se informa a ARCA. Una nota sobre un comprobante interno también es interna.
+                'sin_arca'        => (bool) ($data['sin_arca'] ?? ($c->exists ? $c->sin_arca : false)) || (bool) ($origen?->sin_arca ?? false),
                 'fce_vto_pago'    => ($data['fce'] ?? false) ? ($data['fce_vto_pago'] ?? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays((int) ($data['dias_vto'] ?? $contact?->dias_pago ?? 30))) : null,
                 'notas'           => $data['notas'] ?? null,
                 'proyecto_id'     => $data['proyecto_id'] ?? $c->proyecto_id,
@@ -124,7 +127,8 @@ class ComprobanteService
             $c->punto_venta = $pv->numero;
             $c->punto_venta_id = $pv->id;
 
-            $res = $this->afip->emitir($c, $business);
+            // Interno: no pasa por ARCA y numera aparte, para no pisar la numeración fiscal.
+            $res = $c->sin_arca && $c->esFiscal() ? ['estado' => 'interno', 'numero' => $pv->proximoNumero($c->tipo . '-X')] : $this->afip->emitir($c, $business);
             if ($res['estado'] === 'rechazado') {
                 $ex = $res['explicacion'] ?? null;
                 throw ValidationException::withMessages(['afip' => 'ARCA rechazó el comprobante: ' . ($ex ? "{$ex['que']} {$ex['como']} (detalle: {$res['error']})" : $res['error'])]);

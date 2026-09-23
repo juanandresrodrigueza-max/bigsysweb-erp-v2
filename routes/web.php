@@ -173,6 +173,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/{id}/convertir',     [ComprobantesController::class, 'convertir'])->middleware('permiso:comprobantes,crear');
         Route::get('/{id}/imprimir',       [ComprobantesController::class, 'imprimir']);
         Route::get('/{id}/cot',            [ComprobantesController::class, 'cot'])->whereNumber('id');
+        Route::post('/{id}/cot/pedir',     [ComprobantesController::class, 'pedirCot'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
         Route::post('/{id}/cot',           [ComprobantesController::class, 'guardarCot'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
     });
 

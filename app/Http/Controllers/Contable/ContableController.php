@@ -163,7 +163,7 @@ class ContableController extends Controller
 
     private function filasIva(string $libro, string $desde, string $hasta): array
     {
-        $q = Comprobante::with('contact:id,name,cuit,condicion_iva', 'impuestos')->where('estado', 'emitido')->where('direccion', $libro === 'ventas' ? 'venta' : 'compra')
+        $q = Comprobante::with('contact:id,name,cuit,condicion_iva', 'impuestos')->where('estado', 'emitido')->fiscales()->where('direccion', $libro === 'ventas' ? 'venta' : 'compra')
             ->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => $t['cc'] !== 0)))->whereBetween('fecha', [$desde, $hasta])->orderBy('fecha')->orderBy('id');
         return $q->get()->map(function ($c) {
             $s = $c->def()['cc'];

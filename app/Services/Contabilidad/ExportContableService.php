@@ -63,7 +63,7 @@ class ExportContableService
     private function iva(string $desde, string $hasta): string
     {
         $out = "Libro;Fecha;Tipo;Punto venta;Numero;Contacto;CUIT;Cond IVA;Neto;IVA;Exento;Percepciones;Total;CAE\n";
-        $cs = Comprobante::with('contact:id,name,cuit,condicion_iva')->where('estado', 'emitido')->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => $t['cc'] !== 0)))->whereBetween('fecha', [$desde, $hasta])->orderBy('direccion')->orderBy('fecha')->get();
+        $cs = Comprobante::with('contact:id,name,cuit,condicion_iva')->where('estado', 'emitido')->fiscales()->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => $t['cc'] !== 0)))->whereBetween('fecha', [$desde, $hasta])->orderBy('direccion')->orderBy('fecha')->get();
         foreach ($cs as $c) { $s = $c->def()['cc'] < 0 ? -1 : 1; $out .= implode(';', [$c->direccion === 'venta' ? 'Ventas' : 'Compras', $c->fecha->format('d/m/Y'), $c->nombreTipo(), $c->punto_venta, $c->numero, str_replace(';', ',', (string) $c->contact?->name), $c->contact?->cuit, $c->contact?->condicion_iva, number_format($s * (float) $c->neto, 2, ',', ''), number_format($s * (float) $c->iva, 2, ',', ''), number_format($s * (float) $c->exento, 2, ',', ''), number_format($s * (float) $c->percepciones, 2, ',', ''), number_format($s * (float) $c->total, 2, ',', ''), $c->cae]) . "\n"; }
         return "\xEF\xBB\xBF" . $out;
     }

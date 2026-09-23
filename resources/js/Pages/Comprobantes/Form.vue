@@ -57,7 +57,11 @@
             <input v-model="form.entrega_pendiente" type="checkbox" class="accent-violeta" />
             <span><b>Entrega pendiente</b> · se factura ahora y la mercadería sale después con remito (en una o varias entregas). El stock se descuenta con cada remito.</span>
           </label>
-          <label v-if="esFactura && cliente && cliente.condicion_iva === 'Responsable Inscripto'" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.fce ? 'border-carmin bg-red-50/40' : 'border-marca-borde'">
+          <label v-if="esFiscal && !form.origen_id" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.sin_arca ? 'border-amber-400 bg-amber-50/40' : 'border-marca-borde'">
+            <input :checked="!form.sin_arca" type="checkbox" class="accent-carmin" @change="form.sin_arca = !$event.target.checked" />
+            <span><b>Informar a ARCA</b> · con el tilde sale la factura electrónica con CAE. Sin el tilde queda como <b>comprobante interno</b>: numeración propia, sin CAE, no válido como factura y fuera de los libros de IVA.</span>
+          </label>
+          <label v-if="esFactura && !form.sin_arca && cliente && cliente.condicion_iva === 'Responsable Inscripto'" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.fce ? 'border-carmin bg-red-50/40' : 'border-marca-borde'">
             <input v-model="form.fce" type="checkbox" class="accent-carmin" />
             <span class="flex-1"><b>Factura de Crédito Electrónica MiPyME</b> · obligatoria si el cliente es empresa grande y el total supera el mínimo vigente. Vence a 30 días y se puede negociar.<span v-if="!cbuFce" class="text-carmin"> Falta el CBU en Configuración → Impuestos.</span></span>
             <span v-if="form.fce" class="flex items-center gap-1 text-xs whitespace-nowrap">Vto. pago <input v-model="form.fce_vto_pago" type="date" class="input !py-1 text-xs" @click.stop /></span>
@@ -126,7 +130,8 @@
             <p class="text-[11px] text-marca-muted text-center"><kbd class="px-1 rounded border border-marca-borde">Ctrl</kbd>+<kbd class="px-1 rounded border border-marca-borde">Enter</kbd> emite · <kbd class="px-1 rounded border border-marca-borde">Ctrl</kbd>+<kbd class="px-1 rounded border border-marca-borde">S</kbd> guarda · Enter en cantidad y precio pasa al siguiente</p>
             <Link :href="comprobante ? `/comprobantes/${comprobante.id}` : '/comprobantes'" class="btn-ghost w-full">Cancelar</Link>
           </div>
-          <p v-if="!afipConfigurado && esFiscal" class="text-[11px] text-amber-700 mt-3">Sin certificado AFIP se emite simulado (sin CAE).</p>
+          <p v-if="form.sin_arca && esFiscal" class="text-[11px] text-amber-700 mt-3">Se emite como comprobante interno: no se informa a ARCA.</p>
+          <p v-else-if="!afipConfigurado && esFiscal" class="text-[11px] text-amber-700 mt-3">Sin certificado AFIP se emite simulado (sin CAE).</p>
         </div>
       </div>
     </div>
@@ -183,7 +188,7 @@ function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
-  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
+  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, sin_arca: base?.sin_arca ?? false, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
   transportista: base?.transportista ?? '', transportista_cuit: base?.transportista_cuit ?? '', patente: base?.patente ?? '', bultos: base?.bultos ?? null, peso_kg: base?.peso_kg ?? null, domicilio_entrega: base?.domicilio_entrega ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false, moneda: base?.moneda ?? 'ARS', cotizacion: base?.cotizacion && base.cotizacion !== 1 ? base.cotizacion : null, proyecto_id: base?.proyecto_id ?? (new URLSearchParams(location.search).get('proyecto_id') ? Number(new URLSearchParams(location.search).get('proyecto_id')) : null),
 })

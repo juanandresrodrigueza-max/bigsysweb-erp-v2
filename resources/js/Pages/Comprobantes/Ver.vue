@@ -11,7 +11,8 @@
             <span v-if="c.estado === 'emitido' && c.estado_cobro !== 'na'" class="badge" :class="estadoCobro[c.estado_cobro].clase">{{ estadoCobro[c.estado_cobro].label }}</span>
             <span v-if="c.vencido" class="badge bg-carmin-light text-carmin">Vencido</span>
             <span v-if="c.es_acopio" class="badge bg-violeta-light text-violeta">Acopio</span>
-            <span v-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">CAE {{ c.cae }}</span>
+            <span v-if="c.interno" class="badge bg-amber-50 text-amber-700">Interno · no informado a ARCA</span>
+            <span v-else-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">CAE {{ c.cae }}</span>
             <span v-else-if="c.afip_estado === 'simulado'" class="badge bg-amber-50 text-amber-700">Sin CAE · simulado</span>
             <span v-else-if="c.afip_estado === 'pendiente'" class="badge bg-carmin-light text-carmin">Pendiente de CAE</span>
             <span v-if="c.entrega_pendiente && c.pendiente_entrega > 0" class="badge bg-amber-50 text-amber-700">Entrega pendiente</span>
@@ -91,6 +92,7 @@
             <p><b class="text-marca-texto">Patente:</b> {{ c.transporte.patente || '-' }} · <b class="text-marca-texto">Bultos:</b> {{ c.transporte.bultos ?? '-' }} · <b class="text-marca-texto">Peso:</b> {{ c.transporte.peso_kg != null ? c.transporte.peso_kg + ' kg' : '-' }}</p>
           </div>
           <div v-if="c.estado === 'emitido'" class="flex flex-wrap items-center gap-2 mt-3">
+            <Link v-if="c.arba_ws && !c.transporte.cot && puede('comprobantes', 'editar')" :href="`/comprobantes/${c.id}/cot/pedir`" method="post" as="button" preserve-scroll class="btn-primary !py-1 text-xs">Pedir COT a ARBA</Link>
             <a :href="`/comprobantes/${c.id}/cot`" class="btn-secondary !py-1 text-xs">Descargar archivo para COT (ARBA)</a>
             <form v-if="puede('comprobantes', 'editar')" class="flex gap-1" @submit.prevent="cotForm.post(`/comprobantes/${c.id}/cot`, { preserveScroll: true })"><input v-model="cotForm.cot" class="input !py-1 text-xs w-44" placeholder="Pegá el COT que devolvió ARBA" /><button class="btn-primary !py-1 text-xs" :disabled="cotForm.processing">Guardar COT</button></form>
           </div>

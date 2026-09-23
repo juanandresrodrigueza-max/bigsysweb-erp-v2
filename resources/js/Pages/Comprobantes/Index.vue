@@ -56,7 +56,8 @@
             <td>
               <span class="badge" :class="estadoComprobante[c.estado].clase">{{ estadoComprobante[c.estado].label }}</span>
               <span v-if="c.estado === 'emitido' && c.estado_cobro !== 'na'" class="badge ml-1" :class="estadoCobro[c.estado_cobro].clase">{{ estadoCobro[c.estado_cobro].label }}</span>
-              <span v-if="c.afip_estado === 'simulado'" class="badge ml-1 bg-amber-50 text-amber-700">Sin CAE</span>
+              <span v-if="c.interno" class="badge ml-1 bg-amber-50 text-amber-700">Interno</span>
+              <span v-else-if="c.afip_estado === 'simulado'" class="badge ml-1 bg-amber-50 text-amber-700">Sin CAE</span>
               <span v-else-if="c.afip_estado === 'pendiente'" class="badge ml-1 bg-carmin-light text-carmin">Pendiente CAE</span>
             </td>
             <td class="text-right"><a :href="`/comprobantes/${c.id}/imprimir`" target="_blank" @click.stop class="btn-ghost !px-2 text-xs" title="Imprimir">PDF</a></td>

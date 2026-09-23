@@ -26,7 +26,7 @@ class FiscalController extends Controller
     {
         [$desde, $hasta] = $this->periodo($request);
         $rets = $exp->retenciones($desde, $hasta);
-        $percep = \App\Models\ComprobanteImpuesto::whereHas('comprobante', fn($q) => $q->ventas()->emitidos()->whereBetween('fecha', [$desde, $hasta]))->where(fn($w) => $w->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->with('comprobante.contact:id,name,cuit')->get();
+        $percep = \App\Models\ComprobanteImpuesto::whereHas('comprobante', fn($q) => $q->ventas()->emitidos()->fiscales()->whereBetween('fecha', [$desde, $hasta]))->where(fn($w) => $w->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->with('comprobante.contact:id,name,cuit')->get();
         return Inertia::render('Contable/Fiscal', [
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
             'retenciones' => $rets->map(fn($r) => ['id' => $r->id, 'fecha' => $r->fecha->format('d/m/Y'), 'tipo' => Retencion::TIPOS[$r->tipo] ?? $r->tipo, 'proveedor' => $r->contact?->name, 'cuit' => $r->contact?->cuit, 'pago' => $r->pago?->numero, 'pago_id' => $r->pago_id, 'base' => (float) $r->base, 'alicuota' => (float) $r->alicuota, 'monto' => (float) $r->monto, 'certificado' => $r->certificado]),

@@ -46,7 +46,7 @@ class ExportacionesService
     public function percepciones(string $desde, string $hasta): string
     {
         $out = '';
-        $cs = Comprobante::ventas()->emitidos()->with('contact', 'impuestos')->whereBetween('fecha', [$desde, $hasta])->whereHas('impuestos', fn($q) => $q->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->orderBy('fecha')->get();
+        $cs = Comprobante::ventas()->emitidos()->fiscales()->with('contact', 'impuestos')->whereBetween('fecha', [$desde, $hasta])->whereHas('impuestos', fn($q) => $q->where('tipo', 'like', 'iibb%')->orWhere('tipo', 'like', 'perc_%'))->orderBy('fecha')->get();
         foreach ($cs as $c) {
             foreach ($c->impuestos->filter(fn($i) => str_starts_with($i->tipo, 'iibb') || str_starts_with($i->tipo, 'perc_')) as $i) {
                 $signo = $c->def()['cc'] < 0 ? -1 : 1;

@@ -203,4 +203,59 @@ class MercadoArgentinoTest extends ErpTestCase
         $this->assertTrue((bool) $cli->percepcion_iva); $this->assertTrue((bool) $cli->percepcion_ganancias);
         $this->get('/comprobantes/nuevo')->assertInertia(fn($pg) => $pg->component('Comprobantes/Form', false)->where('clientes.0.percepcion_iva', true));
     }
+
+    public function test_el_cot_se_pide_a_arba_por_web_service_con_la_clave_cit(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]);
+        $svc = app(\App\Services\Comprobantes\ComprobanteService::class);
+        $rem = $svc->emitir($svc->guardarBorrador(['contact_id' => $this->cliente()->id, 'tipo' => 'REM', 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]], 'transportista' => 'Pérez', 'patente' => 'AB123CD']));
+        // Sin clave: mensaje claro.
+        $this->post("/comprobantes/{$rem->id}/cot/pedir")->assertSessionHas("error");
+        $this->post('/configuracion/impuestos', ['impuestos' => ['agente_retencion' => false], 'cierre_mes' => 12, 'arba_clave' => 'CIT-secreta', 'arba_produccion' => false])->assertSessionHas('success');
+        $this->assertSame('CIT-secreta', $this->empresa->fresh()->arba_settings['clave']);
+        $this->get('/configuracion/impuestos')->assertInertia(fn($pg) => $pg->component('Configuracion/Impuestos', false)->where('arba.clave_set', true)->missing('arba.clave'));
+        Http::fake(['cot.test.arba.gov.ar/*' => Http::sequence()
+            ->push('<?xml version="1.0"?><COT><tipoError></tipoError><validacionesRemitos><remito><numeroUnico>R000100000003</numeroUnico><procesado>SI</procesado><cot>011234567890123</cot></remito></validacionesRemitos></COT>')
+            ->push('<?xml version="1.0"?><COT><tipoError>ERROR</tipoError><mensajeError>Clave incorrecta</mensajeError></COT>')]);
+        $this->post("/comprobantes/{$rem->id}/cot/pedir")->assertSessionHas('success');
+        $this->assertSame('011234567890123', $rem->fresh()->cot);
+        Http::assertSent(fn($r) => str_contains($r->url(), 'cot.test.arba.gov.ar') && $r->isMultipart() && collect($r->data())->contains(fn($d) => ($d['name'] ?? '') === 'password' && ($d['contents'] ?? '') === 'CIT-secreta'));
+        \App\Models\Comprobante::where('id', $rem->id)->update(['cot' => null]);
+        $this->post("/comprobantes/{$rem->id}/cot/pedir")->assertSessionHas('error');
+        $this->assertNull($rem->fresh()->cot);
+        // Interpretación de errores por remito.
+        $r = app(\App\Services\Fiscal\CotService::class)->interpretar('<COT><validacionesRemitos><remito><procesado>NO</procesado><errores><error><codigo>15</codigo><descripcion>Patente inválida</descripcion></error></errores></remito></validacionesRemitos></COT>');
+        $this->assertNull($r['cot']); $this->assertStringContainsString('Patente inválida', $r['error']);
+    }
+
+    public function test_sin_el_tilde_de_arca_la_factura_sale_como_comprobante_interno_y_no_entra_en_los_libros(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]);
+        $cli = $this->cliente();
+        // Una fiscal primero: numeración 1.
+        $fiscal = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $this->assertSame(1, (int) $fiscal->numero);
+        $this->post('/comprobantes', ['tipo' => 'FX', 'contact_id' => $cli->id, 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'sin_arca' => true, 'emitir' => true, 'items' => [['product_id' => $p->id, 'cantidad' => 2, 'precio_unit' => 100]]])->assertSessionHas('success');
+        $int = \App\Models\Comprobante::ventas()->where('sin_arca', true)->firstOrFail();
+        $this->assertSame('emitido', $int->estado); $this->assertSame('interno', $int->afip_estado); $this->assertNull($int->cae);
+        $this->assertSame(1, (int) $int->numero, 'Numera aparte: no gasta el número fiscal');
+        $this->assertSame('Comprobante interno', $int->nombreTipo());
+        // Impacta en cuenta corriente y stock como cualquier venta.
+        $this->assertEqualsWithDelta(242, (float) $int->saldo, 0.01); $this->assertSame(7.0, (float) $p->fresh()->stock);
+        // La siguiente fiscal sigue en 2.
+        $f2 = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $this->assertSame(2, (int) $f2->numero);
+        // Libros de IVA y fiscal no la incluyen; el contable sí (es una venta real).
+        $desde = today()->startOfMonth()->toDateString(); $hasta = today()->endOfMonth()->toDateString();
+        $this->get("/contable/iva?libro=ventas&desde={$desde}&hasta={$hasta}")->assertInertia(fn($pg) => $pg->component('Contable/Iva', false)->has('filas', 2));
+        $this->get("/contable/contador?desde={$desde}&hasta={$hasta}")->assertInertia(fn($pg) => $pg->component('Contable/Contador', false)->where('resumen.ventas', 2));
+        $this->assertTrue(\App\Models\Asiento::where('origen', 'venta')->where('origen_id', $int->id)->exists());
+        $this->get("/comprobantes/{$int->id}/imprimir")->assertOk()->assertSee('NO VÁLIDO COMO FACTURA')->assertSee('COMPROBANTE INTERNO')->assertDontSee('CAE:');
+        $this->get("/comprobantes/{$int->id}")->assertInertia(fn($pg) => $pg->component('Comprobantes/Ver', false)->where('c.interno', true)->where('c.fiscal', false));
+        // Una nota de crédito sobre un interno también es interna.
+        $this->post("/comprobantes/{$int->id}/convertir", ['tipo' => 'NCX'])->assertRedirect();
+        $nc = \App\Models\Comprobante::ventas()->where('origen_id', $int->id)->firstOrFail();
+        $this->assertTrue((bool) $nc->sin_arca);
+        $this->assertAsientosBalancean();
+    }
 }

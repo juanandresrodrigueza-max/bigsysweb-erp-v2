@@ -55,7 +55,7 @@ class LibroIvaDigitalService
 
     private function comprobantes(string $direccion, string $desde, string $hasta)
     {
-        return Comprobante::with('contact', 'items', 'impuestos')->where('direccion', $direccion)->where('estado', 'emitido')
+        return Comprobante::with('contact', 'items', 'impuestos')->where('direccion', $direccion)->where('estado', 'emitido')->fiscales()
             ->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => $t['afip'] !== null)))->whereBetween('fecha', [$desde, $hasta])->orderBy('fecha')->orderBy('id')->get();
     }
 

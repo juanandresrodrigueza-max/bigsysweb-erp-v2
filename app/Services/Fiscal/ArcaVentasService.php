@@ -15,7 +15,7 @@ class ArcaVentasService
     public function analizar(string $contenido): array
     {
         $filas = $this->leer($contenido);
-        $enSistema = Comprobante::ventas()->where('estado', '!=', 'borrador')->get()->keyBy(fn($c) => ($c->afipTipo() ?? 0) . '-' . (int) $c->punto_venta . '-' . (int) $c->numero);
+        $enSistema = Comprobante::ventas()->fiscales()->where('estado', '!=', 'borrador')->get()->keyBy(fn($c) => ($c->afipTipo() ?? 0) . '-' . (int) $c->punto_venta . '-' . (int) $c->numero);
         $faltan = []; $ok = 0;
         foreach ($filas as $f) {
             $k = $f['tipo'] . '-' . $f['pv'] . '-' . $f['numero'];

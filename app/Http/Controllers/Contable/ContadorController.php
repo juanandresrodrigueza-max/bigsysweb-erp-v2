@@ -27,7 +27,7 @@ class ContadorController extends Controller
             'contadores' => User::where('business_id', $b->id)->where('role_id', $rolContador?->id)->get()->concat($b->usuariosExternos()->get())->unique('id')->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'status' => $u->status, 'externo' => $u->business_id !== $b->id, 'empresas' => $u->empresasAccesibles()->count(), 'ultimo' => $u->last_login_at?->diffForHumans() ?? 'nunca entró']),
             'resumen' => [
                 'asientos' => \App\Models\Asiento::where('estado', 'confirmado')->whereBetween('fecha', [$desde, $hasta])->count(),
-                'ventas' => \App\Models\Comprobante::ventas()->emitidos()->whereBetween('fecha', [$desde, $hasta])->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NCA', 'NCB', 'NCC', 'NDA', 'NDB', 'NDC'])->count(),
+                'ventas' => \App\Models\Comprobante::ventas()->emitidos()->fiscales()->whereBetween('fecha', [$desde, $hasta])->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NCA', 'NCB', 'NCC', 'NDA', 'NDB', 'NDC'])->count(),
                 'compras' => \App\Models\Comprobante::compras()->emitidos()->whereBetween('fecha', [$desde, $hasta])->count(),
                 'retenciones' => \App\Models\Retencion::whereBetween('fecha', [$desde, $hasta])->count(),
             ],

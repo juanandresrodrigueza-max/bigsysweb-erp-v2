@@ -42,6 +42,13 @@
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3">
               <div><label class="label">CBU para Factura de Crédito MiPyME</label><input v-model="form.cbu_fce" class="input tabular-nums" maxlength="22" placeholder="22 dígitos" /><p class="text-[11px] text-marca-muted mt-1">Obligatorio para emitir FCE a empresas grandes.</p></div>
+              <div class="col-span-2 grid grid-cols-3 gap-3 p-3 rounded-xl bg-marca-fondo">
+                <p class="col-span-3 text-xs font-bold uppercase tracking-widest text-marca-muted">ARBA · COT por web service</p>
+                <div><label class="label">CUIT usuario</label><input v-model="form.arba_usuario" class="input" placeholder="El de la empresa" /></div>
+                <div><label class="label">Clave CIT {{ arba.clave_set ? '(vacío = no cambiar)' : '' }}</label><input v-model="form.arba_clave" type="password" class="input" autocomplete="off" /></div>
+                <label class="flex items-center gap-2 text-sm mt-6"><input v-model="form.arba_produccion" type="checkbox" class="accent-carmin" /> Producción</label>
+                <p class="col-span-3 text-[11px] text-marca-muted">Con la clave cargada, el remito pide el COT a ARBA con un clic. Sin clave, se baja el archivo y se sube a mano.</p>
+              </div>
               <div><label class="label">Mes de cierre de ejercicio</label><select v-model.number="form.cierre_mes" class="input"><option v-for="(m, i) in meses" :key="i" :value="i + 1">{{ m }}</option></select></div>
             </div>
           </div>
@@ -108,10 +115,10 @@ import { useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 import { entero } from '@/util/formato'
-const props = defineProps({ config: Object, cbu_fce: String, cierre_mes: Number, jurisdicciones: Object, padrones: Array, ipc: Array })
+const props = defineProps({ arba: { type: Object, default: () => ({}) }, config: Object, cbu_fce: String, cierre_mes: Number, jurisdicciones: Object, padrones: Array, ipc: Array })
 const ipc_lista = props.ipc
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-const form = useForm({ impuestos: JSON.parse(JSON.stringify(props.config)), cbu_fce: props.cbu_fce ?? '', cierre_mes: props.cierre_mes })
+const form = useForm({ impuestos: JSON.parse(JSON.stringify(props.config)), cbu_fce: props.cbu_fce ?? '', cierre_mes: props.cierre_mes, arba_usuario: props.arba.usuario ?? '', arba_clave: '', arba_produccion: props.arba.produccion ?? true })
 const padron = useForm({ jurisdiccion: 'ARBA', archivo: null })
 const ipc = useForm({ periodo: '', valor: null })
 const act = useForm({})
