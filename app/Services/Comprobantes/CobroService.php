@@ -89,6 +89,7 @@ class CobroService
 
             AuditLog::registrar('crear', $cobro, "Cobro {$cobro->numeroFormateado()} a {$contact->name} por $ " . number_format($total, 2, ',', '.'));
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($cobro->fresh(['medios', 'contact']));
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($cobro->business_id, 'cobro.registrado', ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'cliente' => ['id' => $contact->id, 'nombre' => $contact->name], 'total' => (float) $cobro->total, 'medios' => $cobro->medios->map(fn($m) => ['medio' => $m->medio, 'monto' => (float) $m->monto])->all()]);
             return $cobro->fresh(['medios', 'imputaciones']);
         });
     }

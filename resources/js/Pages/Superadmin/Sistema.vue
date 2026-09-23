@@ -39,12 +39,23 @@
         <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
       </div>
     </form>
+    <div class="card mt-4" :class="mt.activo ? 'border-carmin' : ''">
+      <h2 class="font-bold mb-1">Modo mantenimiento</h2>
+      <p class="text-sm text-marca-muted mb-3">Mientras está activo, todos los usuarios ven una pantalla de aviso (los superadmin siguen entrando). Usalo para migraciones o cambios grandes.</p>
+      <form @submit.prevent="mt.post('/admin/sistema/mantenimiento', { preserveScroll: true })" class="grid sm:grid-cols-3 gap-3 items-end">
+        <label class="flex items-center gap-2 text-sm font-semibold"><input v-model="mt.activo" type="checkbox" class="accent-carmin" /> Activar mantenimiento</label>
+        <div><label class="label">Mensaje</label><input v-model="mt.mensaje" class="input" placeholder="Estamos haciendo mejoras…" /></div>
+        <div><label class="label">Volvemos aprox.</label><input v-model="mt.hasta" class="input" placeholder="Ej. 22:30" /></div>
+        <div class="sm:col-span-3 flex justify-end"><button class="btn-primary" :disabled="mt.processing">{{ mt.activo ? 'Guardar y activar' : 'Guardar' }}</button></div>
+      </form>
+    </div>
   </AdminLayout>
 </template>
 
 <script setup>
 import { Link, useForm } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
-const props = defineProps({ config: Object, ia: Boolean, version: Object })
+const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object })
+const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const form = useForm({ ...props.config, mp_access_token: '' })
 </script>

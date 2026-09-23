@@ -116,6 +116,7 @@ class ClientesController extends Controller
         }
         $c->fill($data + ['is_active' => $data['is_active'] ?? true])->save();
         AuditLog::registrar($id ? 'editar' : 'crear', $c, "Cliente {$c->name}");
+        if (! $id) app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'cliente.creado', $c->only('id', 'name', 'cuit', 'email', 'phone', 'condicion_iva', 'lista_precios'));
         return $id ? back()->with('success', 'Cliente actualizado.') : redirect("/clientes/{$c->id}")->with('success', 'Cliente creado.');
     }
 

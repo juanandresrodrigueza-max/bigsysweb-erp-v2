@@ -16,6 +16,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        if (! $request->user()->business_id) return redirect($request->user()->is_superadmin ? '/admin' : '/login');
         $user     = $request->user();
         $periodo  = $request->input('periodo', 'mes');
         $sucursal = $user->current_location_id;

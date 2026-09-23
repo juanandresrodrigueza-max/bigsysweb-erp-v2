@@ -29,6 +29,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');
 });
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+Route::get('/login/verificar',  [LoginController::class, 'verificar'])->middleware('guest');
+Route::post('/login/verificar', [LoginController::class, 'verificarStore'])->middleware('guest');
 
 // Página pública de comprobantes: ver, PDF, aprobar presupuesto, pagar (sin login).
 Route::get('/p/{token}',                 [\App\Http\Controllers\PublicoController::class, 'ver']);
@@ -70,6 +72,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/usuarios/{id}',                     [\App\Http\Controllers\Superadmin\SistemaController::class, 'usuario']);
     Route::get('/sistema',                            [\App\Http\Controllers\Superadmin\SistemaController::class, 'configuracion']);
     Route::post('/sistema',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'guardarConfiguracion']);
+    Route::post('/sistema/mantenimiento',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'mantenimiento']);
+    Route::get('/soporte',                            [\App\Http\Controllers\SoporteController::class, 'admin']);
+    Route::post('/soporte/{id}/responder',            [\App\Http\Controllers\SoporteController::class, 'adminResponder']);
     Route::post('/sistema/revisar',                   [\App\Http\Controllers\Superadmin\SistemaController::class, 'revisarAhora']);
     Route::get('/auditoria',                          [\App\Http\Controllers\Superadmin\SistemaController::class, 'auditoria']);
 });
@@ -77,6 +82,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
 Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/', fn() => redirect(request()->user()?->is_superadmin && ! request()->user()->business_id ? '/admin' : '/dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permiso:dashboard')->name('dashboard');
+    Route::get('/primeros-pasos',            [\App\Http\Controllers\OnboardingController::class, 'index']);
+    Route::post('/primeros-pasos/marcar',    [\App\Http\Controllers\OnboardingController::class, 'marcar']);
+    Route::post('/primeros-pasos/completar', [\App\Http\Controllers\OnboardingController::class, 'completar']);
+    Route::get('/soporte',                   [\App\Http\Controllers\SoporteController::class, 'index']);
+    Route::post('/soporte',                  [\App\Http\Controllers\SoporteController::class, 'crear']);
+    Route::post('/soporte/{id}/responder',   [\App\Http\Controllers\SoporteController::class, 'responder']);
+    Route::post('/soporte/{id}/cerrar',      [\App\Http\Controllers\SoporteController::class, 'cerrar']);
 
     Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->name('sucursal.cambiar');
 
@@ -265,6 +277,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/ejercicio/{id}/reabrir',     [\App\Http\Controllers\Contable\EjercicioController::class, 'reabrir'])->middleware('permiso:contable,anular');
         Route::post('/ejercicio/ajuste',           [\App\Http\Controllers\Contable\EjercicioController::class, 'ajuste'])->middleware('permiso:contable,crear');
         Route::get('/diario',                      [\App\Http\Controllers\Contable\EjercicioController::class, 'diario']);
+        Route::get('/contador',                    [\App\Http\Controllers\Contable\ContadorController::class, 'index']);
+        Route::get('/contador/exportar',           [\App\Http\Controllers\Contable\ContadorController::class, 'exportar'])->middleware('permiso:contable,exportar');
+        Route::post('/contador/invitar',           [\App\Http\Controllers\Contable\ContadorController::class, 'invitar'])->middleware('permiso:configuracion,editar');
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
@@ -316,6 +331,26 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::delete('/roles/{id}',         [RolesController::class, 'eliminar'])->middleware('permiso:configuracion,anular')->name('roles.eliminar');
 
         Route::get('/auditoria',             [AuditoriaController::class, 'index'])->name('auditoria');
+        Route::get('/importar',              [\App\Http\Controllers\Configuracion\ImportarController::class, 'index'])->middleware('permiso:configuracion,editar');
+        Route::post('/importar/previsualizar', [\App\Http\Controllers\Configuracion\ImportarController::class, 'previsualizar'])->middleware('permiso:configuracion,editar');
+        Route::post('/importar/aplicar',     [\App\Http\Controllers\Configuracion\ImportarController::class, 'aplicar'])->middleware('permiso:configuracion,editar');
+        Route::get('/datos',                 [\App\Http\Controllers\Configuracion\DatosController::class, 'index']);
+        Route::post('/datos/backup',         [\App\Http\Controllers\Configuracion\DatosController::class, 'crear'])->middleware('permiso:configuracion,editar');
+        Route::get('/datos/backups/{id}',    [\App\Http\Controllers\Configuracion\DatosController::class, 'descargar'])->middleware('permiso:configuracion,editar');
+        Route::delete('/datos/backups/{id}', [\App\Http\Controllers\Configuracion\DatosController::class, 'eliminar'])->middleware('permiso:configuracion,editar');
+        Route::post('/datos/restaurar',      [\App\Http\Controllers\Configuracion\DatosController::class, 'restaurar'])->middleware('permiso:configuracion,editar');
+        Route::post('/datos/backup-auto',    [\App\Http\Controllers\Configuracion\DatosController::class, 'backupAuto'])->middleware('permiso:configuracion,editar');
+        Route::get('/seguridad',             [\App\Http\Controllers\Configuracion\SeguridadController::class, 'index']);
+        Route::post('/seguridad/2fa/iniciar',   [\App\Http\Controllers\Configuracion\SeguridadController::class, 'iniciar2fa']);
+        Route::post('/seguridad/2fa/confirmar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'confirmar2fa']);
+        Route::post('/seguridad/2fa/desactivar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'desactivar2fa']);
+        Route::post('/seguridad/sesiones/cerrar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'cerrarSesiones']);
+        Route::delete('/seguridad/sesiones/{id}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'cerrarSesion']);
+        Route::post('/seguridad/tokens',     [\App\Http\Controllers\Configuracion\SeguridadController::class, 'crearToken'])->middleware('permiso:configuracion,editar');
+        Route::delete('/seguridad/tokens/{id}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'borrarToken'])->middleware('permiso:configuracion,editar');
+        Route::post('/seguridad/webhooks/{id?}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'guardarWebhook'])->middleware('permiso:configuracion,editar');
+        Route::delete('/seguridad/webhooks/{id}', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'borrarWebhook'])->middleware('permiso:configuracion,editar');
+        Route::post('/seguridad/webhooks/{id}/probar', [\App\Http\Controllers\Configuracion\SeguridadController::class, 'probarWebhook'])->middleware('permiso:configuracion,editar');
         Route::get('/impuestos',             [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'index'])->name('impuestos');
         Route::post('/impuestos',            [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/impuestos/padron',     [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'importarPadron'])->middleware('permiso:configuracion,editar');

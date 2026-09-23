@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
             'suscripcion' => fn() => $user?->business ? $this->suscripcion($user) : null,
             'impersonando' => fn() => $request->session()->has('impersonando_desde') ? ['empresa' => $user?->business?->name] : null,
             'mensajeGlobal' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('mensaje_global') : null,
+            'onboarding' => fn() => $user?->business && ! $user->business->onboarding_completado_en && $user->esDueno() ? (function () use ($user) { $p = \App\Http\Controllers\OnboardingController::pasos($user->business); return ['hechos' => count(array_filter($p, fn($x) => $x['hecho'])), 'total' => count($p)]; })() : null,
             'alertas' => fn() => $user?->business_id ? [
                 'sin_leer' => Alerta::visiblesPara($user)->noLeidasPor($user->id)->count(),
                 'ultimas'  => Alerta::visiblesPara($user)->activas()->latest()->limit(6)->get()
@@ -62,6 +63,10 @@ class HandleInertiaRequests extends Middleware
                 'pos'     => fn() => $request->session()->get('pos'),
                 'abrir'   => fn() => $request->session()->get('abrir'),
                 'envio_id' => fn() => $request->session()->get('envio_id'),
+                'preview'  => fn() => $request->session()->get('preview'),
+                'totp_setup' => fn() => $request->session()->get('totp_setup'),
+                'totp_codigos' => fn() => $request->session()->get('totp_codigos'),
+                'token_nuevo' => fn() => $request->session()->get('token_nuevo'),
             ],
         ];
     }

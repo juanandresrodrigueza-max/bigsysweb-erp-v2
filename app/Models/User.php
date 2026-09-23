@@ -15,16 +15,18 @@ class User extends Authenticatable
 
     protected $fillable = [
         'business_id', 'role_id', 'current_location_id', 'name', 'email', 'password',
-        'status', 'language', 'avatar', 'is_superadmin', 'last_login_at',
+        'status', 'language', 'avatar', 'is_superadmin', 'last_login_at', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_enabled_at',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = [
+        'two_factor_secret', 'two_factor_recovery_codes','password', 'remember_token'];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'last_login_at'     => 'datetime',
+            'two_factor_enabled_at' => 'datetime',
             'password'          => 'hashed',
             'is_superadmin'     => 'boolean',
         ];

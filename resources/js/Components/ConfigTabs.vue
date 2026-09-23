@@ -18,6 +18,9 @@ const tabs = [
   { href: '/configuracion/roles', label: 'Roles y permisos' },
   { href: '/configuracion/puntos-venta', label: 'Puntos de venta y AFIP' },
   { href: '/configuracion/impuestos', label: 'Impuestos' },
+  { href: '/configuracion/importar', label: 'Importar datos' },
+  { href: '/configuracion/datos', label: 'Copias de seguridad' },
+  { href: '/configuracion/seguridad', label: 'Seguridad y API' },
   { href: '/configuracion/auditoria', label: 'Auditoría' },
   { href: '/suscripcion', label: 'Suscripción' },
 ]

@@ -27,6 +27,7 @@ class SistemaConfig extends Model
         'mensaje_global'     => null,
         'soporte_whatsapp'   => '+54 9 351 555-0000',
         'soporte_email'      => 'soporte@bigsys.com.ar',
+        'mantenimiento'      => ['activo' => false, 'mensaje' => null, 'hasta' => null],
     ];
 
     public static function get(string $clave, $default = null)

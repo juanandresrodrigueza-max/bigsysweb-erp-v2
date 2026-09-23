@@ -96,6 +96,7 @@ class PagoService
             CuentaCorriente::recalcularSaldo($proveedor->id);
 
             AuditLog::registrar('crear', $pago, "Pago {$pago->numeroFormateado()} a {$proveedor->name} por $ " . number_format($total, 2, ',', '.'));
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($pago->business_id, 'pago.registrado', ['id' => $pago->id, 'numero' => $pago->numeroFormateado(), 'fecha' => $pago->fecha?->toDateString(), 'proveedor' => ['id' => $proveedor->id, 'nombre' => $proveedor->name], 'total' => (float) $pago->total]);
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($pago->fresh(['medios', 'contact']));
             return $pago->fresh(['medios', 'imputaciones', 'retenciones']);
         });

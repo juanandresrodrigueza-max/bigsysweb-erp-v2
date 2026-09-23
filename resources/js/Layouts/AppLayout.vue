@@ -73,6 +73,11 @@
         <Link href="/admin/volver" method="post" as="button" class="ml-auto px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-xs font-semibold">Volver al panel</Link>
       </div>
       <div v-if="mensajeGlobal" class="px-4 md:px-6 py-2 bg-lavanda-light text-violeta text-sm flex items-center gap-2"><Icono nombre="info" clase="w-4 h-4 shrink-0" /><span>{{ mensajeGlobal }}</span></div>
+      <div v-if="onboarding && !$page.url.startsWith('/primeros-pasos')" class="px-4 md:px-6 py-2 bg-white border-b border-marca-borde text-sm flex items-center gap-3">
+        <span class="text-marca-muted">Primeros pasos: <b class="text-marca-texto">{{ onboarding.hechos }} de {{ onboarding.total }}</b> listos</span>
+        <div class="flex-1 max-w-48 h-1.5 rounded-full bg-marca-fondo"><div class="h-1.5 rounded-full bg-marca-grad" :style="{ width: (onboarding.hechos / onboarding.total * 100) + '%' }"></div></div>
+        <Link href="/primeros-pasos" class="text-xs font-bold text-carmin underline whitespace-nowrap">Seguir configurando</Link>
+      </div>
       <!-- Aviso de suscripción: solo a quien puede renovarla -->
       <div v-if="suscripcion?.aviso && suscripcion.puede" class="px-4 md:px-6 py-2 text-sm flex items-center gap-2" :class="{ info: 'bg-lavanda-light text-violeta', warn: 'bg-amber-50 text-amber-800', error: 'bg-carmin text-white' }[suscripcion.aviso.nivel]">
         <Icono :nombre="suscripcion.aviso.nivel === 'info' ? 'info' : 'alert'" clase="w-4 h-4 shrink-0" /><span>{{ suscripcion.aviso.texto }}</span>
@@ -99,7 +104,8 @@
             <Icono :nombre="item.icono" clase="w-5 h-5" /> {{ item.label }}
           </Link>
         </template>
-        <Link href="/logout" method="post" as="button" class="mt-6 flex items-center gap-2 text-sm text-white/70"><Icono nombre="logout" clase="w-4 h-4" /> Salir</Link>
+        <Link href="/soporte" class="mt-6 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Soporte</Link>
+        <Link href="/logout" method="post" as="button" class="mt-2 flex items-center gap-2 text-sm text-white/70"><Icono nombre="logout" clase="w-4 h-4" /> Salir</Link>
       </div>
     </div>
 
@@ -127,6 +133,7 @@ const flash = computed(() => page.props.flash)
 const suscripcion = computed(() => page.props.suscripcion)
 const impersonando = computed(() => page.props.impersonando)
 const mensajeGlobal = computed(() => page.props.mensajeGlobal)
+const onboarding = computed(() => page.props.onboarding)
 
 const abierto = ref(true)
 const movil = ref(false)

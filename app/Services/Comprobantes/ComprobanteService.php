@@ -133,6 +133,7 @@ class ComprobanteService
 
             AuditLog::registrar('emitir', $c, "Emitió {$c->nombreTipo()} {$c->numeroFormateado()}");
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
             return $c->fresh();
         });
     }
@@ -159,6 +160,7 @@ class ComprobanteService
             }
             $c->forceFill(['estado' => 'anulado', 'anulado_en' => now(), 'saldo' => 0, 'notas' => trim(($c->notas ?? '') . "\nAnulado: {$motivo}")])->save();
             AuditLog::registrar('anular', $c, "Anuló {$c->nombreTipo()} {$c->numeroFormateado()}: {$motivo}");
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.anulado', ['id' => $c->id, 'tipo' => $c->tipo, 'numero' => $c->numeroFormateado(), 'motivo' => $motivo]);
             app(\App\Services\Contabilidad\ContabilidadService::class)->anular('venta', $c->id, $motivo);
             return $c;
         });

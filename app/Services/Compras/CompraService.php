@@ -116,6 +116,7 @@ class CompraService
 
             if ($c->orden_compra_id) app(\App\Services\Compras\OrdenCompraService::class)->marcarRecibido($c);
             AuditLog::registrar('crear', $c, "Registró compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->contact?->name}");
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'compra.registrada', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             return $c->fresh();
         });

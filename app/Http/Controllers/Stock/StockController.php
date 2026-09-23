@@ -127,6 +127,7 @@ class StockController extends Controller
             app(StockService::class)->entrada($p, (float) $d['stock_inicial'], 'Stock inicial', null, $d['deposito_id'] ? Deposito::find($d['deposito_id']) : null, (float) $d['cost']);
         }
         AuditLog::registrar($id ? 'editar' : 'crear', $p, "Artículo {$p->name}", $antes, ['price' => (float) $d['price'], 'cost' => (float) $d['cost']]);
+        app(\App\Services\Integraciones\WebhookService::class)->disparar($p->business_id, 'articulo.actualizado', ['id' => $p->id, 'sku' => $p->sku, 'nombre' => $p->name, 'precio' => (float) $p->price, 'costo' => (float) $p->cost, 'stock' => (float) $p->stock, 'nuevo' => ! $id]);
         return back()->with('success', $id ? 'Artículo actualizado.' : "Artículo {$p->name} creado.");
     }
 

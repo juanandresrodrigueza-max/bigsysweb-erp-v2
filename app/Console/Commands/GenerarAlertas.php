@@ -32,6 +32,8 @@ class GenerarAlertas extends Command
                     ['business_location_id' => $p->business_location_id, 'modulo' => 'stock', 'severidad' => (float) $p->stock <= 0 ? 'critica' : 'aviso', 'titulo' => "{$p->name} bajo mínimo", 'detalle' => "Stock {$p->stock} {$p->unit}, mínimo {$p->stock_min}.", 'url' => '/stock', 'resuelta_en' => null]
                 );
             }
+            $nuevasBajo = $bajo->filter(fn($p) => ! Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'stock_minimo')->where('modelo_id', $p->id)->whereNull('resuelta_en')->where('created_at', '<', now()->subMinute())->exists());
+            foreach ($nuevasBajo as $p) app(\App\Services\Integraciones\WebhookService::class)->disparar($id, 'stock.bajo_minimo', ['id' => $p->id, 'sku' => $p->sku, 'nombre' => $p->name, 'stock' => (float) $p->stock, 'minimo' => (float) $p->stock_min]);
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'stock_minimo')->whereNull('resuelta_en')->whereNotIn('modelo_id', $bajo->pluck('id'))->update(['resuelta_en' => now()]);
 
             // Producción atrasada: órdenes abiertas cuya fecha programada ya pasó

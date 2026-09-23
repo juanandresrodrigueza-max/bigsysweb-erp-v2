@@ -77,6 +77,7 @@ class SistemaController extends Controller
         $c = SistemaConfig::todo();
         return Inertia::render('Superadmin/Sistema', [
             'config' => ['dias_prueba' => $c['dias_prueba'], 'dias_gracia' => $c['dias_gracia'], 'aviso_dias' => implode(',', (array) $c['aviso_dias']), 'mp_public_key' => $c['mp_public_key'], 'mp_access_token_set' => (bool) $c['mp_access_token'], 'transferencia_cbu' => $c['transferencia_cbu'], 'transferencia_alias' => $c['transferencia_alias'], 'transferencia_titular' => $c['transferencia_titular'], 'mensaje_global' => $c['mensaje_global'], 'soporte_whatsapp' => $c['soporte_whatsapp'], 'soporte_email' => $c['soporte_email']],
+            'mantenimiento' => $c['mantenimiento'] ?? SistemaConfig::DEFAULTS['mantenimiento'],
             'ia' => (bool) config('services.anthropic.api_key'),
             'version' => ['php' => PHP_VERSION, 'laravel' => app()->version(), 'db' => config('database.default')],
         ]);
@@ -92,6 +93,14 @@ class SistemaController extends Controller
         }
         AuditLog::registrar('editar', null, 'Parámetros del sistema');
         return back()->with('success', 'Configuración guardada.');
+    }
+
+    public function mantenimiento(Request $request)
+    {
+        $d = $request->validate(['activo' => 'boolean', 'mensaje' => 'nullable|string|max:300', 'hasta' => 'nullable|string|max:60']);
+        SistemaConfig::set('mantenimiento', ['activo' => (bool) ($d['activo'] ?? false), 'mensaje' => $d['mensaje'] ?? null, 'hasta' => $d['hasta'] ?? null]);
+        AuditLog::registrar('editar', null, ($d['activo'] ?? false) ? 'Activó el modo mantenimiento' : 'Desactivó el modo mantenimiento');
+        return back()->with('success', ($d['activo'] ?? false) ? 'Modo mantenimiento activado: los usuarios ven el aviso; los superadmin siguen entrando.' : 'Modo mantenimiento desactivado.');
     }
 
     public function revisarAhora(SuscripcionService $service)

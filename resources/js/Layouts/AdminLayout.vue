@@ -61,6 +61,7 @@ const items = [
   { href: '/admin/planes', label: 'Planes', icono: 'receipt' },
   { href: '/admin/cobros', label: 'Cobros', icono: 'wallet' },
   { href: '/admin/usuarios', label: 'Usuarios', icono: 'users' },
+  { href: '/admin/soporte', label: 'Soporte', icono: 'info' },
   { href: '/admin/sistema', label: 'Sistema', icono: 'settings' },
   { href: '/admin/auditoria', label: 'Auditoría', icono: 'history' },
 ]
