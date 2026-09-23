@@ -63,7 +63,24 @@ class DashboardController extends Controller
         $destacadas = Alerta::visiblesPara($user)->activas()->orderByRaw("CASE severidad WHEN 'critica' THEN 0 WHEN 'aviso' THEN 1 ELSE 2 END")->latest()->limit(6)->get()
             ->map(fn($a) => ['id' => $a->id, 'titulo' => $a->titulo, 'detalle' => $a->detalle, 'severidad' => $a->severidad, 'url' => $a->url, 'hace' => $a->created_at->diffForHumans()]);
 
-        return Inertia::render('Dashboard', compact('kpis', 'serie', 'ultimas', 'destacadas', 'periodo'));
+        // Operación: stock y producción (crece con cada fase)
+        $operacion = null;
+        if ($user->puede('stock')) {
+            $prodActivos = Product::where('active', true)->where('controla_stock', true);
+            $operacion = [
+                'valorizado' => (float) (clone $prodActivos)->selectRaw('COALESCE(SUM(stock * cost),0) as v')->value('v'),
+                'bajo_minimo' => (clone $prodActivos)->whereColumn('stock', '<=', 'stock_min')->count(),
+                'sin_stock' => (clone $prodActivos)->where('stock', '<=', 0)->count(),
+                'faltantes' => (clone $prodActivos)->whereColumn('stock', '<=', 'stock_min')->orderByRaw('stock - stock_min')->limit(5)->get()->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'stock' => (float) $p->stock, 'min' => (float) $p->stock_min, 'unit' => $p->unit]),
+                'produccion' => $user->puede('produccion') ? [
+                    'en_curso' => \App\Models\ProductionOrder::where('status', 'in_progress')->count(), 'pendientes' => \App\Models\ProductionOrder::where('status', 'pending')->count(),
+                    'atrasadas' => \App\Models\ProductionOrder::whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->count(),
+                    'terminadas_mes' => \App\Models\ProductionOrder::where('status', 'completed')->where('completed_at', '>=', now()->startOfMonth())->count(),
+                ] : null,
+            ];
+        }
+
+        return Inertia::render('Dashboard', compact('kpis', 'serie', 'ultimas', 'destacadas', 'periodo', 'operacion'));
     }
 
     private function rango(string $periodo): array

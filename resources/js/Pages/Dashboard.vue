@@ -46,6 +46,31 @@
         <p v-else class="text-sm text-marca-muted py-6 text-center">Todo en orden.</p>
       </div>
 
+      <template v-if="operacion">
+        <div class="card" :class="operacion.produccion ? 'lg:col-span-2' : 'lg:col-span-3'">
+          <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Stock</h2><Link href="/stock" class="text-xs text-carmin font-semibold">Ver stock</Link></div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Valorizado</p><p class="text-lg font-extrabold tabular-nums">{{ moneda(operacion.valorizado, 0) }}</p></div>
+            <Link href="/stock?estado=bajo_minimo" class="p-3 rounded-xl bg-marca-fondo hover:bg-amber-50"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Bajo mínimo</p><p class="text-lg font-extrabold tabular-nums" :class="operacion.bajo_minimo ? 'text-amber-600' : ''">{{ operacion.bajo_minimo }}</p></Link>
+            <Link href="/stock?estado=sin_stock" class="p-3 rounded-xl bg-marca-fondo hover:bg-carmin-light"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Sin stock</p><p class="text-lg font-extrabold tabular-nums" :class="operacion.sin_stock ? 'text-carmin' : ''">{{ operacion.sin_stock }}</p></Link>
+          </div>
+          <div v-if="operacion.faltantes.length" class="text-sm">
+            <p class="text-xs text-marca-muted mb-1">Para reponer</p>
+            <Link v-for="f in operacion.faltantes" :key="f.id" :href="`/stock/${f.id}`" class="flex justify-between py-1 border-t border-marca-borde/60 hover:text-carmin"><span>{{ f.nombre }}</span><span class="tabular-nums" :class="f.stock <= 0 ? 'text-carmin font-semibold' : 'text-amber-600'">{{ f.stock }} / mín. {{ f.min }} {{ f.unit }}</span></Link>
+          </div>
+          <p v-else class="text-sm text-marca-muted">Nada por debajo del mínimo.</p>
+        </div>
+        <div v-if="operacion.produccion" class="card">
+          <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Producción</h2><Link href="/produccion" class="text-xs text-carmin font-semibold">Ver órdenes</Link></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">En curso</p><p class="text-lg font-extrabold tabular-nums">{{ operacion.produccion.en_curso }}</p></div>
+            <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Pendientes</p><p class="text-lg font-extrabold tabular-nums">{{ operacion.produccion.pendientes }}</p></div>
+            <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Atrasadas</p><p class="text-lg font-extrabold tabular-nums" :class="operacion.produccion.atrasadas ? 'text-carmin' : ''">{{ operacion.produccion.atrasadas }}</p></div>
+            <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Terminadas mes</p><p class="text-lg font-extrabold tabular-nums">{{ operacion.produccion.terminadas_mes }}</p></div>
+          </div>
+        </div>
+      </template>
+
       <div class="card lg:col-span-3">
         <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Últimos comprobantes</h2><Link href="/comprobantes" class="text-xs text-carmin font-semibold">Ver todos</Link></div>
         <div class="overflow-x-auto">
@@ -75,7 +100,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
 import { estadoCobro } from '@/util/formato'
 
-const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String })
+const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String, operacion: Object })
 const page = usePage()
 const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0])
 const periodos = [{ key: 'hoy', label: 'Hoy' }, { key: 'semana', label: 'Semana' }, { key: 'mes', label: 'Mes' }, { key: 'trimestre', label: 'Trimestre' }, { key: 'anio', label: 'Año' }]

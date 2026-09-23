@@ -47,6 +47,9 @@ class SucursalesController extends Controller
         $sucursal = $id ? $b->locations()->findOrFail($id) : new BusinessLocation(['business_id' => $b->id]);
         $antes = $sucursal->exists ? $sucursal->only(array_keys($data)) : null;
         $sucursal->fill($data)->save();
+        if (! $id) {
+            \App\Models\Deposito::porDefecto($sucursal->id); // crea el depósito principal de la sucursal nueva
+        }
 
         if ($data['is_default'] ?? false) {
             $b->locations()->where('id', '!=', $sucursal->id)->update(['is_default' => false]);

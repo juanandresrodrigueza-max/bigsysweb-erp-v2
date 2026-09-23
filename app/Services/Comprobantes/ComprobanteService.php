@@ -19,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class ComprobanteService
 {
-    public function __construct(private AfipEmisor $afip) {}
+    public function __construct(private AfipEmisor $afip, private \App\Services\Stock\StockService $stock) {}
 
     // Crea o actualiza un borrador con sus ítems y recalcula totales.
     public function guardarBorrador(array $data, ?Comprobante $c = null): Comprobante
@@ -209,22 +209,12 @@ class ComprobanteService
             return;
         }
         $sentido = $c->esNotaCredito() ? 1 : -1; // NC devuelve mercadería
+        $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
         foreach ($c->items as $it) {
-            if (! $it->product_id) {
+            if (! $it->product_id || ! ($p = Product::find($it->product_id))) {
                 continue;
             }
-            $p = Product::lockForUpdate()->find($it->product_id);
-            if (! $p) {
-                continue;
-            }
-            $antes = (float) $p->stock;
-            $p->stock = $antes + $sentido * (float) $it->cantidad;
-            $p->save();
-            StockMovement::create([
-                'business_id' => $c->business_id, 'business_location_id' => $c->business_location_id, 'product_id' => $p->id, 'user_id' => Auth::id(),
-                'type' => $sentido > 0 ? 'in' : 'out', 'quantity' => (float) $it->cantidad, 'stock_before' => $antes, 'stock_after' => (float) $p->stock,
-                'reason' => "{$c->nombreTipo()} {$c->numeroFormateado()}", 'movable_id' => $c->id, 'movable_type' => Comprobante::class,
-            ]);
+            $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "{$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id);
         }
         $c->forceFill(['stock_impactado' => true])->save();
     }
@@ -232,22 +222,12 @@ class ComprobanteService
     private function revertirStock(Comprobante $c): void
     {
         $sentido = $c->esNotaCredito() ? -1 : 1;
+        $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
         foreach ($c->items as $it) {
-            if (! $it->product_id) {
+            if (! $it->product_id || ! ($p = Product::find($it->product_id))) {
                 continue;
             }
-            $p = Product::lockForUpdate()->find($it->product_id);
-            if (! $p) {
-                continue;
-            }
-            $antes = (float) $p->stock;
-            $p->stock = $antes + $sentido * (float) $it->cantidad;
-            $p->save();
-            StockMovement::create([
-                'business_id' => $c->business_id, 'business_location_id' => $c->business_location_id, 'product_id' => $p->id, 'user_id' => Auth::id(),
-                'type' => $sentido > 0 ? 'in' : 'out', 'quantity' => (float) $it->cantidad, 'stock_before' => $antes, 'stock_after' => (float) $p->stock,
-                'reason' => "Anulación {$c->nombreTipo()} {$c->numeroFormateado()}", 'movable_id' => $c->id, 'movable_type' => Comprobante::class,
-            ]);
+            $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Anulación {$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id);
         }
         $c->forceFill(['stock_impactado' => false])->save();
     }

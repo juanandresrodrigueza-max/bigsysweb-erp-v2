@@ -34,6 +34,16 @@ class GenerarAlertas extends Command
             }
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'stock_minimo')->whereNull('resuelta_en')->whereNotIn('modelo_id', $bajo->pluck('id'))->update(['resuelta_en' => now()]);
 
+            // Producción atrasada: órdenes abiertas cuya fecha programada ya pasó
+            $atrasadas = \App\Models\ProductionOrder::withoutGlobalScopes()->where('business_id', $id)->whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->with('product:id,name,unit')->get();
+            foreach ($atrasadas as $o) {
+                Alerta::withoutGlobalScopes()->updateOrCreate(
+                    ['business_id' => $id, 'tipo' => 'produccion_atrasada', 'modelo' => 'ProductionOrder', 'modelo_id' => $o->id],
+                    ['business_location_id' => $o->business_location_id, 'modulo' => 'produccion', 'severidad' => 'aviso', 'titulo' => "{$o->numeroFormateado()} atrasada", 'detalle' => "{$o->quantity} {$o->product?->unit} de {$o->product?->name} programados para el " . $o->scheduled_at->format('d/m') . '.', 'url' => '/produccion', 'resuelta_en' => null]
+                );
+            }
+            Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'produccion_atrasada')->whereNull('resuelta_en')->whereNotIn('modelo_id', $atrasadas->pluck('id'))->update(['resuelta_en' => now()]);
+
             // Mora: facturas vencidas con saldo
             $vencidas = Comprobante::withoutGlobalScopes()->where('business_id', $id)->ventas()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005)->whereDate('fecha_vto', '<', today())->get()->groupBy('contact_id');
             foreach ($vencidas as $contactId => $comps) {

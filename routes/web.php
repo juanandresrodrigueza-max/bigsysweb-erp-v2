@@ -150,6 +150,35 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cheques/{id}/debitar',   [ChequesController::class, 'debitar'])->middleware('permiso:fondos,editar');
     });
 
+    // Stock
+    Route::prefix('stock')->middleware('permiso:stock')->group(function () {
+        Route::get('/',                          [\App\Http\Controllers\Stock\StockController::class, 'index']);
+        Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar');
+        Route::get('/movimientos',               [\App\Http\Controllers\Stock\StockController::class, 'movimientos']);
+        Route::post('/ajustar',                  [\App\Http\Controllers\Stock\StockController::class, 'ajustar'])->middleware('permiso:stock,editar');
+        Route::post('/transferir',               [\App\Http\Controllers\Stock\StockController::class, 'transferir'])->middleware('permiso:stock,crear');
+        Route::post('/transferencias/{id}/anular', [\App\Http\Controllers\Stock\StockController::class, 'anularTransferencia'])->middleware('permiso:stock,anular');
+        Route::get('/inventario',                [\App\Http\Controllers\Stock\StockController::class, 'inventario'])->middleware('permiso:stock,editar');
+        Route::post('/inventario',               [\App\Http\Controllers\Stock\StockController::class, 'cerrarInventario'])->middleware('permiso:stock,editar');
+        Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
+        Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
+        Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::delete('/rubros/{id}',            [\App\Http\Controllers\Stock\StockController::class, 'eliminarRubro'])->middleware('permiso:stock,editar');
+        Route::post('/precios',                  [\App\Http\Controllers\Stock\StockController::class, 'actualizarPrecios'])->middleware('permiso:stock,editar');
+        Route::get('/{id}',                      [\App\Http\Controllers\Stock\StockController::class, 'show'])->whereNumber('id');
+    });
+
+    // Producción
+    Route::prefix('produccion')->middleware('permiso:produccion')->group(function () {
+        Route::get('/',                          [\App\Http\Controllers\Produccion\ProduccionController::class, 'index']);
+        Route::post('/ordenes',                  [\App\Http\Controllers\Produccion\ProduccionController::class, 'crear'])->middleware('permiso:produccion,crear');
+        Route::post('/ordenes/{id}/iniciar',     [\App\Http\Controllers\Produccion\ProduccionController::class, 'iniciar'])->middleware('permiso:produccion,editar');
+        Route::post('/ordenes/{id}/terminar',    [\App\Http\Controllers\Produccion\ProduccionController::class, 'terminar'])->middleware('permiso:produccion,editar');
+        Route::post('/ordenes/{id}/cancelar',    [\App\Http\Controllers\Produccion\ProduccionController::class, 'cancelar'])->middleware('permiso:produccion,anular');
+        Route::get('/formulas',                  [\App\Http\Controllers\Produccion\ProduccionController::class, 'formulas']);
+        Route::post('/formulas/{id?}',           [\App\Http\Controllers\Produccion\ProduccionController::class, 'guardarFormula'])->middleware('permiso:produccion,editar');
+    });
+
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
         Route::post('/empresa',    [EmpresaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('empresa.guardar');

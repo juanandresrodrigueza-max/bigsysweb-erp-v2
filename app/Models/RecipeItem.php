@@ -10,4 +10,5 @@ class RecipeItem extends Model
 
     public function recipe() { return $this->belongsTo(Recipe::class); }
     public function material() { return $this->belongsTo(Product::class, 'product_id'); }
+    public function product() { return $this->belongsTo(Product::class, 'product_id'); }
 }

@@ -79,7 +79,9 @@ class AgenteController extends Controller
             'cheques_cartera' => (float) \App\Models\Cheque::enCartera()->sum('monto'),
             'cheques_propios' => (float) \App\Models\Cheque::propiosPendientes()->sum('monto'),
             'productos'      => Product::where('active', true)->count(),
-            'bajo_minimo'    => Product::where('active', true)->whereColumn('stock', '<=', 'stock_min')->count(),
+            'bajo_minimo'    => Product::where('active', true)->where('controla_stock', true)->whereColumn('stock', '<=', 'stock_min')->count(),
+            'stock_valorizado' => (float) Product::where('active', true)->where('controla_stock', true)->selectRaw('COALESCE(SUM(stock * cost),0) as v')->value('v'),
+            'ordenes_abiertas' => \App\Models\ProductionOrder::whereIn('status', ['pending', 'in_progress'])->count(),
             'alertas'        => Alerta::visiblesPara($user)->activas()->latest()->limit(5)->pluck('titulo')->all(),
             'modulos'        => $user->modulosVisibles(),
         ];
@@ -111,7 +113,8 @@ Datos del negocio (sucursal y empresa del usuario):
 - Dinero disponible en cajas, bancos y billeteras: {$fmt($c['disponible'])}
 - Cheques de terceros en cartera: {$fmt($c['cheques_cartera'])}; cheques propios entregados a debitar: {$fmt($c['cheques_propios'])}
 - Clientes: {$c['clientes']}
-- Productos activos: {$c['productos']}, bajo mínimo: {$c['bajo_minimo']}
+- Productos activos: {$c['productos']}, bajo mínimo: {$c['bajo_minimo']}, stock valorizado a costo: {$fmt($c['stock_valorizado'])}
+- Órdenes de producción abiertas: {$c['ordenes_abiertas']}
 Alertas activas:
 {$alertas}
 
@@ -124,6 +127,8 @@ Cómo se hacen las cosas:
 - Facturar varios presupuestos o remitos juntos: Comprobantes > Facturación por lote.
 - Cargar una factura de proveedor: Proveedores > Compras > "Cargar factura" (a mano, con foto/PDF leído por IA, o "Importar de AFIP" con el CSV de Mis Comprobantes). Al registrar impacta cuenta corriente y stock.
 - Pagar a un proveedor: Proveedores > ficha > "Registrar pago": transferencia, efectivo, cheque propio, endoso de cheque de tercero o retención; se imputa a facturas y se imprime la orden de pago.
+- Stock: cada sucursal tiene depósitos; el stock se ve por depósito y total. Desde Stock: nuevo artículo (con listas de precios 1 a 5), ajustar stock desde la ficha del artículo, "Transferir" entre depósitos, "Inventario" para contar un depósito completo, "Actualizar precios" por porcentaje (por rubro o proveedor), y "Movimientos" para el kardex.
+- Producción: en Producción > Fórmulas se define qué insumos lleva cada producto elaborado (el costo se calcula solo). Luego "Orden de producción": elegís fórmula y cantidad; al "Terminar" se descuentan los insumos y entra el producto terminado al depósito con su costo actualizado.
 - Fondos: cajas, bancos y billeteras con saldo en tiempo real. Gasto, Ingreso y Transferir desde Fondos; turnos de caja con apertura y cierre; cartera de cheques en Fondos > Cheques (depositar, acreditar, rechazar).
 - Sin certificado AFIP las facturas se emiten simuladas (sin CAE). Se carga en Configuración > Puntos de venta y AFIP.
 Para cambiar de sucursal: selector arriba a la izquierda del encabezado. Para ver alertas: campana arriba a la derecha.

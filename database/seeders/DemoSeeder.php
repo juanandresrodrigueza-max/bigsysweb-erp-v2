@@ -73,16 +73,24 @@ class DemoSeeder extends Seeder
                 ['Mayorista', 2, 30, 5, 2000000, '#4f3089'], ['Minorista', 1, 0, 0, 0, '#e4003f'], ['Obra', 3, 15, 8, 1000000, '#a42785'], ['Revendedor', 4, 7, 10, 500000, '#1f9d5b'],
             ])->mapWithKeys(fn($t) => [$t[0] => TipoCliente::create(['business_id' => $empresa->id, 'nombre' => $t[0], 'lista_precios' => $t[1], 'dias_pago' => $t[2], 'descuento' => $t[3], 'limite_credito' => $t[4], 'color' => $t[5]])]);
 
+            $rubros = collect(['Áridos' => '#c77d00', 'Cementos y cales' => '#6f6a62', 'Hierros' => '#4f3089', 'Ladrillos' => '#e4003f', 'Elaborados' => '#1f9d5b'])
+                ->mapWithKeys(fn($col, $n) => [$n => \App\Models\Rubro::create(['business_id' => $empresa->id, 'nombre' => $n, 'color' => $col])]);
+
+            // [nombre, sku, precio, costo, stock inicial casa central, stock inicial norte, mínimo, unidad, rubro, tipo]
             $productos = collect([
-                ['Cemento x 50 kg', 'CEM50', 9800, 7200, 1400, 200, 'un'], ['Hierro 8 mm x 12 m', 'HIE08', 6500, 4900, 260, 60, 'un'],
-                ['Arena fina m³', 'ARE01', 28000, 21000, 140, 20, 'm3'], ['Ladrillo hueco 12x18x33', 'LAD12', 520, 380, 9000, 2000, 'un'],
-                ['Cal hidratada x 25 kg', 'CAL25', 4100, 3000, 90, 40, 'un'], ['Piedra partida m³', 'PIE01', 32000, 24500, 82, 15, 'm3'],
-                ['Hierro 10 mm x 12 m', 'HIE10', 9900, 7600, 300, 60, 'un'], ['Malla sima 15x15 6mm', 'MAL15', 38000, 29000, 180, 30, 'un'],
+                ['Cemento x 50 kg', 'CEM50', 9800, 7200, 1500, 400, 200, 'un', 'Cementos y cales', 'producto'], ['Hierro 8 mm x 12 m', 'HIE08', 6500, 4900, 300, 80, 60, 'un', 'Hierros', 'producto'],
+                ['Arena fina m³', 'ARE01', 28000, 21000, 220, 40, 20, 'm3', 'Áridos', 'producto'], ['Ladrillo hueco 12x18x33', 'LAD12', 520, 380, 12000, 3000, 2000, 'un', 'Ladrillos', 'producto'],
+                ['Cal hidratada x 25 kg', 'CAL25', 4100, 3000, 150, 30, 40, 'un', 'Cementos y cales', 'producto'], ['Piedra partida m³', 'PIE01', 32000, 24500, 130, 20, 15, 'm3', 'Áridos', 'producto'],
+                ['Hierro 10 mm x 12 m', 'HIE10', 9900, 7600, 420, 80, 60, 'un', 'Hierros', 'producto'], ['Malla sima 15x15 6mm', 'MAL15', 38000, 29000, 220, 40, 30, 'un', 'Hierros', 'producto'],
+                ['Bolsa vacía 30 kg impresa', 'BOL30', 0, 120, 600, 0, 200, 'un', 'Elaborados', 'insumo'], ['Premezcla revoque grueso x 30 kg', 'PRE30', 5200, 0, 0, 0, 50, 'bolsa', 'Elaborados', 'elaborado'],
             ])->map(fn($p) => Product::create([
-                'business_id' => $empresa->id, 'business_location_id' => $central->id, 'name' => $p[0], 'sku' => $p[1],
-                'price' => $p[2], 'prices' => ['2' => round($p[2] * 0.93), '3' => round($p[2] * 0.9), '4' => round($p[2] * 0.88), '5' => round($p[2] * 0.85)],
-                'cost' => $p[3], 'iva' => 21, 'stock' => $p[4], 'stock_min' => $p[5], 'unit' => $p[6], 'active' => true,
+                'business_id' => $empresa->id, 'business_location_id' => $central->id, 'rubro_id' => $rubros[$p[8]]->id, 'tipo' => $p[9], 'name' => $p[0], 'sku' => $p[1],
+                'price' => $p[2], 'prices' => $p[2] ? ['2' => round($p[2] * 0.93), '3' => round($p[2] * 0.9), '4' => round($p[2] * 0.88), '5' => round($p[2] * 0.85)] : null,
+                'cost' => $p[3], 'iva' => 21, 'stock' => 0, 'stock_min' => $p[6], 'unit' => $p[7], 'active' => true, 'precio_actualizado_en' => now()->subDays(20),
             ]));
+            $stockInicial = collect([
+                ['CEM50', 1500, 400], ['HIE08', 300, 80], ['ARE01', 220, 40], ['LAD12', 12000, 3000], ['CAL25', 150, 30], ['PIE01', 130, 20], ['HIE10', 420, 80], ['MAL15', 220, 40], ['BOL30', 600, 0],
+            ]);
 
             $clientes = collect([
                 ['Constructora Del Valle S.A.', '30-70012345-6', 'Responsable Inscripto', 'Mayorista', 'Av. Vélez Sarsfield 2200', 'Córdoba'],
@@ -117,7 +125,18 @@ class DemoSeeder extends Seeder
             $compras = app(CompraService::class);
             $pagos = app(PagoService::class);
             $fondos = app(FondosService::class);
+            $stock = app(\App\Services\Stock\StockService::class);
             mt_srand(7);
+            $vendibles = $productos->filter(fn($p) => (float) $p->price > 0 && $p->tipo === 'producto')->values();
+
+            // Stock inicial por depósito (Casa Central y Norte)
+            $depCentral = \App\Models\Deposito::porDefecto($central->id);
+            $depNorte = \App\Models\Deposito::porDefecto($norte->id);
+            foreach ($stockInicial as [$sku, $cc, $no]) {
+                $p = $productos->firstWhere('sku', $sku);
+                if ($cc) $stock->entrada($p, $cc, 'Stock inicial', null, $depCentral, (float) $p->cost);
+                if ($no) $stock->entrada($p, $no, 'Stock inicial', null, $depNorte, (float) $p->cost);
+            }
 
             $fondos->registrar($banco, ['fecha' => today()->subDays(35)->toDateString(), 'origen' => 'ajuste', 'concepto' => 'Saldo inicial', 'ingreso' => 3200000]);
             $fondos->registrar($cajaCentral, ['fecha' => today()->subDays(35)->toDateString(), 'origen' => 'ajuste', 'concepto' => 'Saldo inicial', 'ingreso' => 180000]);
@@ -152,7 +171,7 @@ class DemoSeeder extends Seeder
                     $suc = mt_rand(0, 3) ? $central : $norte;
                     $dueno->forceFill(['current_location_id' => $suc->id])->save();
                     $cliente = $clientes->random();
-                    $items = $productos->random(mt_rand(1, 3))->map(fn($p) => ['product_id' => $p->id, 'descripcion' => $p->name, 'cantidad' => mt_rand(1, 12), 'precio_unit' => $p->precioLista($cliente->lista_precios), 'descuento' => $cliente->descuento, 'alicuota_iva' => 21])->values()->all();
+                    $items = $vendibles->random(mt_rand(1, 3))->map(fn($p) => ['product_id' => $p->id, 'descripcion' => $p->name, 'cantidad' => mt_rand(1, 12), 'precio_unit' => $p->precioLista($cliente->lista_precios), 'descuento' => $cliente->descuento, 'alicuota_iva' => 21])->values()->all();
                     $condicion = $cliente->dias_pago > 0 && mt_rand(0, 2) ? 'cta_cte' : 'contado';
                     $f = $comprobantes->guardarBorrador(['contact_id' => $cliente->id, 'tipo' => 'FX', 'fecha' => $fecha->toDateString(), 'condicion' => $condicion, 'items' => $items]);
                     $cliente->refresh();
@@ -189,9 +208,23 @@ class DemoSeeder extends Seeder
 
             // Presupuestos: uno reciente y uno viejo sin respuesta
             foreach ([[2, $clientes[4]], [12, $clientes[2]]] as [$dias, $cli]) {
-                $p = $comprobantes->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'PRE', 'fecha' => today()->subDays($dias)->toDateString(), 'condicion' => 'cta_cte', 'items' => $productos->random(3)->map(fn($x) => ['product_id' => $x->id, 'descripcion' => $x->name, 'cantidad' => mt_rand(5, 40), 'precio_unit' => $x->precioLista($cli->lista_precios), 'alicuota_iva' => 21])->values()->all()]);
+                $p = $comprobantes->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'PRE', 'fecha' => today()->subDays($dias)->toDateString(), 'condicion' => 'cta_cte', 'items' => $vendibles->random(3)->map(fn($x) => ['product_id' => $x->id, 'descripcion' => $x->name, 'cantidad' => mt_rand(5, 40), 'precio_unit' => $x->precioLista($cli->lista_precios), 'alicuota_iva' => 21])->values()->all()]);
                 $comprobantes->emitir($p);
             }
+
+            // Producción: fórmula de premezcla y dos órdenes (una terminada, otra pendiente)
+            $produccion = app(\App\Services\Produccion\ProduccionService::class);
+            $formula = $produccion->guardarFormula(['product_id' => $productos->firstWhere('sku', 'PRE30')->id, 'name' => 'Premezcla revoque grueso (tanda 20 bolsas)', 'yield_quantity' => 20, 'yield_unit' => 'bolsa', 'tiempo_minutos' => 90,
+                'instructions' => "1. Cargar arena y cal en la mezcladora.\n2. Agregar cemento y mezclar 10 minutos en seco.\n3. Embolsar en bolsas de 30 kg y sellar.",
+                'items' => [['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'quantity' => 4, 'unit' => 'un'], ['product_id' => $productos->firstWhere('sku', 'CAL25')->id, 'quantity' => 2, 'unit' => 'un'], ['product_id' => $productos->firstWhere('sku', 'ARE01')->id, 'quantity' => 0.5, 'unit' => 'm3'], ['product_id' => $productos->firstWhere('sku', 'BOL30')->id, 'quantity' => 20, 'unit' => 'un']]]);
+            $op1 = $produccion->crearOrden(['recipe_id' => $formula->id, 'quantity' => 60, 'deposito_id' => $depCentral->id, 'scheduled_at' => today()->subDays(6)->toDateTimeString(), 'notes' => 'Reposición semanal']);
+            $produccion->terminar($op1, 60);
+            $op2 = $produccion->crearOrden(['recipe_id' => $formula->id, 'quantity' => 40, 'deposito_id' => $depCentral->id, 'scheduled_at' => today()->addDay()->toDateTimeString(), 'notes' => 'Para pedido de Del Valle']);
+            $produccion->iniciar($op2);
+
+            // Transferencia entre depósitos e inventario reciente
+            $stock->transferir($depCentral, $depNorte, [['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 100], ['product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 20]], today()->subDays(3)->toDateString(), 'Reposición Norte');
+            $stock->cerrarInventario($depNorte, [$productos->firstWhere('sku', 'LAD12')->id => 1985, $productos->firstWhere('sku', 'CAL25')->id => 20, $productos->firstWhere('sku', 'PIE01')->id => 11.5], today()->subDays(2)->toDateString(), 'Conteo mensual');
 
             Alerta::emitir(['business_id' => $empresa->id, 'modulo' => 'configuracion', 'tipo' => 'afip_cert', 'severidad' => 'info', 'titulo' => 'Certificado AFIP sin cargar', 'detalle' => 'Las facturas salen simuladas hasta que cargues certificado y clave en Configuración > Puntos de venta y AFIP.', 'url' => '/configuracion/puntos-venta']);
             Auth::logout();
