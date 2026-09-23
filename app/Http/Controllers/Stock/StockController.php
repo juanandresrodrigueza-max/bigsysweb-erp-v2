@@ -46,7 +46,8 @@ class StockController extends Controller
         $lista = $q->paginate(40)->withQueryString()->through(fn($p) => [
             'id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'tipo' => $p->tipo, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre, 'rubro_color' => $p->rubro?->color, 'marca' => $p->marca,
             'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min, 'bajo' => $p->bajoMinimo(), 'controla' => $p->controla_stock, 'active' => $p->active,
-            'price' => (float) $p->price, 'cost' => (float) $p->cost, 'valor' => round((float) $p->stock * (float) $p->cost, 2),
+            'price' => (float) $p->price, 'cost' => (float) $p->cost, 'valor' => round((float) $p->stock * (float) $p->cost, 2), 'moneda' => $p->moneda, 'precio_pesos' => $p->precioLista(1),
+            'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct,
             'por_deposito' => $p->stocks->mapWithKeys(fn($s) => [$s->deposito_id => (float) $s->cantidad]),
         ]);
 
@@ -54,6 +55,7 @@ class StockController extends Controller
         return Inertia::render('Stock/Index', [
             'lista' => $lista, 'filtros' => $request->only('buscar', 'rubro', 'tipo', 'estado'), 'depositos' => $depositos, 'rubros' => $this->rubros(),
             'tipos' => Product::TIPOS, 'unidades' => Product::UNIDADES,
+            'cotizacion' => ($cot = \App\Models\Cotizacion::actual($request->user()->business_id)) ? ['venta' => (float) $cot->venta, 'fecha' => $cot->fecha->format('d/m/Y'), 'manual' => $cot->business_id !== null] : null,
             'kpis' => [
                 'articulos' => (clone $activos)->count(),
                 'valorizado' => (float) (clone $activos)->where('controla_stock', true)->selectRaw('COALESCE(SUM(stock * cost),0) as v')->value('v'),
@@ -79,7 +81,8 @@ class StockController extends Controller
 
         return Inertia::render('Stock/Ver', [
             'p' => $p->only('id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'description', 'unit', 'active', 'controla_stock', 'rubro_id', 'proveedor_id', 'stock_min', 'iva') + [
-                'rubro' => $p->rubro?->nombreCompleto(), 'proveedor' => $p->proveedor?->name, 'stock' => (float) $p->stock, 'price' => (float) $p->price, 'cost' => (float) $p->cost, 'prices' => $p->prices ?? [],
+                'rubro' => $p->rubro?->nombreCompleto(), 'proveedor' => $p->proveedor?->name, 'stock' => (float) $p->stock, 'price' => (float) $p->price, 'cost' => (float) $p->cost, 'prices' => $p->prices ?? [], 'precio_pesos' => $p->precioLista(1),
+                'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'moneda' => $p->moneda, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct,
                 'valor' => round((float) $p->stock * (float) $p->cost, 2), 'margen' => (float) $p->cost > 0 ? round(((float) $p->price - (float) $p->cost) / (float) $p->cost * 100, 1) : null,
                 'precio_actualizado' => $p->precio_actualizado_en?->format('d/m/Y'), 'bajo' => $p->bajoMinimo(), 'tipo_label' => Product::TIPOS[$p->tipo] ?? $p->tipo,
                 'stocks' => $p->stocks->map(fn($s) => ['deposito_id' => $s->deposito_id, 'deposito' => $s->deposito?->nombre, 'sucursal' => $s->deposito?->location?->name, 'cantidad' => (float) $s->cantidad, 'ubicacion' => $s->ubicacion]),
@@ -107,13 +110,18 @@ class StockController extends Controller
             'barcode' => 'nullable|string|max:40', 'marca' => 'nullable|string|max:60', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'description' => 'nullable|string|max:500',
             'unit' => 'required|string|max:10', 'iva' => 'required|numeric|min:0|max:27', 'price' => 'required|numeric|min:0', 'cost' => 'required|numeric|min:0', 'prices' => 'nullable|array',
             'stock_min' => 'nullable|numeric|min:0', 'active' => 'boolean', 'controla_stock' => 'boolean', 'stock_inicial' => 'nullable|numeric|min:0', 'deposito_id' => 'nullable|exists:depositos,id',
+            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean',
         ]);
+        $d['margenes'] = ($d['usar_margenes'] ?? false) ? collect($d['margenes'] ?? [])->filter(fn($v) => $v !== null && $v !== '')->all() ?: null : null;
+        $d['moneda'] = $d['moneda'] ?? 'ARS';
         $p = $id ? Product::findOrFail($id) : new Product(['business_id' => $request->user()->business_id, 'business_location_id' => $request->user()->current_location_id]);
         $antes = $p->exists ? ['price' => (float) $p->price, 'cost' => (float) $p->cost] : null;
         $d['sku'] = $d['sku'] ?: strtoupper(substr(preg_replace('/[^A-Z0-9]/', '', strtoupper($d['name'])), 0, 6)) . '-' . str_pad((string) (Product::withTrashed()->count() + 1), 4, '0', STR_PAD_LEFT);
         $d['controla_stock'] = $d['tipo'] === 'servicio' ? false : ($d['controla_stock'] ?? true);
         if ($antes && ((float) $d['price'] !== $antes['price'])) $d['precio_actualizado_en'] = now();
-        $p->fill(collect($d)->except('stock_inicial', 'deposito_id')->all())->save();
+        $p->fill(collect($d)->except('stock_inicial', 'deposito_id', 'usar_margenes')->all());
+        if ($d['margenes'] || (float) ($d['precio_compra'] ?? 0) > 0) $p->recalcularDesdeCosto();
+        $p->save();
         if (! $id && ! empty($d['stock_inicial']) && $p->controla_stock) {
             app(StockService::class)->entrada($p, (float) $d['stock_inicial'], 'Stock inicial', null, $d['deposito_id'] ? Deposito::find($d['deposito_id']) : null, (float) $d['cost']);
         }
@@ -217,6 +225,18 @@ class StockController extends Controller
     }
 
     // Actualización masiva de precios (inflación): % sobre lista 1 y las demás, o sobre costo.
+    public function cotizacion(Request $request, \App\Services\Fondos\CotizacionService $s)
+    {
+        $d = $request->validate(['venta' => 'nullable|numeric|min:0', 'automatica' => 'boolean']);
+        if ($d['automatica'] ?? false) {
+            \App\Models\Cotizacion::where('business_id', $request->user()->business_id)->delete();
+            $r = $s->actualizar();
+            return back()->with(isset($r['error']) ? 'error' : 'success', isset($r['error']) ? 'No se pudo bajar la cotización: ' . $r['error'] : 'Cotización automática activada: dólar oficial $ ' . number_format($r['oficial'] ?? 0, 2, ',', '.'));
+        }
+        $s->fijarManual($request->user()->business_id, (float) $d['venta']);
+        return back()->with('success', 'Cotización fijada en $ ' . number_format((float) $d['venta'], 2, ',', '.') . '.');
+    }
+
     public function actualizarPrecios(Request $request)
     {
         $d = $request->validate(['porcentaje' => 'required|numeric|min:-90|max:500', 'campo' => 'required|in:price,cost,ambos', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'redondeo' => 'nullable|in:0,1,10,100']);

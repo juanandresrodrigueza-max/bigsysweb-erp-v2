@@ -102,6 +102,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::prefix('clientes')->middleware('permiso:clientes')->group(function () {
         Route::get('/',                        [ClientesController::class, 'index']);
         Route::post('/',                       [ClientesController::class, 'guardar'])->middleware('permiso:clientes,crear');
+        Route::get('/vendedores',              [\App\Http\Controllers\Clientes\VendedoresController::class, 'index']);
+        Route::post('/vendedores/{id?}',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/tipos/{id?}',            [ClientesController::class, 'guardarTipo'])->middleware('permiso:clientes,editar');
         Route::delete('/tipos/{id}',           [ClientesController::class, 'eliminarTipo'])->middleware('permiso:clientes,anular');
         Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
@@ -116,6 +118,17 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::prefix('proveedores')->middleware('permiso:proveedores')->group(function () {
         Route::get('/',                         [ProveedoresController::class, 'index']);
         Route::post('/',                        [ProveedoresController::class, 'guardar'])->middleware('permiso:proveedores,crear');
+        Route::get('/ordenes',                  [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'index']);
+        Route::get('/ordenes/nueva',            [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'create'])->middleware('permiso:proveedores,crear');
+        Route::post('/ordenes',                 [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'store'])->middleware('permiso:proveedores,crear');
+        Route::post('/ordenes/sugerir',         [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'sugerir'])->middleware('permiso:proveedores,crear');
+        Route::get('/ordenes/{id}',             [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'show'])->whereNumber('id');
+        Route::get('/ordenes/{id}/editar',      [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'edit'])->middleware('permiso:proveedores,editar');
+        Route::get('/ordenes/{id}/imprimir',    [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'imprimir']);
+        Route::post('/ordenes/{id}',            [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'store'])->middleware('permiso:proveedores,editar');
+        Route::post('/ordenes/{id}/enviar',     [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'enviar'])->middleware('permiso:proveedores,crear');
+        Route::post('/ordenes/{id}/cancelar',   [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'cancelar'])->middleware('permiso:proveedores,anular');
+        Route::get('/ordenes/{id}/recibir',     [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'recibir'])->middleware('permiso:proveedores,crear');
         Route::get('/compras',                  [ComprasController::class, 'index']);
         Route::get('/compras/nueva',            [ComprasController::class, 'create'])->middleware('permiso:proveedores,crear');
         Route::post('/compras',                 [ComprasController::class, 'store'])->middleware('permiso:proveedores,crear');
@@ -143,6 +156,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/categorias',             [FondosController::class, 'guardarCategoria'])->middleware('permiso:fondos,crear');
         Route::post('/cuentas/{id}/abrir-turno', [FondosController::class, 'abrirTurno'])->middleware('permiso:fondos,crear');
         Route::post('/turnos/{id}/cerrar',     [FondosController::class, 'cerrarTurno'])->middleware('permiso:fondos,crear');
+        Route::get('/turnos/{id}/rendicion',   [FondosController::class, 'rendicion']);
         Route::get('/cheques',                 [ChequesController::class, 'index']);
         Route::post('/cheques/{id}/depositar', [ChequesController::class, 'depositar'])->middleware('permiso:fondos,crear');
         Route::post('/cheques/{id}/rechazar',  [ChequesController::class, 'rechazar'])->middleware('permiso:fondos,editar');
@@ -165,6 +179,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
         Route::delete('/rubros/{id}',            [\App\Http\Controllers\Stock\StockController::class, 'eliminarRubro'])->middleware('permiso:stock,editar');
         Route::post('/precios',                  [\App\Http\Controllers\Stock\StockController::class, 'actualizarPrecios'])->middleware('permiso:stock,editar');
+        Route::post('/cotizacion',               [\App\Http\Controllers\Stock\StockController::class, 'cotizacion'])->middleware('permiso:stock,editar');
+        Route::get('/importar',                  [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'index'])->middleware('permiso:stock,editar');
+        Route::post('/importar/previsualizar',   [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'previsualizar'])->middleware('permiso:stock,editar');
+        Route::post('/importar/aplicar',         [\App\Http\Controllers\Stock\ImportacionPreciosController::class, 'aplicar'])->middleware('permiso:stock,editar');
         Route::get('/{id}',                      [\App\Http\Controllers\Stock\StockController::class, 'show'])->whereNumber('id');
     });
 

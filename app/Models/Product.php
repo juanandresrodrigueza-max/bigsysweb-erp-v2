@@ -18,17 +18,54 @@ class Product extends Model
     protected $fillable = [
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
+        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'imagen',
     ];
 
-    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime'];
+    protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2'];
 
+    // Precio de la lista en pesos. Si el artículo está en dólares, se convierte con la cotización vigente.
     public function precioLista(int $lista = 1): float
     {
-        if ($lista <= 1) {
-            return (float) $this->price;
+        $p = $lista <= 1 ? (float) $this->price : (($v = $this->prices[(string) $lista] ?? $this->prices[$lista] ?? null) !== null && $v !== '' ? (float) $v : (float) $this->price);
+        return $this->moneda === 'USD' ? round($p * $this->cotizacion(), 2) : $p;
+    }
+
+    public function cotizacion(): float
+    {
+        static $cache = [];
+        return $cache[$this->business_id] ??= (Cotizacion::valor($this->business_id) ?: 1);
+    }
+
+    // Costo en pesos (para margen, CMV y valorización).
+    public function costoPesos(): float
+    {
+        return $this->moneda === 'USD' ? round((float) $this->cost * $this->cotizacion(), 2) : (float) $this->cost;
+    }
+
+    // Cadena: precio de compra → (– descuento proveedor) → costo → (+ margen por lista) → precios. Solo actúa si hay márgenes cargados.
+    public function recalcularDesdeCosto(?float $precioCompra = null): void
+    {
+        if ($precioCompra !== null) {
+            $this->precio_compra = $precioCompra;
         }
-        $p = $this->prices[(string) $lista] ?? $this->prices[$lista] ?? null;
-        return $p !== null && $p !== '' ? (float) $p : (float) $this->price;
+        if ((float) $this->precio_compra > 0) {
+            $this->cost = round((float) $this->precio_compra * (1 - (float) $this->descuento_proveedor / 100), 2);
+        }
+        $m = collect($this->margenes ?? [])->filter(fn($v) => $v !== null && $v !== '');
+        if ($m->isEmpty()) return;
+        $prices = $this->prices ?? [];
+        foreach ($m as $lista => $margen) {
+            $precio = round((float) $this->cost * (1 + (float) $margen / 100), 2);
+            if ((int) $lista <= 1) $this->price = $precio; else $prices[(string) $lista] = $precio;
+        }
+        $this->prices = $prices ?: null;
+        $this->precio_actualizado_en = now();
+    }
+
+    // % de descuento por cantidad que corresponde a esta cantidad (0 si no aplica).
+    public function descuentoPorCantidad(float $cantidad): float
+    {
+        return (float) $this->desc_cant_min > 0 && $cantidad >= (float) $this->desc_cant_min ? (float) $this->desc_cant_pct : 0;
     }
 
     public function rubro(): BelongsTo { return $this->belongsTo(Rubro::class); }

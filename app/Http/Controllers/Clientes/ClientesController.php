@@ -36,6 +36,7 @@ class ClientesController extends Controller
             'lista' => $lista, 'totales' => $totales, 'filtros' => $request->only('buscar', 'tipo_cliente_id', 'estado'),
             'tipos' => TipoCliente::withCount('contacts')->orderBy('nombre')->get(),
             'condicionesIva' => Contact::CONDICIONES_IVA,
+            'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
 
@@ -61,14 +62,28 @@ class ClientesController extends Controller
         }
 
         return Inertia::render('Clientes/Ver', [
-            'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'balance', 'is_active', 'notes', 'tipo_cliente_id') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida()],
+            'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'balance', 'is_active', 'notes', 'tipo_cliente_id', 'interes_mora', 'vendedor_id') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida(), 'vendedor' => $c->vendedor?->nombre, 'interes_calculado' => $this->interesMora($c, $pendientes)],
             'cc' => $cc, 'pendientes' => $pendientes, 'antiguedad' => $antiguedad,
             'comprobantes' => Comprobante::where('contact_id', $c->id)->orderByDesc('fecha')->orderByDesc('id')->limit(30)->get()->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'estado' => $x->estado, 'estado_cobro' => $x->estadoCobro(), 'es_acopio' => $x->es_acopio]),
             'cobros' => Cobro::where('contact_id', $c->id)->with('medios')->orderByDesc('fecha')->orderByDesc('id')->limit(20)->get()->map(fn($x) => ['id' => $x->id, 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'a_cuenta' => (float) $x->a_cuenta, 'estado' => $x->estado, 'medios' => $x->medios->map(fn($m) => Cobro::MEDIOS[$m->medio] . ' $ ' . number_format((float) $m->monto, 0, ',', '.'))->implode(', ')]),
             'acopios' => $c->acopios()->with('items', 'comprobante')->whereIn('estado', ['abierto', 'parcial', 'vencido'])->get()->map(fn($a) => ['id' => $a->id, 'estado' => $a->estado, 'fecha' => $a->fecha->format('d/m/Y'), 'fecha_limite' => $a->fecha_limite?->format('d/m/Y'), 'factura' => $a->comprobante?->numeroFormateado(), 'comprobante_id' => $a->comprobante_id, 'items' => $a->items->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'facturada' => (float) $i->cantidad_facturada, 'retirada' => (float) $i->cantidad_retirada, 'pendiente' => $i->pendiente()])]),
             'medios' => Cobro::MEDIOS, 'tipos' => TipoCliente::orderBy('nombre')->get(['id', 'nombre']), 'condicionesIva' => Contact::CONDICIONES_IVA,
             'cuentas' => \App\Models\CuentaFondos::where('activa', true)->orderBy('tipo')->orderBy('nombre')->get(['id', 'tipo', 'nombre', 'saldo']),
+            'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
+    }
+
+    // Interés por mora sugerido: % mensual del cliente, prorrateado por día sobre cada saldo vencido.
+    private function interesMora(Contact $c, $pendientes): float
+    {
+        if ((float) $c->interes_mora <= 0) return 0;
+        $total = 0;
+        foreach ($pendientes as $p) {
+            if (! $p['vencido'] || ! $p['fecha_vto']) continue;
+            $dias = \Carbon\Carbon::createFromFormat('d/m/Y', $p['fecha_vto'])->diffInDays(today());
+            $total += $p['saldo'] * (float) $c->interes_mora / 100 / 30 * $dias;
+        }
+        return round($total, 2);
     }
 
     public function guardar(Request $request, ?int $id = null)
@@ -79,7 +94,7 @@ class ClientesController extends Controller
             'email' => 'nullable|email|max:255', 'phone' => 'nullable|string|max:50', 'mobile' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255', 'city' => 'nullable|string|max:100', 'province' => 'nullable|string|max:100', 'postal_code' => 'nullable|string|max:20',
             'tipo_cliente_id' => ['nullable', Rule::exists('tipos_cliente', 'id')->where('business_id', $b)],
-            'credit_limit' => 'nullable|numeric|min:0', 'lista_precios' => 'nullable|integer|min:1|max:5', 'dias_pago' => 'nullable|integer|min:0|max:365',
+            'credit_limit' => 'nullable|numeric|min:0', 'lista_precios' => 'nullable|integer|min:1|max:5', 'dias_pago' => 'nullable|integer|min:0|max:365', 'interes_mora' => 'nullable|numeric|min:0|max:100', 'vendedor_id' => 'nullable|exists:vendedores,id',
             'descuento' => 'nullable|numeric|min:0|max:100', 'percepcion_iibb' => 'boolean', 'is_active' => 'boolean', 'notes' => 'nullable|string|max:2000',
         ]);
         if (($data['condicion_iva'] === 'Responsable Inscripto' || $data['condicion_iva'] === 'Monotributista') && empty($data['cuit'])) {

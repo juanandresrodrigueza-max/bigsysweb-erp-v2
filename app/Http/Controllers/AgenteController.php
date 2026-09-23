@@ -122,6 +122,12 @@ Alertas activas:
 
 Menú del sistema: Inicio (dashboard), Comprobantes, Clientes, Proveedores, Stock, Producción, Fondos, Contable, Estadísticas, Alertas, Configuración (empresa, sucursales, usuarios, roles, puntos de venta y AFIP).
 Cómo se hacen las cosas:
+- Orden de compra a un proveedor: Proveedores → Órdenes de compra → Nueva orden. "Sugerir pedido" calcula qué pedir según lo vendido en un período o lo que está bajo mínimo. Al recibir la mercadería, "Recibir" arma la factura de compra con lo pendiente.
+- Precios por margen: en el artículo activá "Calcular listas por margen": precio de lista del proveedor − descuento = costo, y cada lista = costo + su margen. Al registrar una compra el costo se actualiza y las listas se recalculan solas. Los artículos en dólares se convierten con la cotización del día (botón U$S en Stock).
+- Importar la lista de precios de un proveedor: Stock → Importar lista (Excel o CSV): elegís qué columna es cada dato y se crean o actualizan los artículos.
+- Vendedores y comisiones: Clientes → Vendedores. Cada factura y cobro lleva vendedor; la liquidación por período está ahí.
+- Cobro con descuento o interés: en Registrar cobro, "Descuento otorgado" cancela deuda sin cobrarse; "Interés cobrado" se suma a lo que paga el cliente. La mora sugerida sale del % mensual del cliente.
+- Cierre de turno: en Fondos, al cerrar la caja se declara lo que hay por cada medio (efectivo, tarjeta, MercadoPago, transferencias, cuenta corriente) y se compara con el sistema. La rendición se imprime desde "Últimos turnos".
 - Nueva factura/presupuesto/remito: Comprobantes > Nuevo. Elegís tipo, cliente, cargás ítems (o pegás un mensaje de WhatsApp / subís una foto y la IA arma los ítems) y apretás Emitir. La letra A/B/C sale sola según el cliente.
 - Nota de crédito: abrís la factura y tocás "Nota de crédito".
 - Cobrar: Clientes > ficha del cliente > "Registrar cobro"; podés combinar efectivo, transferencia, cheque, MercadoPago y elegir qué facturas cancela.

@@ -7,6 +7,7 @@
         <p class="page-subtitle">Facturas de compra cargadas a mano, leídas con IA o importadas de AFIP.</p>
       </div>
       <div v-if="puede('proveedores','crear')" class="flex gap-2">
+        <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
         <button @click="importarAbierto = true" class="btn-secondary">Importar de AFIP</button>
         <Link href="/proveedores/compras/nueva" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Cargar factura</Link>
       </div>

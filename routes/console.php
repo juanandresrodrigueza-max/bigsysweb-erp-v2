@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('alertas:generar')->everyFifteenMinutes();
 Schedule::command('suscripciones:revisar')->dailyAt('06:00');
+Schedule::command('cotizaciones:actualizar')->twiceDaily(9, 15);
 // Contabiliza lo que haya quedado sin asiento (red de seguridad; normalmente se genera al instante).
 Schedule::call(function () {
     foreach (\App\Models\Business::where('is_active', true)->pluck('id') as $id) {

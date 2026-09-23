@@ -6,6 +6,7 @@
         <p class="page-subtitle">{{ entero(totales.clientes) }} clientes · por cobrar {{ moneda(totales.por_cobrar, 0) }}</p>
       </div>
       <div class="flex gap-2">
+        <Link href="/clientes/vendedores" class="btn-secondary">Vendedores</Link>
         <button @click="tiposAbierto = true" class="btn-secondary">Tipos de cliente</button>
         <button @click="editar(null)" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nuevo cliente</button>
       </div>
@@ -35,7 +36,7 @@
     </div>
     <Paginacion :links="lista.links" :desde="lista.from" :hasta="lista.to" :total="lista.total" />
 
-    <ClienteModal :abierto="modal" :cliente="seleccionado" :tipos="tipos" :condicionesIva="condicionesIva" @cerrar="modal = false" />
+    <ClienteModal :abierto="modal" :cliente="seleccionado" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" @cerrar="modal = false" />
 
     <Modal :abierto="tiposAbierto" titulo="Tipos de cliente" ancho="max-w-2xl" @cerrar="tiposAbierto = false">
       <p class="text-sm text-marca-muted mb-3">Cada tipo define lista de precios, plazo de pago, descuento y límite por defecto para los clientes nuevos, y sirve para agrupar en reportes.</p>
@@ -63,7 +64,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'

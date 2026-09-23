@@ -7,6 +7,8 @@
         <Link v-if="puede('stock','editar')" href="/stock/inventario" class="btn-secondary">Inventario</Link>
         <button v-if="puede('stock','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
         <button v-if="puede('stock','editar')" @click="preciosAbierto = true" class="btn-secondary">Actualizar precios</button>
+        <Link v-if="puede('stock','editar')" href="/stock/importar" class="btn-secondary">Importar lista</Link>
+        <button v-if="puede('stock','editar')" @click="dolarAbierto = true" class="btn-ghost text-xs" :title="cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización'">U$S {{ cotizacion ? moneda(cotizacion.venta, 0).replace('$ ', '') : '—' }}</button>
         <button v-if="puede('stock','editar')" @click="configAbierto = true" class="btn-ghost"><Icono nombre="settings" clase="w-4 h-4" /></button>
         <button v-if="puede('stock','crear')" @click="abrirArticulo()" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Artículo</button>
       </div>
@@ -34,7 +36,7 @@
             <td><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted tabular-nums">{{ p.sku }}<span v-if="p.marca"> · {{ p.marca }}</span><span v-if="p.tipo !== 'producto'" class="badge ml-1" :class="{ insumo: 'bg-gris-light text-marca-muted', elaborado: 'bg-violeta-light text-violeta', servicio: 'bg-lavanda-light text-violeta' }[p.tipo]">{{ p.tipo }}</span></p></td>
             <td><span v-if="p.rubro" class="badge text-white" :style="{ background: p.rubro_color || '#6f6a62' }">{{ p.rubro }}</span></td>
             <td class="text-right tabular-nums text-marca-muted">{{ moneda(p.cost) }}</td>
-            <td class="text-right tabular-nums font-semibold">{{ moneda(p.price) }}</td>
+            <td class="text-right tabular-nums font-semibold">{{ moneda(p.precio_pesos) }}<span v-if="p.moneda === 'USD'" class="block text-[10px] text-violeta font-normal">U$S {{ p.price }}</span></td>
             <td v-for="d in depositosActivos" :key="d.id" class="text-right tabular-nums" :class="(p.por_deposito[d.id] ?? 0) < 0 ? 'text-carmin' : 'text-marca-muted'">{{ p.controla ? cantidad(p.por_deposito[d.id] ?? 0) : '' }}</td>
             <td class="text-right tabular-nums font-bold" :class="!p.controla ? 'text-marca-muted' : p.stock <= 0 ? 'text-carmin' : p.bajo ? 'text-amber-600' : ''">{{ p.controla ? cantidad(p.stock) + ' ' + p.unit : '—' }}</td>
             <td class="text-right tabular-nums text-marca-muted">{{ p.controla ? cantidad(p.stock_min) : '' }}</td>
@@ -47,6 +49,11 @@
     </div>
     <Paginacion :links="lista.links" :desde="lista.from" :hasta="lista.to" :total="lista.total" />
 
+    <Modal :abierto="dolarAbierto" titulo="Cotización del dólar" @cerrar="dolarAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Los artículos en dólares se muestran y facturan en pesos con esta cotización. <b v-if="cotizacion">Hoy: {{ moneda(cotizacion.venta) }} ({{ cotizacion.manual ? 'fijada a mano' : 'automática, dólar oficial' }}, {{ cotizacion.fecha }}).</b></p>
+      <label class="label">Fijar cotización a mano</label><input v-model.number="dol.venta" type="number" step="any" min="0" class="input" placeholder="Ej: 1450" />
+      <template #pie><button class="btn-secondary" @click="dol.transform(() => ({ automatica: true })).post('/stock/cotizacion', { preserveScroll: true, onSuccess: () => (dolarAbierto = false) })">Usar la automática</button><button class="btn-primary" :disabled="!dol.venta" @click="dol.transform(d => ({ venta: d.venta })).post('/stock/cotizacion', { preserveScroll: true, onSuccess: () => (dolarAbierto = false) })">Fijar</button></template>
+    </Modal>
     <ArticuloModal :abierto="artAbierto" :articulo="artEdit" :rubros="rubros" :depositos="depositos" :proveedores="proveedores" :tipos="tipos" :unidades="unidades" @cerrar="artAbierto = false" />
 
     <!-- Transferencia entre depósitos -->
@@ -128,7 +135,7 @@ import ArticuloModal from '@/Components/ArticuloModal.vue'
 import { moneda, entero, cantidad, hoyISO } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ lista: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, kpis: Object, proveedores: Array, ultimosInventarios: Array })
+const props = defineProps({ lista: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, kpis: Object, proveedores: Array, ultimosInventarios: Array, cotizacion: Object })
 const { puede } = usePermisos()
 const f = reactive({ buscar: props.filtros.buscar ?? '', rubro: props.filtros.rubro ?? '', tipo: props.filtros.tipo ?? '', estado: props.filtros.estado ?? '' })
 function filtrar() { router.get('/stock', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
@@ -141,7 +148,8 @@ const transfAbierto = ref(false)
 const tf = useForm({ origen_id: depositosActivos.value[0]?.id, destino_id: depositosActivos.value[1]?.id ?? depositosActivos.value[0]?.id, fecha: hoyISO(), notas: '', items: [{ product_id: null, cantidad: null }] })
 const opcionesArticulos = computed(() => props.lista.data.filter(p => p.controla).map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: cantidad(p.stock) + ' ' + p.unit })))
 
-const preciosAbierto = ref(false)
+const preciosAbierto = ref(false), dolarAbierto = ref(false)
+const dol = useForm({ venta: null })
 const pr = useForm({ porcentaje: null, campo: 'price', rubro_id: null, proveedor_id: null, redondeo: '10' })
 
 const configAbierto = ref(false)

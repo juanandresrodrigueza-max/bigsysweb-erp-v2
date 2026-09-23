@@ -16,7 +16,7 @@ class Contact extends Model
 
     protected $fillable = [
         'business_id', 'type', 'tipo_cliente_id', 'name', 'email', 'phone', 'mobile', 'document_type', 'document', 'cuit',
-        'condicion_iva', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago',
+        'condicion_iva', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'interes_mora', 'vendedor_id',
         'descuento', 'percepcion_iibb', 'balance', 'is_active', 'notes', 'crm_external_id',
     ];
 
@@ -26,6 +26,7 @@ class Contact extends Model
     ];
 
     public function tipoCliente(): BelongsTo { return $this->belongsTo(TipoCliente::class, 'tipo_cliente_id'); }
+    public function vendedor(): BelongsTo { return $this->belongsTo(Vendedor::class); }
     public function sales(): HasMany { return $this->hasMany(Sale::class); }
     public function comprobantes(): HasMany { return $this->hasMany(Comprobante::class); }
     public function cobros(): HasMany { return $this->hasMany(Cobro::class); }

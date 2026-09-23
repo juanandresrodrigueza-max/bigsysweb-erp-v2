@@ -118,7 +118,7 @@
       <div class="sm:col-span-2"><p class="label">Notas</p><span class="whitespace-pre-line">{{ cliente.notes ?? '—' }}</span></div>
     </div>
 
-    <ClienteModal :abierto="editarAbierto" :cliente="cliente" :tipos="tipos" :condicionesIva="condicionesIva" @cerrar="editarAbierto = false" />
+    <ClienteModal :abierto="editarAbierto" :cliente="cliente" :tipos="tipos" :condicionesIva="condicionesIva" :vendedores="vendedores" @cerrar="editarAbierto = false" />
 
     <!-- Cobro -->
     <Modal :abierto="cobroAbierto" titulo="Registrar cobro" ancho="max-w-3xl" @cerrar="cobroAbierto = false">
@@ -143,7 +143,13 @@
             <input v-if="!['efectivo','cheque'].includes(m.medio)" v-model="m.referencia" class="input !py-1 text-xs" placeholder="Referencia / N° operación" />
           </div>
           <button @click="cobro.medios.push({ medio: 'transferencia', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {} })" class="btn-ghost !px-2 text-xs">+ Otro medio</button>
-          <div class="mt-4 grid grid-cols-2 gap-2"><div><label class="label">Fecha</label><input v-model="cobro.fecha" type="date" class="input" /></div><div><label class="label">Notas</label><input v-model="cobro.notas" class="input" /></div></div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <div><label class="label">Descuento otorgado</label><input v-model.number="cobro.descuento" type="number" step="any" min="0" class="input" placeholder="0" /><p class="text-[10px] text-marca-muted mt-0.5">Cancela deuda sin cobrarse.</p></div>
+            <div><label class="label">Interés cobrado</label><input v-model.number="cobro.interes" type="number" step="any" min="0" class="input" placeholder="0" /><p v-if="cliente.interes_calculado > 0" class="text-[10px] text-amber-700 mt-0.5 cursor-pointer" @click="cobro.interes = cliente.interes_calculado">Mora sugerida: {{ moneda(cliente.interes_calculado) }} ({{ cliente.interes_mora }}% mensual)</p><p v-else class="text-[10px] text-marca-muted mt-0.5">Se cobra además de la deuda.</p></div>
+          </div>
+          <div class="mt-2 grid grid-cols-2 gap-2"><div><label class="label">Fecha</label><input v-model="cobro.fecha" type="date" class="input" /></div><div><label class="label">Notas</label><input v-model="cobro.notas" class="input" /></div></div>
+          <div class="mt-2"><label class="label">Vendedor (cobranza)</label><select v-model="cobro.vendedor_id" class="input !py-1 text-xs"><option :value="null">{{ cliente.vendedor ? 'El del cliente: ' + cliente.vendedor : 'Sin vendedor' }}</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
+          <p v-if="cobro.errors.interes" class="text-carmin text-xs mt-2">{{ cobro.errors.interes }}</p>
           <p v-if="cobro.errors.medios" class="text-carmin text-xs mt-2">{{ cobro.errors.medios }}</p>
         </div>
         <div>
@@ -157,15 +163,18 @@
           </div>
           <div class="mt-3 text-sm space-y-1 bg-marca-fondo rounded-xl p-3">
             <div class="flex justify-between"><span>Total cobrado</span><b class="tabular-nums">{{ moneda(totalCobro) }}</b></div>
+            <div v-if="cobro.descuento > 0" class="flex justify-between text-emerald-700"><span>+ descuento</span><span class="tabular-nums">{{ moneda(cobro.descuento) }}</span></div>
+            <div v-if="cobro.interes > 0" class="flex justify-between text-amber-700"><span>− interés</span><span class="tabular-nums">{{ moneda(cobro.interes) }}</span></div>
+            <div class="flex justify-between font-semibold"><span>Cancela deuda</span><span class="tabular-nums">{{ moneda(cancela) }}</span></div>
             <div class="flex justify-between"><span>Imputado</span><span class="tabular-nums">{{ moneda(totalImputado) }}</span></div>
-            <div class="flex justify-between" :class="totalCobro - totalImputado < -0.005 ? 'text-carmin' : ''"><span>A cuenta</span><span class="tabular-nums">{{ moneda(totalCobro - totalImputado) }}</span></div>
+            <div class="flex justify-between" :class="cancela - totalImputado < -0.005 ? 'text-carmin' : ''"><span>A cuenta</span><span class="tabular-nums">{{ moneda(cancela - totalImputado) }}</span></div>
           </div>
           <p v-if="cobro.errors.imputaciones" class="text-carmin text-xs mt-2">{{ cobro.errors.imputaciones }}</p>
         </div>
       </div>
       <template #pie>
         <button class="btn-secondary" @click="cobroAbierto = false">Cancelar</button>
-        <button class="btn-primary" :disabled="cobro.processing || totalCobro <= 0 || totalImputado > totalCobro + 0.005" @click="registrarCobro">Registrar {{ moneda(totalCobro) }}</button>
+        <button class="btn-primary" :disabled="cobro.processing || totalCobro <= 0 || totalImputado > cancela + 0.005" @click="registrarCobro">Registrar {{ moneda(totalCobro) }}</button>
       </template>
     </Modal>
 
@@ -197,7 +206,7 @@ import Modal from '@/Components/Modal.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
-const props = defineProps({ cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] } })
+const props = defineProps({ cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : {} }
 const tab = ref('cc')
@@ -212,7 +221,8 @@ function abrirMov(m) { if (m.comprobante_id) router.visit(`/comprobantes/${m.com
 
 // Cobro
 const cobroAbierto = ref(false)
-const cobro = useForm({ fecha: hoyISO(), notas: '', medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {} }], imputaciones: [] })
+const cobro = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, vendedor_id: null, medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {} }], imputaciones: [] })
+const cancela = computed(() => totalCobro.value + (Number(cobro.descuento) || 0) - (Number(cobro.interes) || 0))
 const imput = reactive({})
 const totalCobro = computed(() => cobro.medios.reduce((a, m) => a + (Number(m.monto) || 0), 0))
 const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (Number(v) || 0), 0))

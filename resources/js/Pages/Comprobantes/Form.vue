@@ -37,6 +37,7 @@
             </div>
           </div>
           <div v-if="form.condicion === 'cta_cte' && esFactura"><label class="label">Días para el vencimiento</label><input v-model.number="form.dias_vto" type="number" min="0" class="input" /></div>
+          <div v-if="vendedores.length"><label class="label">Vendedor</label><select v-model="form.vendedor_id" class="input"><option :value="null">{{ cliente?.vendedor ? 'El del cliente' : 'Sin vendedor' }}</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
           <div v-if="puntosVenta.length > 1"><label class="label">Punto de venta</label><select v-model="form.punto_venta_id" class="input"><option v-for="p in puntosVenta" :key="p.id" :value="p.id">{{ String(p.numero).padStart(4,'0') }} · {{ p.sucursal ?? 'General' }}</option></select></div>
           <label v-if="esFactura" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.es_acopio ? 'border-violeta bg-violeta-light' : 'border-marca-borde'">
             <input v-model="form.es_acopio" type="checkbox" class="accent-violeta" />
@@ -141,11 +142,11 @@ import Modal from '@/Components/Modal.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 
-const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean })
+const props = defineProps({ comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number })
 
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
-  tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, origen_id: base?.origen_id ?? null,
+  tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
   fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, notas: base?.notas ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false,
 })

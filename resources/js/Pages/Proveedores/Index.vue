@@ -6,6 +6,7 @@
         <p class="page-subtitle">{{ entero(totales.proveedores) }} proveedores · por pagar {{ moneda(totales.por_pagar, 0) }} <span v-if="totales.vencido > 0" class="text-carmin font-semibold">· vencido {{ moneda(totales.vencido, 0) }}</span></p>
       </div>
       <div class="flex gap-2">
+        <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
         <Link href="/proveedores/compras" class="btn-secondary">Compras</Link>
         <Link v-if="puede('proveedores','crear')" href="/proveedores/compras/nueva" class="btn-secondary">Cargar factura</Link>
         <button v-if="puede('proveedores','crear')" @click="editar(null)" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nuevo proveedor</button>

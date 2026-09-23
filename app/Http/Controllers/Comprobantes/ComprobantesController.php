@@ -177,6 +177,7 @@ class ComprobantesController extends Controller
             'tipo'            => 'required|string|max:4',
             'contact_id'      => 'nullable|integer|exists:contacts,id',
             'punto_venta_id'  => 'nullable|integer|exists:puntos_venta,id',
+            'vendedor_id'     => 'nullable|integer|exists:vendedores,id',
             'origen_id'       => 'nullable|integer|exists:comprobantes,id',
             'fecha'           => 'required|date',
             'condicion'       => 'required|in:contado,cta_cte',
@@ -200,10 +201,12 @@ class ComprobantesController extends Controller
         $origen = $request->origen_id ? Comprobante::ventas()->with('items')->find($request->origen_id) : null;
         return [
             'comprobante' => $c ? array_merge($this->resumir($c), [
-                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'notas' => $c->notas,
+                'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'notas' => $c->notas,
                 'fecha' => $c->fecha->toDateString(),
                 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva]),
             ]) : null,
+            'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre', 'user_id']),
+            'vendedorDefault' => \App\Models\Vendedor::deUsuario($user->id)?->id,
             'tipoInicial' => $c ? preg_replace('/^(F|NC|ND)[ABCE]$/', '$1X', $c->tipo) : $request->input('tipo', 'FX'),
             'origen' => $origen ? ['id' => $origen->id, 'nombre' => $origen->nombreTipo(), 'numero' => $origen->numeroFormateado(), 'contact_id' => $origen->contact_id, 'items' => $origen->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'unidad' => $i->unidad, 'precio_unit' => (float) $i->precio_unit, 'descuento' => (float) $i->descuento, 'alicuota_iva' => (float) $i->alicuota_iva])] : null,
             'tipos' => [

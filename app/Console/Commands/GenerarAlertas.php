@@ -114,6 +114,14 @@ class GenerarAlertas extends Command
             }
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'saldo_minimo')->whereNull('resuelta_en')->whereNotIn('modelo_id', $bajas->pluck('id'))->update(['resuelta_en' => now()]);
 
+            // Órdenes de compra con entrega atrasada
+            $ocs = \App\Models\OrdenCompra::withoutGlobalScopes()->where('business_id', $id)->whereIn('estado', ['enviada', 'parcial'])->whereNotNull('fecha_entrega')->whereDate('fecha_entrega', '<', today())->with('contact')->get();
+            foreach ($ocs as $oc) {
+                Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $id, 'tipo' => 'oc_atrasada', 'modelo' => 'OrdenCompra', 'modelo_id' => $oc->id],
+                    ['business_location_id' => $oc->business_location_id, 'modulo' => 'proveedores', 'severidad' => 'aviso', 'titulo' => "Orden {$oc->numeroFormateado()} sin recibir: {$oc->contact?->name}", 'detalle' => 'Entrega esperada ' . $oc->fecha_entrega->format('d/m/Y') . '. Reclamá al proveedor o cancelá la orden.', 'url' => "/proveedores/ordenes/{$oc->id}", 'resuelta_en' => null]);
+            }
+            Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'oc_atrasada')->whereNull('resuelta_en')->whereNotIn('modelo_id', $ocs->pluck('id'))->update(['resuelta_en' => now()]);
+
             // Acopios por vencer (15 días) o vencidos
             $acopios = Acopio::withoutGlobalScopes()->where('business_id', $id)->whereIn('estado', ['abierto', 'parcial', 'vencido'])->whereNotNull('fecha_limite')->whereDate('fecha_limite', '<=', today()->addDays(15))->with('contact')->get();
             foreach ($acopios as $a) {

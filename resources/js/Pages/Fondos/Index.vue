@@ -65,6 +65,13 @@
           <div class="flex justify-between text-sm"><span>Egresos</span><b class="tabular-nums text-carmin">{{ moneda(totales.egresos_mes, 0) }}</b></div>
           <div class="flex justify-between text-sm pt-1 border-t border-marca-borde mt-1"><span>Neto</span><b class="tabular-nums">{{ moneda(totales.ingresos_mes - totales.egresos_mes, 0) }}</b></div>
         </div>
+        <div v-if="turnosCerrados?.length" class="card text-sm">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Últimos turnos</p>
+          <a v-for="t in turnosCerrados" :key="t.id" :href="`/fondos/turnos/${t.id}/rendicion`" target="_blank" class="flex items-center justify-between gap-2 py-1.5 border-t border-marca-borde first:border-0 hover:text-carmin">
+            <span class="min-w-0"><span class="block truncate font-medium">{{ t.caja }} · {{ t.usuario }}</span><span class="text-xs text-marca-muted">{{ t.apertura }} → {{ t.cierre }}</span></span>
+            <span class="tabular-nums text-xs font-semibold" :class="Math.abs(t.diferencia) < 0.005 ? 'text-emerald-700' : 'text-carmin'">{{ Math.abs(t.diferencia) < 0.005 ? 'sin dif.' : moneda(t.diferencia, 0) }}</span>
+          </a>
+        </div>
         <div class="card text-sm">
           <div class="flex items-center justify-between mb-2"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Categorías de gasto</p><button @click="catAbierto = true" class="text-xs text-violeta font-semibold">+ Nueva</button></div>
           <div class="flex flex-wrap gap-1.5"><span v-for="c in categorias" :key="c.id" class="badge text-white" :style="{ background: c.color || '#6f6a62' }">{{ c.name }}</span><span v-if="!categorias.length" class="text-marca-muted">Sin categorías.</span></div>
@@ -118,9 +125,17 @@
       <label class="label">Efectivo inicial</label><input v-model.number="ta.saldo_inicial" type="number" step="any" min="0" class="input" />
       <template #pie><button class="btn-secondary" @click="turnoAbierto = false">Cancelar</button><button class="btn-primary" :disabled="ta.processing" @click="ta.post(`/fondos/cuentas/${cuenta.id}/abrir-turno`, { preserveScroll: true, onSuccess: () => (turnoAbierto = false) })">Abrir</button></template>
     </Modal>
-    <Modal :abierto="cierreAbierto" :titulo="`Cerrar turno · ${cuenta?.nombre}`" @cerrar="cierreAbierto = false">
-      <p class="text-sm text-marca-muted mb-3">Saldo esperado según el sistema: <b class="tabular-nums">{{ moneda(cuenta?.saldo ?? 0) }}</b>. Ingresá lo contado; la diferencia queda registrada.</p>
-      <label class="label">Efectivo contado</label><input v-model.number="tc.saldo_contado" type="number" step="any" min="0" class="input" />
+    <Modal :abierto="cierreAbierto" :titulo="`Cerrar turno · ${cuenta?.nombre}`" ancho="max-w-2xl" @cerrar="cierreAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Contá lo que hay por cada medio de pago. El sistema compara con lo que registró en el turno y deja asentada la diferencia. Lo que no completes no se controla.</p>
+      <div class="rounded-xl border border-marca-borde divide-y divide-marca-borde/60">
+        <div v-for="(esp, medio) in cuenta?.turno?.esperado ?? {}" :key="medio" class="grid grid-cols-[1fr_120px_130px_100px] gap-2 items-center px-3 py-2 text-sm">
+          <span class="font-medium">{{ nombreMedio(medio) }}<span v-if="medio === 'efectivo'" class="block text-[10px] text-marca-muted">saldo de caja</span></span>
+          <span class="tabular-nums text-right text-marca-muted">{{ moneda(esp) }}</span>
+          <input v-if="medio === 'efectivo'" v-model.number="tc.saldo_contado" type="number" step="any" min="0" class="input !py-1 text-right" placeholder="contado" />
+          <input v-else v-model.number="tc.rendicion[medio]" type="number" step="any" min="0" class="input !py-1 text-right" placeholder="declarado" />
+          <span class="tabular-nums text-right text-xs font-semibold" :class="dif(medio, esp) === null ? 'text-marca-muted' : Math.abs(dif(medio, esp)) < 0.005 ? 'text-emerald-700' : 'text-carmin'">{{ dif(medio, esp) === null ? '' : moneda(dif(medio, esp)) }}</span>
+        </div>
+      </div>
       <label class="label mt-3">Notas</label><input v-model="tc.notas" class="input" />
       <template #pie><button class="btn-secondary" @click="cierreAbierto = false">Cancelar</button><button class="btn-violeta" :disabled="tc.processing" @click="tc.post(`/fondos/turnos/${cuenta.turno.id}/cerrar`, { preserveScroll: true, onSuccess: () => (cierreAbierto = false) })">Cerrar turno</button></template>
     </Modal>
@@ -142,7 +157,10 @@ import Paginacion from '@/Components/Paginacion.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ cuentas: Array, cuentaActual: Number, movimientos: Object, filtros: Object, totales: Object, categorias: Array, listaSucursales: Array, tipos: Object })
+const props = defineProps({ cuentas: Array, cuentaActual: Number, movimientos: Object, filtros: Object, totales: Object, categorias: Array, listaSucursales: Array, tipos: Object, turnosCerrados: Array })
+const nombresMedio = { efectivo: 'Efectivo', transferencia: 'Transferencias', cheque: 'Cheques', mercadopago: 'MercadoPago', billetera: 'Billeteras', tarjeta: 'Tarjetas', retencion: 'Retenciones', cta_cte: 'Cuenta corriente' }
+const nombreMedio = m => nombresMedio[m] ?? m
+const dif = (medio, esp) => { const v = medio === 'efectivo' ? tc.saldo_contado : tc.rendicion[medio]; return v === null || v === undefined || v === '' ? null : Number(v) - Number(esp) }
 const { puede } = usePermisos()
 const cuenta = computed(() => props.cuentas.find(c => c.id === props.cuentaActual))
 const f = reactive({ cuenta: props.cuentaActual, desde: props.filtros.desde ?? '', hasta: props.filtros.hasta ?? '' })
@@ -161,6 +179,6 @@ const transfAbierto = ref(false)
 const tf = useForm({ desde: props.cuentaActual, hasta: null, monto: null, fecha: hoyISO(), referencia: '' })
 const turnoAbierto = ref(false), cierreAbierto = ref(false), catAbierto = ref(false)
 const ta = useForm({ saldo_inicial: 0 })
-const tc = useForm({ saldo_contado: 0, notas: '' })
+const tc = useForm({ saldo_contado: null, notas: '', rendicion: {} })
 const cat = useForm({ name: '', color: '#4f3089' })
 </script>

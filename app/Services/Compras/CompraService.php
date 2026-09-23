@@ -43,7 +43,7 @@ class CompraService
             $dias = (int) ($data['dias_vto'] ?? $proveedor->dias_pago ?? 0);
             $c->fill([
                 'contact_id' => $proveedor->id, 'tipo' => $data['tipo'], 'numero_proveedor' => $numero ?: null, 'cae_proveedor' => $data['cae_proveedor'] ?? null,
-                'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id,
+                'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id, 'orden_compra_id' => $data['orden_compra_id'] ?? $c->orden_compra_id,
                 'fecha' => $data['fecha'], 'fecha_vto' => isset($data['fecha_vto']) && $data['fecha_vto'] ? $data['fecha_vto'] : \Carbon\Carbon::parse($data['fecha'])->addDays($dias),
                 'condicion' => $data['condicion'] ?? 'cta_cte', 'notas' => $data['notas'] ?? null,
             ])->save();
@@ -103,13 +103,18 @@ class CompraService
                     if (! $it->product_id || ! ($p = Product::find($it->product_id))) continue;
                     $costo = (float) $it->precio_unit * (1 - (float) $it->descuento / 100);
                     if ($sentido > 0) {
-                        $p->forceFill(['cost' => $costo])->save();
+                        $p->precio_compra = (float) $it->precio_unit;
+                        $p->descuento_proveedor = (float) $it->descuento;
+                        $p->cost = $costo;
+                        $p->recalcularDesdeCosto();
+                        $p->save();
                     }
                     $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id);
                 }
                 $c->forceFill(['stock_impactado' => true])->save();
             }
 
+            if ($c->orden_compra_id) app(\App\Services\Compras\OrdenCompraService::class)->marcarRecibido($c);
             AuditLog::registrar('crear', $c, "Registró compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->contact?->name}");
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             return $c->fresh();

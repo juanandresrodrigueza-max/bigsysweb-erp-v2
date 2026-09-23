@@ -35,6 +35,7 @@ class ComprobanteService
             $dias = (int) ($data['dias_vto'] ?? $contact?->dias_pago ?? $contact?->tipoCliente?->dias_pago ?? 0);
             $c->fill([
                 'contact_id'      => $contact?->id,
+                'vendedor_id'     => $data['vendedor_id'] ?? $c->vendedor_id ?? $contact?->vendedor_id ?? \App\Models\Vendedor::deUsuario($user->id)?->id,
                 'punto_venta_id'  => $data['punto_venta_id'] ?? $this->puntoVentaPorDefecto($user)?->id,
                 'origen_id'       => $data['origen_id'] ?? $c->origen_id,
                 'tipo'            => $tipo,
@@ -50,6 +51,8 @@ class ComprobanteService
             foreach (array_values($data['items']) as $i => $it) {
                 $product = ! empty($it['product_id']) ? Product::find($it['product_id']) : null;
                 $al = $letraC ? 0 : (float) ($it['alicuota_iva'] ?? $product?->iva ?? 21);
+                // Descuento por cantidad del artículo: se aplica solo si la línea no trae descuento propio.
+                if ($product && (float) ($it['descuento'] ?? 0) == 0.0 && ($dq = $product->descuentoPorCantidad((float) $it['cantidad'])) > 0) $it['descuento'] = $dq;
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
                 $c->items()->create([
                     'product_id' => $product?->id, 'descripcion' => $it['descripcion'] ?: ($product?->name ?? 'Ítem'),

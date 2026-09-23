@@ -36,7 +36,8 @@ class FondosController extends Controller
 
         return Inertia::render('Fondos/Index', [
             'cuentas' => $cuentas->map(fn($c) => ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombre, 'banco' => $c->banco, 'cbu' => $c->cbu, 'alias' => $c->alias, 'saldo' => (float) $c->saldo, 'saldo_minimo' => (float) $c->saldo_minimo, 'activa' => $c->activa, 'es_default' => $c->es_default, 'business_location_id' => $c->business_location_id, 'sucursal' => $c->location?->name,
-                'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial] : null]),
+                'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial, 'esperado' => $this->service->esperadoPorMedio($c->turnoAbierto)] : null]),
+            'turnosCerrados' => TurnoCaja::whereNotNull('cierre')->with('user:id,name', 'cuenta:id,nombre')->orderByDesc('cierre')->limit(8)->get()->map(fn($t) => ['id' => $t->id, 'caja' => $t->cuenta?->nombre, 'usuario' => $t->user?->name, 'apertura' => $t->apertura->format('d/m H:i'), 'cierre' => $t->cierre->format('d/m H:i'), 'esperado' => (float) $t->saldo_esperado, 'contado' => (float) $t->saldo_contado, 'diferencia' => (float) $t->diferencia]),
             'cuentaActual' => $cuentaId, 'movimientos' => $movs, 'filtros' => $request->only('cuenta', 'desde', 'hasta'),
             'totales' => ['disponible' => (float) $cuentas->where('activa', true)->sum('saldo'), 'cheques_cartera' => (float) $chequesCartera, 'cheques_propios' => (float) $chequesPropios,
                 'ingresos_mes' => (float) MovimientoFondos::whereMonth('fecha', $hoy->month)->whereYear('fecha', $hoy->year)->whereNotIn('origen', ['transferencia', 'apertura'])->sum('ingreso'),
@@ -91,10 +92,19 @@ class FondosController extends Controller
 
     public function cerrarTurno(Request $request, int $id)
     {
-        $data = $request->validate(['saldo_contado' => 'required|numeric|min:0', 'notas' => 'nullable|string|max:500']);
-        $t = $this->service->cerrarTurno(TurnoCaja::findOrFail($id), (float) $data['saldo_contado'], $data['notas'] ?? null);
+        $data = $request->validate(['saldo_contado' => 'required|numeric|min:0', 'notas' => 'nullable|string|max:500', 'rendicion' => 'nullable|array']);
+        $t = $this->service->cerrarTurno(TurnoCaja::findOrFail($id), (float) $data['saldo_contado'], $data['notas'] ?? null, $data['rendicion'] ?? []);
         $dif = (float) $t->diferencia;
         return back()->with($dif == 0.0 ? 'success' : 'error', 'Turno cerrado. ' . ($dif == 0.0 ? 'Sin diferencias.' : 'Diferencia: $ ' . number_format($dif, 2, ',', '.')));
+    }
+
+    public function rendicion(int $id)
+    {
+        $t = TurnoCaja::with(['cuenta.location', 'user', 'business'])->findOrFail($id);
+        abort_if(! $t->cierre, 422, 'El turno todavía está abierto.');
+        $movs = MovimientoFondos::where('turno_caja_id', $t->id)->orderBy('id')->get();
+        $medios = array_merge(\App\Models\Cobro::MEDIOS, ['cta_cte' => 'Cuenta corriente']);
+        return view('fondos.rendicion', ['t' => $t, 'b' => $t->business, 'movs' => $movs, 'medios' => $medios]);
     }
 
     public function guardarCategoria(Request $request)

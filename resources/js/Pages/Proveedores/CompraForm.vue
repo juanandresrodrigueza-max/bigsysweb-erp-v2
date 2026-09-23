@@ -8,6 +8,7 @@
       </div>
       <label class="btn-violeta cursor-pointer"><input type="file" accept="image/*,.pdf" class="hidden" @change="leerOCR($event.target.files[0])" /><Icono nombre="sparkles" clase="w-4 h-4" /> {{ ocr.cargando ? 'Leyendo…' : 'Leer factura con IA' }}</label>
     </div>
+    <p v-if="desdeOrden" class="mb-4 px-4 py-2.5 rounded-xl text-sm bg-violeta-light text-violeta">Recibiendo la orden <b>{{ desdeOrden.numero_oc }}</b>: ajustá cantidades si el proveedor entregó distinto, cargá el número de factura y registrá. La orden se marca recibida sola.</p>
     <p v-if="ocr.aviso" class="mb-4 px-4 py-2.5 rounded-xl text-sm" :class="ocr.ok ? 'bg-violeta-light text-violeta' : 'bg-amber-50 text-amber-800 border border-amber-200'">{{ ocr.aviso }}</p>
 
     <div class="grid lg:grid-cols-3 gap-4">
@@ -90,12 +91,12 @@ import Icono from '@/Components/Icono.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, hoyISO } from '@/util/formato'
 
-const props = defineProps({ compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean })
+const props = defineProps({ compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object })
 const tipos = [['FA', 'Factura A'], ['FB', 'Factura B'], ['FC', 'Factura C'], ['FE', 'Factura E'], ['NCA', 'Nota de crédito A'], ['NCB', 'Nota de crédito B'], ['NCC', 'Nota de crédito C'], ['NDA', 'Nota de débito A'], ['NDB', 'Nota de débito B'], ['NDC', 'Nota de débito C']].map(([key, label]) => ({ key, label }))
-const b = props.compra
+const b = props.compra ?? props.desdeOrden
 const form = useForm({
-  contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null,
-  fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: b ? undefined : 'manual', notas: b?.notas ?? '',
+  contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null, orden_compra_id: b?.orden_compra_id ?? null,
+  fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', notas: b?.notas ?? '',
   items: (b?.items ?? []).map(i => ({ ...i })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i })), registrar: false,
 })
 const proveedor = computed(() => props.proveedores.find(p => p.id === form.contact_id))
@@ -108,7 +109,7 @@ function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: ''
 const netoItem = it => (Number(it.cantidad) || 0) * (Number(it.precio_unit) || 0) * (1 - (Number(it.descuento) || 0) / 100)
 const totalItem = it => netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100)
 const totales = computed(() => { const neto = form.items.reduce((a, it) => a + netoItem(it), 0); const iva = form.items.reduce((a, it) => a + netoItem(it) * (Number(it.alicuota_iva) || 0) / 100, 0); const otros = form.impuestos.reduce((a, i) => a + (Number(i.monto) || 0), 0); return { neto, iva, otros, total: neto + iva + otros } })
-function guardar(registrar) { form.registrar = registrar; form.post(b ? `/proveedores/compras/${b.id}` : '/proveedores/compras', { preserveScroll: true }) }
+function guardar(registrar) { form.registrar = registrar; form.post(props.compra ? `/proveedores/compras/${props.compra.id}` : '/proveedores/compras', { preserveScroll: true }) }
 
 const ocr = reactive({ cargando: false, aviso: null, ok: false, totalLeido: null })
 async function leerOCR(file) {
@@ -134,5 +135,5 @@ async function leerOCR(file) {
   } catch (e) { ocr.ok = false; ocr.aviso = e.response?.data?.message ?? 'No se pudo leer el archivo.' }
   finally { ocr.cargando = false }
 }
-onMounted(() => { if (form.contact_id && !b) alElegirProveedor({ id: form.contact_id }) })
+onMounted(() => { if (form.contact_id && !props.compra) alElegirProveedor({ id: form.contact_id }) })
 </script>

@@ -28,16 +28,24 @@ class CobroService
                 throw ValidationException::withMessages(['medios' => 'Ingresá al menos un medio de pago con importe.']);
             }
 
+            // Descuento: bonificación que cancela deuda sin cobrarse. Interés: se cobra de más y no cancela deuda.
+            $descuento = round((float) ($data['descuento'] ?? 0), 2);
+            $interes = round((float) ($data['interes'] ?? 0), 2);
+            $cancela = round($total + $descuento - $interes, 2); // lo que baja de la cuenta corriente
+            if ($cancela <= 0) {
+                throw ValidationException::withMessages(['interes' => 'El interés no puede superar lo cobrado.']);
+            }
             $imputaciones = collect($data['imputaciones'] ?? [])->filter(fn($i) => (float) $i['monto'] > 0)->values();
             $totalImputado = round($imputaciones->sum(fn($i) => (float) $i['monto']), 2);
-            if ($totalImputado > $total + 0.005) {
-                throw ValidationException::withMessages(['imputaciones' => 'Lo imputado supera el total cobrado.']);
+            if ($totalImputado > $cancela + 0.005) {
+                throw ValidationException::withMessages(['imputaciones' => 'Lo imputado supera lo que cancela este recibo (cobrado + descuento − interés).']);
             }
 
             $ultimo = (int) Cobro::withoutGlobalScopes()->where('business_id', $user->business_id)->max('numero');
             $cobro = Cobro::create([
                 'business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'contact_id' => $contact->id, 'user_id' => $user->id,
-                'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'a_cuenta' => round($total - $totalImputado, 2), 'notas' => $data['notas'] ?? null,
+                'vendedor_id' => $data['vendedor_id'] ?? $contact->vendedor_id ?? \App\Models\Vendedor::deUsuario($user->id)?->id,
+                'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'descuento' => $descuento, 'interes' => $interes, 'a_cuenta' => round($cancela - $totalImputado, 2), 'notas' => $data['notas'] ?? null,
             ]);
 
             foreach ($medios as $m) {
@@ -74,7 +82,7 @@ class CobroService
 
             CuentaCorriente::create([
                 'business_id' => $user->business_id, 'contact_id' => $contact->id, 'cobro_id' => $cobro->id,
-                'fecha' => $cobro->fecha, 'tipo' => 'cobro', 'concepto' => "Recibo {$cobro->numeroFormateado()}", 'debe' => 0, 'haber' => $total,
+                'fecha' => $cobro->fecha, 'tipo' => 'cobro', 'concepto' => "Recibo {$cobro->numeroFormateado()}" . ($descuento > 0 ? ' (con descuento)' : '') . ($interes > 0 ? ' (con interés)' : ''), 'debe' => 0, 'haber' => $cancela,
             ]);
             CuentaCorriente::recalcularSaldo($contact->id);
 

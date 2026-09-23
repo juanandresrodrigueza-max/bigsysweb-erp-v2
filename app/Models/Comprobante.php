@@ -31,7 +31,7 @@ class Comprobante extends Model
     ];
 
     protected $fillable = [
-        'business_id', 'business_location_id', 'contact_id', 'user_id', 'punto_venta_id', 'origen_id',
+        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'punto_venta_id', 'origen_id',
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en',
@@ -47,6 +47,8 @@ class Comprobante extends Model
 
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function vendedor(): BelongsTo { return $this->belongsTo(Vendedor::class); }
+    public function ordenCompra(): BelongsTo { return $this->belongsTo(OrdenCompra::class); }
     public function location(): BelongsTo { return $this->belongsTo(BusinessLocation::class, 'business_location_id'); }
     public function puntoVenta(): BelongsTo { return $this->belongsTo(PuntoVenta::class); }
     public function origen(): BelongsTo { return $this->belongsTo(Comprobante::class, 'origen_id'); }

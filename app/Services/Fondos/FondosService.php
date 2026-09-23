@@ -85,11 +85,32 @@ class FondosService
         return $t;
     }
 
-    public function cerrarTurno(TurnoCaja $turno, float $contado, ?string $notas = null): TurnoCaja
+    // Lo que el sistema espera por cada medio durante el turno: efectivo = saldo de la caja; el resto, cobros de la sucursal desde la apertura.
+    public function esperadoPorMedio(TurnoCaja $turno): array
+    {
+        $caja = $turno->cuenta->fresh();
+        $out = ['efectivo' => (float) $caja->saldo];
+        $q = \App\Models\CobroMedio::join('cobros', 'cobros.id', '=', 'cobro_medios.cobro_id')
+            ->where('cobros.business_id', $turno->business_id)->where('cobros.estado', '!=', 'anulado')
+            ->where('cobros.created_at', '>=', $turno->apertura)->where('cobro_medios.medio', '!=', 'efectivo')
+            ->when($caja->business_location_id, fn($q, $l) => $q->where('cobros.business_location_id', $l))
+            ->selectRaw('cobro_medios.medio, SUM(cobro_medios.monto) as monto')->groupBy('cobro_medios.medio')->pluck('monto', 'medio');
+        foreach ($q as $medio => $monto) $out[$medio] = round((float) $monto, 2);
+        // Ventas en cuenta corriente del turno (no son cobros, pero el cajero las rinde).
+        $cc = \App\Models\Comprobante::ventas()->emitidos()->facturas()->where('condicion', 'cta_cte')->where('emitido_en', '>=', $turno->apertura)
+            ->when($caja->business_location_id, fn($q, $l) => $q->where('business_location_id', $l))->sum('total');
+        if ((float) $cc > 0) $out['cta_cte'] = round((float) $cc, 2);
+        return $out;
+    }
+
+    public function cerrarTurno(TurnoCaja $turno, float $contado, ?string $notas = null, array $rendicion = []): TurnoCaja
     {
         abort_if($turno->cierre, 422, 'El turno ya está cerrado.');
+        $esperadoMedios = $this->esperadoPorMedio($turno);
         $esperado = (float) $turno->cuenta->fresh()->saldo;
-        $turno->update(['cierre' => now(), 'saldo_esperado' => $esperado, 'saldo_contado' => $contado, 'diferencia' => round($contado - $esperado, 2), 'notas' => $notas]);
+        $rend = ['efectivo' => $contado];
+        foreach ($rendicion as $medio => $monto) { if ($medio !== 'efectivo' && $monto !== null && $monto !== '') $rend[$medio] = round((float) $monto, 2); }
+        $turno->update(['cierre' => now(), 'saldo_esperado' => $esperado, 'saldo_contado' => $contado, 'diferencia' => round($contado - $esperado, 2), 'notas' => $notas, 'esperado_medios' => $esperadoMedios, 'rendicion' => $rend]);
         if (abs($contado - $esperado) > 0.005) {
             $this->registrar($turno->cuenta, ['origen' => 'ajuste', 'origen_id' => $turno->id, 'concepto' => 'Diferencia de cierre de turno', 'ingreso' => max(0, $contado - $esperado), 'egreso' => max(0, $esperado - $contado)]);
         }

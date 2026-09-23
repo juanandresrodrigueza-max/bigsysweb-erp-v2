@@ -129,16 +129,18 @@
             <p v-if="!pendientes.length" class="px-3 py-4 text-sm text-marca-muted">Sin facturas pendientes: el pago queda a cuenta.</p>
           </div>
           <div class="mt-3 text-sm space-y-1 bg-marca-fondo rounded-xl p-3">
+            <div class="grid grid-cols-2 gap-2 mb-2"><div><label class="label">Descuento obtenido</label><input v-model.number="pago.descuento" type="number" step="any" min="0" class="input !py-1" placeholder="0" /></div><div><label class="label">Interés pagado</label><input v-model.number="pago.interes" type="number" step="any" min="0" class="input !py-1" placeholder="0" /></div></div>
             <div class="flex justify-between"><span>Total pagado</span><b class="tabular-nums">{{ moneda(totalPago) }}</b></div>
+            <div v-if="pago.descuento > 0 || pago.interes > 0" class="flex justify-between font-semibold"><span>Cancela deuda</span><span class="tabular-nums">{{ moneda(cancelaPago) }}</span></div>
             <div class="flex justify-between"><span>Imputado</span><span class="tabular-nums">{{ moneda(totalImputado) }}</span></div>
-            <div class="flex justify-between"><span>A cuenta</span><span class="tabular-nums">{{ moneda(totalPago - totalImputado) }}</span></div>
+            <div class="flex justify-between"><span>A cuenta</span><span class="tabular-nums">{{ moneda(cancelaPago - totalImputado) }}</span></div>
           </div>
           <p v-if="pago.errors.imputaciones" class="text-carmin text-xs mt-2">{{ pago.errors.imputaciones }}</p>
         </div>
       </div>
       <template #pie>
         <button class="btn-secondary" @click="pagoAbierto = false">Cancelar</button>
-        <button class="btn-primary" :disabled="pago.processing || totalPago <= 0 || totalImputado > totalPago + 0.005" @click="registrarPago">Registrar {{ moneda(totalPago) }}</button>
+        <button class="btn-primary" :disabled="pago.processing || totalPago <= 0 || totalImputado > cancelaPago + 0.005" @click="registrarPago">Registrar {{ moneda(totalPago) }}</button>
       </template>
     </Modal>
   </AppLayout>
@@ -161,10 +163,11 @@ function abrirMov(m) { if (m.comprobante_id) router.visit(`/proveedores/compras/
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], cheque_propio: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco']).includes(c.tipo))
 
 const pagoAbierto = ref(false)
-const pago = useForm({ fecha: hoyISO(), notas: '', medios: [{ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {} }], imputaciones: [] })
+const pago = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, medios: [{ medio: 'transferencia', monto: 0, cuenta_fondos_id: null, cheque_id: null, referencia: '', datos: {} }], imputaciones: [] })
 const imput = reactive({})
 function cambiarMedio(m) { m.cheque_id = null; m.cuenta_fondos_id = null; m.datos = m.medio === 'retencion' ? { tipo: Object.keys(props.retencionTipos)[0], alicuota: null, base: null, certificado: '' } : m.medio === 'cheque_propio' ? { numero: '', fecha_pago: hoyISO() } : {}; if (m.medio === 'cheque_tercero') m.monto = 0 }
 const totalPago = computed(() => pago.medios.reduce((a, m) => a + (Number(m.monto) || 0), 0))
+const cancelaPago = computed(() => totalPago.value + (Number(pago.descuento) || 0) - (Number(pago.interes) || 0))
 const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (Number(v) || 0), 0))
 function autoImputar() { let resto = totalPago.value; Object.keys(imput).forEach(k => delete imput[k]); for (const p of props.pendientes) { if (resto <= 0) break; const m = Math.min(resto, p.saldo); imput[p.id] = Math.round(m * 100) / 100; resto -= m } }
 function registrarPago() {

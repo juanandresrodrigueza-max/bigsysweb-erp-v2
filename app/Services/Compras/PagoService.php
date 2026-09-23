@@ -28,16 +28,22 @@ class PagoService
             if ($total <= 0) {
                 throw ValidationException::withMessages(['medios' => 'Ingresá al menos un medio de pago con importe.']);
             }
+            $descuento = round((float) ($data['descuento'] ?? 0), 2);
+            $interes = round((float) ($data['interes'] ?? 0), 2);
+            $cancela = round($total + $descuento - $interes, 2);
+            if ($cancela <= 0) {
+                throw ValidationException::withMessages(['interes' => 'El interés no puede superar lo pagado.']);
+            }
             $imputaciones = collect($data['imputaciones'] ?? [])->filter(fn($i) => (float) $i['monto'] > 0)->values();
             $totalImputado = round($imputaciones->sum(fn($i) => (float) $i['monto']), 2);
-            if ($totalImputado > $total + 0.005) {
-                throw ValidationException::withMessages(['imputaciones' => 'Lo imputado supera el total pagado.']);
+            if ($totalImputado > $cancela + 0.005) {
+                throw ValidationException::withMessages(['imputaciones' => 'Lo imputado supera lo que cancela esta orden (pagado + descuento − interés).']);
             }
 
             $ultimo = (int) Pago::withoutGlobalScopes()->where('business_id', $user->business_id)->max('numero');
             $pago = Pago::create([
                 'business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'contact_id' => $proveedor->id, 'user_id' => $user->id,
-                'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'a_cuenta' => round($total - $totalImputado, 2), 'notas' => $data['notas'] ?? null,
+                'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'descuento' => $descuento, 'interes' => $interes, 'a_cuenta' => round($cancela - $totalImputado, 2), 'notas' => $data['notas'] ?? null,
             ]);
 
             foreach ($medios as $m) {
@@ -86,7 +92,7 @@ class PagoService
                 $comp->decrement('saldo', $monto);
             }
 
-            CuentaCorriente::create(['business_id' => $user->business_id, 'contact_id' => $proveedor->id, 'pago_id' => $pago->id, 'fecha' => $pago->fecha, 'tipo' => 'pago', 'concepto' => "Orden de pago {$pago->numeroFormateado()}", 'debe' => 0, 'haber' => $total]);
+            CuentaCorriente::create(['business_id' => $user->business_id, 'contact_id' => $proveedor->id, 'pago_id' => $pago->id, 'fecha' => $pago->fecha, 'tipo' => 'pago', 'concepto' => "Orden de pago {$pago->numeroFormateado()}" . ($descuento > 0 ? ' (con descuento)' : ''), 'debe' => 0, 'haber' => $cancela]);
             CuentaCorriente::recalcularSaldo($proveedor->id);
 
             AuditLog::registrar('crear', $pago, "Pago {$pago->numeroFormateado()} a {$proveedor->name} por $ " . number_format($total, 2, ',', '.'));

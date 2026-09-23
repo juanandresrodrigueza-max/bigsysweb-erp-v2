@@ -231,6 +231,21 @@ class DemoSeeder extends Seeder
             $stock->transferir($depCentral, $depNorte, [['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 100], ['product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 20]], today()->subDays(3)->toDateString(), 'Reposición Norte');
             $stock->cerrarInventario($depNorte, [$productos->firstWhere('sku', 'LAD12')->id => 1985, $productos->firstWhere('sku', 'CAL25')->id => 20, $productos->firstWhere('sku', 'PIE01')->id => 11.5], today()->subDays(2)->toDateString(), 'Conteo mensual');
 
+            // Fase 7: vendedores con comisión, cadena de precios en algunos artículos, dólar y una orden de compra abierta
+            $vito = \App\Models\Vendedor::create(['business_id' => $empresa->id, 'user_id' => User::where('email', 'vendedor@bigsys.com.ar')->value('id'), 'nombre' => 'Vito Vendedor', 'comision_venta' => 2, 'comision_cobro' => 1, 'activo' => true]);
+            $marta = \App\Models\Vendedor::create(['business_id' => $empresa->id, 'nombre' => 'Marta Mostrador', 'comision_venta' => 1.5, 'comision_cobro' => 0, 'activo' => true]);
+            Contact::customers()->where('business_id', $empresa->id)->orderBy('id')->limit(3)->update(['vendedor_id' => $vito->id, 'interes_mora' => 4]);
+            \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $empresa->id)->where('direccion', 'venta')->whereIn('contact_id', Contact::customers()->where('vendedor_id', $vito->id)->pluck('id'))->update(['vendedor_id' => $vito->id]);
+            \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $empresa->id)->where('direccion', 'venta')->whereNull('vendedor_id')->whereRaw('id % 2 = 0')->update(['vendedor_id' => $marta->id]);
+            foreach (['CEM50' => [42000, 5, ['1' => 35, '2' => 28, '3' => 40]], 'HIE08' => [9800, 0, ['1' => 30, '2' => 25]]] as $sku => [$pc, $dto, $m]) {
+                $p = $productos->firstWhere('sku', $sku); $p->fill(['precio_compra' => $pc, 'descuento_proveedor' => $dto, 'margenes' => $m, 'desc_cant_min' => 50, 'desc_cant_pct' => 5]); $p->recalcularDesdeCosto(); $p->save();
+            }
+            \App\Models\Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => today()->toDateString(), 'tipo' => 'oficial'], ['compra' => 1420, 'venta' => 1460, 'fuente' => 'manual']);
+            $ocs = app(\App\Services\Compras\OrdenCompraService::class);
+            $oc = $ocs->guardar(['contact_id' => $loma->id, 'fecha' => today()->subDays(4)->toDateString(), 'fecha_entrega' => today()->subDay()->toDateString(), 'notas' => 'Entregar en Central, turno mañana', 'origen' => 'sugerido', 'items' => [['product_id' => $productos->firstWhere('sku', 'CEM50')->id, 'cantidad' => 200, 'precio_unit' => 42000], ['product_id' => $productos->firstWhere('sku', 'CAL25')->id, 'cantidad' => 80, 'precio_unit' => 6500]]]);
+            $ocs->enviar($oc);
+            $ocs->guardar(['contact_id' => $acindar->id, 'fecha' => today()->toDateString(), 'fecha_entrega' => today()->addDays(5)->toDateString(), 'origen' => 'manual', 'items' => [['product_id' => $productos->firstWhere('sku', 'HIE08')->id, 'cantidad' => 300, 'precio_unit' => 9800]]]);
+
             // Contabilidad: asientos de todo lo anterior + extracto bancario de prueba (con dos movimientos que el sistema no tiene)
             app(\App\Services\Contabilidad\ContabilidadService::class)->sincronizar($empresa->id);
             $csv = "Fecha;Concepto;Importe;Saldo\n";

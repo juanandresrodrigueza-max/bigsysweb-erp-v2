@@ -47,6 +47,9 @@ class PlanCuentas
         ['4.2', 'Otros ingresos', 'ingreso', null, false],
         ['4.2.01', 'Otros ingresos', 'ingreso', 'otros_ingresos', true],
         ['4.2.02', 'Sobrantes de caja', 'ingreso', 'sobrante_caja', true],
+        ['4.2.03', 'Intereses ganados', 'ingreso', 'intereses_ganados', true],
+        ['4.2.04', 'Descuentos obtenidos', 'ingreso', 'descuentos_obtenidos', true],
+        ['4.2.05', 'Diferencias de cambio', 'ingreso', 'dif_cambio', true],
         ['5', 'EGRESOS', 'egreso', null, false],
         ['5.1', 'Costo de ventas', 'egreso', null, false],
         ['5.1.01', 'Costo de mercaderías vendidas', 'egreso', 'cmv', true],
@@ -56,6 +59,9 @@ class PlanCuentas
         ['5.2.03', 'Faltantes de caja', 'egreso', 'faltante_caja', true],
         ['5.2.04', 'Impuestos y tasas', 'egreso', 'impuestos', true],
         ['5.2.05', 'Compras no inventariables', 'egreso', 'compras_gastos', true],
+        ['5.2.06', 'Descuentos otorgados', 'egreso', 'descuentos_otorgados', true],
+        ['5.2.07', 'Intereses perdidos', 'egreso', 'intereses_perdidos', true],
+        ['5.2.08', 'Comisiones a vendedores', 'egreso', 'comisiones', true],
     ];
 
     // Crea el plan para una empresa (no duplica si ya existe) y una subcuenta por categoría de gasto.
