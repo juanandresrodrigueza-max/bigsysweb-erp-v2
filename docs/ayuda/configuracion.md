@@ -60,6 +60,16 @@ Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente 
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.
 
+## Migrar desde BigSys (Clarion)
+
+En Configuración → Importar elegí "Viene de: BigSys (Clarion)". Los nombres de las columnas del BigSys viejo se reconocen solos. Conviene importar en este orden: clientes, proveedores, artículos y por último los saldos.
+
+- **Clientes y proveedores**: se sube la misma tabla de cuentas (cta). Se toman solo las de tipo C para clientes y P para proveedores; empleados y agenda quedan afuera. Se guarda el código de cada cuenta (codcta), que después sirve para buscarlos por ese número y para cruzar los saldos. También pasan el CUIT, la condición de IVA (RI, MT, CF, EX), la lista de precios, el descuento y el límite de crédito.
+- **Artículos**: pasan el código, el código de barras, el rubro, las 6 listas, el costo, el stock, el mínimo y el estado (A activo, B o I de baja). BigSys guarda los precios con IVA: con el tilde "Los precios del archivo son finales con IVA" se pasan a neto con el IVA de cada artículo.
+- **Saldos**: se sube la tabla de movimientos (mov). El saldo de cada cuenta se calcula sumando el debe y restando el haber, sin los anulados. No se usa el saldo que guarda cada comprobante (totsal) porque no descuenta los pagos a cuenta.
+
+Las fechas en formato Clarion y los acentos de los archivos de Windows se convierten solos. Hacé la prueba con una copia de la carpeta de datos, nunca con la que está en uso.
+
 ## Copias de seguridad
 
 Copia automática diaria (se puede bajar) y restauración con un clic. Antes de restaurar se guarda una copia de seguridad del estado actual.

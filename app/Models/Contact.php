@@ -17,7 +17,7 @@ class Contact extends Model
     protected $fillable = [
         'business_id', 'type', 'tipo_cliente_id', 'name', 'email', 'phone', 'mobile', 'document_type', 'document', 'cuit',
         'condicion_iva', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'interes_mora', 'vendedor_id',
-        'descuento', 'percepcion_iibb', 'jurisdiccion_iibb', 'alicuota_percepcion_iibb', 'alicuota_retencion_iibb', 'exento_iibb', 'percepcion_iva', 'percepcion_ganancias', 'retiene_ganancias', 'balance', 'is_active', 'notes', 'crm_external_id', 'portal_token', 'puntos', 'pais_codigo', 'cuit_pais', 'id_impositivo', 'recordar_precio',
+        'descuento', 'percepcion_iibb', 'jurisdiccion_iibb', 'alicuota_percepcion_iibb', 'alicuota_retencion_iibb', 'exento_iibb', 'percepcion_iva', 'percepcion_ganancias', 'retiene_ganancias', 'balance', 'is_active', 'notes', 'crm_external_id', 'portal_token', 'puntos', 'pais_codigo', 'cuit_pais', 'id_impositivo', 'recordar_precio', 'codigo',
     ];
 
     protected $casts = [

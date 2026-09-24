@@ -62,8 +62,8 @@ class Catalogo
         $like = Sql::like(); $t = '%' . trim($q) . '%'; $num = (int) preg_replace('/\D/', '', $q);
         if (trim($q) === '') return ['clientes' => [], 'proveedores' => [], 'articulos' => [], 'comprobantes' => []];
         return [
-            'clientes' => Contact::customers()->where('is_active', true)->where(fn($w) => $w->where('name', $like, $t)->orWhere('cuit', $like, $t))->orderBy('name')->limit(5)->get()->map(fn($c) => ['id' => $c->id, 'titulo' => $c->name, 'sub' => trim(($c->cuit ?? '') . ' · ' . $c->condicion_iva, ' ·'), 'url' => "/clientes/{$c->id}"])->values(),
-            'proveedores' => Contact::suppliers()->where('is_active', true)->where(fn($w) => $w->where('name', $like, $t)->orWhere('cuit', $like, $t))->orderBy('name')->limit(5)->get()->map(fn($c) => ['id' => $c->id, 'titulo' => $c->name, 'sub' => $c->cuit, 'url' => "/proveedores/{$c->id}"])->values(),
+            'clientes' => Contact::customers()->where('is_active', true)->where(fn($w) => $w->where('name', $like, $t)->orWhere('cuit', $like, $t)->orWhere('codigo', trim($q)))->orderBy('name')->limit(5)->get()->map(fn($c) => ['id' => $c->id, 'titulo' => $c->name, 'sub' => trim(($c->cuit ?? '') . ' · ' . $c->condicion_iva, ' ·'), 'url' => "/clientes/{$c->id}"])->values(),
+            'proveedores' => Contact::suppliers()->where('is_active', true)->where(fn($w) => $w->where('name', $like, $t)->orWhere('cuit', $like, $t)->orWhere('codigo', trim($q)))->orderBy('name')->limit(5)->get()->map(fn($c) => ['id' => $c->id, 'titulo' => $c->name, 'sub' => $c->cuit, 'url' => "/proveedores/{$c->id}"])->values(),
             'articulos' => Product::where('active', true)->where(fn($w) => $w->where('name', $like, $t)->orWhere('sku', $like, $t)->orWhere('barcode', $like, $t))->orderBy('name')->limit(5)->get()->map(fn($p) => ['id' => $p->id, 'titulo' => $p->name, 'sub' => $p->sku . ' · stock ' . rtrim(rtrim(number_format((float) $p->stock, 3, ',', '.'), '0'), ',') . ' · $ ' . number_format((float) $p->price, 2, ',', '.'), 'url' => "/stock/{$p->id}"])->values(),
             'comprobantes' => \App\Models\Comprobante::ventas()->where('estado', '!=', 'borrador')->when($num > 0, fn($b) => $b->where('numero', $num), fn($b) => $b->whereHas('contact', fn($c) => $c->where('name', $like, $t)))->with('contact:id,name')->orderByDesc('fecha')->orderByDesc('id')->limit(5)->get()->map(fn($c) => ['id' => $c->id, 'titulo' => $c->nombreTipo() . ' ' . ($c->numeroFormateado() ?? '(pendiente)'), 'sub' => ($c->contact?->name ?? 'Consumidor final') . ' · ' . $c->fecha->format('d/m/Y') . ' · $ ' . number_format((float) $c->total, 2, ',', '.'), 'url' => "/comprobantes/{$c->id}"])->values(),
         ];
@@ -108,7 +108,7 @@ class Catalogo
                 ->orderBy('name')->limit(30)->get()->map(fn($p) => self::producto($p, $forma))->values();
         }
         return self::queryContactos($forma)->when($ids, fn($b) => $b->whereIn('id', $ids))
-            ->when(trim($q) !== '', fn($b) => $b->where(fn($w) => $w->where('name', $like, $t)->orWhere('cuit', $like, $t)))
+            ->when(trim($q) !== '', fn($b) => $b->where(fn($w) => $w->where('name', $like, $t)->orWhere('cuit', $like, $t)->orWhere('codigo', trim($q))))
             ->orderBy('name')->limit(30)->get()->map(fn($c) => self::contacto($c, $forma))->values();
     }
 }

@@ -9,7 +9,7 @@
         <p class="text-sm text-marca-muted mb-4">Subí un Excel (.xlsx) o CSV con encabezados. El sistema adivina qué columna es cada cosa y vos confirmás. Si un cliente o artículo ya existe (por CUIT, código o nombre) se actualiza, no se duplica.</p>
         <form v-if="!preview" @submit.prevent="sub.post('/configuracion/importar/previsualizar', { forceFormData: true, preserveScroll: true })" class="grid sm:grid-cols-4 gap-3 items-end">
           <div><label class="label">Qué vas a importar</label><select v-model="sub.entidad" class="input"><option v-for="e in entidades" :key="e.key" :value="e.key">{{ e.label }}</option></select></div>
-          <div><label class="label">Viene de</label><select v-model="sub.perfil" class="input"><option value="">Excel / CSV genérico</option><option value="tango">Tango Gestión</option><option value="bejerman">Bejerman / Softland</option><option value="colppy">Colppy</option></select></div>
+          <div><label class="label">Viene de</label><select v-model="sub.perfil" class="input"><option value="">Excel / CSV genérico</option><option value="tango">Tango Gestión</option><option value="bejerman">Bejerman / Softland</option><option value="colppy">Colppy</option><option value="bigsys">BigSys (Clarion)</option></select></div>
           <div><label class="label">Archivo</label><input type="file" accept=".xlsx,.csv,.txt" @change="sub.archivo = $event.target.files[0]" class="input !py-1.5 text-xs" /></div>
           <button class="btn-primary" :disabled="sub.processing || !sub.archivo">Leer archivo</button>
           <p v-if="sub.errors.archivo" class="text-carmin text-xs sm:col-span-3">{{ sub.errors.archivo }}</p>
@@ -31,7 +31,10 @@
             <template v-if="preview.entidad === 'articulos'">
               <label class="flex items-center gap-2 text-sm"><input v-model="ap.stock_inicial" type="checkbox" class="accent-carmin" /> Cargar el stock inicial de los artículos nuevos</label>
               <label class="flex items-center gap-2 text-sm"><input v-model="ap.ajustar_stock" type="checkbox" class="accent-carmin" /> Ajustar el stock de los que ya existen al valor del archivo</label>
+              <label class="flex items-center gap-2 text-sm"><input v-model="ap.precios_con_iva" type="checkbox" class="accent-carmin" data-precios-con-iva /> Los precios del archivo son finales con IVA (se pasan a neto con el IVA de cada artículo)</label>
             </template>
+            <p v-if="preview.perfil === 'bigsys' && preview.entidad.startsWith('saldos')" class="text-xs text-violeta sm:col-span-2">Con la tabla de movimientos (mov) el saldo de cada cuenta se calcula sumando debe menos haber sin los anulados. No se usa totsal porque no descuenta los pagos a cuenta.</p>
+            <p v-if="preview.perfil === 'bigsys' && !preview.entidad.startsWith('saldos') && preview.entidad !== 'articulos'" class="text-xs text-violeta sm:col-span-2">La tabla de cuentas de BigSys trae clientes, proveedores, empleados y agenda: se importan solo los de tipo {{ preview.entidad === 'clientes' ? 'C' : 'P' }} y se guarda el código de cada uno para cruzar los saldos.</p>
             <template v-else-if="preview.entidad.startsWith('saldos')">
               <label class="flex items-center gap-2 text-sm"><input v-model="ap.reemplazar_saldos" type="checkbox" class="accent-carmin" /> Si el comprobante ya estaba cargado, reemplazarlo</label>
               <div><label class="label">Fecha si la fila no la trae</label><input v-model="ap.fecha_saldos" type="date" class="input" /></div>
@@ -73,7 +76,7 @@
         <tbody>
           <template v-for="h in historial" :key="h.id">
             <tr><td class="tabular-nums">{{ h.fecha }}</td><td>{{ h.entidad }}</td><td class="text-marca-muted">{{ h.archivo }}</td><td class="text-right tabular-nums">{{ h.leidas }}</td><td class="text-right tabular-nums text-emerald-700">{{ h.creadas }}</td><td class="text-right tabular-nums">{{ h.actualizadas }}</td><td class="text-right tabular-nums" :class="h.errores ? 'text-carmin font-bold' : ''">{{ h.errores }}</td><td>{{ h.usuario }}</td></tr>
-            <tr v-if="h.errores && h.detalle?.length"><td colspan="8" class="text-xs text-carmin bg-red-50/40"><span v-for="(d, i) in h.detalle.slice(0, 10)" :key="i" class="block">{{ d }}</span></td></tr>
+            <tr v-if="h.detalle?.length"><td colspan="8" class="text-xs" :class="h.errores ? 'text-carmin bg-red-50/40' : 'text-marca-muted bg-marca-fondo'"><span v-for="(d, i) in h.detalle.slice(0, 10)" :key="i" class="block">{{ d }}</span></td></tr>
           </template>
           <tr v-if="!historial.length"><td colspan="8" class="text-center text-marca-muted py-6">Todavía no importaste nada.</td></tr>
         </tbody>
@@ -93,7 +96,7 @@ const page = usePage()
 const preview = computed(() => page.props.flash?.preview)
 const entidadActual = computed(() => props.entidades.find(e => e.key === (preview.value?.entidad ?? sub.entidad)) ?? props.entidades[0])
 const sub = useForm({ entidad: 'clientes', archivo: null, perfil: '' })
-const ap = useForm({ entidad: '', archivo: '', filas: [], mapeo: {}, stock_inicial: true, ajustar_stock: false, saldos: true, reemplazar_saldos: false, fecha_saldos: hoyISO() })
-watch(preview, p => { if (p) { ap.entidad = p.entidad; ap.archivo = p.archivo; ap.filas = p.filas; ap.mapeo = Object.fromEntries(p.encabezado.map((_, i) => [String(i), p.mapeo?.[i] ?? null])) } }, { immediate: true })
+const ap = useForm({ entidad: '', archivo: '', filas: [], mapeo: {}, stock_inicial: true, ajustar_stock: false, saldos: true, reemplazar_saldos: false, fecha_saldos: hoyISO(), precios_con_iva: false })
+watch(preview, p => { if (p) { ap.entidad = p.entidad; ap.archivo = p.archivo; ap.filas = p.filas; ap.mapeo = Object.fromEntries(p.encabezado.map((_, i) => [String(i), p.mapeo?.[i] ?? null])); ap.precios_con_iva = p.perfil === 'bigsys' } }, { immediate: true })
 function aplicar() { ap.post('/configuracion/importar/aplicar', { preserveScroll: true, onSuccess: () => router.get('/configuracion/importar') }) }
 </script>

@@ -24,6 +24,7 @@ class ImportarController extends Controller
         $d = $request->validate(['archivo' => 'required|file|max:20480|mimes:csv,txt,xlsx,xls', 'entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES)), 'perfil' => 'nullable|in:' . implode(',', array_keys(ImportadorService::PERFILES))]);
         $f = $request->file('archivo');
         $filas = $svc->leer($f->getRealPath(), $f->getClientOriginalName());
+        // Los movimientos de BigSys se agrupan por cuenta antes de importar: se aceptan tablas grandes.
         if (count($filas) < 2) return back()->withErrors(['archivo' => 'El archivo no tiene datos (necesita encabezado y al menos una fila).']);
         $enc = $filas[0];
         return back()->with('preview', ['entidad' => $d['entidad'], 'archivo' => $f->getClientOriginalName(), 'encabezado' => $enc, 'mapeo' => $svc->sugerirMapeo($d['entidad'], $enc, $d['perfil'] ?? null), 'perfil' => $d['perfil'] ?? null, 'muestra' => array_slice($filas, 1, 8), 'total' => count($filas) - 1, 'filas' => array_slice($filas, 1)]);
@@ -31,10 +32,10 @@ class ImportarController extends Controller
 
     public function aplicar(Request $request, ImportadorService $svc)
     {
-        $d = $request->validate(['entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES)), 'archivo' => 'nullable|string', 'filas' => 'required|array|min:1', 'mapeo' => 'required|array', 'stock_inicial' => 'boolean', 'ajustar_stock' => 'boolean', 'saldos' => 'boolean', 'reemplazar_saldos' => 'boolean', 'fecha_saldos' => 'nullable|date']);
+        $d = $request->validate(['entidad' => 'required|in:' . implode(',', array_keys(ImportadorService::ENTIDADES)), 'archivo' => 'nullable|string', 'filas' => 'required|array|min:1', 'mapeo' => 'required|array', 'stock_inicial' => 'boolean', 'ajustar_stock' => 'boolean', 'saldos' => 'boolean', 'reemplazar_saldos' => 'boolean', 'fecha_saldos' => 'nullable|date', 'precios_con_iva' => 'boolean']);
         $mapeo = collect($d['mapeo'])->filter(fn($v) => $v !== null && $v !== '')->all();
         if (! $mapeo) return back()->withErrors(['mapeo' => 'Asigná al menos la columna de nombre o descripción.']);
-        $imp = $svc->aplicar($d['entidad'], $d['filas'], $mapeo, ['archivo' => $d['archivo'] ?? null, 'stock_inicial' => $d['stock_inicial'] ?? true, 'ajustar_stock' => $d['ajustar_stock'] ?? false, 'saldos' => $d['saldos'] ?? true, 'reemplazar_saldos' => $d['reemplazar_saldos'] ?? false, 'fecha_saldos' => $d['fecha_saldos'] ?? null]);
+        $imp = $svc->aplicar($d['entidad'], $d['filas'], $mapeo, ['archivo' => $d['archivo'] ?? null, 'stock_inicial' => $d['stock_inicial'] ?? true, 'ajustar_stock' => $d['ajustar_stock'] ?? false, 'saldos' => $d['saldos'] ?? true, 'reemplazar_saldos' => $d['reemplazar_saldos'] ?? false, 'fecha_saldos' => $d['fecha_saldos'] ?? null, 'precios_con_iva' => $d['precios_con_iva'] ?? false]);
         return back()->with('success', "Importación lista: {$imp->creadas} nuevos, {$imp->actualizadas} actualizados" . ($imp->errores ? ", {$imp->errores} con error (mirá el detalle abajo)" : '') . '.');
     }
 

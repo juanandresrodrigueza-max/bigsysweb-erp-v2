@@ -27,7 +27,7 @@ class ImportacionPreciosService
     private function leerCsv(string $path): array
     {
         $raw = file_get_contents($path);
-        if (! mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'UTF-8', 'ISO-8859-1');
+        if (! mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'UTF-8', 'Windows-1252'); // CP1252: lo que exportan Clarion y Excel en Windows (incluye € “ ” –)
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
         $lineas = preg_split('/\r\n|\r|\n/', $raw);
         $sep = substr_count($lineas[0] ?? '', ';') >= substr_count($lineas[0] ?? '', ',') ? ';' : ',';
