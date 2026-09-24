@@ -19,6 +19,16 @@ Acá caen los pedidos de la tienda online, el portal de clientes, WhatsApp, Merc
 
 Agrupá las entregas del día por repartidor, imprimí la hoja con direcciones y bultos, y al volver marcá cada entrega como hecha o con novedad. Cada remito o factura con entrega pendiente aparece hasta que se entrega.
 
+## Rendición del reparto (Comprobantes → Entregas → la hoja)
+
+Cierra la caja del camión al volver del viaje.
+
+1. En cada entrega, **+ Cobro** anota lo que cobró el chofer: efectivo, cheque (banco y número), transferencia o Mercado Pago. Puede cobrar más de lo que salía: el resto queda a cuenta del cliente.
+2. Marcá cada entrega como entregada o no entregada.
+3. **Rendir viaje**: elegí la caja donde entra el efectivo, cargá los viáticos (nafta, peajes, comida) y el efectivo que entrega el chofer. La pantalla muestra si hay faltante o sobrante antes de confirmar.
+
+Al rendir, cada entrega cobrada genera su recibo imputado a la factura. El efectivo entra a la caja, los cheques a la cartera y las transferencias al banco. Los viáticos salen como gasto de la caja y la diferencia queda como faltante o sobrante de caja. Rinde quien puede cargar movimientos de fondos. Una hoja rendida no se puede volver a rendir ni sumar cobros, y la hoja impresa muestra la rendición.
+
 ## Facturación por lote (Comprobantes → Facturar en lote)
 
 Elegí presupuestos aprobados o remitos emitidos de uno o varios clientes y facturalos todos juntos. Cada remito queda vinculado a su factura y el pendiente de facturar baja a cero.

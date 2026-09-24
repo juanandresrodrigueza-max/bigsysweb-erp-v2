@@ -160,6 +160,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/entregas/{id}/imprimir',  [\App\Http\Controllers\Comprobantes\EntregasController::class, 'imprimirOrden']);
         Route::post('/entregas/{id}/estado',   [\App\Http\Controllers\Comprobantes\EntregasController::class, 'estadoOrden'])->middleware('permiso:comprobantes,editar');
         Route::post('/entregas/items/{id}',    [\App\Http\Controllers\Comprobantes\EntregasController::class, 'marcarItem'])->middleware('permiso:comprobantes,editar');
+        Route::post('/entregas/items/{id}/cobros', [\App\Http\Controllers\Comprobantes\EntregasController::class, 'anotarCobro'])->middleware('permiso:comprobantes,editar');
+        Route::delete('/entregas/cobros/{id}', [\App\Http\Controllers\Comprobantes\EntregasController::class, 'quitarCobro'])->middleware('permiso:comprobantes,editar');
+        Route::post('/entregas/{id}/rendir', [\App\Http\Controllers\Comprobantes\EntregasController::class, 'rendir'])->middleware('permiso:fondos,crear');
         Route::get('/abonos',                  [\App\Http\Controllers\Comprobantes\AbonosController::class, 'index']);
         Route::post('/abonos/emitir-vencidos', [\App\Http\Controllers\Comprobantes\AbonosController::class, 'emitirVencidos'])->middleware('permiso:comprobantes,crear');
         Route::post('/abonos/{id}/emitir',     [\App\Http\Controllers\Comprobantes\AbonosController::class, 'emitir'])->middleware('permiso:comprobantes,crear');

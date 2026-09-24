@@ -34,6 +34,14 @@
     @endforeach
   </table>
   @if($oe->notas)<div style="padding:12px 16px;border-top:1px solid #d6d1ca">{{ $oe->notas }}</div> @endif
+  @if($oe->rendida_en && ($r = $oe->rendicion))
+  <div style="padding:12px 16px;border-top:1px solid #d6d1ca">
+    <b>Rendición del {{ $oe->rendida_en->format('d/m/Y H:i') }}</b> · caja {{ $r['caja'] ?? '' }}<br>
+    Efectivo cobrado {{ $fmt($r['esperado']['efectivo'] ?? 0) }} · viáticos {{ $fmt($r['total_viaticos'] ?? 0) }} · rindió {{ $fmt($r['contado'] ?? 0) }}
+    @if(abs((float) ($r['diferencia'] ?? 0)) >= 0.01) · <b>{{ $r['diferencia'] < 0 ? 'Faltante' : 'Sobrante' }} {{ $fmt(abs($r['diferencia'])) }}</b>@endif<br>
+    Cheques {{ $fmt($r['esperado']['cheque'] ?? 0) }} · transferencias {{ $fmt($r['esperado']['transferencia'] ?? 0) }} · Mercado Pago {{ $fmt($r['esperado']['mercadopago'] ?? 0) }} · recibos {{ implode(', ', $r['recibos'] ?? []) }}
+  </div>
+  @endif
   <div class="firma"><div>Salida depósito</div><div>Repartidor</div><div>Recepción</div></div>
 </div>
 </body>
