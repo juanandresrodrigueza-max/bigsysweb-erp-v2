@@ -11,7 +11,9 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Montserrat', ...defaultTheme.fontFamily.sans],
+                // Texto: Plus Jakarta Sans (se lee mejor en pantallas y tablas). Montserrat queda para la marca.
+                sans: ['"Plus Jakarta Sans Variable"', '"Plus Jakarta Sans"', ...defaultTheme.fontFamily.sans],
+                marca: ['Montserrat', ...defaultTheme.fontFamily.sans],
             },
             colors: {
                 carmin:   { DEFAULT: '#e4003f', dark: '#b80033', 70: '#ec4d79', 30: '#f7b3c5', light: '#fde8ee' },
