@@ -7,9 +7,9 @@
   table{width:100%;border-collapse:collapse}
   .cab td{vertical-align:top;padding:14px 16px}
   .cab .letra{width:86px;text-align:center;vertical-align:middle;border-left:1px solid #d6d1ca;border-right:1px solid #d6d1ca}
-  .letra b{display:block;font-size:34px;line-height:1;color:{{ $m['color_primario'] }}} .letra small{font-size:8.5px;color:#6f6a62}
-  .emp{font-size:17px;font-weight:800;color:{{ $m['color_primario'] }};margin-bottom:2px}
-  .tipo{font-size:14px;font-weight:800;color:{{ $m['color_secundario'] }}} .num{font-size:13px;font-weight:700;margin:3px 0}
+  .letra b{display:block;font-size:34px;line-height:1;color:{{ $m['acento'] }}} .letra small{font-size:8.5px;color:#6f6a62}
+  .emp{font-size:17px;font-weight:800;color:{{ $m['acento'] }};margin-bottom:2px}
+  .tipo{font-size:14px;font-weight:800;color:{{ $m['titulo'] }}} .num{font-size:13px;font-weight:700;margin:3px 0}
   .fiscal{font-size:10.5px;color:#4a4640;line-height:1.45} .extra{font-size:10px;color:#6f6a62;margin-top:4px;line-height:1.4}
   .logo{max-height:64px;max-width:190px;margin-bottom:6px}
   .banda{background:{{ $m['color_primario'] }};color:{{ $m['texto_primario'] }}}
@@ -21,7 +21,7 @@
   .items th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:{{ $m['texto_secundario'] }};background:{{ $m['color_secundario'] }};padding:7px 10px}
   .items td{padding:6px 10px;border-bottom:1px solid #eee} .items tr:nth-child(even) td{background:{{ $m['suave'] }}}
   .r{text-align:right} .c{text-align:center}
-  .tot{width:270px;margin:10px 16px 10px auto} .tot td{padding:3px 6px} .tot .g td{font-weight:800;font-size:14px;border-top:2px solid {{ $m['color_primario'] }};color:{{ $m['color_primario'] }}}
+  .tot{width:270px;margin:10px 16px 10px auto} .tot td{padding:3px 6px} .tot .g td{font-weight:800;font-size:14px;border-top:2px solid {{ $m['color_primario'] }};color:{{ $m['acento'] }}}
   .caja{margin:0 16px 10px;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:10.5px}
   .pie td{padding:10px 16px;border-top:1px solid #d6d1ca;font-size:10px;color:#6f6a62;vertical-align:middle}
   .leyenda{padding:8px 16px;font-size:10px;color:#4a4640;border-top:1px solid #eee;text-align:center}

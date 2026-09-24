@@ -26,6 +26,7 @@ class EnvioService
             $m instanceof Pago => ['comprobantes.orden_pago', ['p' => $m->load('contact', 'medios.cheque', 'imputaciones.comprobante', 'retenciones', 'business'), 'b' => $m->business->emisorPara(\App\Models\BusinessLocation::find($m->business_location_id))], "Orden de pago {$m->numeroFormateado()}.pdf"],
             $m instanceof OrdenCompra => ['compras.orden', ['oc' => $m->load('items.product', 'contact', 'business', 'location'), 'b' => $m->business], "{$m->numeroFormateado()}.pdf"],
             $m instanceof Contact => ['fichas.cuenta', $this->datosFicha($m), "Resumen de cuenta {$m->name}.pdf"],
+            $m instanceof \App\Models\Catalogo => ['catalogo.pdf', app(\App\Services\Ventas\CatalogoService::class)->datos($m, $m->contact), "{$m->nombre}.pdf"],
             default => throw new \InvalidArgumentException('Documento no soportado'),
         };
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($vista, $datos)->setPaper('a4');
@@ -52,6 +53,7 @@ class EnvioService
             $m instanceof Cobro => ['asunto' => "Recibo {$m->numeroFormateado()} de {$b->name}", 'cuerpo' => "Hola {$m->contact?->name}, recibimos tu pago de $ " . number_format((float) $m->total, 2, ',', '.') . ". Adjuntamos el recibo {$m->numeroFormateado()}. ¡Gracias!" . $firma],
             $m instanceof Pago => ['asunto' => "Orden de pago {$m->numeroFormateado()} de {$b->name}", 'cuerpo' => "Hola {$m->contact?->name}, te enviamos la orden de pago {$m->numeroFormateado()} por $ " . number_format((float) $m->total, 2, ',', '.') . "." . $firma],
             $m instanceof OrdenCompra => ['asunto' => "Orden de compra {$m->numeroFormateado()} de {$b->name}", 'cuerpo' => "Hola {$m->contact?->name}, te pasamos la orden de compra {$m->numeroFormateado()}:\n" . $m->items->map(fn($i) => "• " . rtrim(rtrim(number_format((float) $i->cantidad, 3, ',', '.'), '0'), ',') . " {$i->descripcion}")->implode("\n") . ($m->fecha_entrega ? "\nEntrega esperada: {$m->fecha_entrega->format('d/m/Y')}" : '') . $firma],
+            $m instanceof \App\Models\Catalogo => ['asunto' => "{$m->nombre} · {$b->name}", 'cuerpo' => 'Hola' . ($m->contact ? " {$m->contact->name}" : '') . ", te pasamos nuestro catálogo \"{$m->nombre}\"" . ($m->contact ? ' con tus precios' : '') . ".\nVerlo online y buscar artículos: {$m->url($m->contact)}" . $firma],
             $m instanceof Contact => ['asunto' => "Resumen de cuenta de {$b->name}", 'cuerpo' => "Hola {$m->name}, adjuntamos tu resumen de cuenta. Saldo actual: $ " . number_format((float) $m->balance, 2, ',', '.') . "." . $firma],
             default => ['asunto' => "Documento de {$b->name}", 'cuerpo' => $firma],
         };

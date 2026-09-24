@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <title>Orden de pago {{ $p->numeroFormateado() }}</title>
 @include('comprobantes._estilos')
-<style>.sec{padding:10px 16px;border-bottom:1px solid #d6d1ca} h4{margin:0 0 6px;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:{{ $m['color_secundario'] }}} .sec td{padding:4px 0;border-bottom:1px solid #eee} .total{padding:12px 16px;text-align:right;font-size:16px;font-weight:800;color:{{ $m['color_primario'] }}} .firma td{padding:40px 16px 16px;font-size:10px;color:#6f6a62;text-align:center}</style>
+<style>.sec{padding:10px 16px;border-bottom:1px solid #d6d1ca} h4{margin:0 0 6px;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:{{ $m['titulo'] }}} .sec td{padding:4px 0;border-bottom:1px solid #eee} .total{padding:12px 16px;text-align:right;font-size:16px;font-weight:800;color:{{ $m['acento'] }}} .firma td{padding:40px 16px 16px;font-size:10px;color:#6f6a62;text-align:center}</style>
 </head>
 <body>
 <button class="btn" onclick="window.print()">Imprimir / PDF</button>

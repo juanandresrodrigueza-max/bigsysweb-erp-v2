@@ -53,6 +53,8 @@ Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\Orde
 Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder'])->middleware('throttle:publico');
 Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore'])->middleware('throttle:publico');
 Route::get('/portal/{token}',              [\App\Http\Controllers\PortalController::class, 'ver'])->middleware('throttle:publico');
+Route::get('/catalogo/{token}',            [\App\Http\Controllers\CatalogoPublicoController::class, 'ver'])->middleware('throttle:publico');
+Route::get('/catalogo/{token}/pdf',        [\App\Http\Controllers\CatalogoPublicoController::class, 'pdf'])->middleware('throttle:publico');
 Route::get('/portal/{token}/pagar/{id}',   [\App\Http\Controllers\PortalController::class, 'pagar'])->whereNumber('id');
 
 // Suscripción: accesible aunque la empresa esté bloqueada (es donde se renueva).
@@ -316,6 +318,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/informes',                  [\App\Http\Controllers\Stock\InformesController::class, 'index']);
         Route::post('/informes/minimos',         [\App\Http\Controllers\Stock\InformesController::class, 'aplicarMinimos'])->middleware('permiso:stock,editar');
         Route::get('/etiquetas',                 [\App\Http\Controllers\Stock\InformesController::class, 'etiquetas']);
+        Route::get('/catalogos',                 [\App\Http\Controllers\Stock\CatalogosController::class, 'index']);
+        Route::post('/catalogos/{id?}',          [\App\Http\Controllers\Stock\CatalogosController::class, 'guardar'])->whereNumber('id')->middleware('permiso:stock,editar');
+        Route::delete('/catalogos/{id}',         [\App\Http\Controllers\Stock\CatalogosController::class, 'eliminar'])->middleware('permiso:stock,editar');
+        Route::post('/catalogos/{id}/renovar',   [\App\Http\Controllers\Stock\CatalogosController::class, 'renovarLink'])->middleware('permiso:stock,editar');
+        Route::post('/catalogos/{id}/enviar',    [\App\Http\Controllers\Stock\CatalogosController::class, 'enviar'])->middleware('permiso:clientes,ver');
+        Route::post('/catalogos/{id}/enviar-lista', [\App\Http\Controllers\Stock\CatalogosController::class, 'enviarLista'])->middleware('permiso:clientes,crear');
         Route::get('/verificador',               [\App\Http\Controllers\Stock\InformesController::class, 'verificador']);
         Route::get('/verificar',                 [\App\Http\Controllers\Stock\InformesController::class, 'verificar']);
         Route::get('/{id}',                      [\App\Http\Controllers\Stock\StockController::class, 'show'])->whereNumber('id');

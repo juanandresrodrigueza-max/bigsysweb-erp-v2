@@ -35,3 +35,21 @@ Podés cargar la compra con **IA** desde una foto o PDF de la factura: la lee y 
 - **Stock negativo**: el sistema deja vender sin stock (configurable), pero lo marca en rojo. Un inventario lo corrige.
 - **Dos artículos iguales**: unificá desde la ficha ("Fusionar con…"): los movimientos pasan al que queda.
 - **El costo no se actualizó**: sólo lo hace la compra emitida; un borrador no toca nada.
+
+## Catálogos para mandar a los clientes (Stock → Catálogos)
+
+Un catálogo con tus artículos, tu logo y tus colores, armado con una lista de precios.
+
+1. Tocá **Nuevo catálogo**, elegí la lista (1 a 6) y, si querés, los rubros. Un rubro incluye sus subrubros.
+2. Elegí si los precios van con IVA, si se ven las fotos, el código y el stock, y si se muestran solo los artículos con stock.
+3. La nota de portada sirve para vigencia, pedido mínimo o condiciones de envío.
+
+Cada catálogo tiene un link público que se abre en el celular, con buscador y botón para bajar el PDF.
+
+- **Mandar a un cliente**: por WhatsApp o por mail con el PDF adjunto. El cliente ve sus propios precios: su lista, su descuento, sus precios pactados y sus descuentos por rubro, marcados como "Precio especial".
+- **Mandar a toda la lista**: le llega a cada cliente activo de esa lista, con sus precios. Por mail siempre; por WhatsApp solo con la API de WhatsApp configurada.
+- **Link nuevo**: el link anterior deja de abrir. Sirve si el catálogo llegó a quien no correspondía.
+- Se ve cuántas veces se abrió y cuándo fue la última.
+
+Los colores y el logo salen de Configuración → Empresa → Diseño de comprobantes. Los insumos no aparecen en el catálogo.
+

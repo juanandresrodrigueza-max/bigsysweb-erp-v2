@@ -187,6 +187,9 @@ class Business extends Model
         $m['texto_primario'] = self::textoSobre($m['color_primario']);
         $m['texto_secundario'] = self::textoSobre($m['color_secundario']);
         $m['suave'] = self::mezclar($m['color_primario'], 0.08);
+        // Color para títulos sobre fondo blanco: el secundario si se lee (contraste 3:1 o más), si no el principal, si no casi negro.
+        $m['titulo'] = self::contrasteBlanco($m['color_secundario']) >= 3 ? $m['color_secundario'] : (self::contrasteBlanco($m['color_primario']) >= 3 ? $m['color_primario'] : '#1c1a18');
+        $m['acento'] = self::contrasteBlanco($m['color_primario']) >= 3 ? $m['color_primario'] : '#1c1a18';
         $m['logo_uri'] = $m['mostrar']['logo'] ? $this->logoDataUri() : null;
         $m['lineas_extra'] = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $m['datos_extra']))));
         return $m;
@@ -206,6 +209,13 @@ class Business extends Model
         $l = fn($c) => ($c /= 255) <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
         $lum = 0.2126 * $l($r) + 0.7152 * $l($g) + 0.0722 * $l($b);
         return (1.05 / ($lum + 0.05)) >= (($lum + 0.05) / 0.05) ? '#ffffff' : '#1c1a18';
+    }
+
+    public static function contrasteBlanco(string $hex): float
+    {
+        [$r, $g, $b] = self::rgb($hex);
+        $l = fn($c) => ($c /= 255) <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+        return 1.05 / (0.2126 * $l($r) + 0.7152 * $l($g) + 0.0722 * $l($b) + 0.05);
     }
 
     public static function mezclar(string $hex, float $alfa): string
