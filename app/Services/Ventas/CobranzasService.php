@@ -58,6 +58,13 @@ class CobranzasService
         $dias = $c->fecha_vto ? $c->fecha_vto->diffInDays(today(), false) : 0;
         $estado = $dias > 0 ? "venció hace {$dias} días" : ($dias === 0 ? 'vence hoy' : 'vence en ' . abs($dias) . ' días');
         $texto = strtr($cfg['texto'], ['{cliente}' => $c->contact?->name, '{comprobante}' => "{$c->nombreTipo()} {$c->numeroFormateado()}", '{importe}' => '$ ' . number_format((float) $c->saldo, 2, ',', '.'), '{estado}' => $estado, '{link}' => $c->urlPublica(), '{empresa}' => $b->name]);
+        if ($canal === 'crm') {
+            // Por el CRM: queda como tarea de cobranza para el vendedor, que la manda por la conversación del cliente (WhatsApp, mail) desde allá.
+            $envio = Envio::create(['business_id' => $b->id, 'user_id' => Auth::id(), 'contact_id' => $c->contact_id, 'modelo' => 'Comprobante', 'modelo_id' => $c->id, 'canal' => 'crm', 'tipo' => 'recordatorio', 'destino' => 'CRM', 'asunto' => "Cobranza {$c->nombreTipo()} {$c->numeroFormateado()}", 'cuerpo' => $texto, 'estado' => 'pendiente']);
+            try { $id = \App\Services\Integraciones\CrmSyncService::tareaCobranza($b, $c->contact, "Cobrar {$c->nombreTipo()} {$c->numeroFormateado()} · " . $c->contact?->name, $texto); $envio->update(['estado' => 'enviado', 'enviado_en' => now(), 'link' => $id ? '/integraciones/crm/ir?a=' . urlencode('/tasks') : null]); }
+            catch (\Throwable $e) { $envio->update(['estado' => 'error', 'error' => mb_substr($e->getMessage(), 0, 250)]); }
+            return $envio;
+        }
         $destino = $canal === 'mail' ? $c->contact?->email : ($c->contact?->mobile ?: $c->contact?->phone);
         return $this->envios->enviar($c, $canal, $destino, 'recordatorio', $texto, false);
     }

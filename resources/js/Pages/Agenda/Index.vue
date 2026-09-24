@@ -29,7 +29,11 @@
               <p class="font-medium truncate">{{ t.cliente }}</p>
               <p class="truncate opacity-80">{{ t.servicio || 'Sin servicio' }}<span v-if="t.profesional"> · {{ t.profesional }}</span></p>
             </button>
-            <p v-if="!porDia(d.fecha).length" class="text-[11px] text-marca-muted text-center pt-6">Libre</p>
+            <a v-for="k in crmDia(d.fecha)" :key="k.tipo + k.id" :href="k.url" class="block rounded-lg border border-dashed border-violeta/40 bg-violeta-light/40 px-2 py-1.5 text-xs hover:shadow transition" :title="(k.detalle || '') + ' · abre el CRM'">
+              <div class="flex justify-between"><b class="tabular-nums">{{ k.hora || 'Todo el día' }}</b><span class="text-[10px] text-violeta">{{ k.tipo === 'tarea' ? 'Tarea CRM' : 'Turno CRM' }}</span></div>
+              <p class="font-medium truncate">{{ k.titulo }}</p>
+            </a>
+            <p v-if="!porDia(d.fecha).length && !crmDia(d.fecha).length" class="text-[11px] text-marca-muted text-center pt-6">Libre</p>
           </div>
         </div>
       </div>
@@ -80,7 +84,8 @@ import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
-const props = defineProps({ semana: Object, turnos: Array, profesionales: Array, servicios: Array, clientes: Array, filtros: Object, estados: Object, kpis: Object })
+const props = defineProps({ semana: Object, turnos: Array, profesionales: Array, servicios: Array, clientes: Array, filtros: Object, estados: Object, kpis: Object, crm: { type: Array, default: () => [] } })
+const crmDia = fecha => props.crm.filter(k => k.fecha === fecha)
 const page = usePage()
 const fmt = iso => iso.split('-').reverse().slice(0, 2).join('/')
 const semanaMas = n => { const d = new Date(props.semana.desde + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }

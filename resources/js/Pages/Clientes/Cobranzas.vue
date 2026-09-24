@@ -33,7 +33,7 @@
               <td class="text-xs text-marca-muted">{{ d.ultimo_aviso ?? '—' }}</td>
               <td class="text-right whitespace-nowrap">
                 <button v-if="d.email && puede('clientes','crear')" @click="recordar(d, 'mail')" class="btn-ghost !px-2 text-xs" title="Recordatorio por mail">Mail</button>
-                <button v-if="d.telefono && puede('clientes','crear')" @click="recordar(d, 'whatsapp')" class="btn-ghost !px-2 text-xs" title="Recordatorio por WhatsApp">WhatsApp</button>
+                <button v-if="d.telefono && puede('clientes','crear')" @click="recordar(d, 'whatsapp')" class="btn-ghost !px-2 text-xs" title="Recordatorio por WhatsApp">WhatsApp</button><button v-if="crmActivo && puede('clientes','crear')" @click="recordar(d, 'crm')" class="btn-ghost !px-2 text-xs text-violeta" title="Crea la tarea de cobranza en el CRM">CRM</button>
                 <button v-if="d.vencido > 0 && !d.plan && puede('clientes','crear')" @click="abrirRefi(d)" class="btn-ghost !px-2 text-xs text-violeta">Refinanciar</button>
               </td>
             </tr>
@@ -67,7 +67,7 @@
       <label class="flex items-center gap-2 text-sm mb-3"><input v-model="cf.activo" type="checkbox" class="accent-carmin" /> <b>Mandar recordatorios solos</b> (todos los días a las 9:30)</label>
       <div class="grid sm:grid-cols-2 gap-3">
         <div><label class="label">Días respecto del vencimiento</label><input v-model="diasTexto" class="input" placeholder="-3, 0, 7, 30" /><p class="text-[10px] text-marca-muted mt-1">Negativo = antes de vencer. Ej: -3 avisa 3 días antes, 7 avisa a la semana de vencida.</p></div>
-        <div><label class="label">Canales</label><div class="flex gap-3 mt-2"><label class="flex items-center gap-1.5 text-sm"><input v-model="cf.canales" value="mail" type="checkbox" class="accent-carmin" /> Mail</label><label class="flex items-center gap-1.5 text-sm"><input v-model="cf.canales" value="whatsapp" type="checkbox" class="accent-carmin" /> WhatsApp</label></div><p class="text-[10px] text-marca-muted mt-1">{{ mailConfigurado ? 'Mail configurado.' : 'Mail en modo prueba (se registra, no sale).' }} {{ whatsapp.configurado ? 'WhatsApp por API.' : 'WhatsApp sin API: quedan como pendientes para mandar a mano.' }}</p></div>
+        <div><label class="label">Canales</label><div class="flex gap-3 mt-2"><label class="flex items-center gap-1.5 text-sm"><input v-model="cf.canales" value="mail" type="checkbox" class="accent-carmin" /> Mail</label><label class="flex items-center gap-1.5 text-sm"><input v-model="cf.canales" value="whatsapp" type="checkbox" class="accent-carmin" /> WhatsApp</label><label v-if="crmActivo" class="flex items-center gap-1.5 text-sm" title="Crea una tarea de cobranza en el CRM para que el vendedor la mande desde la conversación del cliente"><input v-model="cf.canales" value="crm" type="checkbox" class="accent-carmin" /> Por el CRM</label></div><p class="text-[10px] text-marca-muted mt-1">{{ mailConfigurado ? 'Mail configurado.' : 'Mail en modo prueba (se registra, no sale).' }} {{ whatsapp.configurado ? 'WhatsApp por API.' : 'WhatsApp sin API: quedan como pendientes para mandar a mano.' }}</p></div>
         <div class="sm:col-span-2"><label class="label">Texto del aviso</label><textarea v-model="cf.texto" rows="3" class="input text-sm"></textarea><p class="text-[10px] text-marca-muted mt-1">Variables: {cliente} {comprobante} {importe} {estado} {link} {empresa}</p></div>
         <div class="sm:col-span-2 border-t border-marca-borde pt-3"><p class="label">WhatsApp Business API (opcional)</p><div class="grid sm:grid-cols-2 gap-2"><input v-model="cf.whatsapp_token" class="input !py-1 text-xs" placeholder="Token permanente de Meta" /><input v-model="cf.whatsapp_phone_id" class="input !py-1 text-xs" placeholder="Phone number ID" /></div><p class="text-[10px] text-marca-muted mt-1">Con esto los mensajes salen solos desde tu número. Sin esto, se abre WhatsApp Web con el texto listo.</p></div>
       </div>
@@ -106,7 +106,7 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array })
+const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean })
 const { puede } = usePermisos()
 const page = usePage()
 const cfgAbierta = ref(false)

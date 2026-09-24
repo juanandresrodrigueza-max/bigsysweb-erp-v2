@@ -43,6 +43,11 @@ class CrmSyncService
         ], fn($v) => $v !== null && $v !== '');
     }
 
+    public static function usuarioItem(\App\Models\User $u): array
+    {
+        return ['email' => strtolower($u->email), 'name' => $u->name, 'role' => CrmService::ROLES[$u->rolActual()?->slug ?? ''] ?? ($u->esDueno() ? 'admin' : 'operator'), 'is_active' => $u->status === 'active'];
+    }
+
     public static function productoItem(Product $p, int $lista): array
     {
         $rubro = $p->rubro; $padre = $rubro?->parent;
@@ -58,11 +63,14 @@ class CrmSyncService
     {
         $c = CrmService::config($b);
         $lista = (int) ($c['lista_precios'] ?: 1);
-        $items = $tipo === 'productos'
-            ? Product::withoutGlobalScopes()->where('business_id', $b->id)->whereIn('id', $ids)->with('rubro.parent')->get()->map(fn($p) => self::productoItem($p, $lista))->values()->all()
-            : Contact::withoutGlobalScopes()->where('business_id', $b->id)->whereIn('id', $ids)->get()->map(fn($x) => self::contactoItem($x))->values()->all();
+        $items = match ($tipo) {
+            'productos' => Product::withoutGlobalScopes()->where('business_id', $b->id)->whereIn('id', $ids)->with('rubro.parent')->get()->map(fn($p) => self::productoItem($p, $lista))->values()->all(),
+            'usuarios' => \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->whereIn('id', $ids)->where('is_superadmin', false)->get()->map(fn($u) => self::usuarioItem($u))->values()->all(),
+            default => Contact::withoutGlobalScopes()->where('business_id', $b->id)->whereIn('id', $ids)->get()->map(fn($x) => self::contactoItem($x))->values()->all(),
+        };
         if (! $items) return ['total' => 0, 'created' => 0, 'updated' => 0, 'errors' => 0];
-        $r = Http::timeout(30)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, $tipo === 'productos' ? '/api/v1/products/sync' : '/api/v1/contacts/sync'), ['items' => $items]);
+        $ruta = match ($tipo) { 'productos' => '/api/v1/products/sync', 'usuarios' => '/api/v1/users/sync', default => '/api/v1/contacts/sync' };
+        $r = Http::timeout(30)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, $ruta), ['items' => $items]);
         if (! $r->successful()) { Log::warning("CRM sync {$tipo}: " . $r->status() . ' ' . mb_substr($r->body(), 0, 300)); throw new \RuntimeException("El CRM respondió {$r->status()} al sincronizar {$tipo}."); }
         $d = $r->json('data') ?? $r->json();
         if ($tipo === 'contactos') {
@@ -81,6 +89,34 @@ class CrmSyncService
         foreach (array_chunk($cont, self::LOTE) as $ch) \App\Jobs\SincronizarCrmJob::dispatch($b->id, 'contactos', $ch);
         foreach (array_chunk($prod, self::LOTE) as $ch) \App\Jobs\SincronizarCrmJob::dispatch($b->id, 'productos', $ch);
         return ['contactos' => count($cont), 'productos' => count($prod)];
+    }
+
+    // Tareas y turnos del CRM para la agenda del ERP (en lectura, caché de 5 minutos). Cada ítem lleva el link que entra al CRM ya logueado.
+    public static function agenda(Business $b, string $desde, string $hasta): array
+    {
+        if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '') return [];
+        return Cache::remember("crm_agenda_{$b->id}_{$desde}_{$hasta}", now()->addMinutes(5), function () use ($b, $desde, $hasta) {
+            $c = CrmService::config($b); $out = [];
+            try {
+                $t = Http::timeout(8)->withToken($c['api_key'])->acceptJson()->get(CrmService::url($b, '/api/v1/tasks'), ['from' => $desde, 'to' => $hasta, 'limit' => 100]);
+                foreach ((array) ($t->json('data') ?? []) as $k) { if (($k['status'] ?? '') === 'completed' || empty($k['due_date'])) continue; $f = substr((string) $k['due_date'], 0, 10); $h = strlen((string) $k['due_date']) > 10 ? substr((string) $k['due_date'], 11, 5) : null; $out[] = ['tipo' => 'tarea', 'id' => $k['id'], 'fecha' => $f, 'hora' => $h && $h !== '00:00' ? $h : null, 'titulo' => $k['title'] ?? 'Tarea', 'detalle' => $k['description'] ?? null, 'prioridad' => $k['priority'] ?? null, 'url' => '/integraciones/crm/ir?a=' . urlencode('/tasks')]; }
+                $a = Http::timeout(8)->withToken($c['api_key'])->acceptJson()->get(CrmService::url($b, '/api/v1/appointments'), ['from' => $desde, 'to' => $hasta, 'limit' => 100]);
+                foreach ((array) ($a->json('data') ?? []) as $k) { if (in_array($k['status'] ?? '', ['cancelled', 'no_show'], true) || empty($k['start_at'])) continue; $ini = \Carbon\Carbon::parse($k['start_at']); $out[] = ['tipo' => 'turno', 'id' => $k['id'], 'fecha' => $ini->toDateString(), 'hora' => $ini->format('H:i'), 'titulo' => $k['service_name_snapshot'] ?? 'Turno', 'detalle' => $k['notes'] ?? null, 'estado' => $k['status'] ?? null, 'url' => '/integraciones/crm/ir?a=' . urlencode('/appointments')]; }
+            } catch (\Throwable $e) { Log::warning('CRM agenda: ' . $e->getMessage()); }
+            usort($out, fn($x, $y) => [$x['fecha'], $x['hora'] ?? '99'] <=> [$y['fecha'], $y['hora'] ?? '99']);
+            return $out;
+        });
+    }
+
+    // Recordatorio de cobranza como tarea del CRM (el vendedor lo ve en su día y lo manda por la conversación del cliente).
+    public static function tareaCobranza(Business $b, Contact $cli, string $titulo, string $texto): ?int
+    {
+        if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '') return null;
+        $c = CrmService::config($b);
+        if (! $cli->crm_external_id) { try { self::enviar($b, 'contactos', [$cli->id]); $cli->refresh(); } catch (\Throwable $e) {} }
+        $r = Http::timeout(10)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, '/api/v1/tasks'), array_filter(['title' => $titulo, 'description' => $texto, 'due_date' => today()->toDateString(), 'priority' => 'high', 'task_type' => 'call', 'contact_id' => $cli->crm_external_id ? (int) $cli->crm_external_id : null]));
+        if (! $r->successful()) throw new \RuntimeException("El CRM respondió {$r->status()} al crear la tarea de cobranza.");
+        return (int) ($r->json('data.id') ?? 0) ?: null;
     }
 
     // ── CRM → ERP ────────────────────────────────────────────────────────────

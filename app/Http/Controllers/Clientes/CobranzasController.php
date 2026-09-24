@@ -26,6 +26,7 @@ class CobranzasController extends Controller
             'config' => $this->service->config($b),
             'whatsapp' => ['token' => $b->whatsapp_settings['token'] ?? '', 'phone_id' => $b->whatsapp_settings['phone_id'] ?? '', 'configurado' => ! empty($b->whatsapp_settings['token'])],
             'mailConfigurado' => config('mail.default') !== 'log',
+            'crmActivo' => \App\Services\Integraciones\CrmService::activo($request->user()->business),
             'envios' => Envio::with('contact:id,name')->whereIn('tipo', ['recordatorio'])->latest()->limit(30)->get()->map(fn($e) => ['id' => $e->id, 'fecha' => $e->created_at->format('d/m H:i'), 'cliente' => $e->contact?->name, 'canal' => $e->canal, 'destino' => $e->destino, 'estado' => $e->estado, 'link' => $e->link, 'error' => $e->error]),
             'planes' => PlanPago::with(['contact:id,name', 'cuotas'])->orderByDesc('id')->limit(20)->get()->map(fn($p) => ['id' => $p->id, 'numero' => $p->numeroFormateado(), 'cliente' => $p->contact?->name, 'fecha' => $p->fecha->format('d/m/Y'), 'total' => (float) $p->total, 'interes' => (float) $p->interes, 'estado' => $p->estado, 'cuotas' => $p->cuotas->map(fn($q) => ['numero' => $q->numero, 'vencimiento' => $q->vencimiento->format('d/m/Y'), 'monto' => (float) $q->monto, 'pagado' => (float) $q->pagado, 'estado' => $q->estado])]),
         ]);
@@ -33,7 +34,7 @@ class CobranzasController extends Controller
 
     public function configurar(Request $request)
     {
-        $d = $request->validate(['activo' => 'boolean', 'dias' => 'nullable|array', 'dias.*' => 'integer|min:-30|max:180', 'canales' => 'nullable|array', 'canales.*' => 'in:mail,whatsapp', 'texto' => 'nullable|string|max:1000', 'whatsapp_token' => 'nullable|string|max:500', 'whatsapp_phone_id' => 'nullable|string|max:60']);
+        $d = $request->validate(['activo' => 'boolean', 'dias' => 'nullable|array', 'dias.*' => 'integer|min:-30|max:180', 'canales' => 'nullable|array', 'canales.*' => 'in:mail,whatsapp,crm', 'texto' => 'nullable|string|max:1000', 'whatsapp_token' => 'nullable|string|max:500', 'whatsapp_phone_id' => 'nullable|string|max:60']);
         $b = $request->user()->business;
         $b->recordatorios = ['activo' => $d['activo'] ?? false, 'dias' => array_values(array_unique(array_map('intval', $d['dias'] ?? []))), 'canales' => $d['canales'] ?? ['mail'], 'texto' => $d['texto'] ?: CobranzasService::DEFAULT['texto']];
         $b->whatsapp_settings = ['token' => $d['whatsapp_token'] ?? ($b->whatsapp_settings['token'] ?? ''), 'phone_id' => $d['whatsapp_phone_id'] ?? ($b->whatsapp_settings['phone_id'] ?? '')];
@@ -44,7 +45,7 @@ class CobranzasController extends Controller
     // Recordatorio manual de todas las facturas vencidas del cliente por el canal elegido (una por factura más vieja).
     public function recordar(Request $request, int $contactId)
     {
-        $d = $request->validate(['canal' => 'required|in:mail,whatsapp']);
+        $d = $request->validate(['canal' => 'required|in:mail,whatsapp,crm']);
         $c = Contact::findOrFail($contactId);
         $f = Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->get()->first(fn($x) => $x->vencido()) ?? Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->first();
         abort_if(! $f, 422, 'El cliente no tiene comprobantes pendientes.');

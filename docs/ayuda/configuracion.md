@@ -37,6 +37,10 @@ Si tu empresa usa el ERP y el CRM de BigSys, se pasan de uno al otro con un bot�
 
 **Ventas**: los presupuestos se arman en el CRM. Cuando el vendedor lo marca aceptado (o toca **Mandar al ERP**), nace en el ERP como presupuesto numerado, con los artículos enlazados por código, y avisa en la campana; si preferís, en Configuración → CRM podés elegir que nazca como factura en borrador. **Factura solo el ERP**: en el CRM la facturación queda apagada para esa empresa, y cada factura, nota o recibo que emitís acá aparece en la ficha del cliente del CRM con su saldo y un link para abrirlo. Una venta ganada en el CRM sin presupuesto también avisa en la campana.
 
+**Agenda y recordatorios**: las tareas y turnos del CRM aparecen en la Agenda del ERP (marcados "Tarea CRM" / "Turno CRM") y al tocarlos se abre el CRM ya logueado. En Cobranzas podés elegir el canal **Por el CRM**: el recordatorio queda como tarea de cobranza para el vendedor, que lo manda desde la conversación del cliente.
+
+**Usuarios**: cada alta, cambio de rol o baja que hacés en Configuración → Usuarios viaja al CRM, que crea o actualiza el usuario espejo (y cierra su sesión si lo diste de baja).
+
 Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente (dueño y administrador → admin; encargado y contador → supervisor; vendedor y cajero → operador; depósito, producción y solo lectura → consulta). El token que viaja dura 60 segundos y sirve una sola vez.
 
 ## Importar datos

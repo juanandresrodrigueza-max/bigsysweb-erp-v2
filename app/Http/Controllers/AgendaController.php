@@ -30,6 +30,7 @@ class AgendaController extends Controller
             'servicios' => Product::where('active', true)->where('tipo', 'servicio')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => (float) $p->price, 'iva' => (float) $p->iva]),
             'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'phone']),
             'filtros' => $request->only('profesional'), 'estados' => self::ESTADOS,
+            'crm' => \App\Services\Integraciones\CrmSyncService::agenda($b, $desde->toDateString(), $hasta->toDateString()),
             'kpis' => ['hoy' => Booking::whereDate('starts_at', today())->whereIn('status', ['pending', 'confirmed'])->count(), 'semana' => $turnos->whereIn('status', ['pending', 'confirmed', 'completed'])->count(), 'sin_confirmar' => $turnos->where('status', 'pending')->count(), 'facturable' => (float) $turnos->where('status', 'completed')->whereNull('comprobante_id')->sum('price')],
         ]);
     }

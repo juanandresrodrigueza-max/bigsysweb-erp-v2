@@ -72,6 +72,7 @@ class UsuariosController extends Controller
         }
 
         AuditLog::registrar($id ? 'editar' : 'crear', $user, "Usuario {$user->email}");
+        \App\Services\Integraciones\CrmSyncService::encolar($b->id, 'usuarios', [$user->id]); // el CRM espeja el alta, el rol y la baja
         return back()->with('success', $id ? 'Usuario actualizado.' : 'Usuario creado.');
     }
 }
