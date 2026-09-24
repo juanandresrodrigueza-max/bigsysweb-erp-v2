@@ -12,6 +12,7 @@
             <span v-if="c.vencido" class="badge bg-carmin-light text-carmin">Vencido</span>
             <span v-if="c.es_acopio" class="badge bg-violeta-light text-violeta">Acopio</span>
             <span v-if="c.interno" class="badge bg-amber-50 text-amber-700">Interno · no informado a ARCA</span>
+            <span v-if="c.manual" class="badge bg-violeta/10 text-violeta" data-badge-manual>Manual de talonario<template v-if="c.cai"> · CAI {{ c.cai }}<template v-if="c.cai_vto"> vto. {{ c.cai_vto }}</template></template></span>
             <span v-else-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">CAE {{ c.cae }}</span>
             <span v-else-if="c.afip_estado === 'simulado'" class="badge bg-amber-50 text-amber-700">Sin CAE · simulado</span>
             <span v-else-if="c.afip_estado === 'pendiente'" class="badge bg-carmin-light text-carmin">Pendiente de CAE</span>

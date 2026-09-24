@@ -57,11 +57,22 @@
             <input v-model="form.entrega_pendiente" type="checkbox" class="accent-violeta" />
             <span><b>Entrega pendiente</b> · se factura ahora y la mercadería sale después con remito (en una o varias entregas). El stock se descuenta con cada remito.</span>
           </label>
-          <label v-if="esFiscal && !form.origen_id" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.sin_arca ? 'border-amber-400 bg-amber-50/40' : 'border-marca-borde'">
+          <div v-if="esFiscal && puedeManual" class="text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.manual ? 'border-violeta bg-violeta/5' : 'border-marca-borde'" data-manual>
+            <label class="flex items-center gap-2"><input v-model="form.manual" type="checkbox" class="accent-carmin" @change="form.manual && (form.sin_arca = false, form.fce = false)" data-manual-check />
+              <span><b>Manual de talonario</b> · ya se hizo en papel (talonario con CAI o factura de respaldo cuando ARCA no respondió). Se carga con su número y fecha: no se pide CAE, pero entra en IVA, cuenta corriente, stock y contabilidad.</span></label>
+            <div v-if="form.manual" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+              <div><label class="label">Punto de venta</label><input v-model.number="form.pv_manual" type="number" min="1" class="input" placeholder="0002" data-pv-manual /></div>
+              <div><label class="label">Número</label><input v-model.number="form.numero_manual" type="number" min="1" class="input" placeholder="1523" data-numero-manual /></div>
+              <div><label class="label">CAI (opcional)</label><input v-model="form.cai" maxlength="14" inputmode="numeric" class="input" placeholder="14 dígitos" /></div>
+              <div><label class="label">Vto. CAI</label><input v-model="form.cai_vto" type="date" class="input" /></div>
+              <p v-for="k in ['numero_manual', 'pv_manual', 'cai', 'cai_vto']" v-show="form.errors[k]" :key="k" class="text-xs text-carmin col-span-full">{{ form.errors[k] }}</p>
+            </div>
+          </div>
+          <label v-if="esFiscal && !form.origen_id && !form.manual" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.sin_arca ? 'border-amber-400 bg-amber-50/40' : 'border-marca-borde'">
             <input :checked="!form.sin_arca" type="checkbox" class="accent-carmin" @change="form.sin_arca = !$event.target.checked" />
             <span><b>Informar a ARCA</b> · con el tilde sale la factura electrónica con CAE. Sin el tilde queda como <b>comprobante interno</b>: numeración propia, sin CAE, no válido como factura y fuera de los libros de IVA.</span>
           </label>
-          <label v-if="esFactura && !form.sin_arca && cliente && cliente.condicion_iva === 'Responsable Inscripto'" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.fce ? 'border-carmin bg-red-50/40' : 'border-marca-borde'">
+          <label v-if="esFactura && !form.sin_arca && !form.manual && cliente && cliente.condicion_iva === 'Responsable Inscripto'" class="flex items-center gap-2 text-sm sm:col-span-2 p-3 rounded-xl border" :class="form.fce ? 'border-carmin bg-red-50/40' : 'border-marca-borde'">
             <input v-model="form.fce" type="checkbox" class="accent-carmin" />
             <span class="flex-1"><b>Factura de Crédito Electrónica MiPyME</b> · obligatoria si el cliente es empresa grande y el total supera el mínimo vigente. Vence a 30 días y se puede negociar.<span v-if="!cbuFce" class="text-carmin"> Falta el CBU en Configuración → Impuestos.</span></span>
             <span v-if="form.fce" class="flex items-center gap-1 text-xs whitespace-nowrap">Vto. pago <input v-model="form.fce_vto_pago" type="date" class="input !py-1 text-xs" @click.stop /></span>
@@ -143,6 +154,7 @@
             <Link :href="comprobante ? `/comprobantes/${comprobante.id}` : '/comprobantes'" class="btn-ghost w-full">Cancelar</Link>
           </div>
           <p v-if="form.sin_arca && esFiscal" class="text-[11px] text-amber-700 mt-3">Se emite como comprobante interno: no se informa a ARCA.</p>
+          <p v-if="form.manual && esFiscal" class="text-[11px] text-violeta mt-3">Se carga como manual de talonario {{ form.pv_manual && form.numero_manual ? String(form.pv_manual).padStart(4, '0') + '-' + String(form.numero_manual).padStart(8, '0') : '' }}: no se pide CAE.</p>
           <p v-else-if="!afipConfigurado && esFiscal" class="text-[11px] text-amber-700 mt-3">Sin certificado AFIP se emite simulado (sin CAE).</p>
         </div>
       </div>
@@ -194,7 +206,7 @@ import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 import { useDictado } from '@/util/dictado'
 
-const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String, arcaPaises: { type: Object, default: () => ({ incoterms: {}, tipos_expo: {}, monedas: {}, paises: {} }) } })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  proyectos: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, comprobante: Object, tipoInicial: String, origen: Object, tipos: Array, clientes: Array, productos: Array, puntosVenta: Array, puntoVentaDefault: Number, empresa: Object, afipConfigurado: Boolean, vendedores: { type: Array, default: () => [] }, vendedorDefault: Number, cbuFce: String, puedeManual: { type: Boolean, default: false }, arcaPaises: { type: Object, default: () => ({ incoterms: {}, tipos_expo: {}, monedas: {}, paises: {} }) } })
 const productosCat = ref([...props.productos])
 const clientesCat = ref([...props.clientes])
 function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
@@ -202,7 +214,7 @@ function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
   tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
-  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, sin_arca: base?.sin_arca ?? false, exportacion: { tipo_expo: 1, incoterm: 'FOB', permiso_embarque: '', moneda_arca: 'DOL', forma_pago: '', obs_comerciales: '', ...(base?.exportacion ?? {}) }, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
+  fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, sin_arca: base?.sin_arca ?? false, manual: base?.manual ?? false, pv_manual: base?.pv_manual ?? null, numero_manual: base?.numero_manual ?? null, cai: base?.cai ?? '', cai_vto: base?.cai_vto_iso ?? null, exportacion: { tipo_expo: 1, incoterm: 'FOB', permiso_embarque: '', moneda_arca: 'DOL', forma_pago: '', obs_comerciales: '', ...(base?.exportacion ?? {}) }, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
   transportista: base?.transportista ?? '', transportista_cuit: base?.transportista_cuit ?? '', patente: base?.patente ?? '', bultos: base?.bultos ?? null, peso_kg: base?.peso_kg ?? null, domicilio_entrega: base?.domicilio_entrega ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false, moneda: base?.moneda ?? 'ARS', cotizacion: base?.cotizacion && base.cotizacion !== 1 ? base.cotizacion : null, proyecto_id: base?.proyecto_id ?? (new URLSearchParams(location.search).get('proyecto_id') ? Number(new URLSearchParams(location.search).get('proyecto_id')) : null),
 })

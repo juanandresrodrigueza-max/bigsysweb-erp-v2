@@ -77,7 +77,7 @@ class ComprobantesController extends Controller
             $c = $this->service->emitir($c);
             // Canje de puntos: la línea de descuento ya viene en los ítems; acá se descuentan los puntos del cliente.
             if ((float) ($data['canje_puntos'] ?? 0) > 0 && $c->contact) app(\App\Services\Ventas\FidelizacionService::class)->canjear($c->contact, (float) $data['canje_puntos'], "Canje en {$c->nombreTipo()} {$c->numeroFormateado()}");
-            $msg = "{$c->nombreTipo()} {$c->numeroFormateado()} emitido" . ($c->afip_estado === 'simulado' ? ' (simulado, sin CAE: configurá AFIP para emitir de verdad).' : ($c->sin_arca ? ' (interno, no informado a ARCA).' : '.'));
+            $msg = "{$c->nombreTipo()} {$c->numeroFormateado()} emitido" . ($c->afip_estado === 'simulado' ? ' (simulado, sin CAE: configurá AFIP para emitir de verdad).' : ($c->sin_arca ? ' (interno, no informado a ARCA).' : ($c->manual ? ' (manual de talonario, no informado a ARCA).' : '.')));
             return redirect("/comprobantes/{$c->id}")->with('success', $msg);
         }
         return redirect("/comprobantes/{$c->id}")->with('success', 'Borrador guardado.');
@@ -248,6 +248,9 @@ class ComprobantesController extends Controller
             'entrega_pendiente' => 'boolean',
             'fce'             => 'boolean',
             'sin_arca'        => 'boolean',
+            // Manual de talonario (Fase 25.2).
+            'manual'          => 'boolean', 'pv_manual' => 'nullable|required_if:manual,true|integer|min:1|max:99999', 'numero_manual' => 'nullable|required_if:manual,true|integer|min:1|max:99999999',
+            'cai'             => 'nullable|string|max:20', 'cai_vto' => 'nullable|date',
             'fce_vto_pago'    => 'nullable|date',
             'notas'           => 'nullable|string|max:2000',
             'moneda'          => 'nullable|in:ARS,USD',
@@ -281,6 +284,7 @@ class ComprobantesController extends Controller
         [$productos, $productosParcial] = \App\Support\Catalogo::productos('venta', $idsProd);
         [$clientes, $clientesParcial] = \App\Support\Catalogo::contactos('cliente', array_filter([$c?->contact_id, $origen?->contact_id, (int) $request->input('contact_id')]));
         return [
+            'puedeManual' => $request->user()->puede('comprobantes', 'anular'),
             'comprobante' => $c ? array_merge($this->resumir($c), [
                 'contact_id' => $c->contact_id, 'punto_venta_id' => $c->punto_venta_id, 'vendedor_id' => $c->vendedor_id, 'origen_id' => $c->origen_id, 'condicion' => $c->condicion, 'es_acopio' => $c->es_acopio, 'entrega_pendiente' => $c->entrega_pendiente, 'fce' => $c->fce, 'sin_arca' => $c->sin_arca, 'exportacion' => $c->exportacion, 'fce_vto_pago' => $c->fce_vto_pago?->toDateString(), 'notas' => $c->notas, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'proyecto_id' => $c->proyecto_id,
                 'transportista' => $c->transportista, 'transportista_cuit' => $c->transportista_cuit, 'patente' => $c->patente, 'bultos' => $c->bultos, 'peso_kg' => $c->peso_kg !== null ? (float) $c->peso_kg : null, 'domicilio_entrega' => $c->domicilio_entrega,
@@ -313,7 +317,7 @@ class ComprobantesController extends Controller
             'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'fecha_vto' => $c->fecha_vto?->format('d/m/Y'),
             'cliente' => $c->contact?->name, 'contact_id' => $c->contact_id, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'moneda' => $c->moneda, 'cotizacion' => (float) $c->cotizacion, 'total_me' => (float) $c->total_me, 'proyecto' => $c->proyecto_id ? ['id' => $c->proyecto_id, 'codigo' => $c->proyecto?->codigo, 'nombre' => $c->proyecto?->nombre] : null,
             'estado' => $c->estado, 'estado_cobro' => $c->estadoCobro(), 'vencido' => $c->vencido(), 'afip_estado' => $c->afip_estado,
-            'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'afip_error' => $c->afip_estado === 'pendiente' ? (($c->afip_respuesta['explicacion']['que'] ?? null) ? ($c->afip_respuesta['explicacion']['que'] . ' ' . ($c->afip_respuesta['explicacion']['como'] ?? '')) : ($c->afip_respuesta['error'] ?? null)) : null, 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal() && ! $c->sin_arca, 'interno' => (bool) $c->sin_arca,
+            'cae' => $c->cae, 'cae_vto' => $c->cae_vto?->format('d/m/Y'), 'afip_error' => $c->afip_estado === 'pendiente' ? (($c->afip_respuesta['explicacion']['que'] ?? null) ? ($c->afip_respuesta['explicacion']['que'] . ' ' . ($c->afip_respuesta['explicacion']['como'] ?? '')) : ($c->afip_respuesta['error'] ?? null)) : null, 'es_acopio' => $c->es_acopio, 'condicion' => $c->condicion, 'fiscal' => $c->esFiscal() && ! $c->sin_arca, 'interno' => (bool) $c->sin_arca, 'manual' => (bool) $c->manual, 'cai' => $c->cai, 'pv_manual' => $c->manual ? $c->punto_venta : null, 'numero_manual' => $c->manual ? $c->numero : null, 'cai_vto_iso' => $c->cai_vto?->toDateString(), 'cai_vto' => $c->cai_vto?->format('d/m/Y'),
         ];
     }
 

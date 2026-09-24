@@ -47,7 +47,13 @@ class ComprobanteService
                 'entrega_pendiente' => (bool) ($data['entrega_pendiente'] ?? ($c->exists ? $c->entrega_pendiente : false)),
                 'fce'             => (bool) ($data['fce'] ?? ($c->exists ? $c->fce : false)),
                 // Interno = no se informa a ARCA. Una nota sobre un comprobante interno también es interna.
-                'sin_arca'        => (bool) ($data['sin_arca'] ?? ($c->exists ? $c->sin_arca : false)) || (bool) ($origen?->sin_arca ?? false),
+                // Manual (talonario en papel): lleva el número y punto de venta del papel y no es interno.
+                'manual'          => $manual = (bool) ($data['manual'] ?? ($c->exists ? $c->manual : false)),
+                'sin_arca'        => ! $manual && ((bool) ($data['sin_arca'] ?? ($c->exists ? $c->sin_arca : false)) || (bool) ($origen?->sin_arca ?? false)),
+                'numero'          => $manual ? ($data['numero_manual'] ?? $c->numero) : $c->numero,
+                'punto_venta'     => $manual ? ($data['pv_manual'] ?? $c->punto_venta) : $c->punto_venta,
+                'cai'             => $manual ? ($data['cai'] ?? $c->cai) : null,
+                'cai_vto'         => $manual ? ($data['cai_vto'] ?? $c->cai_vto) : null,
                 'exportacion'     => $data['exportacion'] ?? ($c->exists ? $c->exportacion : ($origen?->exportacion ?? null)),
                 'fce_vto_pago'    => ($data['fce'] ?? false) ? ($data['fce_vto_pago'] ?? \Carbon\Carbon::parse($data['fecha'] ?? today())->addDays((int) ($data['dias_vto'] ?? $contact?->dias_pago ?? 30))) : null,
                 'notas'           => $data['notas'] ?? null,
@@ -125,6 +131,11 @@ class ComprobanteService
             }
 
             $business = $c->emisor();
+            if ($c->manual) {
+                // Talonario en papel: número y punto de venta del papel, sin ARCA.
+                $res = $this->validarManual($c);
+                $pendiente = false; $numero = $res['numero'];
+            } else {
             $pv = $c->puntoVenta ?? $this->puntoVentaPorDefecto(Auth::user());
             // Sucursal con CUIT propio: numera con sus propios puntos de venta (los de ARCA de ese CUIT), nunca con los de la casa central.
             if ($c->location?->tieneCuitPropio() && $c->esFiscal() && (! $pv || $pv->business_location_id !== $c->business_location_id)) {
@@ -146,6 +157,7 @@ class ComprobanteService
             $numero = $pendiente ? null : ($res['numero'] ?? $pv->proximoNumero($c->tipo));
             if ($res['estado'] === 'aprobado') {
                 $pv->sincronizarUltimo($c->tipo, $numero);
+            }
             }
 
             $c->forceFill([
@@ -173,6 +185,20 @@ class ComprobanteService
             try { app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($c->fresh(['contact', 'business'])); } catch (\Throwable $e) { \Log::warning('Puntos: ' . $e->getMessage()); }
             return $c->fresh();
         });
+    }
+
+    // Comprobante manual: tiene que ser fiscal, tener número y punto de venta del papel, no repetirse y,
+    // como no pasa por ARCA, solo lo carga quien puede anular comprobantes (administrador o dueño).
+    private function validarManual(Comprobante $c): array
+    {
+        abort_unless($c->esFiscal(), 422, 'Solo facturas y notas de crédito o débito se cargan como manuales.');
+        abort_unless(Auth::user()?->puede('comprobantes', 'anular'), 403, 'Cargar un comprobante manual requiere permiso de administrador (anular comprobantes).');
+        if (! $c->numero || ! $c->punto_venta) throw ValidationException::withMessages(['numero_manual' => 'Cargá el punto de venta y el número que figuran en el papel.']);
+        if ($c->cai && ! preg_match('/^\d{14}$/', $c->cai)) throw ValidationException::withMessages(['cai' => 'El CAI tiene 14 dígitos.']);
+        if ($c->cai && $c->cai_vto && $c->cai_vto->lt($c->fecha)) throw ValidationException::withMessages(['cai_vto' => "El CAI venció el {$c->cai_vto->format('d/m/Y')}, antes de la fecha del comprobante."]);
+        $repetido = Comprobante::where('direccion', 'venta')->where('tipo', $c->tipo)->where('punto_venta', $c->punto_venta)->where('numero', $c->numero)->where('estado', '!=', 'borrador')->where('id', '!=', $c->id)->exists();
+        if ($repetido) throw ValidationException::withMessages(['numero_manual' => sprintf('Ya existe %s %04d-%08d.', $c->nombreTipo(), $c->punto_venta, $c->numero)]);
+        return ['estado' => 'manual', 'numero' => (int) $c->numero];
     }
 
     // Vuelve a pedir el CAE de un comprobante pendiente (contingencia). Si ARCA lo autoriza, recién ahí recibe su número fiscal.

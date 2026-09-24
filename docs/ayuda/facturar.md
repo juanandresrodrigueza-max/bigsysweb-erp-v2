@@ -31,6 +31,17 @@ Desde la factura, **Convertir → Nota de crédito** la anula total o parcialmen
 
 La factura queda **pendiente de CAE**: ya impactó en cuenta corriente y stock, y el sistema reintenta solo cada cinco minutos. No es válida como factura hasta tener CAE, y así lo dice el impreso.
 
+## Factura manual de talonario
+
+Para cargar una factura que ya se hizo en papel: un talonario preimpreso con CAI, o la factura manual de respaldo del día que ARCA no respondió por horas.
+
+1. En la factura nueva tildá **Manual de talonario**.
+2. Cargá el punto de venta y el número que figuran en el papel, y la fecha del papel.
+3. Si el talonario tiene CAI, cargá los 14 dígitos y su vencimiento. El sistema no deja cargar una factura con fecha posterior al vencimiento del CAI.
+4. Emití. No se pide CAE: entra en el libro de IVA, la cuenta corriente, el stock y la contabilidad igual que una electrónica.
+
+Solo la cargan el dueño o quien tenga permiso para anular comprobantes. El sistema no deja repetir el mismo tipo, punto de venta y número. Si la cargaste por error, se anula desde el comprobante. La numeración electrónica no se toca.
+
 ## Errores comunes
 
 - **"ARCA rechazó el comprobante"**: el mensaje explica qué revisar (CUIT del cliente, condición de IVA, fecha, punto de venta). Corregí y volvé a emitir.

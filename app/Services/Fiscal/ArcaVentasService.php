@@ -22,7 +22,7 @@ class ArcaVentasService
             if (isset($enSistema[$k])) { $ok++; unset($enSistema[$k]); continue; }
             $faltan[] = $f;
         }
-        $sobran = $enSistema->filter(fn($c) => $c->esFiscal() && $c->estado === 'emitido' && $c->afip_estado !== 'simulado')->values()->map(fn($c) => ['tipo' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'total' => (float) $c->total, 'id' => $c->id]);
+        $sobran = $enSistema->filter(fn($c) => $c->esFiscal() && $c->estado === 'emitido' && $c->afip_estado !== 'simulado' && ! $c->manual)->values()->map(fn($c) => ['tipo' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'total' => (float) $c->total, 'id' => $c->id]);
         return ['leidas' => count($filas), 'coinciden' => $ok, 'faltan' => $faltan, 'sobran' => $sobran->all()];
     }
 
