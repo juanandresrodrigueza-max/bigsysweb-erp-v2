@@ -3,7 +3,7 @@ titulo: Facturar, presupuestar y remitir
 modulo: comprobantes
 rutas: /comprobantes, /comprobantes/nuevo
 orden: 2
-resumen: Cómo hacer una factura, un presupuesto o un remito, qué pasa al emitir y cómo se corrige un error.
+resumen: Cómo hacer una factura, un presupuesto o un remito, cargar una factura manual de talonario, qué pasa al emitir y cómo se corrige un error.
 ---
 
 ## La factura paso a paso

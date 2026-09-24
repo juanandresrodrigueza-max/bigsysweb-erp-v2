@@ -13,35 +13,39 @@ Esta guía está pensada para que el dueño o el administrativo la sigan solos. 
 Tené a mano:
 - CUIT, razón social, condición frente al IVA y el número de punto de venta electrónico dado de alta en ARCA.
 - El certificado digital de ARCA (archivo `.crt` y clave `.key`), o la clave fiscal para generarlo (ver la guía *ARCA y factura electrónica*).
-- La lista de artículos y la lista de clientes y proveedores del sistema anterior, exportadas a Excel o CSV. Si no tenés exportación, alcanza con las planillas que usás hoy.
+- La lista de artículos y la lista de clientes y proveedores del sistema anterior, exportadas a Excel o CSV. Si venís del BigSys viejo (Clarion), las tablas de cuentas, artículos y movimientos. Si no tenés exportación, alcanza con las planillas que usás hoy.
+- Domicilio comercial, número de Ingresos Brutos y fecha de inicio de actividades: ARCA exige que salgan en la factura impresa.
 - Los saldos de cuenta corriente de clientes y proveedores al día del corte.
 - El logo en PNG o JPG.
 
 ## Día 1 · La empresa queda armada
 
-1. ★ **Configuración → Empresa**: nombre comercial, razón social, CUIT, condición IVA, email, teléfono y logo. Todo eso sale impreso en las facturas.
-2. ★ **Configuración → Puntos de venta y AFIP**: creá el punto de venta con el mismo número que en ARCA y marcá "electrónico". Subí el certificado y la clave; probá con "Probar conexión". Si todavía no tenés certificado, seguí igual: las facturas salen simuladas hasta que lo cargues.
-3. ★ **Fondos**: verificá que exista una caja en efectivo y creá la cuenta bancaria (banco, CBU, saldo inicial al día del corte). Si usás Mercado Pago, creá también la billetera.
-4. **Configuración → Sucursales**: si tenés más de un local, creá cada sucursal con su depósito y su punto de venta.
-5. **Configuración → Impuestos**: si sos agente de percepción o retención, activá lo que corresponda. Si no, dejalo como está.
+1. ★ **Configuración → Empresa**: nombre comercial, razón social, CUIT, condición IVA, email y teléfono. En "Datos fiscales de la factura impresa" cargá domicilio comercial, Ingresos Brutos e inicio de actividades.
+2. **Configuración → Empresa → Diseño de comprobantes**: subí el logo, elegí tus dos colores, el estilo del encabezado, los datos extra (web, redes, CBU) y la leyenda al pie. Con "Ver una factura con este diseño" lo comprobás.
+3. ★ **Configuración → Puntos de venta y AFIP**: creá el punto de venta con el mismo número que en ARCA y marcá "electrónico". Subí el certificado y la clave; probá con "Probar conexión". Si todavía no tenés certificado, seguí igual: las facturas salen simuladas hasta que lo cargues.
+4. ★ **Fondos**: verificá que exista una caja en efectivo y creá la cuenta bancaria (banco, CBU, saldo inicial al día del corte). Si usás Mercado Pago, creá también la billetera.
+5. **Configuración → Sucursales**: si tenés más de un local, creá cada sucursal con su depósito y su punto de venta.
+6. **Configuración → Impuestos**: si sos agente de percepción o retención, activá lo que corresponda. Si no, dejalo como está.
 
 **Prueba del día**: entrá a Comprobantes → Nueva factura, elegí Consumidor Final, cargá un ítem cualquiera a mano y emití. Tiene que salir un comprobante (simulado o con CAE) que se pueda imprimir. Después anulalo con nota de crédito o dejalo: es la prueba.
 
 ## Día 2 · Artículos y precios
 
-1. ★ **Configuración → Importar datos → Artículos**: bajá la plantilla, pegá tu lista (código, descripción, rubro, costo, precios, IVA, stock) y subila. Si venís de Tango, Bejerman o Colppy, elegí el perfil en "Viene de" y el mapeo se arma solo. Revisá la vista previa y confirmá.
+1. ★ **Configuración → Importar datos → Artículos**: bajá la plantilla, pegá tu lista (código, descripción, rubro, costo, precios, IVA, stock) y subila. Si venís de Tango, Bejerman, Colppy o del BigSys viejo, elegí el perfil en "Viene de" y el mapeo se arma solo. Con BigSys tildá "Los precios del archivo son finales con IVA". Revisá la vista previa y confirmá.
 2. **Stock → artículo**: revisá que los rubros hayan quedado bien y que los artículos de servicio (mano de obra, flete) estén como "servicio" para que no muevan stock.
 3. **Stock → Precios**: si tus precios son un margen sobre el costo, configurá el margen por rubro; así al subir el costo sube el precio.
 4. **Stock → Etiquetas**: imprimí códigos de barras para lo que no tiene.
+5. **Stock → Catálogos**: armá un catálogo por cada lista que uses (mostrador, mayorista) para mandar a los clientes.
 
 **Prueba del día**: en el buscador (Ctrl+K) escribí parte del nombre de tres artículos y verificá precio y stock. Escaneá uno con el lector en Punto de venta.
 
 ## Día 3 · Clientes, proveedores y saldos
 
 1. ★ **Importar → Clientes** y **Importar → Proveedores** con la plantilla. CUIT y condición IVA son importantes: definen si sale factura A o B.
-2. ★ **Importar → Saldos de clientes** y **Saldos de proveedores**: el detalle por comprobante pendiente al día del corte. Así la cuenta corriente arranca al día y los vencimientos se calculan bien.
+2. ★ **Importar → Saldos de clientes** y **Saldos de proveedores**: el detalle por comprobante pendiente al día del corte. Así la cuenta corriente arranca al día y los vencimientos se calculan bien. Desde el BigSys viejo se sube la tabla de movimientos y el saldo de cada cuenta se calcula solo.
 3. **Clientes → tipos de cliente**: si manejás listas o descuentos por tipo (mayorista, minorista), crealos y asignalos.
-4. **Clientes → Vendedores**: si liquidás comisiones, cargá los vendedores y su porcentaje.
+4. **Clientes → Vendedores**: si liquidás comisiones, cargá los vendedores y su porcentaje. Si otra persona sale a cobrar, cargala también y asignala como cobrador en la ficha de cada cliente.
+5. **Clientes → ficha → Precios pactados**: los precios fijos o descuentos que tenés acordados con clientes puntuales, por artículo o por rubro.
 
 **Prueba del día**: abrí la ficha de un cliente con deuda y compará el saldo con el sistema anterior. Tienen que coincidir.
 
@@ -66,6 +70,7 @@ Tené a mano:
 
 - Elegí un día de corte (idealmente inicio de mes). Hasta ese día se opera en el sistema viejo; desde ese día, todo acá.
 - Los saldos que importaste tienen que ser los del cierre del día anterior al corte.
+- Si en los días de transición facturaste en papel, cargá esas facturas como **Manual de talonario** con su número y fecha: entran en el libro de IVA sin pedir CAE.
 - Durante la primera semana revisá cada tarde **Comprobantes → Pendientes** (entregado sin facturar, facturado sin entregar) y **Fondos → Control de cajas**.
 - A fin del primer mes, el contador entra a **Contable → Contador**, corre el checklist y exporta los asientos. Si algo no cierra, aparece ahí.
 

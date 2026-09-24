@@ -3,7 +3,7 @@ titulo: Ventas: pedidos, entregas, lotes, abonos y control
 modulo: comprobantes
 rutas: /comprobantes/pedidos, /comprobantes/entregas, /comprobantes/lote, /comprobantes/pendientes, /comprobantes/abonos, /comprobantes/novedades
 orden: 2
-resumen: Pedidos que entran por canales, hojas de reparto, facturación por lote, abonos mensuales y los controles de lo que falta entregar o facturar.
+resumen: Pedidos que entran por canales, hojas de reparto con rendición del chofer, precios pactados por cliente, facturación por lote, abonos mensuales y los controles de lo que falta entregar o facturar.
 ---
 
 ## Pedidos (Comprobantes → Pedidos)
