@@ -67,12 +67,14 @@
     <template v-else-if="tipo === 'minimos'">
       <div class="flex flex-wrap gap-3 items-end mb-4">
         <div><label class="label">Días para reponer (lead time)</label><select :value="datos.lead" class="input" @change="ir({ lead: $event.target.value })"><option :value="7">7</option><option :value="15">15</option><option :value="30">30</option></select></div>
-        <p class="text-xs text-marca-muted max-w-md">Mínimo sugerido = venta diaria × días de reposición × 1,2 de margen. Marcá los que quieras aplicar.</p>
+        <div><label class="label">Cálculo</label><select :value="datos.metodo ?? 'simple'" class="input" @change="ir({ metodo: $event.target.value })" data-metodo><option value="simple">Simple</option><option value="estadistico">Estadístico (95 %)</option></select></div>
+        <p class="text-xs text-marca-muted max-w-md" v-if="datos.metodo === 'estadistico'">Mínimo = venta diaria × días de reposición + 1,65 × desvío de la venta diaria × √días. Cubre los picos: no te quedás sin stock el 95 % de las veces. Los artículos de venta pareja piden menos; los de venta irregular, más.</p>
+        <p class="text-xs text-marca-muted max-w-md" v-else>Mínimo sugerido = venta diaria × días de reposición × 1,2 de margen. Marcá los que quieras aplicar.</p>
         <button class="btn-primary ml-auto" :disabled="!Object.keys(sel).length || mn.processing" @click="aplicar">Aplicar {{ Object.keys(sel).length }} mínimos</button>
       </div>
       <div class="card p-0 overflow-x-auto"><table class="table text-xs">
-        <thead><tr><th><input type="checkbox" @change="todos($event.target.checked)" /></th><th>Artículo</th><th class="text-right">Venta/día</th><th class="text-right">Mínimo actual</th><th class="text-right">Sugerido</th></tr></thead>
-        <tbody><tr v-for="f in datos.filas" :key="f.id"><td><input type="checkbox" :checked="sel[f.id] !== undefined" @change="$event.target.checked ? (sel[f.id] = f.sugerido) : delete sel[f.id]" /></td><td>{{ f.nombre }}<span class="text-marca-muted"> {{ f.sku }}</span></td><td class="text-right tabular-nums">{{ f.venta_diaria }}</td><td class="text-right tabular-nums">{{ cantidad(f.actual) }}</td><td class="text-right tabular-nums font-bold" :class="f.sugerido > f.actual ? 'text-carmin' : 'text-emerald-700'">{{ cantidad(f.sugerido) }}</td></tr>
+        <thead><tr><th><input type="checkbox" @change="todos($event.target.checked)" /></th><th>Artículo</th><th class="text-right">Venta/día</th><th v-if="datos.metodo === 'estadistico'" class="text-right">Desvío</th><th class="text-right">Mínimo actual</th><th class="text-right">Sugerido</th></tr></thead>
+        <tbody><tr v-for="f in datos.filas" :key="f.id"><td><input type="checkbox" :checked="sel[f.id] !== undefined" @change="$event.target.checked ? (sel[f.id] = f.sugerido) : delete sel[f.id]" /></td><td>{{ f.nombre }}<span class="text-marca-muted"> {{ f.sku }}</span></td><td class="text-right tabular-nums">{{ f.venta_diaria }}</td><td v-if="datos.metodo === 'estadistico'" class="text-right tabular-nums text-marca-muted">{{ f.desvio }}</td><td class="text-right tabular-nums">{{ cantidad(f.actual) }}</td><td class="text-right tabular-nums font-bold" :class="f.sugerido > f.actual ? 'text-carmin' : 'text-emerald-700'">{{ cantidad(f.sugerido) }}</td></tr>
         <tr v-if="!datos.filas.length"><td colspan="5" class="text-center text-marca-muted py-8">Los mínimos ya están alineados con la venta.</td></tr></tbody></table></div>
     </template>
 

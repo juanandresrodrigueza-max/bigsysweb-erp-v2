@@ -23,11 +23,11 @@ class InformesController extends Controller
             'abc' => $svc->abc((int) ($request->dias ?: 90)),
             'faltantes' => $svc->faltantes((int) ($request->cobertura ?: 30), 90, (bool) $request->estacional),
             'muertos' => $svc->muertos((int) ($request->dias ?: 90)),
-            'minimos' => $svc->sugerirMinimos((int) ($request->lead ?: 15)),
+            'minimos' => $svc->sugerirMinimos((int) ($request->lead ?: 15), 90, $request->metodo === 'estadistico' ? 'estadistico' : 'simple'),
             'vencimientos' => ['filas' => $lotes->porVencer((int) ($request->dias ?: 30))->map(fn($l) => ['id' => $l->id, 'product_id' => $l->product_id, 'nombre' => $l->product?->name, 'sku' => $l->product?->sku, 'etiqueta' => $l->etiqueta(), 'lote' => $l->lote, 'serie' => $l->serie, 'vencimiento' => $l->vencimiento->format('d/m/Y'), 'vencido' => $l->vencimiento->isPast(), 'dias' => (int) today()->diffInDays($l->vencimiento, false), 'cantidad' => (float) $l->cantidad, 'unit' => $l->product?->unit, 'deposito' => $l->deposito?->nombre, 'valor' => round((float) $l->cantidad * (float) $l->costo_unit, 2)])->all(), 'dias' => (int) ($request->dias ?: 30)],
         };
         if ($request->export) return $this->csv($tipo, $datos['filas']);
-        return Inertia::render('Stock/Informes', ['tipo' => $tipo, 'datos' => $datos, 'filtros' => $request->only('base', 'rubro', 'dias', 'cobertura', 'lead', 'estacional'), 'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre'])]);
+        return Inertia::render('Stock/Informes', ['tipo' => $tipo, 'datos' => $datos, 'filtros' => $request->only('base', 'rubro', 'dias', 'cobertura', 'lead', 'estacional', 'metodo'), 'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre'])]);
     }
 
     private function csv(string $tipo, array $filas)

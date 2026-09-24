@@ -152,6 +152,11 @@
               <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right" placeholder="0" />
               <button @click="cobro.medios.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
+            <div v-if="m.medio === 'retencion'" class="grid grid-cols-3 gap-2" data-retencion>
+              <select v-model="m.datos.impuesto" class="input !py-1 text-xs"><option value="iibb">IIBB</option><option value="ganancias">Ganancias</option><option value="iva">IVA</option><option value="suss">SUSS</option></select>
+              <select v-if="(m.datos.impuesto ?? 'iibb') === 'iibb'" v-model="m.datos.jurisdiccion" class="input !py-1 text-xs" data-retencion-jur><option value="">Jurisdicción…</option><option v-for="j in JURISDICCIONES" :key="j.sigla" :value="j.sigla">{{ j.nombre }}</option></select><span v-else></span>
+              <input v-model="m.datos.certificado" class="input !py-1 text-xs" placeholder="N° de certificado" />
+            </div>
             <select v-if="!['cheque','retencion'].includes(m.medio)" v-model="m.cuenta_fondos_id" class="input !py-1 text-xs">
               <option :value="null">Entra en: la cuenta predeterminada</option><option v-for="c in cuentasPara(m.medio)" :key="c.id" :value="c.id">{{ c.nombre }} · {{ c.moneda === 'USD' ? 'USD ' + Number(c.saldo).toLocaleString('es-AR') : moneda(c.saldo, 0) }}</option>
             </select>
@@ -178,6 +183,7 @@
           </div>
           <div class="mt-2 grid grid-cols-2 gap-2"><div><label class="label">Fecha</label><input v-model="cobro.fecha" type="date" class="input" /></div><div><label class="label">Notas</label><input v-model="cobro.notas" class="input" /></div></div>
           <div class="mt-2"><label class="label">Vendedor (cobranza)</label><select v-model="cobro.vendedor_id" class="input !py-1 text-xs"><option :value="null">{{ cliente.vendedor ? 'El del cliente: ' + cliente.vendedor : 'Sin vendedor' }}</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
+          <div class="mt-2"><label class="label">Cobró</label><select v-model="cobro.cobrador_id" class="input !py-1 text-xs" data-cobrador><option :value="null">{{ cobradorCliente ? 'El cobrador del cliente: ' + cobradorCliente : 'Nadie en particular (la comisión es del vendedor)' }}</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
           <p v-if="cobro.errors.interes" class="text-carmin text-xs mt-2">{{ cobro.errors.interes }}</p>
           <p v-if="cobro.errors.medios" class="text-carmin text-xs mt-2">{{ cobro.errors.medios }}</p>
         </div>
@@ -239,6 +245,7 @@
 </template>
 
 <script setup>
+import { JURISDICCIONES } from '@/util/jurisdicciones'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -251,7 +258,7 @@ import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util
 
 const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
-function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : {}) }
+function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : (m.medio === 'retencion' ? { impuesto: 'iibb', jurisdiccion: '', certificado: '' } : {})) }
 const envio = ref(null)
 function enviarDoc(modelo, id) { envio.value = { modelo, id } }
 const tab = ref('cc')
@@ -267,7 +274,7 @@ function abrirMov(m) { if (m.comprobante_id) router.visit(`/comprobantes/${m.com
 
 // Cobro
 const cobroAbierto = ref(false)
-const cobro = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, vendedor_id: null, cotizacion: props.cotizacionUsd || null, medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {}, moneda: 'ARS', cotizacion: null }], imputaciones: [] })
+const cobro = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, vendedor_id: null, cobrador_id: null, cotizacion: props.cotizacionUsd || null, medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {}, moneda: 'ARS', cotizacion: null }], imputaciones: [] })
 const cancela = computed(() => totalCobro.value + (Number(cobro.descuento) || 0) - (Number(cobro.interes) || 0))
 const imput = reactive({})
 const totalCobro = computed(() => cobro.medios.reduce((a, m) => a + (Number(m.monto) || 0) * (m.moneda === 'USD' ? (Number(m.cotizacion) || 0) : 1), 0))
@@ -309,4 +316,5 @@ onMounted(() => {
   if (q.get('cobrar')) { const id = Number(q.get('cobrar')); const p = props.pendientes.find(x => x.id === id); if (p) { imput[p.id] = p.saldo; cobro.medios[0].monto = p.saldo } cobroAbierto.value = true; tab.value = 'pendientes' }
   if (q.get('retirar')) { const a = props.acopios.find(x => x.id === Number(q.get('retirar'))); if (a) { tab.value = 'acopios'; abrirRetiro(a) } }
 })
+const cobradorCliente = computed(() => props.vendedores.find(v => v.id === props.cliente.cobrador_id)?.nombre ?? null)
 </script>

@@ -64,9 +64,10 @@
             </table>
           </div>
           <div class="px-4 py-3 border-t border-marca-borde">
-            <div class="flex items-center justify-between mb-2"><p class="label !mb-0">Percepciones y otros impuestos</p><button type="button" @click="form.impuestos.push({ tipo: 'iibb', monto: 0 })" class="text-xs text-violeta font-semibold">+ Agregar</button></div>
-            <div v-for="(imp, i) in form.impuestos" :key="i" class="grid grid-cols-[1fr_140px_28px] gap-2 mb-1">
+            <div class="flex items-center justify-between mb-2"><p class="label !mb-0">Percepciones y otros impuestos</p><button type="button" @click="form.impuestos.push({ tipo: 'iibb', jurisdiccion: '', monto: 0 })" class="text-xs text-violeta font-semibold">+ Agregar</button></div>
+            <div v-for="(imp, i) in form.impuestos" :key="i" class="grid grid-cols-[1fr_120px_140px_28px] gap-2 mb-1">
               <select v-model="imp.tipo" class="input !py-1 text-xs"><option value="iibb">Percepción IIBB</option><option value="iva">Percepción IVA</option><option value="ganancias">Percepción Ganancias</option><option value="otros">Otros / tasas</option></select>
+              <select v-if="imp.tipo === 'iibb'" v-model="imp.jurisdiccion" class="input !py-1 text-xs" title="Jurisdicción (para SIFERE)" data-jurisdiccion><option value="">Jurisdicción…</option><option v-for="j in JURISDICCIONES" :key="j.sigla" :value="j.sigla">{{ j.nombre }}</option></select><span v-else></span>
               <input v-model.number="imp.monto" type="number" step="any" min="0" class="input !py-1 text-xs text-right" />
               <button type="button" @click="form.impuestos.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
@@ -99,6 +100,7 @@
 </template>
 
 <script setup>
+import { JURISDICCIONES } from '@/util/jurisdicciones'
 import { reactive, computed, onMounted, ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -116,7 +118,7 @@ const form = useForm({
   contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null, orden_compra_id: b?.orden_compra_id ?? null,
   fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', notas: b?.notas ?? '',
   moneda: b?.moneda ?? 'ARS', cotizacion: (b?.moneda === 'USD' ? b?.cotizacion : null) || props.cotizacionUsd || null,
-  items: (b?.items ?? []).map(i => ({ ...i, precio_unit: i.precio_unit_me ?? i.precio_unit })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i })), registrar: false,
+  items: (b?.items ?? []).map(i => ({ ...i, precio_unit: i.precio_unit_me ?? i.precio_unit })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i, jurisdiccion: i.tipo?.startsWith('iibb_') ? i.tipo.slice(5).toUpperCase() : '', tipo: i.tipo?.startsWith('iibb') ? 'iibb' : i.tipo })), registrar: false,
 })
 const proveedor = computed(() => proveedoresCat.value.find(p => p.id === form.contact_id))
 const opcionesProveedores = computed(() => proveedoresCat.value.map(p => ({ id: p.id, label: p.name, sub: p.cuit ?? p.condicion_iva })))
@@ -129,7 +131,7 @@ const prodDe = it => it.product_id ? productosCat.value.find(p => p.id === it.pr
 const netoItem = it => (Number(it.cantidad) || 0) * (Number(it.precio_unit) || 0) * (1 - (Number(it.descuento) || 0) / 100)
 const totalItem = it => netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100)
 const totales = computed(() => { const neto = form.items.reduce((a, it) => a + netoItem(it), 0); const iva = form.items.reduce((a, it) => a + netoItem(it) * (Number(it.alicuota_iva) || 0) / 100, 0); const otros = form.impuestos.reduce((a, i) => a + (Number(i.monto) || 0), 0); return { neto, iva, otros, total: neto + iva + otros } })
-function guardar(registrar) { form.registrar = registrar; form.post(props.compra ? `/proveedores/compras/${props.compra.id}` : '/proveedores/compras', { preserveScroll: true }) }
+function guardar(registrar) { form.registrar = registrar; form.transform(d => ({ ...d, impuestos: d.impuestos.map(i => ({ ...i, tipo: i.tipo === 'iibb' && i.jurisdiccion ? `iibb_${i.jurisdiccion.toLowerCase()}` : i.tipo })) })).post(props.compra ? `/proveedores/compras/${props.compra.id}` : '/proveedores/compras', { preserveScroll: true }) }
 
 const ocr = reactive({ cargando: false, aviso: null, ok: false, totalLeido: null })
 async function leerOCR(file) {
@@ -148,7 +150,7 @@ async function leerOCR(file) {
     if (d.cae) form.cae_proveedor = d.cae
     form.origen_carga = 'ocr'
     form.items = (d.items ?? []).map(i => ({ product_id: i.product_id ?? null, descripcion: i.descripcion ?? '', cantidad: Number(i.cantidad) || 1, unidad: null, precio_unit: Number(i.precio_unit) || 0, descuento: Number(i.descuento) || 0, alicuota_iva: Number(i.alicuota_iva ?? 21) }))
-    form.impuestos = (d.percepciones ?? []).filter(p => Number(p.monto) > 0).map(p => ({ tipo: (p.tipo || 'otros').startsWith('iibb') ? 'iibb' : (['iva', 'ganancias'].includes(p.tipo) ? p.tipo : 'otros'), monto: Number(p.monto) }))
+    form.impuestos = (d.percepciones ?? []).filter(p => Number(p.monto) > 0).map(p => ({ tipo: (p.tipo || 'otros').startsWith('iibb') ? 'iibb' : (['iva', 'ganancias'].includes(p.tipo) ? p.tipo : 'otros'), jurisdiccion: '', monto: Number(p.monto) }))
     ocr.totalLeido = Number(d.total) || null
     ocr.ok = true
     ocr.aviso = `Factura leída (confianza ${Math.round((d.confianza ?? 0) * 100)}%). ${data.proveedor_nuevo ? `El proveedor "${d.proveedor?.nombre}" (${d.proveedor?.cuit ?? 'sin CUIT'}) no existe: crealo y elegilo. ` : ''}${d.observaciones ?? ''} Revisá todo antes de registrar.`

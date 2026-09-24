@@ -53,3 +53,7 @@ Cada catálogo tiene un link público que se abre en el celular, con buscador y 
 
 Los colores y el logo salen de Configuración → Empresa → Diseño de comprobantes. Los insumos no aparecen en el catálogo.
 
+## Mínimos sugeridos estadísticos (Stock → Informes → Mínimos sugeridos)
+
+Con "Cálculo: Estadístico (95 %)" el mínimo cubre la variación de la venta, no solo el promedio: venta diaria × días de reposición + 1,65 × desvío de la venta diaria × raíz de los días de reposición. Es el mismo criterio del BigSys viejo. Un artículo que se vende parejo pide casi lo mismo que con el cálculo simple. Uno que se vende a los saltos pide bastante más, para no quedarte sin stock el 95 % de las veces. Marcá los que quieras y aplicá: el pedido sugerido de las órdenes de compra usa esos mínimos.
+

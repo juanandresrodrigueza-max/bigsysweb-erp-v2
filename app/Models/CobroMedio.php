@@ -9,4 +9,6 @@ class CobroMedio extends Model
     public $timestamps = false;
     protected $fillable = ['cobro_id', 'medio', 'monto', 'cuenta_fondos_id', 'cheque_id', 'referencia', 'datos', 'moneda', 'cotizacion', 'monto_me'];
     protected $casts = ['monto' => 'decimal:2', 'datos' => 'array'];
+
+    public function cobro(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(Cobro::class); }
 }

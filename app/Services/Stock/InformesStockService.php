@@ -13,7 +13,7 @@ class InformesStockService
     private function ventas(int $dias): \Illuminate\Support\Collection
     {
         return ComprobanteItem::join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->where('comprobantes.business_id', Auth::user()->business_id)
-            ->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', ['FA', 'FB', 'FC', 'FE', 'REM'])->where('comprobantes.fecha', '>=', today()->subDays($dias))
+            ->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', ['FA', 'FB', 'FC', 'FE', 'REM'])->where('comprobantes.fecha', '>=', today()->subDays($dias)->toDateString())
             ->whereNotNull('comprobante_items.product_id')->selectRaw('comprobante_items.product_id, SUM(comprobante_items.cantidad) as cant, SUM(comprobante_items.neto) as neto, MAX(comprobantes.fecha) as ultima')->groupBy('comprobante_items.product_id')->get()->keyBy('product_id');
     }
 
@@ -76,18 +76,42 @@ class InformesStockService
         return ['filas' => $filas->all(), 'total' => round($filas->sum('valor'), 2), 'dias' => $dias];
     }
 
-    // Sugerencia de stock mínimo = venta diaria × días de reposición (lead time) × 1.2 de margen.
-    public function sugerirMinimos(int $lead = 15, int $base = 90): array
+    // Sugerencia de stock mínimo.
+    // simple: venta diaria × días de reposición (lead time) × 1,2 de margen.
+    // estadístico (como el BigSys Clarion): venta diaria × lead time + 1,65 × desvío de la venta diaria × √lead time.
+    // 1,65 es el factor de la normal para no quedarse sin stock el 95 % de las veces: cubre la variación de la demanda, no solo el promedio.
+    public const Z_95 = 1.65;
+
+    public function sugerirMinimos(int $lead = 15, int $base = 90, string $metodo = 'simple'): array
     {
         $v = $this->ventas($base);
+        $diarias = $metodo === 'estadistico' ? $this->ventasDiarias($base) : collect();
         $out = [];
         foreach (Product::where('active', true)->where('controla_stock', true)->get() as $p) {
             $diaria = (float) ($v[$p->id]->cant ?? 0) / $base; if ($diaria <= 0) continue;
-            $sug = ceil($diaria * $lead * 1.2);
+            $desvio = null;
+            if ($metodo === 'estadistico') {
+                // Serie de los $base días, con ceros los días sin venta.
+                $serie = array_values($diarias[$p->id] ?? []); $serie = array_merge($serie, array_fill(0, max(0, $base - count($serie)), 0.0));
+                $media = array_sum($serie) / $base;
+                $desvio = sqrt(array_sum(array_map(fn($x) => ($x - $media) ** 2, $serie)) / max(1, $base - 1));
+                $sug = ceil($media * $lead + self::Z_95 * $desvio * sqrt($lead));
+            } else {
+                $sug = ceil($diaria * $lead * 1.2);
+            }
             if (abs($sug - (float) $p->stock_min) < 0.5) continue;
-            $out[] = ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'actual' => (float) $p->stock_min, 'sugerido' => $sug, 'venta_diaria' => round($diaria, 2)];
+            $out[] = ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'actual' => (float) $p->stock_min, 'sugerido' => $sug, 'venta_diaria' => round($diaria, 2), 'desvio' => $desvio !== null ? round($desvio, 2) : null];
         }
-        return ['filas' => $out, 'lead' => $lead];
+        return ['filas' => $out, 'lead' => $lead, 'metodo' => $metodo];
+    }
+
+    // Cantidad vendida por artículo y por día en los últimos $dias: [product_id => [fecha => cantidad]].
+    private function ventasDiarias(int $dias): \Illuminate\Support\Collection
+    {
+        return ComprobanteItem::join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->where('comprobantes.business_id', Auth::user()->business_id)
+            ->where('comprobantes.direccion', 'venta')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', ['FA', 'FB', 'FC', 'FE', 'REM'])->where('comprobantes.fecha', '>=', today()->subDays($dias)->toDateString())
+            ->whereNotNull('comprobante_items.product_id')->selectRaw('comprobante_items.product_id, comprobantes.fecha, SUM(comprobante_items.cantidad) as cant')->groupBy('comprobante_items.product_id', 'comprobantes.fecha')->get()
+            ->groupBy('product_id')->map(fn($g) => $g->mapWithKeys(fn($r) => [(string) $r->fecha => (float) $r->cant])->all());
     }
 
     public function aplicarMinimos(array $items): int

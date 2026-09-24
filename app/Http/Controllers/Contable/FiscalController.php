@@ -35,6 +35,12 @@ class FiscalController extends Controller
             'percepciones' => $percep->map(fn($i) => ['id' => $i->id, 'fecha' => $i->comprobante->fecha->format('d/m/Y'), 'comprobante' => $i->comprobante->nombreTipo() . ' ' . $i->comprobante->numeroFormateado(), 'comprobante_id' => $i->comprobante_id, 'cliente' => $i->comprobante->contact?->name, 'jurisdiccion' => \App\Models\ComprobanteImpuesto::etiqueta($i->tipo), 'base' => (float) $i->base, 'alicuota' => (float) $i->alicuota, 'monto' => (float) $i->monto * ($i->comprobante->def()['cc'] < 0 ? -1 : 1)]),
             'totalPercepciones' => round($percep->sum(fn($i) => (float) $i->monto * ($i->comprobante->def()['cc'] < 0 ? -1 : 1)), 2),
             'ultimoAnalisis' => session('arca_analisis'),
+            // SIFERE: lo que le retuvieron y percibieron a la empresa en IIBB (Convenio Multilateral).
+            'sufridas' => [
+                'retenciones' => $exp->retencionesSufridas($desde, $hasta)->map(fn($r) => ['fecha' => $r['fecha']->format('d/m/Y'), 'agente' => $r['agente'], 'cuit' => $r['cuit'], 'jurisdiccion' => $r['jurisdiccion'], 'constancia' => $r['constancia'], 'monto' => $r['monto'], 'recibo' => $r['recibo']])->values(),
+                'percepciones' => $exp->percepcionesSufridas($desde, $hasta)->map(fn($p) => ['fecha' => $p['fecha']->format('d/m/Y'), 'agente' => $p['agente'], 'cuit' => $p['cuit'], 'jurisdiccion' => $p['jurisdiccion'], 'comprobante' => "{$p['tipo']} {$p['letra']} " . sprintf('%04d-%08d', $p['pv'], $p['numero']), 'monto' => $p['monto'], 'comprobante_id' => $p['comprobante_id']])->values(),
+            ],
+            'jurisdicciones' => \App\Support\JurisdiccionesIibb::LISTA,
         ]);
     }
 
@@ -46,6 +52,8 @@ class FiscalController extends Controller
             'sicore' => [$exp->sicore($desde, $hasta), "SICORE_{$desde}_{$hasta}.txt"],
             'sircar' => [$exp->sircar($desde, $hasta), "SIRCAR_{$desde}_{$hasta}.csv"],
             'percepciones' => [$exp->percepciones($desde, $hasta), "PERCEPCIONES_IIBB_{$desde}_{$hasta}.txt"],
+            'sifere_retenciones' => [$exp->sifereRetenciones($desde, $hasta), "SIFERE_RETENCIONES_{$desde}_{$hasta}.txt"],
+            'sifere_percepciones' => [$exp->siferePercepciones($desde, $hasta), "SIFERE_PERCEPCIONES_{$desde}_{$hasta}.txt"],
             default => abort(404),
         };
         AuditLog::registrar('exportar', null, "Exportó {$tipo} {$desde} a {$hasta}");

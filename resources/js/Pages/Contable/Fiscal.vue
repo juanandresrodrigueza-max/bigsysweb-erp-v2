@@ -24,6 +24,12 @@
           <a :href="exp('sircar')" class="btn-secondary !py-1.5 text-xs">SIRCAR</a>
           <a :href="exp('percepciones')" class="btn-secondary !py-1.5 text-xs">Percepciones IIBB</a>
         </div>
+        <p class="text-sm text-marca-muted mt-4 mb-2">SIFERE WEB (Convenio Multilateral): lo que le retuvieron y percibieron a la empresa, para la declaración jurada.</p>
+        <div class="flex flex-wrap gap-2">
+          <a :href="exp('sifere_retenciones')" class="btn-secondary !py-1.5 text-xs" data-sifere-ret>SIFERE retenciones ({{ sufridas.retenciones.length }})</a>
+          <a :href="exp('sifere_percepciones')" class="btn-secondary !py-1.5 text-xs" data-sifere-perc>SIFERE percepciones ({{ sufridas.percepciones.length }})</a>
+        </div>
+        <p v-if="sinJurisdiccion" class="text-xs text-carmin mt-2">{{ sinJurisdiccion }} sin jurisdicción: no entran al archivo. Cargala en el cobro o en la factura de compra.</p>
       </div>
       <div class="card">
         <h2 class="font-bold mb-1">Cruce con Mis Comprobantes (ARCA)</h2>
@@ -66,9 +72,19 @@
         <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">Percepciones de IIBB cobradas</h2><span class="text-xs text-marca-muted">Total <b class="tabular-nums">{{ moneda(totalPercepciones, 0) }}</b></span></div>
         <div class="overflow-x-auto"><table class="table text-xs">
           <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>Jurisd.</th><th class="text-right">Base</th><th class="text-right">%</th><th class="text-right">Monto</th></tr></thead>
-          <tbody>
+ <tbody>
             <tr v-for="p in percepciones" :key="p.id" class="cursor-pointer" @click="$inertia.visit(`/comprobantes/${p.comprobante_id}`)"><td class="tabular-nums">{{ p.fecha }}</td><td class="whitespace-nowrap">{{ p.comprobante }}</td><td>{{ p.cliente }}</td><td>{{ p.jurisdiccion }}</td><td class="text-right tabular-nums">{{ moneda(p.base) }}</td><td class="text-right tabular-nums">{{ p.alicuota }}</td><td class="text-right tabular-nums font-semibold" :class="p.monto < 0 ? 'text-carmin' : ''">{{ moneda(p.monto) }}</td></tr>
             <tr v-if="!percepciones.length"><td colspan="7" class="text-center text-marca-muted py-6">Sin percepciones en el período. Activalas en Configuración → Impuestos.</td></tr>
+          </tbody></table></div>
+      </div>
+      <div class="card p-0 overflow-hidden" data-sufridas>
+        <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">IIBB que le hicieron a la empresa (SIFERE)</h2><span class="text-xs text-marca-muted">Total <b class="tabular-nums">{{ moneda(totalSufridas) }}</b></span></div>
+        <div class="overflow-x-auto"><table class="table text-xs">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Agente</th><th>Jurisd.</th><th>Constancia o comprobante</th><th class="text-right">Monto</th></tr></thead>
+          <tbody>
+            <tr v-for="(r, k) in sufridas.retenciones" :key="'r' + k"><td class="tabular-nums">{{ r.fecha }}</td><td>Retención</td><td>{{ r.agente }}<span class="text-marca-muted"> · {{ r.recibo }}</span></td><td :class="!r.jurisdiccion ? 'text-carmin font-semibold' : ''">{{ nombreJur(r.jurisdiccion) }}</td><td>{{ r.constancia }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(r.monto) }}</td></tr>
+            <tr v-for="(p, k) in sufridas.percepciones" :key="'p' + k" class="cursor-pointer" @click="$inertia.visit(`/proveedores/compras/${p.comprobante_id}`)"><td class="tabular-nums">{{ p.fecha }}</td><td>Percepción</td><td>{{ p.agente }}</td><td :class="!p.jurisdiccion ? 'text-carmin font-semibold' : ''">{{ nombreJur(p.jurisdiccion) }}</td><td>{{ p.comprobante }}</td><td class="text-right tabular-nums font-semibold" :class="p.monto < 0 ? 'text-carmin' : ''">{{ moneda(p.monto) }}</td></tr>
+            <tr v-if="!sufridas.retenciones.length && !sufridas.percepciones.length"><td colspan="6" class="text-center text-marca-muted py-6">Sin retenciones ni percepciones de IIBB sufridas en el período.</td></tr>
           </tbody></table></div>
       </div>
     </div>
@@ -82,11 +98,15 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
+import { computed as computedS } from 'vue'
 const libroSucursal = ref(null)
-const props = defineProps({ periodo: Object, sucursalesCuit: { type: Array, default: () => [] }, retenciones: Array, resumenRetenciones: Array, percepciones: Array, totalPercepciones: Number, ultimoAnalisis: Object })
+const props = defineProps({ periodo: Object, sucursalesCuit: { type: Array, default: () => [] }, retenciones: Array, resumenRetenciones: Array, percepciones: Array, totalPercepciones: Number, ultimoAnalisis: Object, sufridas: { type: Object, default: () => ({ retenciones: [], percepciones: [] }) }, jurisdicciones: { type: Object, default: () => ({}) } })
 const exp = t => `/contable/fiscal/exportar?tipo=${t}&desde=${props.periodo.desde}&hasta=${props.periodo.hasta}`
 const arca = useForm({ archivo: null })
 const sel = ref([])
 const reg = useForm({ filas: [] })
 function registrar() { reg.filas = sel.value.map(i => props.ultimoAnalisis.faltan[i]); reg.post('/contable/fiscal/arca/registrar', { preserveScroll: true, onSuccess: () => (sel.value = []) }) }
+const totalSufridas = computedS(() => [...props.sufridas.retenciones, ...props.sufridas.percepciones].reduce((a, x) => a + x.monto, 0))
+const sinJurisdiccion = computedS(() => [...props.sufridas.retenciones, ...props.sufridas.percepciones].filter(x => !x.jurisdiccion).length)
+const nombreJur = cod => { if (!cod) return 'falta'; const e = Object.values(props.jurisdicciones).find(v => v[0] === cod); return e ? `${cod} ${e[1]}` : cod }
 </script>

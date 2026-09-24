@@ -29,6 +29,8 @@
               <tr v-if="abierto === l.id"><td colspan="7" class="bg-marca-fondo p-0">
                 <table class="table text-xs"><thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th class="text-right">Neto</th><th class="text-right">Comisión</th></tr></thead>
                 <tbody><tr v-for="(d, i) in l.detalle" :key="i"><td>{{ d.fecha }}</td><td>{{ d.tipo }} {{ d.numero }}</td><td>{{ d.cliente }}</td><td class="text-right tabular-nums">{{ moneda(d.neto) }}</td><td class="text-right tabular-nums">{{ moneda(d.comision) }}</td></tr><tr v-if="!l.detalle.length"><td colspan="5" class="text-center text-marca-muted py-3">Sin comprobantes en el período.</td></tr></tbody></table>
+                <table v-if="l.detalle_cobros?.length" class="table text-xs border-t border-marca-borde" data-detalle-cobros><thead><tr><th>Fecha</th><th>Recibo</th><th>Cliente</th><th>Como</th><th class="text-right">Cobrado</th><th class="text-right">Comisión</th></tr></thead>
+                <tbody><tr v-for="(d, i) in l.detalle_cobros" :key="i"><td>{{ d.fecha }}</td><td>{{ d.numero }}</td><td>{{ d.cliente }}</td><td>{{ d.como === 'cobrador' ? 'Cobrador' : 'Vendedor' }}</td><td class="text-right tabular-nums">{{ moneda(d.total) }}</td><td class="text-right tabular-nums">{{ moneda(d.comision) }}</td></tr></tbody></table>
               </td></tr>
             </template>
             <tr v-if="!liquidacion.length"><td colspan="7" class="text-center text-marca-muted py-10">Todavía no hay vendedores. Creá el primero.</td></tr>

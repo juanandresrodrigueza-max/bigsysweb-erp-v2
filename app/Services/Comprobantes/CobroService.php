@@ -65,6 +65,8 @@ class CobroService
             $cobro = Cobro::create([
                 'business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'contact_id' => $contact->id, 'user_id' => $user->id,
                 'vendedor_id' => $data['vendedor_id'] ?? $contact->vendedor_id ?? \App\Models\Vendedor::deUsuario($user->id)?->id,
+                // Quién cobró: el elegido, el cobrador asignado al cliente o nadie (entonces la comisión por cobranza es del vendedor).
+                'cobrador_id' => $data['cobrador_id'] ?? $contact->cobrador_id,
                 'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'descuento' => $descuento, 'interes' => $interes, 'a_cuenta' => round($cancela - $totalImputado, 2), 'notas' => $data['notas'] ?? null, 'cotizacion' => $cotHoy ?: null,
             ]);
 

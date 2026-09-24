@@ -16,6 +16,16 @@ Cada factura, cobro, compra, pago, sueldo y movimiento de fondos genera su asien
 - **Retenciones y percepciones**: certificados emitidos, archivos SICORE y SIRCAR, percepciones de IIBB, IVA y Ganancias.
 - **Cruce con "Mis Comprobantes"** de ARCA: subís el archivo y el sistema marca lo que falta de un lado o del otro.
 
+## SIFERE: IIBB que le hicieron a la empresa (Contable → Fiscal)
+
+Para la declaración de Convenio Multilateral. La tabla "IIBB que le hicieron a la empresa" junta las retenciones que te hicieron los clientes al pagar y las percepciones que te cobraron los proveedores en sus facturas. Los botones **SIFERE retenciones** y **SIFERE percepciones** bajan los archivos con el formato de importación de SIFERE WEB.
+
+- **Retenciones**: al registrar el cobro, en el medio "Retención" elegí el impuesto (IIBB), la jurisdicción y el número de certificado.
+- **Percepciones**: en la factura de compra, en "Percepción IIBB" elegí la jurisdicción.
+- Si falta la jurisdicción, se usa la del cliente o proveedor, y si tampoco tiene, la de Configuración → Impuestos. Lo que no tenga ninguna queda marcado en rojo y no entra al archivo.
+
+Revisá el primer archivo importándolo en SIFERE WEB antes de presentar. Las retenciones de Ganancias, IVA o SUSS que te hacen no van a SIFERE.
+
 ## Panel del contador
 
 **Contable → Contador** junta lo que el estudio pide cada mes: checklist, exportación de asientos a **Tango, Holistor, Bejerman** o CSV, y el alta del contador como usuario con rol de sólo lectura contable.

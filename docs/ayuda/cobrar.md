@@ -20,6 +20,10 @@ Desde la ficha del cliente, **Registrar cobro**, o desde la factura, **Registrar
 
 Con **descuento por pronto pago** o **interés por mora** se ajusta en el mismo cobro y el sistema hace la nota correspondiente.
 
+## Cobrador y comisión por cobranza
+
+Si otra persona sale a cobrar, cargala en Clientes → Vendedores con su % de comisión por cobro. En la ficha del cliente se le asigna un cobrador, y en cada recibo el campo **Cobró** dice quién lo cobró: si lo dejás vacío, toma el cobrador del cliente. La comisión por cobranza es de quien cobró. Si el recibo no tiene cobrador, es del vendedor, como antes. La liquidación de comisiones muestra cada recibo y si se cobró como cobrador o como vendedor.
+
 ## Cuenta corriente
 
 La ficha del cliente muestra el saldo, las facturas pendientes con su vencimiento y el historial. **Clientes → Cobranzas** lista todos los deudores por antigüedad de la deuda; desde ahí se mandan recordatorios por WhatsApp o mail (uno o todos).
