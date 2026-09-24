@@ -18,6 +18,7 @@
       <div><label class="label">Vendedor asignado</label><select v-model="form.vendedor_id" class="input"><option :value="null">Sin vendedor</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
       <div class="flex flex-col gap-1 text-sm mt-2 sm:mt-6">
         <label class="flex items-center gap-2"><input v-model="form.percepcion_iibb" type="checkbox" class="accent-carmin" /> Aplica percepción IIBB</label>
+        <label class="flex items-center gap-2" title="Cada artículo que se le factura queda con ese precio para la próxima vez (no pisa los pactados a mano)."><input v-model="form.recordar_precio" type="checkbox" class="accent-carmin" data-recordar-precio /> Recordar el último precio facturado</label>
         <label class="flex items-center gap-2"><input v-model="form.percepcion_iva" type="checkbox" class="accent-carmin" /> Aplica percepción IVA (RG 2408)</label>
         <label class="flex items-center gap-2"><input v-model="form.percepcion_ganancias" type="checkbox" class="accent-carmin" /> Aplica percepción Ganancias</label>
       </div>
@@ -43,7 +44,7 @@ import Modal from '@/Components/Modal.vue'
 
 const props = defineProps({ abierto: Boolean, cliente: Object, tipos: Array, condicionesIva: Array, vendedores: { type: Array, default: () => [] }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['cerrar'])
-const vacio = { id: null, name: '', condicion_iva: 'Consumidor Final', cuit: '', tipo_cliente_id: null, lista_precios: 1, dias_pago: 0, descuento: 0, credit_limit: 0, percepcion_iibb: false, percepcion_iva: false, percepcion_ganancias: false, pais_codigo: null, cuit_pais: '', id_impositivo: '', interes_mora: 0, vendedor_id: null, email: '', phone: '', address: '', city: '', province: '', notes: '', is_active: true }
+const vacio = { id: null, name: '', condicion_iva: 'Consumidor Final', cuit: '', tipo_cliente_id: null, lista_precios: 1, dias_pago: 0, descuento: 0, credit_limit: 0, percepcion_iibb: false, percepcion_iva: false, percepcion_ganancias: false, pais_codigo: null, cuit_pais: '', id_impositivo: '', interes_mora: 0, vendedor_id: null, recordar_precio: false, email: '', phone: '', address: '', city: '', province: '', notes: '', is_active: true }
 const form = useForm({ ...vacio })
 watch(() => props.abierto, v => { if (v) { form.clearErrors(); Object.assign(form, { ...vacio, ...(props.cliente ?? {}) }) } })
 function aplicarTipo() { const t = props.tipos.find(x => x.id === form.tipo_cliente_id); if (t) { form.lista_precios = t.lista_precios; form.dias_pago = t.dias_pago; form.descuento = Number(t.descuento); form.credit_limit = Number(t.limite_credito) } }

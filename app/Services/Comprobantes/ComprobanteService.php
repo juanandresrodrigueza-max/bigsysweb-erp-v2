@@ -93,11 +93,13 @@ class ComprobanteService
                 if (($pg = $imp->percepcionGanancias($user->business, $contact)) && $baseGravada >= $pg['minimo'] && $baseGravada > 0) $c->impuestos()->create(['tipo' => 'perc_ganancias', 'base' => $baseGravada, 'alicuota' => $pg['alicuota'], 'monto' => round($baseGravada * $pg['alicuota'] / 100, 2)]);
             }
             // Novedades de facturación: precio distinto al de la lista del cliente queda auditado (quién, cuánto, en qué comprobante).
+            // La referencia es lo que le corresponde al cliente (pactado, último precio o lista): un precio pactado no es una novedad.
             if ($contact && $c->esFactura()) {
                 $lista = (int) ($contact->lista_precios ?: 1);
+                $condSvc = app(\App\Services\Ventas\CondicionesClienteService::class); $cond = $condSvc->paraCliente($contact);
                 foreach ($c->items as $it) {
                     if (! $it->product_id || ! ($p = Product::find($it->product_id))) continue;
-                    $ref = $p->precioLista($lista); $dif = $ref > 0 ? ((float) $it->precio_unit - $ref) / $ref * 100 : 0;
+                    $ref = $condSvc->para($contact, $p, $cond)['precio']; $dif = $ref > 0 ? ((float) $it->precio_unit - $ref) / $ref * 100 : 0;
                     if (abs($dif) >= 0.5) AuditLog::registrar('precio_modificado', $c, "{$p->name}: lista {$lista} $ " . number_format($ref, 2, ',', '.') . " → $ " . number_format((float) $it->precio_unit, 2, ',', '.') . ' (' . ($dif > 0 ? '+' : '') . round($dif, 1) . '%) en ' . $c->nombreTipo() . ($c->numeroFormateado() ? ' ' . $c->numeroFormateado() : ' borrador'), ['precio' => $ref], ['precio' => (float) $it->precio_unit, 'articulo' => $p->name, 'lista' => $ref, 'facturado' => (float) $it->precio_unit, 'cantidad' => (float) $it->cantidad, 'diferencia' => round(((float) $it->precio_unit - $ref) * (float) $it->cantidad, 2)]);
                 }
             }
@@ -164,6 +166,7 @@ class ComprobanteService
             }
 
             AuditLog::registrar('emitir', $c, "Emitió {$c->nombreTipo()} {$c->numeroFormateado()}");
+            app(\App\Services\Ventas\CondicionesClienteService::class)->recordarUltimos($c->fresh(['items', 'contact']));
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
             \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['crm_quote_id' => $c->crm_quote_id]);

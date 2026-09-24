@@ -21,7 +21,7 @@
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Vencido</p><p class="text-xl font-extrabold tabular-nums" :class="cliente.deuda_vencida > 0 ? 'text-carmin' : ''">{{ moneda(cliente.deuda_vencida, 0) }}</p></div>
       <div v-if="cliente.fidelizacion_activa" class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Puntos</p><p class="text-xl font-extrabold tabular-nums text-violeta">★ {{ cliente.puntos }}</p><p class="text-[11px] text-marca-muted">valen {{ moneda(cliente.puntos_pesos, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Límite</p><p class="text-xl font-extrabold tabular-nums">{{ cliente.credit_limit > 0 ? moneda(cliente.credit_limit, 0) : '∞' }}</p><div v-if="cliente.credit_limit > 0" class="h-1.5 rounded-full bg-gris-light mt-1 overflow-hidden"><div class="h-full" :class="cliente.balance / cliente.credit_limit > 0.9 ? 'bg-carmin' : 'bg-violeta'" :style="{ width: `${Math.min(100, Math.max(0, cliente.balance / cliente.credit_limit * 100))}%` }"></div></div></div>
-      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Condiciones</p><p class="text-sm font-semibold">Lista {{ cliente.lista_precios }} · {{ cliente.dias_pago }} días</p><p class="text-[11px] text-marca-muted">{{ cliente.descuento }}% dto.<span v-if="cliente.percepcion_iibb"> · perc. IIBB</span></p></div>
+      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Condiciones</p><p class="text-sm font-semibold">Lista {{ cliente.lista_precios }} · {{ cliente.dias_pago }} días</p><p class="text-[11px] text-marca-muted">{{ cliente.descuento }}% dto.<span v-if="cliente.recordar_precio"> · recuerda precio</span><span v-if="cliente.percepcion_iibb"> · perc. IIBB</span></p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Antigüedad de deuda</p>
         <div class="flex gap-0.5 h-3 rounded-full overflow-hidden bg-gris-light mt-2" :title="`Al día ${moneda(antiguedad.al_dia,0)} · 1-30 ${moneda(antiguedad.v30,0)} · 31-60 ${moneda(antiguedad.v60,0)} · 61-90 ${moneda(antiguedad.v90,0)} · +90 ${moneda(antiguedad.mas90,0)}`">
           <div v-for="(k, i) in ['al_dia','v30','v60','v90','mas90']" :key="k" :style="{ width: `${pct(antiguedad[k])}%`, background: ['#1f9d5b','#c5bcdd','#a42785','#e4003f','#7a0020'][i] }"></div>
@@ -127,6 +127,9 @@
       </div>
       <p v-if="!acopios.length" class="card text-center text-marca-muted py-10 md:col-span-2">Sin acopios abiertos. Se crean al facturar con la opción "Es acopio".</p>
     </div>
+
+    <!-- Precios pactados (Fase 25.1) -->
+    <CondicionesCliente v-if="tab === 'precios'" :cliente-id="cliente.id" :lista="cliente.lista_precios" :descuento="Number(cliente.descuento)" :rubros="rubros" />
 
     <!-- Datos -->
     <div v-if="tab === 'datos'" class="card grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
@@ -243,9 +246,10 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'
 import EnviarModal from '@/Components/EnviarModal.vue'
+import CondicionesCliente from '@/Components/CondicionesCliente.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
-const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
+const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : {}) }
 const envio = ref(null)
@@ -253,7 +257,7 @@ function enviarDoc(modelo, id) { envio.value = { modelo, id } }
 const tab = ref('cc')
 const tabs = computed(() => [
   { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },
-  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'datos', label: 'Datos' },
+  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'datos', label: 'Datos' },
 ])
 const totalAnt = computed(() => Object.values(props.antiguedad).reduce((a, b) => a + b, 0))
 const pct = v => totalAnt.value ? v / totalAnt.value * 100 : 0

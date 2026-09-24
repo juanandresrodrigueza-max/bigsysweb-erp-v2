@@ -182,6 +182,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/{id}',               [ComprobantesController::class, 'store'])->middleware('permiso:comprobantes,editar');
         Route::post('/{id}/emitir',        [ComprobantesController::class, 'emitir'])->middleware('permiso:comprobantes,crear');
         Route::get('/ultima-de/{contact}',  [ComprobantesController::class, 'ultimaDe'])->whereNumber('contact');
+        Route::get('/condiciones-de/{id}',  [\App\Http\Controllers\Clientes\CondicionesController::class, 'json'])->whereNumber('id');
         Route::post('/{id}/reintentar-cae', [ComprobantesController::class, 'reintentarCae'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
         Route::get('/{id}/verificar-arca',  [ComprobantesController::class, 'verificarArca'])->whereNumber('id');
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
@@ -211,6 +212,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/padron/{cuit}',           [ClientesController::class, 'padron']);
         Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/pendientes',         [ClientesController::class, 'pendientesJson'])->whereNumber('id');
+        Route::get('/{id}/condiciones',        [\App\Http\Controllers\Clientes\CondicionesController::class, 'index']);
+        Route::post('/{id}/condiciones',       [\App\Http\Controllers\Clientes\CondicionesController::class, 'guardar'])->middleware('permiso:clientes,editar');
+        Route::delete('/{id}/condiciones/{condicion}', [\App\Http\Controllers\Clientes\CondicionesController::class, 'eliminar'])->middleware('permiso:clientes,editar');
         Route::post('/{id}',                   [ClientesController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/{id}/cobros',            [CobrosController::class, 'store'])->middleware('permiso:clientes,crear');
         Route::post('/cobros/{id}/anular',     [CobrosController::class, 'anular'])->middleware('permiso:clientes,anular');

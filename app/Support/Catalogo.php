@@ -19,7 +19,7 @@ class Catalogo
     {
         $base = ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'unit' => $p->unit, 'stock' => (float) $p->stock];
         return $base + match ($forma) {
-            'venta' => ['iva' => (float) $p->iva, 'precios' => [1 => (float) $p->price, 2 => $p->precioLista(2), 3 => $p->precioLista(3), 4 => $p->precioLista(4), 5 => $p->precioLista(5), 6 => $p->precioLista(6)]],
+            'venta' => ['iva' => (float) $p->iva, 'rubro_id' => $p->rubro_id, 'precios' => [1 => (float) $p->price, 2 => $p->precioLista(2), 3 => $p->precioLista(3), 4 => $p->precioLista(4), 5 => $p->precioLista(5), 6 => $p->precioLista(6)]],
             'compra' => ['iva' => (float) $p->iva, 'cost' => (float) $p->cost, 'perecedero' => (bool) $p->perecedero, 'seriado' => (bool) $p->seriado],
             'orden' => ['precio_compra' => (float) ($p->precio_compra ?: $p->cost), 'stock_min' => (float) $p->stock_min, 'proveedor_id' => $p->proveedor_id],
             'produccion' => ['tipo' => $p->tipo, 'cost' => (float) $p->cost],

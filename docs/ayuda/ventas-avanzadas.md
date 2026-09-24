@@ -31,6 +31,18 @@ Cuotas, alquileres, mantenimientos, servicios mensuales: se define cliente, íte
 
 Dos listas que deberían tender a cero: lo **entregado sin facturar** (remitos sin factura) y lo **facturado sin entregar** (facturas con entrega pendiente). Es el control diario del dueño o del encargado.
 
+## Precios pactados por cliente (Clientes → ficha → Precios pactados)
+
+Para el cliente que tiene un precio acordado en ciertos artículos o un descuento en un rubro entero.
+
+- **Precio fijo por artículo**: ese es el precio final para el cliente. No se le suma el descuento general ni el del rubro, salvo que cargues un descuento en la misma condición.
+- **Descuento por artículo**: el artículo sale a la lista del cliente con ese descuento.
+- **Descuento por rubro**: vale para todo el rubro y sus subrubros. Un subrubro con descuento propio pisa al del rubro padre.
+- **Vigente hasta**: opcional. Cuando vence, la condición deja de aplicarse y queda gris en la lista.
+- **Recordar el último precio facturado**: se activa en Editar cliente. Cada artículo que se le factura queda con ese precio para la próxima vez. Nunca pisa un precio pactado a mano.
+
+Al facturar, el precio se elige en este orden: pactado del artículo, descuento del rubro, lista y descuento del cliente. La línea muestra una marca que dice de dónde salió ("pactado", "último precio" o "dto. rubro"). Facturar al precio pactado no aparece en Novedades de facturación; facturar por debajo sí.
+
 ## Novedades de facturación
 
 Cada vez que alguien factura con un precio distinto al de lista queda registrado: quién, cuánto, en qué comprobante. Sirve para revisar descuentos fuera de lo acordado.

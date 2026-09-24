@@ -81,7 +81,7 @@
                   <td>
                     <BuscadorSelect v-model="it.product_id" :opciones="opcionesProductos" :url="`/buscar/articulos/venta${form.contact_id ? '?contact_id=' + form.contact_id : ''}`" @cargados="f => sumar(productosCat, f)" placeholder="Buscar artículo… (Enter elige, luego cantidad)" :data-fila="i" @elegido="o => { alElegirProducto(it, o); enfocar(i, 'cant') }" />
                     <input v-if="!it.product_id" v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción libre" />
-                    <p v-else class="text-[11px] text-marca-muted mt-1">{{ it.descripcion }} <span v-if="stockDe(it) !== null" :class="stockDe(it) < it.cantidad ? 'text-carmin font-semibold' : ''">· stock {{ cantidad(stockDe(it)) }}</span></p>
+                    <p v-else class="text-[11px] text-marca-muted mt-1">{{ it.descripcion }} <span v-if="origenDe(it)" class="badge bg-violeta/10 text-violeta !text-[10px] !py-0" data-origen-precio>{{ origenDe(it) }}</span> <span v-if="stockDe(it) !== null" :class="stockDe(it) < it.cantidad ? 'text-carmin font-semibold' : ''">· stock {{ cantidad(stockDe(it)) }}</span></p>
                   </td>
                   <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" :data-cant="i" @keydown.enter.prevent="enfocar(i, 'precio')" @focus="$event.target.select()" /></td>
                   <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" :data-precio="i" @keydown.enter.prevent="siguienteFila(i)" @focus="$event.target.select()" /></td>
@@ -165,7 +165,7 @@
           <tbody>
             <tr v-for="(r, i) in ia.resultado.items" :key="i">
               <td class="text-marca-muted">{{ r.pedido }}</td>
-              <td><BuscadorSelect v-model="r.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/venta' : null" @cargados="f => sumar(productosCat, f)" placeholder="Elegir artículo…" @elegido="o => { if (o) { r.descripcion = o.label; r.precio_unit = o.precios[lista] } }" /></td>
+              <td><BuscadorSelect v-model="r.product_id" :opciones="opcionesProductos" :url="props.catalogoParcial.productos ? '/buscar/articulos/venta' : null" @cargados="f => sumar(productosCat, f)" placeholder="Elegir artículo…" @elegido="o => { if (o) { r.descripcion = o.label; r.precio_unit = condPara(o).precio } }" /></td>
               <td><input v-model.number="r.cantidad" type="number" step="any" class="input text-right w-20" /></td>
               <td class="text-right"><span class="badge" :class="r.confianza >= 0.7 ? 'bg-emerald-50 text-emerald-700' : r.confianza > 0 ? 'bg-amber-50 text-amber-700' : 'bg-carmin-light text-carmin'">{{ Math.round(r.confianza * 100) }}%</span></td>
             </tr>
@@ -218,7 +218,15 @@ const tipoResuelto = computed(() => ({ FX: `Factura ${letra.value}`, NCX: `Nota 
 const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'Nuevo presupuesto', REM: 'Nuevo remito', NCX: 'Nueva nota de crédito', NDX: 'Nueva nota de débito' }[form.tipo] ?? 'Nueva factura'))
 
 const opcionesClientes = computed(() => clientesCat.value.map(c => ({ id: c.id, label: c.name, sub: c.cuit ?? c.condicion_iva, extra: c.tipo, sugerido: c.sugerido })))
-const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(p.precios[lista.value]), precios: p.precios, unit: p.unit, iva: p.iva, stock: p.stock, sugerido: p.sugerido })))
+// Condiciones del cliente (Fase 25.1): precio pactado o último precio > descuento del rubro > lista y descuento del cliente.
+const condiciones = ref(null)
+function condPara(p) {
+  const c = condiciones.value, a = c?.articulos?.[p.id]
+  const desc = a?.descuento ?? (a?.precio != null ? 0 : undefined) ?? (p.rubro_id != null ? c?.rubros?.[p.rubro_id] : undefined) ?? cliente.value?.descuento ?? 0
+  return { precio: a?.precio ?? p.precios[lista.value], descuento: desc, origen: a ? (a.origen === 'ultimo' ? 'último precio' : 'pactado') : (p.rubro_id != null && c?.rubros?.[p.rubro_id] != null ? 'dto. rubro' : null) }
+}
+const origenDe = it => { const p = productosCat.value.find(x => x.id === it.product_id); return p ? condPara(p).origen : null }
+const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(condPara(p).precio) + (condPara(p).origen ? ` · ${condPara(p).origen}` : ''), precios: p.precios, rubro_id: p.rubro_id, unit: p.unit, iva: p.iva, stock: p.stock, sugerido: p.sugerido })))
 const stockDe = it => productosCat.value.find(p => p.id === it.product_id)?.stock ?? null
 
 function alElegirCliente(o) {
@@ -226,11 +234,17 @@ function alElegirCliente(o) {
   if (!c) return
   form.dias_vto = c.dias_pago
   if (c.dias_pago === 0 && !esConversion) form.condicion = 'contado'
-  form.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); if (p) { it.precio_unit = p.precios[c.lista_precios]; it.descuento = c.descuento } })
+  cargarCondiciones(c.id).then(() => form.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); if (p) { const k = condPara(p); it.precio_unit = k.precio; it.descuento = k.descuento } }))
 }
+async function cargarCondiciones(id) {
+  condiciones.value = null
+  if (!id) return
+  try { const r = await fetch(`/comprobantes/condiciones-de/${id}`, { headers: { Accept: 'application/json' } }); if (r.ok) condiciones.value = await r.json() } catch (e) {}
+}
+if (form.contact_id) cargarCondiciones(form.contact_id)
 function alElegirProducto(it, o) {
   if (!o) return
-  it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = esExportacion.value ? 0 : o.iva; it.precio_unit = o.precios[lista.value]; it.descuento = cliente.value?.descuento ?? 0
+  it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = esExportacion.value ? 0 : o.iva; const k = condPara(o); it.precio_unit = k.precio; it.descuento = k.descuento
   if (!it.cantidad) it.cantidad = 1
 }
 const puntos = ref(null)
@@ -260,7 +274,7 @@ async function repetirUltima() {
     const r = await fetch(`/comprobantes/ultima-de/${form.contact_id}`, { headers: { Accept: 'application/json' } }); const d = await r.json()
     if (!d.items?.length) { repetida.value = 'Este cliente no tiene facturas anteriores.'; return }
     form.items = form.items.filter(i => i.product_id || i.descripcion)
-    d.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); agregar({ ...it, precio_unit: p ? p.precios[lista.value] : it.precio_unit }) })
+    d.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); agregar({ ...it, ...(p ? { precio_unit: condPara(p).precio, descuento: condPara(p).descuento } : {}) }) })
     repetida.value = `Se cargaron ${d.items.length} ítems de la ${d.comprobante.numero} (${d.comprobante.fecha}) con los precios de hoy. Revisá cantidades.`
   } catch (e) { repetida.value = 'No se pudo cargar.' } finally { repitiendo.value = false }
 }
@@ -303,7 +317,7 @@ async function interpretar() {
 function aplicarIA() {
   ia.resultado.items.filter(r => r.product_id).forEach(r => {
     const p = productosCat.value.find(x => x.id === r.product_id)
-    agregar({ product_id: r.product_id, descripcion: p?.name ?? r.descripcion, cantidad: r.cantidad, unidad: p?.unit, precio_unit: p ? p.precios[lista.value] : r.precio_unit, alicuota_iva: p?.iva ?? 21 })
+    agregar({ product_id: r.product_id, descripcion: p?.name ?? r.descripcion, cantidad: r.cantidad, unidad: p?.unit, precio_unit: p ? condPara(p).precio : r.precio_unit, descuento: p ? condPara(p).descuento : 0, alicuota_iva: p?.iva ?? 21 })
   })
   abrirIA.value = false; ia.resultado = null; ia.texto = ''; ia.imagen = null
 }
