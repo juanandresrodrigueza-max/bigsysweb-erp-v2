@@ -1,3 +1,4 @@
+@import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource/montserrat/300.css';
 @import '@fontsource/montserrat/400.css';
 @import '@fontsource/montserrat/500.css';
@@ -13,7 +14,7 @@
 
 @layer base {
   html { @apply antialiased; }
-  body { @apply bg-marca-fondo text-marca-texto; font-feature-settings: "ss01", "cv11"; }
+  body { @apply bg-marca-fondo text-marca-texto; font-feature-settings: "cv11"; text-rendering: optimizeLegibility; }
   ::selection { @apply bg-carmin-30 text-marca-texto; }
 }
 

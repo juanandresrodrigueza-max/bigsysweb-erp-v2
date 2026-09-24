@@ -61,6 +61,7 @@ class HandleInertiaRequests extends Middleware
                         'leida' => in_array($user->id, $a->leida_por ?? [], true),
                     ]),
             ] : ['sin_leer' => 0, 'ultimas' => []],
+            'demo' => ! app()->environment('production'),
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error'   => fn() => $request->session()->get('error'),
