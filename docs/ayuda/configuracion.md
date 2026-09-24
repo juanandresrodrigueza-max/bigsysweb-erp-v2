@@ -13,6 +13,19 @@ Datos fiscales, logo, verticales habilitados (comercio, gastronomía, servicio t
 - **Sucursal con CUIT propio**: si una sucursal es otra razón social (o factura aparte), en la ficha de la sucursal tildá **Factura con su propio CUIT**, cargá CUIT, razón social y condición de IVA, subí su certificado ARCA con **Certificado ARCA** y creale sus puntos de venta (Configuración → Puntos de venta, asignados a esa sucursal). Desde ese momento todo lo que se emite parado en esa sucursal sale con su CUIT, su numeración y su certificado; las facturas, tickets y recibos impresos muestran sus datos. En Contable → Fiscal, el Libro IVA Digital se baja por CUIT eligiendo la sucursal.
 - **Casa central consolidada**: el dueño (o quien tenga permiso de estadísticas) puede elegir **Ver consolidado de todas** en el selector de sucursal: el tablero suma todas las sucursales. Estadísticas permite además filtrar por sucursal.
 
+## Diseño de comprobantes (Configuración → Empresa)
+
+Facturas, notas, remitos, presupuestos, recibos, órdenes de pago, tickets y el catálogo salen con la identidad de tu empresa.
+
+- **Logo**: PNG, JPG o WEBP de hasta 1 MB, mejor con fondo transparente. En el ticket sale en gris.
+- **Color principal y secundario**: el principal va en el nombre, la letra y el total; el secundario en los títulos de la tabla. El texto encima se pone blanco o negro solo, para que siempre se lea.
+- **Estilo del encabezado**: clásico con recuadro de la letra, banda de color arriba o mínimo con una línea.
+- **Datos extra**: lo que quieras debajo de la empresa, una cosa por línea (web, redes, CBU o alias).
+- **Leyenda al pie**: política de cambios, agradecimiento, horarios.
+- **Qué mostrar**: logo, código del artículo, bonificación, vendedor, saldo de cuenta corriente y firma "recibí conforme" en los remitos. También la validez del presupuesto.
+
+Lo que exige ARCA sale siempre y no se puede sacar: razón social, domicilio comercial, CUIT, Ingresos Brutos, inicio de actividades, condición IVA, letra y código, número, CAE con su vencimiento y QR. En las facturas B a consumidor final se agrega el IVA contenido (Ley 27.743). Cargá el domicilio, los Ingresos Brutos y el inicio de actividades en "Datos fiscales de la factura impresa". El botón "Ver una factura con este diseño" abre la última factura emitida, o una de ejemplo si todavía no hay.
+
 ## Usuarios y roles
 
 Un usuario por persona. Los **roles del sistema** (dueño, administrador, contador, vendedor, cajero, compras, depósito, técnico, recepción) ya vienen armados; se pueden copiar y ajustar permiso por permiso (ver, crear, editar, anular, exportar) y por módulo. En la lista de usuarios se ve el último acceso y la actividad de los últimos 30 días.

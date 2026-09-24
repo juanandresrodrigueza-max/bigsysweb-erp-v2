@@ -21,9 +21,9 @@ class EnvioService
     public function pdf(object $m): array
     {
         [$vista, $datos, $nombre] = match (true) {
-            $m instanceof Comprobante && $m->direccion === 'venta' => ['comprobantes.imprimir', ['c' => $m->load('items', 'contact', 'business'), 'b' => $m->business], "{$m->nombreTipo()} {$m->numeroFormateado()}.pdf"],
-            $m instanceof Cobro => ['comprobantes.recibo', ['cobro' => $m->load('contact', 'medios', 'imputaciones.comprobante', 'business'), 'b' => $m->business], "Recibo {$m->numeroFormateado()}.pdf"],
-            $m instanceof Pago => ['comprobantes.orden_pago', ['p' => $m->load('contact', 'medios.cheque', 'imputaciones.comprobante', 'business'), 'b' => $m->business], "Orden de pago {$m->numeroFormateado()}.pdf"],
+            $m instanceof Comprobante && $m->direccion === 'venta' => ['comprobantes.imprimir', ['c' => $m->load('items', 'contact', 'business', 'impuestos', 'location', 'vendedor'), 'b' => $m->emisor()], "{$m->nombreTipo()} {$m->numeroFormateado()}.pdf"],
+            $m instanceof Cobro => ['comprobantes.recibo', ['r' => $m->load('contact', 'medios', 'imputaciones.comprobante', 'business'), 'b' => $m->business->emisorPara(\App\Models\BusinessLocation::find($m->business_location_id))], "Recibo {$m->numeroFormateado()}.pdf"],
+            $m instanceof Pago => ['comprobantes.orden_pago', ['p' => $m->load('contact', 'medios.cheque', 'imputaciones.comprobante', 'retenciones', 'business'), 'b' => $m->business->emisorPara(\App\Models\BusinessLocation::find($m->business_location_id))], "Orden de pago {$m->numeroFormateado()}.pdf"],
             $m instanceof OrdenCompra => ['compras.orden', ['oc' => $m->load('items.product', 'contact', 'business', 'location'), 'b' => $m->business], "{$m->numeroFormateado()}.pdf"],
             $m instanceof Contact => ['fichas.cuenta', $this->datosFicha($m), "Resumen de cuenta {$m->name}.pdf"],
             default => throw new \InvalidArgumentException('Documento no soportado'),

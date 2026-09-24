@@ -40,7 +40,7 @@ Para cargar una factura que ya se hizo en papel: un talonario preimpreso con CAI
 3. Si el talonario tiene CAI, cargá los 14 dígitos y su vencimiento. El sistema no deja cargar una factura con fecha posterior al vencimiento del CAI.
 4. Emití. No se pide CAE: entra en el libro de IVA, la cuenta corriente, el stock y la contabilidad igual que una electrónica.
 
-Solo la cargan el dueño o quien tenga permiso para anular comprobantes. El sistema no deja repetir el mismo tipo, punto de venta y número. Si la cargaste por error, se anula desde el comprobante. La numeración electrónica no se toca.
+Solo la cargan el dueño y los administradores. El sistema no deja repetir el mismo tipo, punto de venta y número. Si la cargaste por error, se da de baja desde el mismo comprobante. La numeración electrónica no se toca.
 
 ## Errores comunes
 

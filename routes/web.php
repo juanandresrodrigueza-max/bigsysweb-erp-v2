@@ -504,6 +504,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/empresa/avisos/resumen', [EmpresaController::class, 'resumenAhora'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/pos', [EmpresaController::class, 'guardarPos'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/verticales', [EmpresaController::class, 'guardarVerticales'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/marca', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'guardarMarca'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/logo', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'subirLogo'])->middleware('permiso:configuracion,editar');
+        Route::delete('/empresa/logo', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'quitarLogo'])->middleware('permiso:configuracion,editar');
+        Route::get('/empresa/muestra', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'muestra']);
         Route::post('/empresa/tarjetas',   [EmpresaController::class, 'guardarTarjetas'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/mercadopago', [EmpresaController::class, 'guardarMercadoPago'])->middleware('permiso:configuracion,editar');
 

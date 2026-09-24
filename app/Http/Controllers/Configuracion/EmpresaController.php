@@ -22,7 +22,9 @@ class EmpresaController extends Controller
                 'name' => $b->name, 'razon_social' => $b->razon_social, 'cuit' => $b->cuit, 'email' => $b->email,
                 'phone' => $b->phone, 'condicion_iva' => $b->condicion_iva ?? 'Responsable Inscripto',
                 'afip_punto_venta' => $b->afip_punto_venta, 'afip_produccion' => $b->afip_produccion, 'logo' => $b->logo,
+                'address' => $b->address, 'city' => $b->city, 'province' => $b->province, 'iibb' => $b->iibb, 'inicio_actividades' => $b->inicio_actividades?->toDateString(),
             ],
+            'marca' => $b->marca() + ['logo_uri' => $b->logoDataUri()], 'estilos' => \App\Models\Business::ESTILOS,
             'plan' => $sub ? [
                 'nombre' => $sub->plan->name, 'precio' => (float) $sub->plan->price_monthly, 'vence' => $sub->ends_at?->format('d/m/Y'),
                 'estado' => $sub->status, 'usuarios' => [$b->users()->count(), $sub->plan->max_users], 'sucursales' => [$b->locations()->count(), $sub->plan->max_locations],
@@ -42,6 +44,8 @@ class EmpresaController extends Controller
             'condicion_iva'    => 'nullable|string|max:50',
             'afip_punto_venta' => 'nullable|string|max:10',
             'afip_produccion'  => 'boolean',
+            'address'          => 'nullable|string|max:255', 'city' => 'nullable|string|max:100', 'province' => 'nullable|string|max:100',
+            'iibb'             => 'nullable|string|max:30', 'inicio_actividades' => 'nullable|date',
         ]);
 
         $b = $request->user()->business;
@@ -50,6 +54,56 @@ class EmpresaController extends Controller
         AuditLog::registrar('editar', $b, 'Datos de la empresa', $antes, $data);
 
         return back()->with('success', 'Datos de la empresa guardados.');
+    }
+
+    // Identidad en los comprobantes (Fase 25.4): colores, estilo, datos extra, pie y qué mostrar.
+    public function guardarMarca(Request $request)
+    {
+        $d = $request->validate([
+            'color_primario' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'color_secundario' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'estilo' => 'required|in:' . implode(',', array_keys(\App\Models\Business::ESTILOS)),
+            'datos_extra' => 'nullable|string|max:400', 'pie' => 'nullable|string|max:400', 'validez_presupuesto' => 'required|integer|min:1|max:365',
+            'mostrar' => 'array', 'mostrar.*' => 'boolean',
+        ], ['color_primario.regex' => 'Elegí un color válido.', 'color_secundario.regex' => 'Elegí un color válido.']);
+        $b = $request->user()->business;
+        $d['mostrar'] = array_intersect_key(array_map('boolval', $d['mostrar'] ?? []), \App\Models\Business::MARCA['mostrar']);
+        $d['datos_extra'] = (string) ($d['datos_extra'] ?? ''); $d['pie'] = (string) ($d['pie'] ?? '');
+        $b->update(['marca' => array_replace($b->marca(), $d)]);
+        AuditLog::registrar('editar', $b, 'Identidad de los comprobantes');
+        return back()->with('success', 'Diseño de comprobantes guardado.');
+    }
+
+    public function subirLogo(Request $request)
+    {
+        $request->validate(['logo' => 'required|file|mimes:png,jpg,jpeg,webp|max:1024'], ['logo.max' => 'El logo puede pesar hasta 1 MB.', 'logo.mimes' => 'Subí el logo en PNG, JPG o WEBP.']);
+        $b = $request->user()->business;
+        if ($b->logo) \Illuminate\Support\Facades\Storage::disk('local')->delete($b->logo);
+        $path = $request->file('logo')->storeAs('logos', "empresa-{$b->id}-" . now()->timestamp . '.' . strtolower($request->file('logo')->getClientOriginalExtension()), 'local');
+        $b->update(['logo' => $path]);
+        AuditLog::registrar('editar', $b, 'Subió el logo de la empresa');
+        return back()->with('success', 'Logo cargado. Ya sale en facturas, recibos, tickets y el catálogo.');
+    }
+
+    public function quitarLogo(Request $request)
+    {
+        $b = $request->user()->business;
+        if ($b->logo) \Illuminate\Support\Facades\Storage::disk('local')->delete($b->logo);
+        $b->update(['logo' => null]);
+        return back()->with('success', 'Logo quitado.');
+    }
+
+    // Vista previa con la última factura emitida o, si no hay, con una de ejemplo (no se guarda nada).
+    public function muestra(Request $request)
+    {
+        $b = $request->user()->business;
+        $c = \App\Models\Comprobante::ventas()->where('estado', 'emitido')->whereIn('tipo', ['FA', 'FB', 'FC'])->with(['items.product', 'contact', 'impuestos', 'location', 'vendedor', 'origen'])->latest('id')->first();
+        if (! $c) {
+            $c = new \App\Models\Comprobante(['business_id' => $b->id, 'tipo' => $b->condicion_iva === 'Responsable Inscripto' ? 'FA' : 'FC', 'fecha' => today(), 'fecha_vto' => today()->addDays(30), 'condicion' => 'cta_cte', 'punto_venta' => 1, 'numero' => 123, 'estado' => 'emitido', 'afip_estado' => 'simulado', 'neto' => 10000, 'iva' => 2100, 'total' => 12100, 'direccion' => 'venta']);
+            $c->setRelation('items', collect([new \App\Models\ComprobanteItem(['descripcion' => 'Artículo de ejemplo', 'cantidad' => 2, 'unidad' => 'un', 'precio_unit' => 5000, 'descuento' => 0, 'alicuota_iva' => 21, 'neto' => 10000, 'total' => 12100])]));
+            $c->setRelation('contact', new \App\Models\Contact(['name' => 'Cliente de ejemplo S.A.', 'cuit' => '30-70012345-6', 'condicion_iva' => 'Responsable Inscripto', 'address' => 'Av. Siempreviva 742', 'city' => 'Córdoba']));
+            foreach (['impuestos' => collect(), 'location' => null, 'vendedor' => null, 'origen' => null] as $k => $v) $c->setRelation($k, $v);
+        }
+        return view('comprobantes.imprimir', ['c' => $c, 'b' => $c->exists ? $c->emisor() : $b]);
     }
 
     public function guardarAvisos(Request $request, \App\Services\Ventas\AvisosDuenoService $svc)

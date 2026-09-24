@@ -1,6 +1,7 @@
 @php
     $fmt = fn($n) => '$ ' . number_format((float) $n, 2, ',', '.');
     $fiscal = $c->esFiscal();
+    $m = $b->marcaImpresion();
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -20,8 +21,9 @@
 <body>
 <button class="btn" onclick="window.print()">Imprimir</button>
 <div class="t">
+  @if($m['logo_uri'])<div class="c"><img src="{{ $m['logo_uri'] }}" alt="Logo" style="max-height:48px;max-width:60mm;filter:grayscale(1)"></div>@endif
   <div class="c b g">{{ $b->name }}</div>
-  <div class="c s">{{ $b->razon_social }} · CUIT {{ $b->cuit }}<br>{{ $c->location?->address }} {{ $c->location?->city }}<br>{{ $b->condicion_iva }}</div>
+  <div class="c s">{{ $b->razon_social }} · CUIT {{ $b->cuit }}<br>{{ $b->address ?: $c->location?->address }} {{ $b->city ?: $c->location?->city }}<br>{{ $b->condicion_iva }}@if($b->iibb) · IIBB {{ $b->iibb }}@endif @if($b->inicio_actividades)<br>Inicio de act.: {{ \Carbon\Carbon::parse($b->inicio_actividades)->format('d/m/Y') }}@endif</div>
   <hr>
   <div class="b">{{ $c->nombreTipo() }} {{ $c->numeroFormateado() }}</div>
   <div class="s">{{ $c->fecha->format('d/m/Y') }} {{ $c->emitido_en?->format('H:i') }} · {{ $c->user?->name }}</div>
@@ -57,6 +59,7 @@
     <div class="s c">COMPROBANTE NO VÁLIDO COMO FACTURA (simulado)</div>
   @endif
   <div class="c s" style="margin-top:6px">¡Gracias por su compra!</div>
+  @if(trim((string) $m['pie']) !== '')<hr><div class="c s">{!! nl2br(e($m['pie'])) !!}</div>@endif
 </div>
 <script>if (location.search.includes('auto=1')) setTimeout(() => window.print(), 300)</script>
 </body>

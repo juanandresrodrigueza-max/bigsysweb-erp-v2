@@ -15,6 +15,15 @@
           <div><label class="label">Email</label><input v-model="form.email" type="email" class="input" /><p v-if="form.errors.email" class="text-carmin text-xs mt-1">{{ form.errors.email }}</p></div>
           <div><label class="label">Teléfono</label><input v-model="form.phone" class="input" /></div>
         </div>
+        <h2 class="font-bold pt-2">Datos fiscales de la factura impresa</h2>
+        <p class="text-xs text-marca-muted -mt-2">ARCA exige que la factura impresa muestre el domicilio comercial, los Ingresos Brutos y el inicio de actividades.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2"><label class="label">Domicilio comercial</label><input v-model="form.address" class="input" placeholder="Av. Colón 1234" data-domicilio /></div>
+          <div><label class="label">Localidad</label><input v-model="form.city" class="input" /></div>
+          <div><label class="label">Provincia</label><input v-model="form.province" class="input" /></div>
+          <div><label class="label">Ingresos Brutos</label><input v-model="form.iibb" class="input" placeholder="Nº o Convenio Multilateral" data-iibb /></div>
+          <div><label class="label">Inicio de actividades</label><input v-model="form.inicio_actividades" type="date" class="input" data-inicio /></div>
+        </div>
         <h2 class="font-bold pt-2">AFIP</h2>
         <div class="grid sm:grid-cols-2 gap-4">
           <div><label class="label">Punto de venta</label><input v-model="form.afip_punto_venta" class="input" placeholder="0001" /></div>
@@ -22,6 +31,8 @@
         </div>
         <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing || !puedeEditar">{{ form.processing ? 'Guardando…' : 'Guardar cambios' }}</button></div>
       </form>
+
+      <DisenoComprobantes class="lg:order-last" :marca="marca" :estilos="estilos" :empresa="empresa" />
 
       <div class="space-y-4">
         <div class="card">
@@ -109,8 +120,9 @@ import { computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
+import DisenoComprobantes from '@/Components/DisenoComprobantes.vue'
 
-const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] }, tarjetas: { type: Array, default: () => [] }, mercadopago: { type: Object, default: () => ({}) } })
+const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] }, tarjetas: { type: Array, default: () => [] }, mercadopago: { type: Object, default: () => ({}) }, marca: { type: Object, default: () => ({ mostrar: {} }) }, estilos: { type: Object, default: () => ({}) } })
 const tf = useForm({ tarjetas: JSON.parse(JSON.stringify(props.tarjetas)) })
 const mp = useForm({ access_token: props.mercadopago.access_token ?? '', user_id: props.mercadopago.user_id ?? '', pos_external_id: props.mercadopago.pos_external_id ?? '', point_device_id: props.mercadopago.point_device_id ?? '' })
 const verticalesDisponibles = { retail: 'Comercio / punto de venta', gastronomia: 'Gastronomía (mesas, comandas, cocina)', minimarket: 'Minimarket', servicios: 'Servicio técnico (órdenes de trabajo)', hoteleria: 'Hotelería (habitaciones, reservas, check-in)' }
