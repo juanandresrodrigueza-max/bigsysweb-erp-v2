@@ -3,7 +3,7 @@ titulo: Stock, artículos y precios
 modulo: stock
 rutas: /stock
 orden: 4
-resumen: Artículos, listas de precios, movimientos de stock, mínimos, compras a proveedores y actualización de costos.
+resumen: Artículos, listas de precios, catálogos para clientes, movimientos de stock, mínimos, compras a proveedores y actualización de costos.
 ---
 
 ## Artículos

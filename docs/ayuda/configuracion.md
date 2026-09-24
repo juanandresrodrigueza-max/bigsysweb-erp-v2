@@ -3,7 +3,7 @@ titulo: Configuración, usuarios y seguridad
 modulo: configuracion
 rutas: /configuracion, /suscripcion
 orden: 8
-resumen: Empresa, sucursales, usuarios y roles, impuestos, tienda y canales, importación, copias de seguridad, dos factores y API.
+resumen: Empresa y diseño de comprobantes, sucursales, usuarios y roles, impuestos, tienda y canales, importación (también desde BigSys), copias de seguridad, dos factores y API.
 ---
 
 ## Empresa y sucursales

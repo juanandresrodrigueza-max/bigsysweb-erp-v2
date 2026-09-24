@@ -49,3 +49,20 @@ Alertas en el sistema (campana) y, si lo activás, un resumen diario por WhatsAp
 ## ¿Se hacen copias de seguridad?
 
 Todas las noches, automáticas. Se descargan y se restauran desde **Configuración → Copias de seguridad**.
+
+## ¿Puedo pasar mis datos del BigSys viejo?
+
+Sí. En **Configuración → Importar** elegí "Viene de: BigSys (Clarion)". Se reconocen solas las columnas de clientes, proveedores, artículos con sus 6 listas y los saldos. Está explicado paso a paso en *Configuración, usuarios y seguridad*.
+
+## ¿Puedo poner mi logo y mis colores en las facturas?
+
+Sí, en **Configuración → Empresa → Diseño de comprobantes**. También los recibos, remitos, presupuestos, tickets y el catálogo salen con tu identidad. Lo que exige ARCA sale siempre.
+
+## ¿Cómo le mando la lista de precios a un cliente?
+
+Con un catálogo: **Stock → Catálogos**. Se manda por WhatsApp o por mail, y cada cliente ve sus propios precios.
+
+## Hice una factura a mano en papel, ¿cómo la cargo?
+
+En la factura nueva tildá **Manual de talonario** y cargá el punto de venta, el número y la fecha del papel. No pide CAE y queda en el libro de IVA.
+
