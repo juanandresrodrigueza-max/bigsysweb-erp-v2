@@ -19,10 +19,14 @@ use App\Http\Controllers\Api\StockMovementController;
 use App\Http\Controllers\Api\TiendanubeController;
 use Illuminate\Support\Facades\Route;
 
+// Documentación (pública, sin datos)
+Route::get('docs', [\App\Http\Controllers\Api\DocsController::class, 'index']);
+Route::get('openapi.json', [\App\Http\Controllers\Api\DocsController::class, 'openapi']);
+
 // Auth (público)
 Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login',    [AuthController::class, 'login']);
+    Route::post('register', [AuthController::class, 'register'])->middleware('throttle:api-auth');
+    Route::post('login',    [AuthController::class, 'login'])->middleware('throttle:api-auth');
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me',      [AuthController::class, 'me']);
@@ -30,14 +34,20 @@ Route::prefix('auth')->group(function () {
 });
 
 // Webhooks (público)
-Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook']);
-Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook']);
+Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook'])->middleware('throttle:webhooks');
+Route::post('crm/webhook/{business}', [\App\Http\Controllers\Api\CrmWebhookController::class, 'recibir'])->middleware('throttle:webhooks')->whereNumber('business');
+Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook'])->middleware('throttle:webhooks');
+Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\SuscripcionController::class, 'webhook'])->middleware('throttle:webhooks');
 
 // Todo lo demás requiere autenticación
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('business', [BusinessController::class, 'show']);
     Route::put('business', [BusinessController::class, 'update']);
+
+    // Exportar tablas a otras plataformas (BI, contador, e-commerce)
+    Route::get('exportar',         [\App\Http\Controllers\Api\ExportacionController::class, 'index']);
+    Route::get('exportar/{tabla}', [\App\Http\Controllers\Api\ExportacionController::class, 'tabla']);
 
     Route::apiResource('contacts',        ContactController::class);
     Route::apiResource('customers',       CustomerController::class);
@@ -104,3 +114,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('bookings/calendar', [BookingController::class, 'calendar']);
     Route::apiResource('bookings',  BookingController::class);
 });
+
+// Entrada de pedidos: marketplaces / delivery (por token de canal) y WhatsApp Cloud API (por empresa).
+Route::post('canales/{tipo}/{token}',        [\App\Http\Controllers\Api\CanalesWebhookController::class, 'entrada']);
+Route::get('whatsapp/entrante/{business}',   [\App\Http\Controllers\Api\WhatsappController::class, 'verificar']);
+Route::post('whatsapp/entrante/{business}',  [\App\Http\Controllers\Api\WhatsappController::class, 'entrante']);

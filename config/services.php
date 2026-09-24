@@ -2,6 +2,8 @@
 
 return [
 
+    'sentry' => ['dsn' => env('SENTRY_DSN')],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -33,6 +35,15 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'anthropic' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model'   => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
+    ],
+
+    'afip' => [
+        'ambiente' => env('AFIP_AMBIENTE', 'homologacion'),
     ],
 
 ];

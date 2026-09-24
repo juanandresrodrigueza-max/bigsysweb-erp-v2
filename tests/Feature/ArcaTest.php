@@ -1,0 +1,172 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AuditLog;
+use App\Models\Comprobante;
+use App\Services\Afip\AfipErrores;
+use App\Services\Afip\QrArca;
+use App\Services\Comprobantes\AfipEmisor;
+use App\Services\Comprobantes\ComprobanteService;
+use App\Support\Cuit;
+use Illuminate\Support\Facades\Storage;
+use Tests\ErpTestCase;
+
+// Doble de ARCA: se programa qué responde cada llamada.
+
+class ArcaTest extends ErpTestCase
+{
+    private ArcaFalsa $arca;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local');
+        $this->arca = new ArcaFalsa();
+        app()->instance('afip.fake', $this->arca);
+        $this->empresa->update(['afip_cert_path' => 'afip/1/cert.crt.enc', 'afip_key_path' => 'afip/1/private.key.enc', 'cuit' => '30-71234567-8']);
+    }
+
+    public function test_pide_el_cae_con_todo_lo_que_exige_arca_hoy(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10, 'iva' => 21]);
+        $s = $this->articulo(['name' => 'Servicio técnico', 'tipo' => 'servicio', 'controla_stock' => false, 'iva' => 10.5]);
+        $cli = $this->cliente(['condicion_iva' => 'Responsable Inscripto', 'cuit' => '30-70012345-6', 'percepcion_iibb' => true, 'alicuota_percepcion_iibb' => 3]);
+        $f = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 2, 'precio_unit' => 100], ['product_id' => $s->id, 'cantidad' => 1, 'precio_unit' => 50]]);
+        $this->assertSame('aprobado', $f->afip_estado); $this->assertSame(42, (int) $f->numero); $this->assertSame('71234567890123', $f->cae);
+        $d = $this->arca->enviados[0];
+        $this->assertSame(1, $d['CondicionIVAReceptorId'], 'RG 5616: condición IVA del receptor');
+        $this->assertSame(3, $d['Concepto'], 'Productos y servicios');
+        $this->assertArrayHasKey('FchServDesde', $d); $this->assertArrayHasKey('FchVtoPago', $d);
+        $this->assertCount(2, $d['Iva']); $this->assertSame([5, 4], array_column($d['Iva'], 'Id'));
+        $this->assertEqualsWithDelta(250, $d['ImpNeto'], 0.01); $this->assertEqualsWithDelta(47.25, $d['ImpIVA'], 0.01);
+        $this->assertEqualsWithDelta($d['ImpNeto'] + $d['ImpOpEx'] + $d['ImpIVA'] + $d['ImpTrib'], $d['ImpTotal'], 0.001, 'Los importes cierran');
+        $this->assertEqualsWithDelta((float) $f->total, $d['ImpTotal'], 0.01);
+        if ($d['ImpTrib'] > 0) { $this->assertSame(7, $d['Tributos'][0]['Id'], 'Percepción IIBB como tributo 7'); }
+    }
+
+    public function test_consumidor_final_y_monotributista_van_con_su_condicion_y_sin_iva_discriminado(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]);
+        $cf = \App\Models\Contact::where('name', 'Consumidor Final')->first();
+        $f = $this->factura($cf, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $this->assertSame('FB', $f->tipo); $this->assertSame(5, $this->arca->enviados[0]['CondicionIVAReceptorId']); $this->assertSame(99, $this->arca->enviados[0]['DocTipo']);
+        // Empresa monotributista: factura C sin IVA discriminado.
+        $this->empresa->update(['condicion_iva' => 'Monotributista']); $this->dueno->load('business');
+        $f2 = $this->factura($this->cliente(['cuit' => '30-70012345-6']), [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $this->assertSame('FC', $f2->tipo);
+        $d = $this->arca->enviados[1];
+        $this->assertSame(11, $d['CbteTipo']); $this->assertArrayNotHasKey('Iva', $d); $this->assertSame(0.0, (float) $d['ImpIVA']); $this->assertEqualsWithDelta((float) $f2->total, $d['ImpTotal'], 0.01);
+    }
+
+    public function test_nota_de_credito_lleva_el_comprobante_asociado_o_el_periodo(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]); $cli = $this->cliente();
+        $f = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $svc = app(ComprobanteService::class);
+        $nc = $svc->emitir($svc->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'NCX', 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'origen_id' => $f->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]]));
+        $d = end($this->arca->enviados);
+        $this->assertSame(3, $d['CbteTipo']); $this->assertSame(1, $d['CbtesAsoc'][0]['Tipo']); $this->assertSame((int) $f->numero, $d['CbtesAsoc'][0]['Nro']); $this->assertArrayNotHasKey('PeriodoAsoc', $d);
+        $nc2 = $svc->emitir($svc->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'NCX', 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'items' => [['descripcion' => 'Ajuste', 'cantidad' => 1, 'precio_unit' => 10, 'alicuota_iva' => 21]]]));
+        $d = end($this->arca->enviados);
+        $this->assertArrayHasKey('PeriodoAsoc', $d, 'Sin factura asociada ARCA exige el período');
+    }
+
+    public function test_contingencia_sin_conexion_el_comprobante_queda_pendiente_y_se_autoriza_al_reintentar(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]); $cli = $this->cliente();
+        $this->arca->alCrear = fn() => throw new \RuntimeException('SoapFault: Could not connect to host wsaahomo.afip.gov.ar');
+        $f = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 2, 'precio_unit' => 100]]);
+        $this->assertSame('emitido', $f->estado); $this->assertSame('pendiente', $f->afip_estado); $this->assertNull($f->numero); $this->assertNull($f->cae);
+        $this->assertEqualsWithDelta(242, (float) $cli->fresh()->balance, 0.01, 'La cuenta corriente impacta igual');
+        $this->assertEqualsWithDelta(8, (float) $p->fresh()->stock, 0.001, 'El stock sale igual');
+        $this->assertStringContainsString('No se pudo conectar', $f->afip_respuesta['explicacion']['que']);
+        // Sigue caído: sigue pendiente.
+        $r = app(ComprobanteService::class)->reintentarCae($f);
+        $this->assertSame('pendiente', $r['estado']); $this->assertSame(2, $f->fresh()->afip_respuesta['intentos']);
+        // Vuelve ARCA: el comando lo autoriza y recién ahí recibe número y CAE.
+        $this->arca->alCrear = null;
+        $this->artisan('afip:reintentar')->assertExitCode(0);
+        $f->refresh();
+        $this->assertSame('aprobado', $f->afip_estado); $this->assertSame(42, (int) $f->numero); $this->assertSame('71234567890123', $f->cae);
+        $this->assertSame('0001-00000042', $f->numeroFormateado());
+        $this->assertStringContainsString('0001-00000042', \App\Models\CuentaCorriente::where('comprobante_id', $f->id)->value('concepto'));
+        $this->assertTrue(AuditLog::where('accion', 'emitir')->where('descripcion', 'like', '%estaba pendiente%')->exists());
+        $this->assertNotNull(QrArca::url($f));
+    }
+
+    public function test_si_arca_dice_que_el_numero_ya_existe_se_recupera_el_cae(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]); $cli = $this->cliente();
+        $this->arca->alCrear = fn() => throw new \RuntimeException('(10016) El numero o fecha del comprobante no se corresponde con el proximo a autorizar. Consultar metodo FECompUltimoAutorizado.');
+        $this->arca->info = ['CodAutorizacion' => '79999999999999', 'FchVto' => now()->addDays(9)->format('Ymd'), 'ImpTotal' => 121.0, 'Resultado' => 'A'];
+        $f = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $this->assertSame('aprobado', $f->afip_estado); $this->assertSame('79999999999999', $f->cae); $this->assertSame(42, (int) $f->numero);
+        // Si el total no coincide, no se adopta: es un rechazo con explicación.
+        $this->arca->info['ImpTotal'] = 500;
+        try { $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]); $this->fail('Debía rechazar'); }
+        catch (\Illuminate\Validation\ValidationException $e) { $this->assertStringContainsString('ya existe en ARCA', $e->errors()['afip'][0]); }
+    }
+
+    public function test_qr_de_arca_errores_explicados_cuit_y_verificacion(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10]); $cli = $this->cliente(['cuit' => '30-70012345-6']);
+        $f = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
+        $url = QrArca::url($f);
+        $this->assertStringStartsWith('https://www.afip.gob.ar/fe/qr/?p=', $url);
+        $d = json_decode(base64_decode(substr($url, strlen('https://www.afip.gob.ar/fe/qr/?p='))), true);
+        $this->assertEquals(['ver' => 1, 'fecha' => today()->format('Y-m-d'), 'cuit' => 30712345678, 'ptoVta' => 1, 'tipoCmp' => 1, 'nroCmp' => 42, 'importe' => 121, 'moneda' => 'PES', 'ctz' => 1, 'tipoDocRec' => 80, 'nroDocRec' => 30700123456, 'tipoCodAut' => 'E', 'codAut' => 71234567890123], $d);
+        $this->assertStringStartsWith('data:image/png;base64,', QrArca::imagen($f));
+        $this->get("/comprobantes/{$f->id}/imprimir")->assertOk()->assertSee('Comprobante Autorizado')->assertSee('data:image/png;base64', false);
+        // Errores típicos traducidos.
+        $this->assertSame('fecha', AfipErrores::explicar('(10015) Campo CbteFch: la fecha es anterior a...')['tipo']);
+        $this->assertSame('certificado', AfipErrores::explicar('ns1:cms.cert.expired: Certificado expirado')['tipo']);
+        $this->assertTrue(AfipErrores::esConexion('SoapFault: Could not connect to host'));
+        $this->assertFalse(AfipErrores::esConexion('(10048) DocNro inválido'));
+        // CUIT: dígito verificador.
+        $this->assertTrue(Cuit::valido('30-71234567-1')); $this->assertTrue(Cuit::valido('20-12345678-6')); $this->assertFalse(Cuit::valido('30-71234567-9')); $this->assertFalse(Cuit::valido('123'));
+        $this->assertSame('30-71234567-8', Cuit::formatear('30712345678'));
+        $this->post('/clientes', ['name' => 'Malo', 'condicion_iva' => 'Responsable Inscripto', 'cuit' => '30-71234567-9'])->assertSessionHasErrors('cuit');
+        // Verificar contra ARCA y padrón.
+        $this->arca->info = ['CodAutorizacion' => '71234567890123', 'ImpTotal' => 121.0, 'CbteFch' => today()->format('Ymd'), 'Resultado' => 'A'];
+        $this->getJson("/comprobantes/{$f->id}/verificar-arca")->assertOk()->assertJsonPath('ok', true);
+        $this->arca->info['ImpTotal'] = 999;
+        $this->getJson("/comprobantes/{$f->id}/verificar-arca")->assertOk()->assertJsonPath('ok', false);
+        $this->getJson('/clientes/padron/30712345671')->assertOk()->assertJsonPath('nombre', 'ACME SRL')->assertJsonPath('condicion_iva', 'Responsable Inscripto');
+        $this->getJson('/clientes/padron/30712345679')->assertStatus(422);
+        $this->post('/configuracion/afip/probar')->assertSessionHas('afip_prueba', fn($r) => $r['ok'] === true && count($r['pasos']) >= 3);
+    }
+
+    public function test_factura_de_exportacion_sale_por_wsfex_en_dolares_sin_iva(): void
+    {
+        $p = $this->articulo(['stock_inicial' => 10, 'sku' => 'MIEL01', 'iva' => 21]);
+        $cli = $this->cliente(['name' => 'Importadora do Sul Ltda', 'cuit' => null, 'condicion_iva' => 'Exterior', 'pais_codigo' => '203', 'id_impositivo' => '12.345.678/0001-90', 'address' => 'Rua das Flores 10', 'city' => 'Porto Alegre']);
+        $svc = app(ComprobanteService::class);
+        $c = $svc->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'FX', 'fecha' => today()->toDateString(), 'condicion' => 'contado', 'moneda' => 'USD', 'cotizacion' => 1000, 'exportacion' => ['tipo_expo' => 1, 'incoterm' => 'FOB', 'permiso_embarque' => '26001EC01000123A', 'forma_pago' => 'Transferencia anticipada'], 'items' => [['product_id' => $p->id, 'cantidad' => 100, 'precio_unit' => 12, 'alicuota_iva' => 21]]]);
+        $this->assertSame('FE', $c->tipo, 'Cliente del exterior: factura E');
+        $this->assertSame(0.0, (float) $c->iva, 'Exportación exenta: el IVA se ignora aunque el artículo tenga 21%');
+        $f = $svc->emitir($c);
+        $this->assertSame('aprobado', $f->afip_estado); $this->assertSame(8, (int) $f->numero); $this->assertSame('79876543210987', $f->cae);
+        $d = $this->arca->fexEnviados[0];
+        $this->assertSame(19, $d['Cbte_Tipo']); $this->assertSame(1001, $d['Id']); $this->assertSame(8, $d['Cbte_nro']);
+        $this->assertSame(203, $d['Dst_cmp']); $this->assertSame(55000002002, $d['Cuit_pais_cliente'], 'CUIT país de Brasil desde la tabla');
+        $this->assertSame('DOL', $d['Moneda_Id']); $this->assertEqualsWithDelta(1000, $d['Moneda_ctz'], 0.0001);
+        $this->assertEqualsWithDelta(1200, $d['Imp_total'], 0.01, '100 × 12 USD = 1.200 USD (los precios se cargan en dólares)');
+        $this->assertSame('FOB', $d['Incoterms']); $this->assertSame('S', $d['Permiso_existente']); $this->assertSame('26001EC01000123A', $d['Permisos'][0]['Id_permiso']);
+        $this->assertSame('MIEL01', $d['Items'][0]['Pro_codigo_ea']); $this->assertEqualsWithDelta(12, $d['Items'][0]['Pro_precio_uni'], 0.0001);
+        $this->assertSame('12.345.678/0001-90', $d['Id_impositivo']);
+        $this->assertSame(0, count($this->arca->enviados), 'No pasa por WSFE');
+        $this->get("/comprobantes/{$f->id}/imprimir")->assertOk()->assertSee('Brasil')->assertSee('exenta de IVA')->assertSee('FOB');
+        // Nota de crédito E asociada.
+        $nc = $svc->emitir($svc->convertir($f, 'NCX'));
+        $this->assertSame('NCE', $nc->tipo); $this->assertSame(21, $this->arca->fexEnviados[1]['Cbte_Tipo']); $this->assertSame(8, $this->arca->fexEnviados[1]['Cmps_asoc'][0]['Cbte_nro']);
+        // Rechazo de WSFEX: mensaje claro, nada emitido.
+        $this->arca->fexAlAutorizar = fn() => throw new \RuntimeException('(1006) Fecha del comprobante fuera de rango');
+        try { $svc->emitir($svc->guardarBorrador(['contact_id' => $cli->id, 'tipo' => 'FX', 'fecha' => today()->toDateString(), 'condicion' => 'contado', 'moneda' => 'USD', 'cotizacion' => 1000, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 1000]]])); $this->fail('Debía rechazar'); }
+        catch (\Illuminate\Validation\ValidationException $e) { $this->assertStringContainsString('1006', $e->getMessage()); }
+        // Verificación en ARCA por WSFEX.
+        $this->arca->fexInfo = ['CodAutorizacion' => '79876543210987', 'ImpTotal' => (float) $f->total, 'FchVto' => now()->addDays(10)->format('Ymd'), 'CbteFch' => today()->format('Ymd'), 'Resultado' => 'A'];
+        $this->getJson("/comprobantes/{$f->id}/verificar-arca")->assertJson(['ok' => true]);
+        $this->assertAsientosBalancean();
+    }
+}

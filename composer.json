@@ -7,12 +7,16 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
+        "chillerlan/php-qrcode": "^5",
         "consultora-grada/afip.php": "*",
+        "inertiajs/inertia-laravel": "^3.1",
         "knuckleswtf/scribe": "^5.11",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.9",
-        "mercadopago/dx-php": "^3.10"
+        "mercadopago/dx-php": "^3.10",
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -1,3 +1,39 @@
+@import '@fontsource/montserrat/300.css';
+@import '@fontsource/montserrat/400.css';
+@import '@fontsource/montserrat/500.css';
+@import '@fontsource/montserrat/600.css';
+@import '@fontsource/montserrat/700.css';
+@import '@fontsource/montserrat/800.css';
+@import '@fontsource/montserrat/800-italic.css';
+@import '@fontsource/montserrat/900.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html { @apply antialiased; }
+  body { @apply bg-marca-fondo text-marca-texto; font-feature-settings: "ss01", "cv11"; }
+  ::selection { @apply bg-carmin-30 text-marca-texto; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-carmin/50 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-carmin text-white hover:bg-carmin-dark hover:shadow-md active:translate-y-px; }
+  .btn-secondary { @apply btn bg-white text-marca-texto border border-gris hover:border-marca-muted/50 hover:bg-marca-fondo; }
+  .btn-violeta { @apply btn text-white bg-violeta-grad hover:shadow-md; }
+  .btn-ghost { @apply btn text-marca-muted hover:bg-gris-light hover:text-marca-texto; }
+  .btn-danger { @apply btn bg-white text-carmin border border-carmin-30 hover:bg-carmin-light; }
+
+  .card { @apply bg-white rounded-2xl border border-marca-borde shadow-card p-5; }
+  .input { @apply w-full rounded-xl border border-gris bg-white px-3 py-2 text-sm text-marca-texto placeholder:text-marca-muted/60 transition focus:outline-none focus:ring-2 focus:ring-carmin/30 focus:border-carmin disabled:bg-marca-fondo disabled:text-marca-muted; }
+  .label { @apply block text-[11px] font-bold uppercase tracking-[0.12em] text-marca-muted mb-1.5; }
+  .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold tracking-wide; }
+  .page-title { @apply text-2xl font-extrabold tracking-tight text-marca-texto; }
+  .page-subtitle { @apply text-sm text-marca-muted mt-1; }
+
+  .table { @apply w-full text-sm; }
+  .table th { @apply text-left text-[11px] font-bold uppercase tracking-[0.12em] text-marca-muted px-3 py-2.5 border-b border-marca-borde bg-marca-fondo/60; }
+  .table td { @apply px-3 py-2.5 border-b border-marca-borde/70 align-middle; }
+  .table tbody tr:hover { @apply bg-marca-fondo; }
+}

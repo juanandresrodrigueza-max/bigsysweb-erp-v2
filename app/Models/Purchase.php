@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Purchase extends Model
 {
+    use \App\Models\Concerns\FechaSoloDia;
     use SoftDeletes, BelongsToBusiness;
 
     protected $fillable = ['business_id', 'contact_id', 'user_id', 'business_location_id', 'status', 'payment_status', 'invoice_number', 'invoice_date', 'due_date', 'subtotal', 'discount', 'tax', 'total', 'amount_paid', 'notes'];

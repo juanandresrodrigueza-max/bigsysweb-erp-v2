@@ -1,0 +1,20 @@
+{
+  "name": "BigSysWeb ERP",
+  "short_name": "BigSys",
+  "description": "Gestión para PyMEs: facturación, stock, cobros, caja y contabilidad.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#faf9f7",
+  "theme_color": "#e4003f",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mi negocio", "url": "/dueno" },
+    { "name": "Punto de venta", "url": "/retail" },
+    { "name": "Nueva factura", "url": "/comprobantes/nuevo" },
+    { "name": "Pedidos web", "url": "/comprobantes/pedidos" }
+  ]
+}

@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+use App\Traits\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -8,9 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends Model
 {
-    use SoftDeletes;
+    use BelongsToBusiness, SoftDeletes;
 
-    protected $fillable = ['customer_id', 'user_id', 'status', 'subtotal', 'discount', 'tax', 'total', 'notes', 'confirmed_at'];
+    protected $fillable = ['business_id', 'business_location_id', 'customer_id', 'user_id', 'status', 'subtotal', 'discount', 'tax', 'total', 'notes', 'confirmed_at'];
 
     protected $casts = [
         'subtotal' => 'decimal:2',

@@ -1,0 +1,18 @@
+// Fase 24.3: guía y acceso para mandar las tablas a otras plataformas.
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'api-' + n)
+await _login(page, 'demo@bigsys.com.ar')
+await page.click('button:has-text("Saltar")').catch(() => {})
+await page.goto(`${BASE}/configuracion/seguridad`); await idle()
+console.log('  link guía:', await page.locator('a:has-text("Guía: mandar tus tablas")').count(), '· texto exportar:', await page.locator('code:has-text("/api/exportar")').count())
+await shot('01-seguridad')
+await page.click('a:has-text("Guía: mandar tus tablas")'); await idle(); await page.waitForTimeout(400)
+console.log('  guía:', (await page.locator('h1').first().textContent()).trim().slice(0, 60), '· pasos:', await page.locator('h2:has-text("Paso")').count())
+await shot('02-guia')
+await page.goto(`${BASE}/ayuda?q=Power+BI`); await idle(); await page.waitForTimeout(300)
+console.log('  búsqueda Power BI:', await page.locator('text=Mandar tus datos a otras plataformas').count() > 0)
+await page.goto(`${BASE}/api/docs`); await idle()
+console.log('  api docs grupo:', await page.locator('h2:has-text("Exportar tablas")').count(), '· endpoint:', await page.locator('code:has-text("/api/exportar/{tabla}")').count())
+await shot('03-api-docs')
+await fin(browser)
