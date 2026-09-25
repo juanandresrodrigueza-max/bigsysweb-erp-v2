@@ -43,6 +43,8 @@
             <div class="mt-4 space-y-2 text-sm">
               <div class="flex justify-between"><span class="text-marca-muted">Usuarios</span><span class="font-semibold">{{ plan.usuarios[0] }} / {{ plan.usuarios[1] < 0 ? '∞' : plan.usuarios[1] }}</span></div>
               <div class="flex justify-between"><span class="text-marca-muted">Sucursales</span><span class="font-semibold">{{ plan.sucursales[0] }} / {{ plan.sucursales[1] < 0 ? '∞' : plan.sucursales[1] }}</span></div>
+              <div class="flex justify-between"><span class="text-marca-muted">Facturas del mes</span><span class="font-semibold">{{ plan.facturas?.[0] ?? 0 }} / {{ (plan.facturas?.[1] ?? -1) < 0 ? '∞' : plan.facturas[1] }}</span></div>
+              <div class="flex justify-between"><span class="text-marca-muted">Artículos</span><span class="font-semibold">{{ plan.articulos?.[0] ?? 0 }} / {{ (plan.articulos?.[1] ?? -1) < 0 ? '∞' : plan.articulos[1] }}</span></div>
             </div>
           </template>
           <p v-else class="text-sm text-marca-muted">Sin suscripción activa.</p>

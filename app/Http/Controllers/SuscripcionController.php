@@ -29,10 +29,10 @@ class SuscripcionController extends Controller
                 'plan' => $sub->plan->name, 'plan_id' => $sub->plan_id, 'estado' => $sub->status, 'estado_label' => $sub->estadoLabel(), 'ciclo' => $sub->billing_cycle,
                 'monto' => (float) $sub->amount, 'vence' => $sub->fechaLimite()?->format('d/m/Y'), 'dias' => $sub->diasRestantes(), 'aviso' => $sub->aviso(),
             ] : null,
-            'uso' => ['usuarios' => $b->users()->count(), 'sucursales' => $b->locations()->count()],
+            'uso' => ['usuarios' => $b->users()->count(), 'sucursales' => $b->locations()->count()] + array_map(fn($u) => $u[0], app(\App\Services\Suscripciones\LimitesPlanService::class)->uso($b)),
             'planes' => Plan::where('is_active', true)->orderBy('price_monthly')->get()->map(fn($p) => [
                 'id' => $p->id, 'nombre' => $p->name, 'descripcion' => $p->description, 'mensual' => (float) $p->price_monthly, 'anual' => (float) $p->price_yearly,
-                'usuarios' => $p->max_users, 'sucursales' => $p->max_locations, 'gratis' => $p->is_free,
+                'usuarios' => $p->max_users, 'sucursales' => $p->max_locations, 'facturas' => (int) $p->max_facturas_mes, 'articulos' => (int) $p->max_products, 'gratis' => $p->is_free,
                 'modulos' => collect(config('erp.modulos'))->filter(fn($m, $k) => in_array('*', (array) $p->features, true) || $m['core'] || in_array($k, (array) $p->features, true))->pluck('label')->values(),
             ]),
             'pagos' => PagoSuscripcion::where('business_id', $b->id)->with('plan:id,name')->latest('fecha')->latest('id')->limit(24)->get()->map(fn($p) => [

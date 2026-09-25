@@ -30,6 +30,7 @@ class ProductController extends Controller
             'unit'        => 'nullable|string|max:20',
         ]);
 
+        app(\App\Services\Suscripciones\LimitesPlanService::class)->verificarArticulo($request->user()->business);
         return new ProductResource(Product::create($data));
     }
 

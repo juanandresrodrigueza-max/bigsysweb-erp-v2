@@ -153,6 +153,7 @@ class ComprobanteService
         return DB::transaction(function () use ($c) {
             abort_if($c->estado !== 'borrador', 422, 'El comprobante ya fue emitido.');
             abort_if($c->items()->count() === 0, 422, 'El comprobante no tiene ítems.');
+            if ($c->direccion === 'venta') app(\App\Services\Suscripciones\LimitesPlanService::class)->verificarFactura($c->business ?? Auth::user()->business, $c);
             if ($c->def()['cc'] !== 0 && ! $c->contact_id) {
                 throw ValidationException::withMessages(['contact_id' => 'Elegí un cliente para emitir este comprobante.']);
             }
