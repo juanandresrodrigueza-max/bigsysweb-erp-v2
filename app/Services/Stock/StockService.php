@@ -56,6 +56,8 @@ class StockService
             'created_at' => ($origen && isset($origen->fecha) && $origen->fecha) ? \Carbon\Carbon::parse($origen->fecha)->setTimeFrom(now()) : now(),
         ]);
         if ($partidas) app(LotesService::class)->registrar($partidas, $cantidad > 0 ? 1 : -1, $mov, $origen, $motivo);
+        // Ubicaciones (Fase 27.4): una salida descuenta de las ubicaciones lo que ya no alcanza a cubrir lo "sin ubicar".
+        if ($cantidad < 0 && $deposito && \App\Models\Ubicacion::where('deposito_id', $deposito->id)->exists()) app(AlmacenService::class)->consumir($p, $deposito, array_map(fn($x) => $x['lote']->id, $partidas));
         return $mov;
     }
 

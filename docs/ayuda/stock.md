@@ -12,6 +12,21 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+## Almacén: ubicaciones y pistola (Stock → Almacén)
+
+Cada depósito se arma en **ubicaciones** (pasillo, estante, nivel) con su código de barras, y el sistema sabe qué hay en cada una. Lo que todavía no está en ningún lugar aparece en **Sin ubicar**.
+
+- **Crear las ubicaciones**: pestaña Ubicaciones → **Generar**: pasillos `A-D` (o `1-5`, o una lista `A,B,FRIO`), cuántos estantes y niveles. Queda A-01-1, A-01-2… con el **orden de recorrido** en serpentina (un pasillo de ida, el siguiente de vuelta). También se cargan de a una (RECEPCION, DESPACHO, CUARENTENA, CAMARA…).
+- **Etiquetas**: **Etiquetas de ubicaciones** imprime el código grande con el código de barras, en A4 o en rollo de impresora térmica. Pegá cada una en su estante.
+- **Pistola**: la pistola escribe el código y un Enter, como un teclado. En la pestaña Pistola elegís:
+  - **Consultar**: escaneás una ubicación y ves qué tiene; escaneás un artículo y ves en qué ubicaciones está (y cuánto queda sin ubicar).
+  - **Guardar**: ubicación → artículo (cada lectura suma 1, o escribís la cantidad) → Guardar. Sirve al recibir una compra.
+  - **Mover**: ubicación de origen → artículo → ubicación de destino → cantidad.
+  - **Contar**: ubicación → escaneás cada unidad → Guardar conteo. Es el inventario por sector.
+- **Ventas**: cuando sale mercadería, primero se descuenta de lo sin ubicar y después de las ubicaciones, empezando por Despacho y siguiendo el recorrido.
+- **Preparar pedido**: elegís la factura, el remito o el presupuesto y el sistema arma la **hoja de preparación**: de qué ubicación sacar cada cosa y cuánto, en el orden del recorrido y primero lo que vence antes. Se imprime con casilleros para tildar.
+- En la ficha de cada artículo aparece **Dónde está**.
+
 ## Lotes y vencimientos (Stock → Lotes y vencimientos)
 
 Para supermercados, farmacias, alimentos y todo lo que vence. Marcá el artículo como **Perecedero** (o todo el rubro) y al cargar la compra poné el **lote** y el **vencimiento** de cada renglón.

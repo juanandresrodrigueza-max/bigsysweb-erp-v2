@@ -310,6 +310,16 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::get('/almacen',                   [\App\Http\Controllers\Stock\AlmacenController::class, 'index']);
+        Route::get('/almacen/escanear',          [\App\Http\Controllers\Stock\AlmacenController::class, 'escanear']);
+        Route::get('/almacen/etiquetas',         [\App\Http\Controllers\Stock\AlmacenController::class, 'etiquetas']);
+        Route::get('/almacen/preparar/{comprobante}', [\App\Http\Controllers\Stock\AlmacenController::class, 'preparacion'])->whereNumber('comprobante');
+        Route::post('/almacen/ubicaciones/{id?}', [\App\Http\Controllers\Stock\AlmacenController::class, 'guardarUbicacion'])->middleware('permiso:stock,editar');
+        Route::delete('/almacen/ubicaciones/{id}', [\App\Http\Controllers\Stock\AlmacenController::class, 'borrarUbicacion'])->middleware('permiso:stock,editar');
+        Route::post('/almacen/generar',          [\App\Http\Controllers\Stock\AlmacenController::class, 'generar'])->middleware('permiso:stock,editar');
+        Route::post('/almacen/guardar',          [\App\Http\Controllers\Stock\AlmacenController::class, 'guardar'])->middleware('permiso:stock,editar');
+        Route::post('/almacen/mover',            [\App\Http\Controllers\Stock\AlmacenController::class, 'mover'])->middleware('permiso:stock,editar');
+        Route::post('/almacen/contar',           [\App\Http\Controllers\Stock\AlmacenController::class, 'contar'])->middleware('permiso:stock,editar');
         Route::get('/lotes',                     [\App\Http\Controllers\Stock\LotesController::class, 'index']);
         Route::get('/lotes/de/{product}',        [\App\Http\Controllers\Stock\LotesController::class, 'de'])->whereNumber('product');
         Route::get('/lotes/{id}',                [\App\Http\Controllers\Stock\LotesController::class, 'ver'])->whereNumber('id');

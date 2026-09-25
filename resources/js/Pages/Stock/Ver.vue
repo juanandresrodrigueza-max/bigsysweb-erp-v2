@@ -37,6 +37,11 @@
           </div>
           <p v-if="!p.stocks.length" class="text-sm text-marca-muted">Sin existencias en ningún depósito.</p>
         </div>
+        <div v-if="p.ubicaciones?.length" class="card" data-e2e="donde-esta">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Dónde está</p>
+          <div v-for="u in p.ubicaciones" :key="u.ubicacion_id + '-' + u.lote_id" class="flex justify-between text-sm py-1"><span><span class="font-mono font-bold">{{ u.codigo }}</span> <span class="text-xs text-marca-muted">{{ u.deposito }}<span v-if="u.lote"> · {{ u.lote }}</span></span></span><span class="tabular-nums">{{ cantidad(u.cantidad) }}</span></div>
+          <Link href="/stock/almacen" class="text-xs text-violeta font-semibold">Ir al almacén →</Link>
+        </div>
         <div v-if="p.perecedero || p.seriado" class="card">
           <h2 class="font-bold mb-2">Partidas {{ p.perecedero ? '(vence primero, sale primero)' : '(por número de serie)' }}</h2>
           <div v-for="l in p.lotes" :key="l.id" class="flex items-center justify-between py-1.5 border-t border-marca-borde/60 first:border-0 text-sm">
