@@ -27,7 +27,15 @@ class ComprobanteService
         return DB::transaction(function () use ($data, $c) {
             $user = Auth::user();
             $contact = ! empty($data['contact_id']) ? Contact::findOrFail($data['contact_id']) : null;
-            $tipo = $this->resolverTipo($data['tipo'], $contact);
+            // Cliente cargado en la misma factura (Fase 26.5): se guarda o actualiza en Clientes, o queda solo en el comprobante.
+            $receptor = null;
+            if (! $contact && trim((string) ($data['receptor']['nombre'] ?? '')) !== '') {
+                $cf = app(\App\Services\Ventas\ClienteDesdeFacturaService::class);
+                $guardar = (bool) ($data['receptor']['guardar'] ?? true);
+                $nuevo = $cf->contacto($data['receptor'], $user->business_id, $guardar);
+                if ($guardar) $contact = $nuevo; else $receptor = collect($data['receptor'])->only(\App\Services\Ventas\ClienteDesdeFacturaService::CAMPOS)->filter(fn($v) => $v !== null && $v !== '')->all() + ['condicion_iva' => $nuevo->condicion_iva];
+            }
+            $tipo = $this->resolverTipo($data['tipo'], $contact ?? ($receptor ? new Contact(['condicion_iva' => $receptor['condicion_iva']]) : null));
 
             $c ??= new Comprobante(['business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'user_id' => $user->id, 'direccion' => 'venta']);
             abort_if($c->exists && $c->estado !== 'borrador', 422, 'Solo se pueden editar comprobantes en borrador.');
@@ -36,6 +44,7 @@ class ComprobanteService
             $origen = ($data['origen_id'] ?? $c->origen_id) ? Comprobante::find($data['origen_id'] ?? $c->origen_id) : null;
             $c->fill([
                 'contact_id'      => $contact?->id,
+                'receptor'        => $receptor,
                 'vendedor_id'     => $data['vendedor_id'] ?? $c->vendedor_id ?? $contact?->vendedor_id ?? \App\Models\Vendedor::deUsuario($user->id)?->id,
                 'punto_venta_id'  => $data['punto_venta_id'] ?? $this->puntoVentaPorDefecto($user)?->id,
                 'origen_id'       => $data['origen_id'] ?? $c->origen_id,

@@ -126,6 +126,9 @@ class AfipEmisor
     {
         $contact = $c->contact;
         $cuit    = $contact?->cuit ? preg_replace('/\D/', '', $contact->cuit) : null;
+        // Consumidor final identificado: con DNI va como documento 96 (sin cliente guardado, los datos vienen del comprobante).
+        $dni     = ! $cuit ? preg_replace('/\D/', '', (string) ($contact?->document ?? ($c->receptor['documento'] ?? ''))) : '';
+        if (! $contact && strlen($dni) === 11) { $cuit = $dni; $dni = ''; }
         $letraC  = in_array($c->tipo, ['FC', 'NCC', 'NDC'], true);
         $porAlicuota = $c->items->groupBy(fn($i) => (string) (float) $i->alicuota_iva);
 
@@ -151,8 +154,8 @@ class AfipEmisor
             'PtoVta'     => (int) $c->punto_venta,
             'CbteTipo'   => $afipId,
             'Concepto'   => $concepto,
-            'DocTipo'    => $cuit ? 80 : 99,
-            'DocNro'     => $cuit ? (int) $cuit : 0,
+            'DocTipo'    => $cuit ? 80 : ($dni !== '' ? 96 : 99),
+            'DocNro'     => $cuit ? (int) $cuit : ($dni !== '' ? (int) $dni : 0),
             'CbteDesde'  => $numero,
             'CbteHasta'  => $numero,
             'CbteFch'    => $c->fecha->format('Ymd'),

@@ -24,8 +24,22 @@
           <div>
             <label class="label">Cliente</label>
             <BuscadorSelect v-model="form.contact_id" :opciones="opcionesClientes" :url="'/buscar/contactos/cliente'" @cargados="f => sumar(clientesCat, f)" placeholder="Buscar cliente por nombre o CUIT… (vacío: recientes)" @elegido="alElegirCliente">
-              <template #pie><Link href="/clientes" class="block px-3 py-2 text-xs text-carmin font-semibold border-t border-marca-borde">+ Crear cliente nuevo</Link></template>
+              <template #pie><button type="button" class="block w-full text-left px-3 py-2 text-xs text-carmin font-semibold border-t border-marca-borde" @mousedown.prevent="abrirReceptor">+ Cliente nuevo: cargar los datos acá</button></template>
             </BuscadorSelect>
+            <button v-if="!form.contact_id && !receptorAbierto" type="button" class="text-xs text-violeta font-semibold mt-1" data-e2e="abrir-receptor" @click="abrirReceptor">+ Cliente nuevo o consumidor final con datos</button>
+            <div v-if="!form.contact_id && receptorAbierto" class="mt-2 rounded-xl border border-marca-borde bg-marca-fondo p-3 grid sm:grid-cols-2 gap-2 text-sm" data-e2e="receptor">
+              <div class="sm:col-span-2"><label class="label">Nombre o razón social</label><input v-model="form.receptor.nombre" class="input !py-1.5" data-e2e="rc-nombre" /></div>
+              <div><label class="label">CUIT o DNI</label><div class="flex gap-1"><input v-model="form.receptor.documento" class="input !py-1.5" placeholder="20-12345678-9 o 30111222" data-e2e="rc-doc" /><button v-if="docDigitos.length === 11" type="button" class="btn-secondary !py-1 !px-2 text-xs whitespace-nowrap" :disabled="buscandoPadron" @click="buscarPadron">{{ buscandoPadron ? '…' : 'ARCA' }}</button></div></div>
+              <div><label class="label">Condición de IVA</label><select v-model="form.receptor.condicion_iva" class="input !py-1.5"><option v-for="c in ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']" :key="c" :value="c">{{ c }}</option></select></div>
+              <div><label class="label">Domicilio</label><input v-model="form.receptor.address" class="input !py-1.5" /></div>
+              <div><label class="label">Localidad</label><input v-model="form.receptor.city" class="input !py-1.5" /></div>
+              <div><label class="label">Email</label><input v-model="form.receptor.email" type="email" class="input !py-1.5" /></div>
+              <div><label class="label">Teléfono</label><input v-model="form.receptor.phone" class="input !py-1.5" /></div>
+              <label class="sm:col-span-2 flex items-center gap-2 text-xs"><input v-model="form.receptor.guardar" type="checkbox" class="accent-carmin" data-e2e="rc-guardar" /> Guardar en Clientes (si ya existe con ese CUIT, DNI o nombre, se actualizan sus datos)</label>
+              <p v-if="padronMsg" class="sm:col-span-2 text-xs" :class="padronOk ? 'text-emerald-700' : 'text-carmin'">{{ padronMsg }}</p>
+              <p v-for="(e, k) in receptorErrores" :key="k" class="sm:col-span-2 text-carmin text-xs">{{ e }}</p>
+              <button type="button" class="text-xs text-marca-muted sm:col-span-2 text-left" @click="cerrarReceptor">Quitar estos datos (factura a consumidor final sin identificar)</button>
+            </div>
             <p v-if="form.errors.contact_id" class="text-carmin text-xs mt-1">{{ form.errors.contact_id }}</p>
             <button v-if="form.contact_id && !form.items.some(i => i.product_id)" type="button" class="text-xs text-violeta font-semibold mt-1" :disabled="repitiendo" @click="repetirUltima">{{ repitiendo ? 'Buscando…' : '↻ Repetir la última factura de este cliente' }}</button>
             <p v-if="repetida" class="text-xs text-emerald-700 mt-1">{{ repetida }}</p>
@@ -213,19 +227,36 @@ function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.
 
 const base = props.comprobante ?? (props.origen ? { contact_id: props.origen.contact_id, origen_id: props.origen.id, items: props.origen.items } : null)
 const form = useForm({
-  tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
+  tipo: props.tipoInicial, contact_id: base?.contact_id ?? null, receptor: null, punto_venta_id: base?.punto_venta_id ?? props.puntoVentaDefault, vendedor_id: base?.vendedor_id ?? props.vendedorDefault ?? null, origen_id: base?.origen_id ?? null,
   fecha: base?.fecha ?? hoyISO(), condicion: base?.condicion ?? 'cta_cte', dias_vto: null, es_acopio: base?.es_acopio ?? false, entrega_pendiente: base?.entrega_pendiente ?? false, fce: base?.fce ?? false, sin_arca: base?.sin_arca ?? false, manual: base?.manual ?? false, pv_manual: base?.pv_manual ?? null, numero_manual: base?.numero_manual ?? null, cai: base?.cai ?? '', cai_vto: base?.cai_vto_iso ?? null, exportacion: { tipo_expo: 1, incoterm: 'FOB', permiso_embarque: '', moneda_arca: 'DOL', forma_pago: '', obs_comerciales: '', ...(base?.exportacion ?? {}) }, fce_vto_pago: base?.fce_vto_pago ?? null, canje_puntos: 0, notas: base?.notas ?? '',
   transportista: base?.transportista ?? '', transportista_cuit: base?.transportista_cuit ?? '', patente: base?.patente ?? '', bultos: base?.bultos ?? null, peso_kg: base?.peso_kg ?? null, domicilio_entrega: base?.domicilio_entrega ?? '',
   items: (base?.items ?? []).map(i => ({ ...i })), emitir: false, moneda: base?.moneda ?? 'ARS', cotizacion: base?.cotizacion && base.cotizacion !== 1 ? base.cotizacion : null, proyecto_id: base?.proyecto_id ?? (new URLSearchParams(location.search).get('proyecto_id') ? Number(new URLSearchParams(location.search).get('proyecto_id')) : null),
 })
 const esConversion = !!props.origen
 
+// Cliente nuevo cargado en la misma factura (Fase 26.5).
+const receptorVacio = () => ({ nombre: '', documento: '', condicion_iva: 'Consumidor Final', address: '', city: '', email: '', phone: '', guardar: true })
+const receptorAbierto = ref(false), buscandoPadron = ref(false), padronMsg = ref(''), padronOk = ref(false)
+const docDigitos = computed(() => (form.receptor?.documento || '').replace(/\D/g, ''))
+const receptorErrores = computed(() => Object.entries(form.errors).filter(([k]) => k.startsWith('receptor')).map(([, v]) => v))
+function abrirReceptor() { form.contact_id = null; if (!form.receptor) form.receptor = receptorVacio(); receptorAbierto.value = true }
+function cerrarReceptor() { form.receptor = receptorVacio(); receptorAbierto.value = false; padronMsg.value = '' }
+async function buscarPadron() {
+  buscandoPadron.value = true; padronMsg.value = ''
+  try {
+    const r = await fetch(`/clientes/padron/${docDigitos.value}`, { headers: { Accept: 'application/json' } }); const d = await r.json()
+    if (!r.ok) { padronOk.value = false; padronMsg.value = d.error || 'No se encontró.'; return }
+    Object.assign(form.receptor, { nombre: d.nombre || form.receptor.nombre, condicion_iva: d.condicion_iva || form.receptor.condicion_iva, address: d.direccion || form.receptor.address, city: d.localidad || form.receptor.city })
+    padronOk.value = true; padronMsg.value = `Datos de ARCA: ${d.nombre} · ${d.condicion_iva ?? ''}`
+  } catch (e) { padronOk.value = false; padronMsg.value = 'No se pudo consultar ARCA.' } finally { buscandoPadron.value = false }
+}
 const cliente = computed(() => clientesCat.value.find(c => c.id === form.contact_id))
 const lista = computed(() => cliente.value?.lista_precios ?? 1)
 const esFactura = computed(() => ['FX', 'FA', 'FB', 'FC'].includes(form.tipo))
 const esFiscal = computed(() => !['PRE', 'REM'].includes(form.tipo))
 const esExportacion = computed(() => esFiscal.value && cliente.value?.condicion_iva === 'Exterior')
-const letra = computed(() => cliente.value?.condicion_iva === 'Exterior' ? 'E' : props.empresa.condicion_iva === 'Responsable Inscripto' ? (cliente.value?.condicion_iva === 'Responsable Inscripto' ? 'A' : 'B') : 'C')
+const condIvaCliente = computed(() => cliente.value?.condicion_iva ?? (receptorAbierto.value && form.receptor.nombre ? form.receptor.condicion_iva : null))
+const letra = computed(() => condIvaCliente.value === 'Exterior' ? 'E' : props.empresa.condicion_iva === 'Responsable Inscripto' ? (condIvaCliente.value === 'Responsable Inscripto' ? 'A' : 'B') : 'C')
 const tipoResuelto = computed(() => ({ FX: `Factura ${letra.value}`, NCX: `Nota de crédito ${letra.value}`, NDX: `Nota de débito ${letra.value}` }[form.tipo] ?? null))
 const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'Nuevo presupuesto', REM: 'Nuevo remito', NCX: 'Nueva nota de crédito', NDX: 'Nueva nota de débito' }[form.tipo] ?? 'Nueva factura'))
 

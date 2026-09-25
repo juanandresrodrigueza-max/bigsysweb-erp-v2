@@ -41,8 +41,9 @@
   </tr></table>
 
   <table class="cli linea">
-    <tr><td><b>Cliente:</b> {{ $c->contact?->name ?? 'Consumidor Final' }}</td><td><b>CUIT/DNI:</b> {{ $c->contact?->cuit ?? $c->contact?->document ?? '-' }}</td></tr>
-    <tr><td><b>Domicilio:</b> {{ trim(($c->contact?->address ?? '') . ' ' . ($c->contact?->city ?? '')) ?: '-' }}</td><td><b>Cond. IVA:</b> {{ $c->contact?->condicion_iva ?? 'Consumidor Final' }}</td></tr>
+    @php $rc = $c->receptor ?? []; @endphp
+    <tr><td><b>Cliente:</b> {{ $c->contact?->name ?? ($rc['nombre'] ?? 'Consumidor Final') }}</td><td><b>CUIT/DNI:</b> {{ $c->contact?->cuit ?? $c->contact?->document ?? ($rc['documento'] ?? '-') }}</td></tr>
+    <tr><td><b>Domicilio:</b> {{ trim(($c->contact?->address ?? ($rc['address'] ?? '')) . ' ' . ($c->contact?->city ?? ($rc['city'] ?? ''))) ?: '-' }}</td><td><b>Cond. IVA:</b> {{ $c->contact?->condicion_iva ?? ($rc['condicion_iva'] ?? 'Consumidor Final') }}</td></tr>
     <tr><td><b>Cond. venta:</b> {{ $c->condicion === 'contado' ? 'Contado' : 'Cuenta corriente' }}@if($c->condicion !== 'contado' && $c->contact?->dias_pago) · {{ $c->contact->dias_pago }} días @endif @if($c->es_acopio)<span class="badge">ACOPIO</span>@endif</td>
         <td>@if($m['mostrar']['vendedor'] && $c->vendedor)<b>Vendedor:</b> {{ $c->vendedor->nombre }}@endif</td></tr>
     @if($c->esExportacion())<tr><td colspan="2"><b>País:</b> {{ config('arca_paises.paises.' . ($c->contact?->pais_codigo ?? ''), $c->contact?->pais_codigo ?? '-') }} @if($c->contact?->id_impositivo)· <b>Id. fiscal:</b> {{ $c->contact->id_impositivo }}@endif @if(($c->exportacion['incoterm'] ?? null) && (int) ($c->exportacion['tipo_expo'] ?? 1) === 1)· <b>Incoterm:</b> {{ $c->exportacion['incoterm'] }}@endif @if($c->exportacion['permiso_embarque'] ?? null)· <b>Permiso de embarque:</b> {{ $c->exportacion['permiso_embarque'] }}@endif</td></tr>@endif
