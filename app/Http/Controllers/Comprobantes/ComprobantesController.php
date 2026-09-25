@@ -238,6 +238,8 @@ class ComprobantesController extends Controller
         return $request->validate([
             'tipo'            => 'required|string|max:4',
             'contact_id'      => 'nullable|integer|exists:contacts,id',
+            'receptor'        => 'nullable|array', 'receptor.nombre' => 'nullable|string|max:150', 'receptor.documento' => ['nullable', 'string', 'max:20', function ($a, $v, $fail) { $d = preg_replace('/\D/', '', (string) $v); if ($d !== '' && ! in_array(strlen($d), [7, 8, 11], true)) $fail('El documento tiene que ser un DNI (7 u 8 números) o un CUIT (11).'); elseif (strlen($d) === 11 && ! \App\Support\Cuit::valido($d)) $fail('El CUIT no es válido (revisá el dígito verificador).'); }],
+            'receptor.condicion_iva' => ['nullable', \Illuminate\Validation\Rule::in(\App\Models\Contact::CONDICIONES_IVA)], 'receptor.address' => 'nullable|string|max:150', 'receptor.city' => 'nullable|string|max:80', 'receptor.email' => 'nullable|email|max:150', 'receptor.phone' => 'nullable|string|max:40', 'receptor.guardar' => 'boolean',
             'punto_venta_id'  => 'nullable|integer|exists:puntos_venta,id',
             'vendedor_id'     => 'nullable|integer|exists:vendedores,id',
             'origen_id'       => 'nullable|integer|exists:comprobantes,id',

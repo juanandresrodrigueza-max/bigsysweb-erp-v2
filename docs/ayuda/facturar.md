@@ -16,6 +16,14 @@ resumen: Cómo hacer una factura, un presupuesto o un remito, cargar una factura
 
 Atajos: **Ctrl+Enter** emite, **Ctrl+S** guarda el borrador, Enter en cantidad y precio pasa a la fila siguiente. "Repetir la última factura de este cliente" carga sus ítems con los precios de hoy.
 
+## Cliente nuevo desde la factura
+
+Si el cliente no está cargado, no hace falta salir de la factura: tocá **+ Cliente nuevo o consumidor final con datos** debajo del buscador de clientes y completá nombre, **CUIT o DNI**, condición de IVA, domicilio, email y teléfono. Con un CUIT, el botón **ARCA** trae la razón social, la condición de IVA y el domicilio del padrón.
+
+- **Guardar en Clientes** (viene tildado): al emitir se crea el cliente. Si ya existe con ese CUIT, DNI o nombre, no se duplica: se actualizan sus datos con lo que cargaste.
+- Sin tildar: los datos quedan **solo en esa factura** (consumidor final identificado). Salen impresos y a ARCA va el DNI.
+- Con condición **Responsable Inscripto** la factura sale **A** sola.
+
 ## Presupuestos y remitos
 
 - **Presupuesto**: no mueve nada. Se manda al cliente por link o WhatsApp y desde ahí lo aprueba o rechaza. Aprobado, se convierte en factura o remito con un clic.
