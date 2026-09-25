@@ -19,7 +19,7 @@ class BackupService
         'comprobantes', 'comprobante_items', 'comprobante_impuestos', 'comprobante_adjuntos', 'cuenta_corriente', 'lotes_facturacion', 'punto_venta_numeros', 'cobros', 'cobro_medios', 'cobro_imputaciones', 'pagos', 'pago_medios', 'pago_imputaciones', 'retenciones', 'cheques', 'cupones_tarjeta', 'liquidaciones_tarjeta',
         'movimientos_fondos', 'turnos_caja', 'stock_movements', 'lotes', 'transferencias_stock', 'transferencia_stock_items', 'inventarios', 'inventario_items', 'production_orders', 'ordenes_compra', 'orden_compra_items', 'ordenes_entrega', 'orden_entrega_items', 'abonos', 'envios', 'planes_pago', 'plan_pago_cuotas',
         'acopios', 'acopio_items', 'acopio_retiros', 'acopio_retiro_items', 'cuentas_contables', 'asientos', 'asiento_lineas', 'extractos_bancarios', 'extracto_items', 'ejercicios', 'mesas', 'comandas', 'comanda_items', 'alertas', 'audit_logs', 'webhooks', 'tickets', 'cotizaciones', 'importaciones_precios', 'importaciones',
-        'lote_movimientos', 'precios_pactados', 'catalogos', 'descuentos_lista', 'contacto_personas', 'documentos', 'empleados', 'empleado_conceptos', 'sueldo_conceptos', 'liquidaciones', 'liquidacion_items'
+        'ubicaciones', 'ubicacion_stock', 'ubicacion_movimientos', 'lote_movimientos', 'precios_pactados', 'catalogos', 'descuentos_lista', 'contacto_personas', 'documentos', 'empleados', 'empleado_conceptos', 'sueldo_conceptos', 'liquidaciones', 'liquidacion_items'
     ];
 
     public function crear(Business $b, string $origen = 'manual', ?int $userId = null): Backup

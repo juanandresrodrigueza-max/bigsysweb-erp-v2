@@ -82,6 +82,7 @@ class StockController extends Controller
 
         return Inertia::render('Stock/Ver', [
             'p' => $p->only('id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'description', 'unit', 'active', 'controla_stock', 'rubro_id', 'proveedor_id', 'stock_min', 'iva', 'perecedero', 'seriado', 'control_turno') + [
+                'ubicaciones' => app(\App\Services\Stock\AlmacenService::class)->dondeEsta($p)['ubicaciones'],
                 'lotes' => $p->lotes()->with('deposito:id,nombre')->get()->map(fn($l) => ['id' => $l->id, 'etiqueta' => $l->etiqueta(), 'lote' => $l->lote, 'serie' => $l->serie, 'vencimiento' => $l->vencimiento?->format('d/m/Y'), 'vencido' => $l->vencimiento?->isPast() ?? false, 'por_vencer' => $l->vencimiento && ! $l->vencimiento->isPast() && $l->vencimiento->lte(today()->addDays(30)), 'cantidad' => (float) $l->cantidad, 'deposito' => $l->deposito?->nombre]),
                 'rubro' => $p->rubro?->nombreCompleto(), 'proveedor' => $p->proveedor?->name, 'stock' => (float) $p->stock, 'price' => (float) $p->price, 'cost' => (float) $p->cost, 'prices' => $p->prices ?? [], 'precio_pesos' => $p->precioLista(1),
                 'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'moneda' => $p->moneda, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct,
