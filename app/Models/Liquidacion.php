@@ -15,8 +15,8 @@ class Liquidacion extends Model
     public const ESTADOS = ['borrador' => 'Borrador', 'confirmada' => 'Confirmada', 'pagada' => 'Pagada'];
 
     protected $table = 'liquidaciones';
-    protected $fillable = ['business_id', 'user_id', 'periodo', 'tipo', 'estado', 'fecha', 'total_bruto', 'total_no_rem', 'total_deducciones', 'total_neto', 'total_contribuciones', 'importada', 'asiento_id', 'pagada_en', 'notas'];
-    protected $casts = ['fecha' => 'date', 'pagada_en' => 'datetime', 'importada' => 'boolean', 'total_bruto' => 'decimal:2', 'total_no_rem' => 'decimal:2', 'total_deducciones' => 'decimal:2', 'total_neto' => 'decimal:2', 'total_contribuciones' => 'decimal:2'];
+    protected $fillable = ['business_id', 'user_id', 'periodo', 'tipo', 'estado', 'fecha', 'total_bruto', 'total_no_rem', 'total_deducciones', 'total_neto', 'total_contribuciones', 'importada', 'asiento_id', 'pagada_en', 'notas', 'deposito_fecha', 'deposito_banco', 'deposito_periodo'];
+    protected $casts = ['deposito_fecha' => 'date', 'fecha' => 'date', 'pagada_en' => 'datetime', 'importada' => 'boolean', 'total_bruto' => 'decimal:2', 'total_no_rem' => 'decimal:2', 'total_deducciones' => 'decimal:2', 'total_neto' => 'decimal:2', 'total_contribuciones' => 'decimal:2'];
 
     public function items() { return $this->hasMany(LiquidacionItem::class); }
     public function user() { return $this->belongsTo(User::class); }
