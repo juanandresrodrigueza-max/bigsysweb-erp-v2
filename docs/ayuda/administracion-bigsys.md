@@ -14,7 +14,7 @@ Esta guía es para el equipo que opera BigSysWeb como servicio (el superadmin), 
 
 ## Planes y cobros
 
-**Planes**: nombre, precio mensual y anual, usuarios y sucursales incluidos, módulos. **Cobros**: pagos por Mercado Pago (automáticos) o transferencia (se aprueban a mano). La revisión diaria avisa vencimientos, aplica gracia y suspende; se puede correr a mano desde Sistema.
+**Planes**: nombre, precio mensual y anual, usuarios, sucursales, artículos y **facturas por mes** incluidos (-1 = sin límite), módulos. **Cobros**: pagos por Mercado Pago (automáticos) o transferencia (se aprueban a mano). La revisión diaria avisa vencimientos, aplica gracia y suspende; se puede correr a mano desde Sistema.
 
 ## Entrar a una empresa
 

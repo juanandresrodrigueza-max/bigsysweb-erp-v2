@@ -116,6 +116,7 @@ class StockController extends Controller
         ]);
         $d['margenes'] = ($d['usar_margenes'] ?? false) ? collect($d['margenes'] ?? [])->filter(fn($v) => $v !== null && $v !== '')->all() ?: null : null;
         $d['moneda'] = $d['moneda'] ?? 'ARS';
+        if (! $id) app(\App\Services\Suscripciones\LimitesPlanService::class)->verificarArticulo($request->user()->business);
         $p = $id ? Product::findOrFail($id) : new Product(['business_id' => $request->user()->business_id, 'business_location_id' => $request->user()->current_location_id]);
         $antes = $p->exists ? ['price' => (float) $p->price, 'cost' => (float) $p->cost] : null;
         $d['sku'] = $d['sku'] ?: strtoupper(substr(preg_replace('/[^A-Z0-9]/', '', strtoupper($d['name'])), 0, 6)) . '-' . str_pad((string) (Product::withTrashed()->count() + 1), 4, '0', STR_PAD_LEFT);

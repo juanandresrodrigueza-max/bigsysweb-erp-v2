@@ -28,6 +28,7 @@ class EmpresaController extends Controller
             'plan' => $sub ? [
                 'nombre' => $sub->plan->name, 'precio' => (float) $sub->plan->price_monthly, 'vence' => $sub->ends_at?->format('d/m/Y'),
                 'estado' => $sub->status, 'usuarios' => [$b->users()->count(), $sub->plan->max_users], 'sucursales' => [$b->locations()->count(), $sub->plan->max_locations],
+                ...app(\App\Services\Suscripciones\LimitesPlanService::class)->uso($b),
             ] : null,
             'modulos' => collect(config('erp.modulos'))->map(fn($m, $k) => ['key' => $k, 'label' => $m['label'], 'activo' => $b->tieneModulo($k), 'core' => $m['core']])->values(),
         ]);

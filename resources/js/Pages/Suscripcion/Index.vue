@@ -28,6 +28,8 @@
           <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
             <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-marca-muted text-xs">Usuarios</p><p class="font-bold">{{ uso.usuarios }}<span class="text-marca-muted font-normal"> / {{ limite('usuarios') }}</span></p></div>
             <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-marca-muted text-xs">Sucursales</p><p class="font-bold">{{ uso.sucursales }}<span class="text-marca-muted font-normal"> / {{ limite('sucursales') }}</span></p></div>
+            <div class="p-3 rounded-xl bg-marca-fondo" data-e2e="uso-facturas"><p class="text-marca-muted text-xs">Facturas este mes</p><p class="font-bold" :class="cerca('facturas') ? 'text-carmin' : ''">{{ uso.facturas }}<span class="text-marca-muted font-normal"> / {{ limite('facturas') }}</span></p></div>
+            <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-marca-muted text-xs">Artículos</p><p class="font-bold" :class="cerca('articulos') ? 'text-carmin' : ''">{{ uso.articulos }}<span class="text-marca-muted font-normal"> / {{ limite('articulos') }}</span></p></div>
           </div>
         </div>
         <div class="card">
@@ -55,6 +57,8 @@
             <ul class="mt-3 text-xs space-y-1 text-marca-muted flex-1">
               <li>{{ p.usuarios < 0 ? 'Usuarios sin límite' : `Hasta ${p.usuarios} usuario${p.usuarios === 1 ? '' : 's'}` }}</li>
               <li>{{ p.sucursales < 0 ? 'Sucursales sin límite' : `${p.sucursales} sucursal${p.sucursales === 1 ? '' : 'es'}` }}</li>
+              <li>{{ p.facturas < 0 ? 'Facturas sin límite' : `Hasta ${p.facturas.toLocaleString('es-AR')} facturas por mes` }}</li>
+              <li>{{ p.articulos < 0 ? 'Artículos sin límite' : `Hasta ${p.articulos.toLocaleString('es-AR')} artículos` }}</li>
               <li v-for="m in p.modulos" :key="m" class="flex items-center gap-1 text-marca-texto"><Icono nombre="check" clase="w-3 h-3 text-emerald-600" /> {{ m }}</li>
             </ul>
           </button>
@@ -108,5 +112,7 @@ const props = defineProps({ bloqueada: Boolean, motivo: String, administrativa: 
 const pago = useForm({ plan_id: props.actual?.plan_id ?? props.planes.find(p => !p.gratis)?.id, ciclo: props.actual?.ciclo ?? 'monthly', medio: 'mercadopago', referencia: '' })
 const planElegido = computed(() => props.planes.find(p => p.id === pago.plan_id))
 const total = computed(() => planElegido.value ? (pago.ciclo === 'yearly' ? planElegido.value.anual : planElegido.value.mensual) : 0)
+// Uso al 80 % o más del límite del plan.
+const cerca = k => { const p = props.planes.find(x => x.id === props.actual?.plan_id); const v = p?.[k]; return v > 0 && (props.uso?.[k] ?? 0) >= v * 0.8 }
 const limite = k => { const p = props.planes.find(x => x.id === props.actual?.plan_id); const v = p?.[k]; return v === undefined ? '—' : v < 0 ? '∞' : v }
 </script>

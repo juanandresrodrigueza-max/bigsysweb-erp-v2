@@ -83,4 +83,4 @@ Copia automática diaria (se puede bajar) y restauración con un clic. Antes de 
 
 ## Suscripción
 
-Plan actual, usuarios y sucursales incluidos, renovación por Mercado Pago o transferencia.
+Plan actual, usuarios y sucursales incluidos, renovación por Mercado Pago o transferencia. También muestra las **facturas emitidas en el mes** y los **artículos cargados** contra lo que incluye el plan (en rojo desde el 80 %). Al llegar al máximo, la factura siguiente del mes o el artículo nuevo no se pueden cargar hasta pasar a un plan mayor; presupuestos, remitos y notas de crédito no cuentan.

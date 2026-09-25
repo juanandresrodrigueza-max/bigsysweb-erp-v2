@@ -17,7 +17,7 @@
         <ul class="mt-4 space-y-1 text-sm flex-1">
           <li class="flex justify-between"><span class="text-marca-muted">Usuarios</span><b>{{ p.max_users < 0 ? 'Sin límite' : p.max_users }}</b></li>
           <li class="flex justify-between"><span class="text-marca-muted">Sucursales</span><b>{{ p.max_locations < 0 ? 'Sin límite' : p.max_locations }}</b></li>
-          <li class="flex justify-between"><span class="text-marca-muted">Productos</span><b>{{ p.max_products < 0 ? 'Sin límite' : entero(p.max_products) }}</b></li>
+          <li class="flex justify-between"><span class="text-marca-muted">Productos</span><b>{{ p.max_products < 0 ? 'Sin límite' : entero(p.max_products) }}</b></li><li class="flex justify-between"><span class="text-marca-muted">Facturas por mes</span><b>{{ p.max_facturas_mes < 0 ? 'Sin límite' : entero(p.max_facturas_mes) }}</b></li>
         </ul>
         <div class="flex flex-wrap gap-1 mt-3"><span v-for="m in modulosDe(p)" :key="m" class="badge bg-marca-fondo">{{ m }}</span></div>
         <div class="flex items-center justify-between mt-4 pt-3 border-t border-marca-borde text-xs"><span class="text-marca-muted">{{ p.activas }} empresa{{ p.activas === 1 ? '' : 's' }}</span><span class="badge" :class="p.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ p.is_active ? 'Se ofrece' : 'Oculto' }}</span></div>
@@ -33,6 +33,7 @@
         <div><label class="label">Usuarios (-1 = sin límite)</label><input v-model.number="form.max_users" type="number" class="input" /></div>
         <div><label class="label">Sucursales (-1 = sin límite)</label><input v-model.number="form.max_locations" type="number" class="input" /></div>
         <div><label class="label">Productos (-1 = sin límite)</label><input v-model.number="form.max_products" type="number" class="input" /></div>
+        <div><label class="label">Facturas por mes (-1 = sin límite)</label><input v-model.number="form.max_facturas_mes" type="number" class="input" /></div>
         <div class="flex flex-col gap-2 pt-5"><label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox" class="accent-carmin" /> Se ofrece a empresas nuevas</label><label class="flex items-center gap-2 text-sm"><input v-model="form.is_free" type="checkbox" class="accent-carmin" /> Es gratis</label></div>
         <div class="sm:col-span-2">
           <label class="label">Módulos incluidos</label>
@@ -57,8 +58,8 @@ import Icono from '@/Components/Icono.vue'
 import { moneda, entero } from '@/util/formato'
 const props = defineProps({ planes: Array, modulos: Array, extras: Object })
 const modal = ref(false)
-const form = useForm({ id: null, name: '', description: '', price_monthly: 0, price_yearly: 0, max_users: 3, max_locations: 1, max_products: 500, features: [], is_active: true, is_free: false })
-function abrir(p) { form.clearErrors(); Object.assign(form, p ? { ...p, features: [...p.features] } : { id: null, name: '', description: '', price_monthly: 0, price_yearly: 0, max_users: 3, max_locations: 1, max_products: 500, features: [], is_active: true, is_free: false }); modal.value = true }
+const form = useForm({ id: null, name: '', description: '', price_monthly: 0, price_yearly: 0, max_users: 3, max_locations: 1, max_products: 500, max_facturas_mes: -1, features: [], is_active: true, is_free: false })
+function abrir(p) { form.clearErrors(); Object.assign(form, p ? { ...p, features: [...p.features] } : { id: null, name: '', description: '', price_monthly: 0, price_yearly: 0, max_users: 3, max_locations: 1, max_products: 500, max_facturas_mes: -1, features: [], is_active: true, is_free: false }); modal.value = true }
 function toggle(k) { form.features = form.features.includes(k) ? form.features.filter(x => x !== k) : [...form.features, k] }
 const modulosDe = p => p.features.includes('*') ? ['Todos los módulos'] : props.modulos.filter(m => !m.core && p.features.includes(m.key)).map(m => m.label).concat(Object.entries(props.extras).filter(([k]) => p.features.includes(k)).map(([, l]) => l))
 </script>
