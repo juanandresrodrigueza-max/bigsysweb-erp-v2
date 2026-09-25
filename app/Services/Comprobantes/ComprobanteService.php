@@ -70,10 +70,19 @@ class ComprobanteService
 
             $c->items()->delete();
             $letraC = in_array($tipo, ['FC', 'NCC', 'NDC', 'FE', 'NCE', 'NDE'], true); // monotributista: no discrimina IVA; exportación: exenta de IVA
+            // Descuentos especiales de la lista del cliente (por artículo o rubro, desde una cantidad): si la línea no trae descuento
+            // propio ni el cliente tiene un precio pactado para ese artículo.
+            $listaCli = (int) ($contact?->lista_precios ?: 1);
+            $dlSvc = app(\App\Services\Ventas\DescuentosListaService::class); $reglasLista = $c->direccion === 'venta' ? $dlSvc->paraLista($listaCli, $c->fecha?->toDateString()) : ['articulos' => [], 'rubros' => []];
+            $pactados = $contact && ($reglasLista['articulos'] || $reglasLista['rubros']) ? \App\Models\PrecioPactado::vigentes()->where('contact_id', $contact->id)->whereNotNull('product_id')->pluck('product_id')->flip() : collect();
             foreach (array_values($data['items']) as $i => $it) {
                 $product = ! empty($it['product_id']) ? Product::find($it['product_id']) : null;
                 $al = $letraC ? 0 : (float) ($it['alicuota_iva'] ?? $product?->iva ?? 21);
                 // Descuento por cantidad del artículo: se aplica solo si la línea no trae descuento propio.
+                if ($product && (float) ($it['descuento'] ?? 0) == 0.0 && ! isset($pactados[$product->id]) && ($dl = $dlSvc->mejor($listaCli, $product, (float) $it['cantidad'], $reglasLista))) {
+                    if ($dl['precio'] !== null && abs((float) $it['precio_unit'] - $product->precioLista($listaCli)) < 0.005) $it['precio_unit'] = $dl['precio'];
+                    if ($dl['descuento'] !== null) $it['descuento'] = $dl['descuento'];
+                }
                 if ($product && (float) ($it['descuento'] ?? 0) == 0.0 && ($dq = $product->descuentoPorCantidad((float) $it['cantidad'])) > 0) $it['descuento'] = $dq;
                 // Moneda extranjera: los precios vienen en dólares y se guardan en pesos a la cotización del comprobante.
                 if ($moneda !== 'ARS') $it['precio_unit'] = round((float) $it['precio_unit'] * $cot, 2);

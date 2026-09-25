@@ -26,6 +26,7 @@ class CondicionesClienteService
 
         return [
             'lista' => (int) ($c->lista_precios ?: 1),
+            'lista_desc' => app(DescuentosListaService::class)->paraLista((int) ($c->lista_precios ?: 1)),
             'descuento' => (float) $c->descuento,
             'rubros' => $rubros,
             'articulos' => $pactos->whereNotNull('product_id')->mapWithKeys(fn($p) => [$p->product_id => [
