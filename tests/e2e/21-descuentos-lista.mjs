@@ -1,0 +1,28 @@
+// Fase 26.4: descuento especial por lista desde una cantidad, y el formulario de venta que lo aplica al cambiar la cantidad.
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'dlista-' + n)
+await _login(page, 'demo@bigsys.com.ar')
+await page.click('button:has-text("Saltar")').catch(() => {})
+await page.goto(`${BASE}/stock/descuentos-lista`); await idle()
+const f = page.locator('[data-e2e="form-desc-lista"]')
+const bus = f.locator('input[placeholder="Buscar artículo…"]')
+await bus.click(); await bus.fill('ladr'); await page.waitForTimeout(900)
+const art = (await page.locator('.shadow-pop button').first().textContent()).trim().split(' · ')[0]
+await page.locator('.shadow-pop button').first().dispatchEvent('mousedown')
+await page.fill('[data-e2e="min"]', '10'); await page.fill('[data-e2e="pct"]', '12')
+await f.locator('button:has-text("Agregar")').click(); await idle(); await page.waitForTimeout(600)
+console.log('  regla cargada:', await page.locator('tbody tr', { hasText: 'Lista' }).count() + await page.locator('tbody tr').count() > 0, '· artículo:', art)
+await shot('01-reglas')
+// Factura a consumidor final (lista 1): con 1 unidad no hay descuento, con 10 sí.
+await page.goto(`${BASE}/comprobantes/nuevo?tipo=FX`); await idle()
+await page.click('button:has-text("Agregar")'); await page.waitForTimeout(200)
+const artInput = page.locator('input[placeholder*="Buscar artículo"]').first()
+await artInput.click(); await artInput.fill(art.slice(0, 8)); await page.waitForTimeout(900)
+await page.locator('.shadow-pop button', { hasText: art }).first().dispatchEvent('mousedown'); await page.waitForTimeout(400)
+const dto = () => page.locator('[data-precio="0"]').locator('xpath=ancestor::tr').locator('input[type=number]').nth(2).inputValue()
+console.log('  1 unidad → dto', await dto())
+await page.fill('[data-cant="0"]', '10'); await page.locator('[data-cant="0"]').dispatchEvent('change'); await page.waitForTimeout(300)
+console.log('  10 unidades → dto', await dto(), '· marca:', (await page.locator('[data-origen-precio]').first().textContent().catch(() => '')).trim())
+await shot('02-factura')
+await fin(browser)

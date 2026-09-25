@@ -94,7 +94,7 @@
                     <input v-if="!it.product_id" v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción libre" />
                     <p v-else class="text-[11px] text-marca-muted mt-1">{{ it.descripcion }} <span v-if="origenDe(it)" class="badge bg-violeta/10 text-violeta !text-[10px] !py-0" data-origen-precio>{{ origenDe(it) }}</span> <span v-if="stockDe(it) !== null" :class="stockDe(it) < it.cantidad ? 'text-carmin font-semibold' : ''">· stock {{ cantidad(stockDe(it)) }}</span></p>
                   </td>
-                  <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" :data-cant="i" @keydown.enter.prevent="enfocar(i, 'precio')" @focus="$event.target.select()" /></td>
+                  <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" :data-cant="i" @focus.once="it._cantPrev = it.cantidad" @change="alCambiarCantidad(it)" @keydown.enter.prevent="enfocar(i, 'precio')" @focus="$event.target.select()" /></td>
                   <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" :data-precio="i" @keydown.enter.prevent="siguienteFila(i)" @focus="$event.target.select()" /></td>
                   <td><input v-model.number="it.descuento" type="number" min="0" max="100" step="any" class="input text-right" /></td>
                   <td><select v-model.number="it.alicuota_iva" class="input !px-1"><option v-for="a in [0,2.5,5,10.5,21,27]" :key="a" :value="a">{{ a }}%</option></select></td>
@@ -232,12 +232,29 @@ const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'N
 const opcionesClientes = computed(() => clientesCat.value.map(c => ({ id: c.id, label: c.name, sub: c.cuit ?? c.condicion_iva, extra: c.tipo, sugerido: c.sugerido })))
 // Condiciones del cliente (Fase 25.1): precio pactado o último precio > descuento del rubro > lista y descuento del cliente.
 const condiciones = ref(null)
-function condPara(p) {
-  const c = condiciones.value, a = c?.articulos?.[p.id]
-  const desc = a?.descuento ?? (a?.precio != null ? 0 : undefined) ?? (p.rubro_id != null ? c?.rubros?.[p.rubro_id] : undefined) ?? cliente.value?.descuento ?? 0
-  return { precio: a?.precio ?? p.precios[lista.value], descuento: desc, origen: a ? (a.origen === 'ultimo' ? 'último precio' : 'pactado') : (p.rubro_id != null && c?.rubros?.[p.rubro_id] != null ? 'dto. rubro' : null) }
+// Fase 26.4: entre el pactado y el descuento de rubro va el descuento especial de la lista (por artículo o rubro, desde una cantidad).
+const descLista = ref({ articulos: {}, rubros: {} })
+function reglaLista(p, cant) {
+  const grupos = [descLista.value.articulos?.[p.id] ?? [], p.rubro_id != null ? (descLista.value.rubros?.[p.rubro_id] ?? []) : []]
+  for (const g of grupos) { const ok = g.filter(r => (Number(cant) || 0) + 1e-9 >= r.min).sort((a, b) => b.min - a.min)[0]; if (ok) return ok }
+  return null
 }
-const origenDe = it => { const p = productosCat.value.find(x => x.id === it.product_id); return p ? condPara(p).origen : null }
+function condPara(p, cant = 1) {
+  const c = condiciones.value, a = c?.articulos?.[p.id]
+  const rl = a ? null : reglaLista(p, cant)
+  const desc = a?.descuento ?? (a?.precio != null ? 0 : undefined) ?? rl?.descuento ?? (rl?.precio != null ? 0 : undefined) ?? (p.rubro_id != null ? c?.rubros?.[p.rubro_id] : undefined) ?? cliente.value?.descuento ?? 0
+  return { precio: a?.precio ?? rl?.precio ?? p.precios[lista.value], descuento: desc, origen: a ? (a.origen === 'ultimo' ? 'último precio' : 'pactado') : rl ? `dto. lista${rl.min > 0 ? ' desde ' + rl.min : ''}` : (p.rubro_id != null && c?.rubros?.[p.rubro_id] != null ? 'dto. rubro' : null) }
+}
+async function cargarDescLista(l) { try { const r = await fetch(`/comprobantes/descuentos-lista/${l}`, { headers: { Accept: 'application/json' } }); if (r.ok) descLista.value = await r.json() } catch (e) {} }
+watch(lista, l => cargarDescLista(l), { immediate: true })
+// Al cambiar la cantidad se recalcula precio y descuento, salvo que la línea se haya tocado a mano.
+function alCambiarCantidad(it) {
+  const p = productosCat.value.find(x => x.id === it.product_id); if (!p) return
+  const antes = condPara(p, it._cantPrev ?? 1)
+  if (Number(it.precio_unit) === Number(antes.precio) && Number(it.descuento) === Number(antes.descuento)) { const k = condPara(p, it.cantidad); it.precio_unit = k.precio; it.descuento = k.descuento }
+  it._cantPrev = it.cantidad
+}
+const origenDe = it => { const p = productosCat.value.find(x => x.id === it.product_id); return p ? condPara(p, it.cantidad).origen : null }
 const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(condPara(p).precio) + (condPara(p).origen ? ` · ${condPara(p).origen}` : ''), precios: p.precios, rubro_id: p.rubro_id, unit: p.unit, iva: p.iva, stock: p.stock, sugerido: p.sugerido })))
 const stockDe = it => productosCat.value.find(p => p.id === it.product_id)?.stock ?? null
 
@@ -246,7 +263,7 @@ function alElegirCliente(o) {
   if (!c) return
   form.dias_vto = c.dias_pago
   if (c.dias_pago === 0 && !esConversion) form.condicion = 'contado'
-  cargarCondiciones(c.id).then(() => form.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); if (p) { const k = condPara(p); it.precio_unit = k.precio; it.descuento = k.descuento } }))
+  cargarCondiciones(c.id).then(() => form.items.forEach(it => { const p = productosCat.value.find(x => x.id === it.product_id); if (p) { const k = condPara(p, it.cantidad); it.precio_unit = k.precio; it.descuento = k.descuento } }))
 }
 async function cargarCondiciones(id) {
   condiciones.value = null
@@ -256,8 +273,8 @@ async function cargarCondiciones(id) {
 if (form.contact_id) cargarCondiciones(form.contact_id)
 function alElegirProducto(it, o) {
   if (!o) return
-  it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = esExportacion.value ? 0 : o.iva; const k = condPara(o); it.precio_unit = k.precio; it.descuento = k.descuento
-  if (!it.cantidad) it.cantidad = 1
+  it.descripcion = o.label; it.unidad = o.unit; it.alicuota_iva = esExportacion.value ? 0 : o.iva; if (!it.cantidad) it.cantidad = 1
+  const k = condPara(o, it.cantidad); it.precio_unit = k.precio; it.descuento = k.descuento; it._cantPrev = it.cantidad
 }
 const puntos = ref(null)
 watch(() => form.contact_id, async id => { puntos.value = null; form.canje_puntos = 0; if (!id) return; try { const r = await fetch(`/clientes/${id}/puntos`, { headers: { Accept: 'application/json' } }); if (r.ok) puntos.value = await r.json() } catch (e) {} }, { immediate: true })

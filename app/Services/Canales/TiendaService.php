@@ -67,7 +67,10 @@ class TiendaService
             $p = ! empty($it['product_id']) ? Product::withoutGlobalScopes()->where('business_id', $b->id)->find($it['product_id']) : null;
             if ($p) {
                 $precio = $p->precioLista($lista); if ($cfg['iva_incluido'] && $ri) $precio = round($precio * (1 + (float) $p->iva / 100), 2);
-                if (($dq = $p->descuentoPorCantidad($cant)) > 0) $precio = round($precio * (1 - $dq / 100), 2);
+                if ($dl = app(\App\Services\Ventas\DescuentosListaService::class)->mejor($lista, $p, $cant)) {
+                    if ($dl['precio'] !== null) $precio = $cfg['iva_incluido'] && $ri ? round($dl['precio'] * (1 + (float) $p->iva / 100), 2) : $dl['precio'];
+                    if ($dl['descuento'] !== null) $precio = round($precio * (1 - $dl['descuento'] / 100), 2);
+                } elseif (($dq = $p->descuentoPorCantidad($cant)) > 0) $precio = round($precio * (1 - $dq / 100), 2);
             } else { $precio = (float) ($it['precio_unit'] ?? 0); }
             if (isset($it['precio_unit']) && in_array($canal, ['mercadolibre', 'woocommerce', 'shopify', 'pedidosya', 'rappi'], true)) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
             $items[] = ['product_id' => $p?->id, 'descripcion' => $p?->name ?? ($it['descripcion'] ?? 'Ítem'), 'cantidad' => $cant, 'precio_unit' => $precio, 'total' => round($cant * $precio, 2), 'unit' => $p?->unit];

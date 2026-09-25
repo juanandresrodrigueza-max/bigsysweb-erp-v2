@@ -188,6 +188,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/{id}/emitir',        [ComprobantesController::class, 'emitir'])->middleware('permiso:comprobantes,crear');
         Route::get('/ultima-de/{contact}',  [ComprobantesController::class, 'ultimaDe'])->whereNumber('contact');
         Route::get('/condiciones-de/{id}',  [\App\Http\Controllers\Clientes\CondicionesController::class, 'json'])->whereNumber('id');
+        Route::get('/descuentos-lista/{lista}', [\App\Http\Controllers\Stock\DescuentosListaController::class, 'json'])->whereNumber('lista');
         Route::post('/{id}/reintentar-cae', [ComprobantesController::class, 'reintentarCae'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
         Route::get('/{id}/verificar-arca',  [ComprobantesController::class, 'verificarArca'])->whereNumber('id');
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
@@ -309,6 +310,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::get('/descuentos-lista',          [\App\Http\Controllers\Stock\DescuentosListaController::class, 'index']);
+        Route::post('/descuentos-lista/{id?}',   [\App\Http\Controllers\Stock\DescuentosListaController::class, 'guardar'])->middleware('permiso:stock,editar');
+        Route::delete('/descuentos-lista/{id}',  [\App\Http\Controllers\Stock\DescuentosListaController::class, 'eliminar'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id}/aplicar',      [\App\Http\Controllers\Stock\StockController::class, 'aplicarRubro'])->middleware('permiso:stock,editar');
         Route::delete('/rubros/{id}',            [\App\Http\Controllers\Stock\StockController::class, 'eliminarRubro'])->middleware('permiso:stock,editar');
         Route::post('/precios/previsualizar', [\App\Http\Controllers\Stock\StockController::class, 'previsualizarPrecios'])->middleware('permiso:stock,editar');

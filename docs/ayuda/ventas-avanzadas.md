@@ -69,3 +69,12 @@ Cada cliente tiene un link propio (ficha del cliente → Portal) donde ve sus fa
 ## Contactos del cliente
 
 En la ficha del cliente, pestaña **Contactos**, cargás a las personas con las que tratás (titular, compras, tesorería…) con cargo, teléfono, email y notas. A cada una le marcás qué recibe: **comprobantes** (facturas, presupuestos, remitos), **recibos y resumen de cuenta**, u **órdenes de pago y de compra**. Al tocar **Enviar**, el sistema propone a la persona que corresponde y muestra a las demás para elegir con un clic. Si nadie está marcado, va al email de la ficha.
+
+## Descuentos por lista de precios
+
+**Stock → Descuentos por lista**: un precio especial o un % para un **artículo** o un **rubro entero** (con sus subrubros) dentro de una lista, **desde una cantidad mínima** y con **vigencia** (desde / hasta). Vale para todos los clientes de esa lista; los que no tienen cliente usan la lista 1.
+
+- Ejemplo: lista 2, gaseosa 2,25 L, desde 12 unidades, 10 % de descuento, hasta fin de mes.
+- Al facturar, al cambiar la cantidad la línea toma sola el descuento que le corresponde y muestra "dto. lista desde 12". Si tocaste el precio o el descuento a mano, se respeta lo tuyo.
+- Orden: precio pactado del cliente → descuento de la lista → descuento del cliente por rubro → descuento general del cliente.
+- Un % negativo es un recargo. También lo aplican la tienda online y los pedidos que entran por API.
