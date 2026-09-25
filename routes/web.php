@@ -404,6 +404,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/turnos/{id}/cobrar',   [\App\Http\Controllers\AgendaController::class, 'cobrar'])->middleware('permiso:agenda,crear');
     });
 
+    // Personas de contacto de clientes y proveedores
+    Route::get('/contactos/{contacto}/personas', [\App\Http\Controllers\Clientes\PersonasController::class, 'index']);
+    Route::post('/contactos/{contacto}/personas/{id?}', [\App\Http\Controllers\Clientes\PersonasController::class, 'guardar']);
+    Route::delete('/contactos/{contacto}/personas/{id}', [\App\Http\Controllers\Clientes\PersonasController::class, 'borrar']);
+
     // Sueldos
     Route::prefix('sueldos')->middleware('permiso:sueldos')->group(function () {
         $c = \App\Http\Controllers\Sueldos\SueldosController::class;

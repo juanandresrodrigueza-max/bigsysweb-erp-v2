@@ -65,3 +65,7 @@ Cada cliente tiene un link propio (ficha del cliente → Portal) donde ve sus fa
 
 - **El pedido no tiene artículo**: el canal mandó un código que no coincide con tu SKU. Corregí el SKU en el artículo o en el canal; mientras tanto el ítem se muestra como "sin artículo" y podés elegirlo a mano.
 - **Se facturó dos veces un remito**: desde la factura se ve el remito de origen; anulá la factura duplicada con nota de crédito.
+
+## Contactos del cliente
+
+En la ficha del cliente, pestaña **Contactos**, cargás a las personas con las que tratás (titular, compras, tesorería…) con cargo, teléfono, email y notas. A cada una le marcás qué recibe: **comprobantes** (facturas, presupuestos, remitos), **recibos y resumen de cuenta**, u **órdenes de pago y de compra**. Al tocar **Enviar**, el sistema propone a la persona que corresponde y muestra a las demás para elegir con un clic. Si nadie está marcado, va al email de la ficha.

@@ -41,7 +41,11 @@ class EnviosController extends Controller
         $contact = $m instanceof Contact ? $m : $m->contact;
         $t = $this->service->texto($m, $request->user()->business);
         $b = $request->user()->business;
-        return response()->json(['asunto' => $t['asunto'], 'cuerpo' => $t['cuerpo'], 'email' => $contact?->email, 'telefono' => $contact?->mobile ?: $contact?->phone, 'whatsapp_api' => ! empty($b->whatsapp_settings['token']), 'mail_configurado' => config('mail.default') !== 'log',
+        // Personas de contacto: primero las que reciben este tipo de documento.
+        $campo = match (true) { $m instanceof Cobro || $m instanceof Contact => 'recibe_cobranzas', $m instanceof Pago || $m instanceof OrdenCompra => 'recibe_pagos', default => 'recibe_comprobantes' };
+        $personas = $contact ? $contact->personas->sortByDesc($campo)->values()->map(fn($p) => ['nombre' => $p->nombre, 'cargo' => $p->cargo, 'email' => $p->email, 'telefono' => $p->telefono, 'sugerido' => (bool) $p->$campo]) : collect();
+        $sug = $personas->firstWhere('sugerido', true);
+        return response()->json(['asunto' => $t['asunto'], 'cuerpo' => $t['cuerpo'], 'email' => ($sug['email'] ?? null) ?: $contact?->email, 'telefono' => ($sug['telefono'] ?? null) ?: ($contact?->mobile ?: $contact?->phone), 'personas' => $personas, 'whatsapp_api' => ! empty($b->whatsapp_settings['token']), 'mail_configurado' => config('mail.default') !== 'log',
             'historial' => Envio::where('modelo', $d['modelo'])->where('modelo_id', $d['id'])->latest()->limit(5)->get()->map(fn($e) => ['canal' => $e->canal, 'destino' => $e->destino, 'estado' => $e->estado, 'fecha' => $e->created_at->format('d/m H:i'), 'link' => $e->link, 'id' => $e->id])]);
     }
 }

@@ -129,6 +129,7 @@
     </div>
 
     <!-- Precios pactados (Fase 25.1) -->
+    <ContactosPersonas v-if="tab === 'contactos'" :contacto-id="cliente.id" />
     <CondicionesCliente v-if="tab === 'precios'" :cliente-id="cliente.id" :lista="cliente.lista_precios" :descuento="Number(cliente.descuento)" :rubros="rubros" />
 
     <!-- Datos -->
@@ -254,6 +255,7 @@ import Modal from '@/Components/Modal.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'
 import EnviarModal from '@/Components/EnviarModal.vue'
 import CondicionesCliente from '@/Components/CondicionesCliente.vue'
+import ContactosPersonas from '@/Components/ContactosPersonas.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
 const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
@@ -264,7 +266,7 @@ function enviarDoc(modelo, id) { envio.value = { modelo, id } }
 const tab = ref('cc')
 const tabs = computed(() => [
   { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },
-  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'datos', label: 'Datos' },
+  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'contactos', label: 'Contactos' }, { key: 'datos', label: 'Datos' },
 ])
 const totalAnt = computed(() => Object.values(props.antiguedad).reduce((a, b) => a + b, 0))
 const pct = v => totalAnt.value ? v / totalAnt.value * 100 : 0

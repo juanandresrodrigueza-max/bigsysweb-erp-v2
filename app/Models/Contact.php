@@ -33,6 +33,7 @@ class Contact extends Model
     public function cobros(): HasMany { return $this->hasMany(Cobro::class); }
     public function cuentaCorriente(): HasMany { return $this->hasMany(CuentaCorriente::class); }
     public function acopios(): HasMany { return $this->hasMany(Acopio::class); }
+    public function personas(): HasMany { return $this->hasMany(ContactoPersona::class)->orderBy('nombre'); }
     public function pagos(): HasMany { return $this->hasMany(Pago::class); }
     public function retenciones(): HasMany { return $this->hasMany(Retencion::class); }
 

@@ -67,6 +67,7 @@
       </table>
     </div>
 
+    <ContactosPersonas v-if="tab === 'contactos'" :contacto-id="proveedor.id" />
     <div v-if="tab === 'pagos'" class="card p-0 overflow-x-auto">
       <table class="table">
         <thead><tr><th>Orden de pago</th><th>Fecha</th><th>Medios</th><th class="text-right">Total</th><th class="text-right">A cuenta</th><th></th></tr></thead>
@@ -175,11 +176,12 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import ProveedorModal from '@/Components/ProveedorModal.vue'
+import ContactosPersonas from '@/Components/ContactosPersonas.vue'
 import { moneda, hoyISO, estadoComprobante } from '@/util/formato'
 
 const props = defineProps({ proveedor: Object, cc: Array, pendientes: Array, compras: Array, pagos: Array, medios: Object, condicionesIva: Array, cuentas: Array, chequesCartera: Array, retencionTipos: Object, cotizacionUsd: { type: Number, default: 0 } })
 const tab = ref('cc')
-const tabs = computed(() => [{ key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'compras', label: 'Compras' }, { key: 'pagos', label: 'Pagos' }, { key: 'datos', label: 'Datos' }])
+const tabs = computed(() => [{ key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'compras', label: 'Compras' }, { key: 'pagos', label: 'Pagos' }, { key: 'contactos', label: 'Contactos' }, { key: 'datos', label: 'Datos' }])
 const editarAbierto = ref(false)
 function abrirMov(m) { if (m.comprobante_id) router.visit(`/proveedores/compras/${m.comprobante_id}`); else if (m.pago_id) window.open(`/proveedores/pagos/${m.pago_id}/imprimir`, '_blank') }
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], cheque_propio: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco']).includes(c.tipo))
