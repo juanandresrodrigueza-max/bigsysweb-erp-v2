@@ -1,0 +1,35 @@
+// Fase 26.1: cierre de turno con stock final contado contra lo facturado y lo recaudado.
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'stt-' + n)
+await _login(page, 'demo@bigsys.com.ar')
+await page.click('button:has-text("Saltar")').catch(() => {})
+// Marcar un artículo para contarlo en el cierre.
+await page.goto(`${BASE}/stock/1`); await idle()
+await page.click('button:has-text("Editar")'); await page.waitForTimeout(400)
+const chk = page.locator('[data-e2e="control-turno"]')
+if (!(await chk.isChecked())) await chk.check()
+await page.locator('.fixed button:has-text("Guardar")').last().click(); await idle(); await page.waitForTimeout(600)
+// Caja: abrir turno si hace falta y abrir el cierre.
+await page.goto(`${BASE}/fondos?cuenta=1`); await idle()
+if (await page.locator('button:has-text("Abrir turno")').count()) {
+  await page.click('button:has-text("Abrir turno")'); await page.waitForTimeout(300)
+  await page.locator('.fixed button:has-text("Abrir")').last().click(); await idle(); await page.waitForTimeout(600)
+}
+await page.click('button:has-text("Cerrar turno")'); await page.waitForTimeout(400)
+const tabla = page.locator('[data-e2e="stock-turno"]')
+console.log('  planilla de stock en el cierre:', await tabla.count() === 1, '· artículos:', await tabla.locator('tbody tr').count())
+const fila = tabla.locator('tbody tr').first()
+const esperado = Number((await fila.locator('input').getAttribute('placeholder')).replace(/\./g, '').replace(',', '.'))
+await fila.locator('input').fill(String(Math.max(0, esperado - 1)))
+await page.waitForTimeout(200)
+console.log('  sin facturar al contar uno menos:', (await fila.locator('td').last().innerText()).trim(), '· recaudado − stock:', (await page.locator('[data-e2e="dif-stock"]').innerText()).trim())
+await shot('01-cierre')
+await page.locator('.fixed input[placeholder="contado"]').fill('0')
+await page.locator('.fixed button:has-text("Cerrar turno")').last().click(); await idle(); await page.waitForTimeout(800)
+console.log('  aviso:', (await page.locator('text=Stock: salió').first().innerText().catch(() => '—')).slice(0, 120))
+const href = await page.locator('a[href*="/rendicion"]').first().getAttribute('href')
+await page.goto(BASE + href); await idle()
+console.log('  rendición con stock:', await page.locator('text=Stock final del turno').count() === 1)
+await shot('02-rendicion')
+await fin(browser)

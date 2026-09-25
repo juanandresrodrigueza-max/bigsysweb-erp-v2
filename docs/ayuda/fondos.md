@@ -10,6 +10,18 @@ resumen: Turnos de caja, arqueo, cuentas bancarias, conciliación, cheques propi
 
 Cada caja tiene **turnos**: se abre con el efectivo inicial, se registran ventas, cobros, pagos y retiros, y se cierra con el **arqueo** (contás y el sistema muestra la diferencia). El cierre queda impreso y auditado. Un cajero sólo ve su caja.
 
+## Cierre de turno con stock final
+
+Para kioscos, almacenes, rotiserías y todo lo que se vende de mostrador: en la ficha del artículo tildá **Contar en el cierre de turno**. Al **Cerrar turno** aparece la planilla **Stock final** con esos artículos y contás lo que queda de cada uno.
+
+- **Inicial**: el stock final contado en el turno anterior de esa caja (o el del sistema si es el primero).
+- **Entró**: compras, traslados y ajustes durante el turno.
+- **Facturado**: lo que salió por ventas.
+- **Salió**: inicial + entró − final contado.
+- **Sin facturar**: lo que salió y no está en ninguna venta. Es el faltante de mercadería, en unidades y en pesos.
+
+Abajo se compara **lo que salió por conteo**, a precio de venta, con **lo recaudado en el turno** (efectivo, tarjetas, Mercado Pago, transferencias, cheques, cuenta corriente). Si todo lo que se vende se cuenta, tiene que dar cero. Con **Dejar el stock del sistema igual a lo contado**, el stock queda corregido con un ajuste que referencia al turno. Todo sale en la rendición impresa del turno.
+
 ## Bancos
 
 Cada cuenta bancaria tiene sus movimientos (transferencias recibidas, pagos, depósitos de cheques, comisiones). La **conciliación** compara con el extracto del banco: importás el archivo del home banking y marcás lo que coincide.
