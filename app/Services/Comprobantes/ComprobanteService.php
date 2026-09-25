@@ -86,16 +86,29 @@ class ComprobanteService
             }
 
             $c->impuestos()->delete();
+            // Rubros con percepción especial: sus artículos van a su propia alícuota (el resto, a la general).
+            $porAlicuota = function (float $general, string $campo, bool $soloGravado) use ($c) {
+                $out = [];
+                foreach ($c->items()->with('product.rubro.parent')->get() as $it) {
+                    if ($soloGravado && (float) $it->alicuota_iva <= 0) continue;
+                    $al = $it->product?->rubro?->valores()[$campo] ?? null;
+                    $al = $al !== null && $al > 0 ? (float) $al : $general;
+                    $out[(string) $al] = ($out[(string) $al] ?? 0) + (float) $it->neto;
+                }
+                return $out;
+            };
             if ($c->esFactura() && ($pi = app(\App\Services\Fiscal\ImpuestosService::class)->percepcionIibb($user->business, $contact))) {
                 $base = (float) $c->items()->sum('neto');
                 $cfg = app(\App\Services\Fiscal\ImpuestosService::class)->config($user->business)['percepcion_iibb'];
-                if ($base >= (float) ($cfg['minimo'] ?? 0)) $c->impuestos()->create(['tipo' => 'iibb_' . strtolower($pi['jurisdiccion']), 'base' => $base, 'alicuota' => $pi['alicuota'], 'monto' => round($base * $pi['alicuota'] / 100, 2)]);
+                // La alícuota especial del rubro reemplaza a la general; la del padrón o la de la ficha del cliente mandan.
+                $partes = $pi['origen'] === 'default' ? $porAlicuota((float) $pi['alicuota'], 'perc_iibb', false) : [(string) $pi['alicuota'] => $base];
+                if ($base >= (float) ($cfg['minimo'] ?? 0)) foreach ($partes as $al => $b) if ($b > 0) $c->impuestos()->create(['tipo' => 'iibb_' . strtolower($pi['jurisdiccion']), 'base' => $b, 'alicuota' => (float) $al, 'monto' => round($b * (float) $al / 100, 2)]);
             }
             // Percepciones de IVA y de Ganancias (agente de percepción): sobre el neto gravado.
             if ($c->esFactura()) {
                 $imp = app(\App\Services\Fiscal\ImpuestosService::class);
                 $baseGravada = (float) $c->items()->where('alicuota_iva', '>', 0)->sum('neto');
-                if (($pv = $imp->percepcionIva($user->business, $contact)) && $baseGravada >= $pv['minimo'] && $baseGravada > 0) $c->impuestos()->create(['tipo' => 'perc_iva', 'base' => $baseGravada, 'alicuota' => $pv['alicuota'], 'monto' => round($baseGravada * $pv['alicuota'] / 100, 2)]);
+                if (($pv = $imp->percepcionIva($user->business, $contact)) && $baseGravada >= $pv['minimo'] && $baseGravada > 0) foreach ($porAlicuota((float) $pv['alicuota'], 'perc_iva', true) as $al => $b) if ($b > 0) $c->impuestos()->create(['tipo' => 'perc_iva', 'base' => $b, 'alicuota' => (float) $al, 'monto' => round($b * (float) $al / 100, 2)]);
                 if (($pg = $imp->percepcionGanancias($user->business, $contact)) && $baseGravada >= $pg['minimo'] && $baseGravada > 0) $c->impuestos()->create(['tipo' => 'perc_ganancias', 'base' => $baseGravada, 'alicuota' => $pg['alicuota'], 'monto' => round($baseGravada * $pg['alicuota'] / 100, 2)]);
             }
             // Novedades de facturación: precio distinto al de la lista del cliente queda auditado (quién, cuánto, en qué comprobante).

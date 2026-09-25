@@ -12,7 +12,7 @@
   <input id="buscar" placeholder="Buscar producto…" style="margin-bottom:6px" oninput="filtrar(this.value)">
   @if ($cfg['minimo_pedido'] > 0) <p class="muted">Pedido mínimo {{ $fmt($cfg['minimo_pedido']) }}. @if ($cfg['envio'] && $cfg['envio_gratis_desde'] > 0) Envío gratis desde {{ $fmt($cfg['envio_gratis_desde']) }}. @endif </p> @endif
   @forelse ($cat['rubros'] as $r)
-    <div class="rubro" data-rubro>{{ $r['nombre'] }}</div>
+    <div class="rubro" data-rubro>@if (! empty($r['imagen']))<img src="{{ $r['imagen'] }}" alt="" style="width:28px;height:28px;border-radius:8px;object-fit:cover;vertical-align:middle;margin-right:8px">@endif{{ $r['nombre'] }}</div>
     <div class="grid">
       @foreach ($r['items'] as $p)
         <div class="prod" data-prod data-nombre="{{ mb_strtolower($p['nombre'] . ' ' . $p['sku']) }}">

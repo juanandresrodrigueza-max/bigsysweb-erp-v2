@@ -75,6 +75,12 @@ const emit = defineEmits(['cerrar', 'guardado'])
 const vacio = () => ({ id: null, name: '', sku: '', tipo: 'producto', rubro_id: null, unit: 'un', barcode: '', marca: '', proveedor_id: null, cost: 0, price: 0, iva: 21, prices: { 2: '', 3: '', 4: '', 5: '', 6: '' }, stock_min: 0, stock_inicial: '', deposito_id: null, controla_stock: true, description: '', active: true,
   precio_compra: 0, descuento_proveedor: 0, moneda: 'ARS', usar_margenes: false, margenes: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }, desc_cant_min: 0, desc_cant_pct: 0, desc_cant2_min: 0, desc_cant2_pct: 0, perecedero: false, seriado: false, control_turno: false, en_tienda: true })
 const form = useForm(vacio())
+// Artículo nuevo: al elegir el rubro toma sus datos (IVA, tipo y marcas de stock), propios o heredados.
+watch(() => form.rubro_id, id => {
+  if (form.id || !id) return
+  const e = props.rubros?.find(r => r.id === id)?.efectivos ?? {}
+  for (const k of ['iva', 'tipo', 'perecedero', 'seriado', 'controla_stock', 'control_turno', 'en_tienda']) if (e[k]) form[k] = e[k].valor
+})
 watch(() => props.abierto, v => { if (v) { form.clearErrors(); const a = props.articulo; Object.assign(form, vacio(), a ? { ...a, prices: { 2: '', 3: '', 4: '', 5: '', ...(a.prices ?? {}) }, margenes: { 1: '', 2: '', 3: '', 4: '', 5: '', ...(a.margenes ?? {}) }, usar_margenes: !!(a.margenes && Object.keys(a.margenes).length) } : {}) } })
 const margen = computed(() => form.cost > 0 ? Math.round((form.price - form.cost) / form.cost * 1000) / 10 : null)
 const r2 = n => Math.round(n * 100) / 100

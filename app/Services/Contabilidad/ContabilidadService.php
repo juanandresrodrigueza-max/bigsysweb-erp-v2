@@ -80,7 +80,16 @@ class ContabilidadService
         $lineas = [];
         $neto = (float) $c->neto - (float) $c->descuento; $exento = (float) $c->exento; $iva = (float) $c->iva; $perc = (float) $c->percepciones; $total = (float) $c->total;
         $this->linea($lineas, 'deudores', $signo * $total, 0, $cli?->name, $c->contact_id);
-        $this->linea($lineas, 'ventas', 0, $signo * ($neto + $exento), $c->nombreTipo() . ' ' . $c->numeroFormateado());
+        // Ventas: a la cuenta del rubro de cada artículo si la tiene, el resto a Ventas (el descuento general se prorratea).
+        $porCuenta = []; $sumItems = 0.0;
+        foreach ($c->items as $it) {
+            $v = (float) $it->neto + (float) ($it->exento ?? 0); $sumItems += $v;
+            $cta = $it->product?->rubro?->valores()['cuenta_ventas_id'] ?? null;
+            if ($cta) $porCuenta[$cta] = ($porCuenta[$cta] ?? 0) + $v;
+        }
+        $totVentas = $neto + $exento; $asignado = 0.0; $factor = $sumItems > 0 ? $totVentas / $sumItems : 0;
+        foreach ($porCuenta as $cta => $v) { $m = round($v * $factor, 2); $asignado += $m; $this->linea($lineas, "id:{$cta}", 0, $signo * $m, $c->nombreTipo() . ' ' . $c->numeroFormateado()); }
+        $this->linea($lineas, 'ventas', 0, $signo * round($totVentas - $asignado, 2), $c->nombreTipo() . ' ' . $c->numeroFormateado());
         if ($iva) $this->linea($lineas, 'iva_df', 0, $signo * $iva, 'IVA');
         if ($perc) $this->linea($lineas, 'percepciones_cobradas', 0, $signo * $perc, 'Percepciones');
 
@@ -244,6 +253,7 @@ class ContabilidadService
 
     private function cuenta(int $businessId, string $clave): CuentaContable
     {
+        if (str_starts_with($clave, 'id:')) return $this->cache["$businessId:$clave"] ??= CuentaContable::withoutGlobalScopes()->where('business_id', $businessId)->findOrFail((int) substr($clave, 3));
         return $this->cache["$businessId:$clave"] ??= (
             CuentaContable::withoutGlobalScopes()->where('business_id', $businessId)->where('clave', $clave)->first()
             ?? tap(null, function () use ($businessId) { PlanCuentas::crear(\App\Models\Business::find($businessId)); })
