@@ -39,6 +39,10 @@ La ficha del proveedor muestra saldo, facturas pendientes por vencimiento y el h
 
 **Stock → Importar precios**: subí la lista del proveedor (Excel, PDF); el sistema cruza cada fila con tu catálogo (con IA si está activa), muestra qué sube y cuánto, y aplicás lo que quieras.
 
+## Contactos del proveedor
+
+En la ficha del proveedor, pestaña **Contactos**: vendedor, cobranzas, depósito… Marcá a quién le llegan las **órdenes de compra y de pago** y el envío lo sugiere solo.
+
 ## Errores comunes
 
 - **Factura del proveedor con CUIT distinto al cargado**: corregí el CUIT en la ficha; el cruce con ARCA usa el CUIT.

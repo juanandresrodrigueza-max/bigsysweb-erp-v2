@@ -6,6 +6,9 @@
         <button type="button" v-for="c in [['mail','Mail'],['whatsapp','WhatsApp']]" :key="c[0]" @click="form.canal = c[0]; form.destino = c[0] === 'mail' ? (b.email ?? '') : (b.telefono ?? '')" class="flex-1 py-1.5 rounded-lg text-sm font-semibold" :class="form.canal === c[0] ? 'bg-white shadow-card' : 'text-marca-muted'">{{ c[1] }}</button>
       </div>
       <label class="label">{{ form.canal === 'mail' ? 'Email' : 'Teléfono (WhatsApp)' }}</label>
+      <div v-if="b.personas?.length" class="flex flex-wrap gap-1 mb-1.5" data-e2e="personas-envio">
+        <button v-for="p in b.personas.filter(x => form.canal === 'mail' ? x.email : x.telefono)" :key="p.nombre" type="button" class="badge" :class="form.destino === (form.canal === 'mail' ? p.email : p.telefono) ? 'bg-carmin text-white' : p.sugerido ? 'bg-violeta/10 text-violeta' : 'bg-gris-light text-marca-muted'" @click="form.destino = form.canal === 'mail' ? p.email : p.telefono">{{ p.nombre }}<span v-if="p.cargo"> · {{ p.cargo }}</span></button>
+      </div>
       <input v-model="form.destino" class="input" :placeholder="form.canal === 'mail' ? 'cliente@ejemplo.com' : '351 555 0000'" />
       <p v-if="form.errors.destino" class="text-carmin text-xs mt-1">{{ form.errors.destino }}</p>
       <label class="label mt-3">Mensaje</label>
