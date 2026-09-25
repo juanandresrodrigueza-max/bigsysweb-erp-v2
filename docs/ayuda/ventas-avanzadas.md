@@ -78,3 +78,7 @@ En la ficha del cliente, pestaña **Contactos**, cargás a las personas con las 
 - Al facturar, al cambiar la cantidad la línea toma sola el descuento que le corresponde y muestra "dto. lista desde 12". Si tocaste el precio o el descuento a mano, se respeta lo tuyo.
 - Orden: precio pactado del cliente → descuento de la lista → descuento del cliente por rubro → descuento general del cliente.
 - Un % negativo es un recargo. También lo aplican la tienda online y los pedidos que entran por API.
+
+## Documentos adjuntos
+
+En la ficha del cliente, pestaña **Documentos**, subís contratos, constancias de CUIT, fotos, planillas o lo que haga falta (PDF, imágenes, Excel, Word; hasta 10 MB por archivo). Se ven con un clic, se bajan y quedan en la copia de seguridad. Lo mismo en la ficha del **proveedor** y del **artículo** (fichas técnicas, certificados, manuales).

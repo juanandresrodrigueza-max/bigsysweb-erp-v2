@@ -77,6 +77,8 @@
       </div>
     </div>
 
+    <DocumentosAdjuntos tipo="articulo" :id="p.id" class="mt-4" ayuda="Fichas técnicas, certificados, manuales, fotos del producto." />
+
     <ArticuloModal :abierto="editAbierto" :articulo="articuloEditable" :rubros="rubros" :depositos="depositos" :proveedores="proveedores" :tipos="tipos" :unidades="unidades" @cerrar="editAbierto = false" />
 
     <Modal :abierto="ajAbierto" :titulo="`Ajustar stock · ${p.name}`" @cerrar="ajAbierto = false">
@@ -99,6 +101,7 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import ArticuloModal from '@/Components/ArticuloModal.vue'
+import DocumentosAdjuntos from '@/Components/DocumentosAdjuntos.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 const props = defineProps({ p: Object, movimientos: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, proveedores: Array, formula: Object })
