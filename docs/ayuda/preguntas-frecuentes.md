@@ -66,3 +66,7 @@ Con un catálogo: **Stock → Catálogos**. Se manda por WhatsApp o por mail, y 
 
 En la factura nueva tildá **Manual de talonario** y cargá el punto de venta, el número y la fecha del papel. No pide CAE y queda en el libro de IVA.
 
+
+## ¿Puedo liquidar los sueldos de Comercio acá?
+
+Sí. En **Sueldos → Conceptos → Cargar Comercio** quedan listos todos los conceptos del CCT 130/75, como los liquida un estudio: días, feriados, vacaciones, antigüedad, presentismo, sumas del acuerdo, aportes, sindicato, FAECYS y contribuciones. En cada empleado cargás el básico, la jornada y, si corresponde, el seguro CEC. El recibo legal sale con el último depósito de aportes y tu logo. Las sumas del acuerdo cambian con cada paritaria: actualizalas en Conceptos.
