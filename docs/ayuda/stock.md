@@ -12,6 +12,20 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+## Lotes y vencimientos (Stock → Lotes y vencimientos)
+
+Para supermercados, farmacias, alimentos y todo lo que vence. Marcá el artículo como **Perecedero** (o todo el rubro) y al cargar la compra poné el **lote** y el **vencimiento** de cada renglón.
+
+- **Tablero**: lo vencido con stock, lo que vence en los próximos días (elegís 7, 15, 30… días) y lo bloqueado, con lo que vale al costo. Buscás por artículo, código o número de lote.
+- **La venta sale primero de lo que vence antes**. En la factura, debajo del artículo, podés elegir un lote puntual.
+- **No se venden vencidos ni bloqueados**: si no alcanza el stock vendible, la factura avisa qué lotes están trabados. Se puede desactivar en Configuración.
+- **Bloquear** un lote (control de calidad, envase dañado) lo saca de la venta hasta que lo habilites.
+- **Retiro del mercado** (disposición de ANMAT, alerta del proveedor): bloquea ese lote en todos los depósitos y te muestra **a qué clientes se vendió**, con cuánto y cómo contactarlos. La **Planilla de clientes** baja esa lista.
+- **Dar de baja** saca del stock lo vencido o roto, con el lote en el kardex.
+- **Trazabilidad**: en cada lote ves de qué proveedor y compra vino, cada venta, devolución y baja.
+- Las **notas de crédito** y las **anulaciones** devuelven la mercadería al mismo lote del que salió.
+- Todos los días aparece una **alerta** por cada lote vencido o por vencer.
+
 ## Rubros y lo que heredan los artículos
 
 En **Stock → ⚙ Rubros y depósitos → editar**, cada rubro tiene **Datos que heredan los artículos**: IVA, tipo (producto, servicio…), controla stock, perecedero, con número de serie, se cuenta en el cierre de turno, sale en la tienda, **cuenta contable de ventas**, **percepción especial de IVA e IIBB** y la foto que muestra la tienda.

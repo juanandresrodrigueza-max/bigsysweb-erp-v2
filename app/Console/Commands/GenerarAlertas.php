@@ -36,6 +36,18 @@ class GenerarAlertas extends Command
             foreach ($nuevasBajo as $p) app(\App\Services\Integraciones\WebhookService::class)->disparar($id, 'stock.bajo_minimo', ['id' => $p->id, 'sku' => $p->sku, 'nombre' => $p->name, 'stock' => (float) $p->stock, 'minimo' => (float) $p->stock_min]);
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'stock_minimo')->whereNull('resuelta_en')->whereNotIn('modelo_id', $bajo->pluck('id'))->update(['resuelta_en' => now()]);
 
+            // Lotes vencidos o por vencer con stock (Fase 27.1): una alerta por lote.
+            $cfgL = app(\App\Services\Stock\LotesService::class)->config($b);
+            $lotesV = \App\Models\Lote::withoutGlobalScopes()->where('business_id', $id)->where('cantidad', '>', 0)->whereNotNull('vencimiento')->where('vencimiento', '<=', today()->addDays((int) $cfgL['dias_aviso'])->toDateString())->with(['product' => fn($q) => $q->withoutGlobalScopes()->select('id', 'name', 'unit')])->get();
+            foreach ($lotesV as $l) {
+                $vencido = $l->vencimiento->lt(today());
+                Alerta::withoutGlobalScopes()->updateOrCreate(
+                    ['business_id' => $id, 'tipo' => 'lote_vence', 'modelo' => 'Lote', 'modelo_id' => $l->id],
+                    ['modulo' => 'stock', 'severidad' => $vencido ? 'critica' : 'aviso', 'titulo' => ($vencido ? 'Vencido: ' : 'Vence pronto: ') . ($l->product?->name ?? 'artículo'), 'detalle' => "{$l->etiqueta()} · quedan " . rtrim(rtrim(number_format((float) $l->cantidad, 3, ',', '.'), '0'), ',') . " {$l->product?->unit}", 'url' => '/stock/lotes?filtro=' . ($vencido ? 'vencidos' : 'por_vencer')]
+                );
+            }
+            Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'lote_vence')->whereNull('resuelta_en')->whereNotIn('modelo_id', $lotesV->pluck('id'))->update(['resuelta_en' => now()]);
+
             // Producción atrasada: órdenes abiertas cuya fecha programada ya pasó
             $atrasadas = \App\Models\ProductionOrder::withoutGlobalScopes()->where('business_id', $id)->whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->with('product:id,name,unit')->get();
             foreach ($atrasadas as $o) {

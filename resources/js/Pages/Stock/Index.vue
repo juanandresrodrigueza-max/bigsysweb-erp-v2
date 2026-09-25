@@ -13,6 +13,7 @@
         <Link href="/stock/etiquetas" class="btn-secondary">Etiquetas</Link>
         <Link href="/stock/catalogos" class="btn-secondary" data-ir-catalogos>Catálogos</Link>
         <Link href="/stock/descuentos-lista" class="btn-secondary" data-ir-desc-lista>Descuentos por lista</Link>
+        <Link href="/stock/lotes" class="btn-secondary" data-ir-lotes>Lotes y vencimientos</Link>
         <Link href="/stock/verificador" class="btn-ghost text-xs" title="Pantalla para que el cliente consulte precios con el lector">Verificador</Link>
         <button v-if="puede('stock','editar')" @click="dolarAbierto = true" class="btn-ghost text-xs" :title="cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización'">U$S {{ cotizacion ? moneda(cotizacion.venta, 0).replace('$ ', '') : '—' }}</button>
         <button v-if="puede('stock','editar')" @click="configAbierto = true" class="btn-ghost"><Icono nombre="settings" clase="w-4 h-4" /></button>

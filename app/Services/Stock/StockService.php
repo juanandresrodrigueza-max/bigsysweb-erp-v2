@@ -35,17 +35,19 @@ class StockService
             $sd->save();
         }
 
-        // Partidas con lote / vencimiento / serie: entradas suman, salidas consumen FEFO.
-        $loteId = null;
+        // Partidas con lote / vencimiento / serie: entradas suman (o vuelven al lote de origen), salidas consumen FEFO o el lote elegido.
+        $partidas = [];
         if ($p->perecedero || $p->seriado) {
             $ls = app(LotesService::class);
-            if ($cantidad > 0) $loteId = $ls->entrada($p, $deposito, $cantidad, $lote + ['costo' => $costoUnit])?->id;
-            else { $usadas = $ls->salida($p, $deposito, -$cantidad, $lote['serie'] ?? null); $loteId = $usadas[0]['lote']->id ?? null; }
+            if ($cantidad > 0 && ! empty($lote['devolver_de'])) $partidas = $ls->devolver($p, $deposito, $cantidad, $lote['devolver_de']);
+            elseif ($cantidad > 0) $partidas = $ls->entrada($p, $deposito, $cantidad, $lote + ['costo' => $costoUnit, 'proveedor_id' => $origen instanceof \App\Models\Comprobante && $origen->direccion === 'compra' ? $origen->contact_id : null]);
+            else $partidas = $ls->salida($p, $deposito, -$cantidad, $lote['serie'] ?? null, $lote);
         }
+        $loteId = $partidas[0]['lote']->id ?? null;
 
         if (\App\Models\Canal::withoutGlobalScopes()->where('business_id', $p->business_id)->where('activo', true)->where('sync_stock', true)->exists()) { try { app(\App\Services\Canales\CanalesService::class)->empujarStock($p); } catch (\Throwable $e) {} }
 
-        return StockMovement::create([
+        $mov = StockMovement::create([
             'business_id' => $p->business_id, 'business_location_id' => $deposito?->business_location_id ?? $locationId ?? Auth::user()?->current_location_id,
             'product_id' => $p->id, 'deposito_id' => $deposito?->id, 'lote_id' => $loteId, 'user_id' => Auth::id() ?? $p->business->owner_id,
             'type' => $tipo, 'quantity' => abs($cantidad), 'stock_before' => $antes, 'stock_after' => (float) $p->stock, 'costo_unit' => $costoUnit ?? (float) $p->cost,
@@ -53,6 +55,8 @@ class StockService
             // El kardex lleva la fecha del comprobante u orden que lo originó (si la tiene), no la de carga.
             'created_at' => ($origen && isset($origen->fecha) && $origen->fecha) ? \Carbon\Carbon::parse($origen->fecha)->setTimeFrom(now()) : now(),
         ]);
+        if ($partidas) app(LotesService::class)->registrar($partidas, $cantidad > 0 ? 1 : -1, $mov, $origen, $motivo);
+        return $mov;
     }
 
     // Atajos legibles desde los otros servicios.

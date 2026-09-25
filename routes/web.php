@@ -310,6 +310,13 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::get('/lotes',                     [\App\Http\Controllers\Stock\LotesController::class, 'index']);
+        Route::get('/lotes/de/{product}',        [\App\Http\Controllers\Stock\LotesController::class, 'de'])->whereNumber('product');
+        Route::get('/lotes/{id}',                [\App\Http\Controllers\Stock\LotesController::class, 'ver'])->whereNumber('id');
+        Route::get('/lotes/{id}/retiro.csv',     [\App\Http\Controllers\Stock\LotesController::class, 'retiroCsv'])->whereNumber('id');
+        Route::post('/lotes/{id}/estado',        [\App\Http\Controllers\Stock\LotesController::class, 'estado'])->middleware('permiso:stock,editar');
+        Route::post('/lotes/{id}/baja',          [\App\Http\Controllers\Stock\LotesController::class, 'baja'])->middleware('permiso:stock,editar');
+        Route::post('/lotes/config',             [\App\Http\Controllers\Stock\LotesController::class, 'config'])->middleware('permiso:stock,editar');
         Route::get('/descuentos-lista',          [\App\Http\Controllers\Stock\DescuentosListaController::class, 'index']);
         Route::post('/descuentos-lista/{id?}',   [\App\Http\Controllers\Stock\DescuentosListaController::class, 'guardar'])->middleware('permiso:stock,editar');
         Route::delete('/descuentos-lista/{id}',  [\App\Http\Controllers\Stock\DescuentosListaController::class, 'eliminar'])->middleware('permiso:stock,editar');
