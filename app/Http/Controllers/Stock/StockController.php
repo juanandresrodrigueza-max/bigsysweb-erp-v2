@@ -28,7 +28,8 @@ class StockController extends Controller
 
     private function rubros()
     {
-        return Rubro::arbol()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombre, 'parent_id' => $r->parent_id, 'nivel' => $r->nivel, 'completo' => $r->nombreCompleto(), 'color' => $r->color])->values();
+        return Rubro::arbol()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombre, 'parent_id' => $r->parent_id, 'nivel' => $r->nivel, 'completo' => $r->nombreCompleto(), 'color' => $r->color]
+            + collect($r->only(Rubro::HEREDABLES))->map(fn($v, $k) => $v !== null && in_array($k, ['iva', 'perc_iva', 'perc_iibb'], true) ? (float) $v : $v)->all() + ['imagen' => $r->imagen, 'efectivos' => $r->efectivos(), 'articulos' => Product::where('rubro_id', $r->id)->count()])->values();
     }
 
     public function index(Request $request)
@@ -53,7 +54,7 @@ class StockController extends Controller
 
         $activos = Product::where('active', true);
         return Inertia::render('Stock/Index', [
-            'lista' => $lista, 'filtros' => $request->only('buscar', 'rubro', 'tipo', 'estado'), 'depositos' => $depositos, 'rubros' => $this->rubros(),
+            'lista' => $lista, 'filtros' => $request->only('buscar', 'rubro', 'tipo', 'estado'), 'depositos' => $depositos, 'rubros' => $this->rubros(), 'cuentasVentas' => \App\Models\CuentaContable::where('tipo', 'ingreso')->where('imputable', true)->where('activa', true)->orderBy('codigo')->get(['id', 'codigo', 'nombre']),
             'tipos' => Product::TIPOS, 'unidades' => Product::UNIDADES,
             'cotizacion' => ($cot = \App\Models\Cotizacion::actual($request->user()->business_id)) ? ['venta' => (float) $cot->venta, 'fecha' => $cot->fecha->format('d/m/Y'), 'manual' => $cot->business_id !== null] : null,
             'kpis' => [
@@ -211,11 +212,27 @@ class StockController extends Controller
 
     public function guardarRubro(Request $request, ?int $id = null)
     {
-        $d = $request->validate(['nombre' => 'required|string|max:80', 'parent_id' => 'nullable|exists:rubros,id', 'color' => 'nullable|string|max:10']);
+        $d = $request->validate(['nombre' => 'required|string|max:80', 'parent_id' => 'nullable|exists:rubros,id', 'color' => 'nullable|string|max:10',
+            'iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27', 'tipo' => ['nullable', Rule::in(array_keys(Product::TIPOS))], 'perecedero' => 'nullable|boolean', 'seriado' => 'nullable|boolean', 'controla_stock' => 'nullable|boolean', 'control_turno' => 'nullable|boolean', 'en_tienda' => 'nullable|boolean',
+            'cuenta_ventas_id' => 'nullable|exists:cuentas_contables,id', 'perc_iva' => 'nullable|numeric|min:0|max:50', 'perc_iibb' => 'nullable|numeric|min:0|max:50', 'imagen' => 'nullable|url|max:500']);
         abort_if($id && ! empty($d['parent_id']) && in_array((int) $d['parent_id'], Rubro::conDescendientes($id), true), 422, 'Una categoría no puede colgar de una de sus subcategorías.');
         $r = $id ? Rubro::findOrFail($id) : new Rubro(['business_id' => $request->user()->business_id]);
         $r->fill($d)->save();
         return back()->with('success', 'Rubro guardado.');
+    }
+
+    // Lleva los datos del rubro (propios o heredados) a sus artículos, incluidos los de los subrubros.
+    public function aplicarRubro(Request $request, int $id)
+    {
+        $d = $request->validate(['campos' => 'required|array|min:1', 'campos.*' => Rule::in(Rubro::MARCAS_ARTICULO)]);
+        $n = 0;
+        foreach (Rubro::conDescendientes($id) as $rid) {
+            $vals = Rubro::find($rid)->valores();
+            $upd = collect($d['campos'])->filter(fn($k) => array_key_exists($k, $vals))->mapWithKeys(fn($k) => [$k => $vals[$k]])->all();
+            if ($upd) $n += Product::where('rubro_id', $rid)->update($upd);
+        }
+        AuditLog::registrar('editar', Rubro::find($id), "Aplicó los datos del rubro a {$n} artículos: " . implode(', ', $d['campos']));
+        return back()->with('success', "Datos del rubro aplicados a {$n} artículos.");
     }
 
     public function eliminarRubro(int $id)

@@ -12,6 +12,16 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+## Rubros y lo que heredan los artículos
+
+En **Stock → ⚙ Rubros y depósitos → editar**, cada rubro tiene **Datos que heredan los artículos**: IVA, tipo (producto, servicio…), controla stock, perecedero, con número de serie, se cuenta en el cierre de turno, sale en la tienda, **cuenta contable de ventas**, **percepción especial de IVA e IIBB** y la foto que muestra la tienda.
+
+- Lo que queda en **Hereda** lo toma del rubro de arriba: si "Almacén" tiene IVA 10,5 %, "Almacén › Lácteos" también, salvo que le pongas otro.
+- Un artículo nuevo, al elegir el rubro, arranca con esos datos.
+- **Aplicar a sus artículos** lleva IVA, tipo y marcas a los artículos que ya existen en ese rubro y en sus subrubros.
+- **Cuenta de ventas**: las ventas de los artículos del rubro se imputan a esa cuenta en el asiento (el resto va a Ventas).
+- **Percepción especial**: si sos agente y el cliente está alcanzado, los artículos del rubro llevan esa alícuota en vez de la general (la del padrón o la de la ficha del cliente siguen mandando en IIBB).
+
 ## Movimientos
 
 El stock se mueve solo con cada factura, remito, compra y producción. Para ajustes a mano: **Stock → Movimiento** (entrada, salida, ajuste de inventario, transferencia entre depósitos). Cada movimiento queda con quién lo hizo y por qué.

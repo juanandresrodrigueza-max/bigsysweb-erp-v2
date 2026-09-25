@@ -118,20 +118,35 @@
     </Modal>
 
     <!-- Rubros y depósitos -->
-    <Modal :abierto="configAbierto" titulo="Rubros y depósitos" ancho="max-w-2xl" @cerrar="configAbierto = false">
+    <Modal :abierto="configAbierto" titulo="Rubros y depósitos" ancho="max-w-4xl" @cerrar="configAbierto = false">
       <div class="grid md:grid-cols-2 gap-6">
         <div>
           <p class="label">Rubros</p>
           <div v-for="r in rubros" :key="r.id" class="flex items-center gap-2 py-1 text-sm" :style="{ paddingLeft: (r.nivel || 0) * 16 + 'px' }">
             <span class="w-2.5 h-2.5 rounded-full" :style="{ background: r.color || '#6f6a62' }"></span><span class="flex-1">{{ r.nombre }}</span>
-            <button @click="rubro.id = r.id; rubro.nombre = r.nombre; rubro.parent_id = r.parent_id; rubro.color = r.color || '#6f6a62'" class="text-xs text-violeta">editar</button>
+            <span v-if="r.articulos" class="text-[10px] text-marca-muted">{{ r.articulos }} art.</span>
+            <button @click="editarRubro(r)" class="text-xs text-violeta" data-e2e="editar-rubro">editar</button>
             <Link :href="`/stock/rubros/${r.id}`" method="delete" as="button" preserve-scroll class="text-xs text-carmin">quitar</Link>
           </div>
           <div class="mt-3 p-3 rounded-xl bg-marca-fondo grid grid-cols-[1fr_auto] gap-2 items-end">
             <div><label class="label">{{ rubro.id ? 'Editar rubro' : 'Nuevo rubro' }}</label><input v-model="rubro.nombre" class="input !py-1.5" placeholder="Nombre" /></div>
             <input v-model="rubro.color" type="color" class="w-10 h-9 rounded-lg border border-marca-borde" />
             <select v-model="rubro.parent_id" class="input !py-1.5 col-span-2"><option :value="null">Categoría principal</option><option v-for="r in rubros.filter(x => !esDescendiente(x, rubro.id))" :key="r.id" :value="r.id">Dentro de {{ r.completo }}</option></select>
-            <div class="col-span-2 flex gap-2"><button class="btn-primary !py-1 text-xs" :disabled="!rubro.nombre" @click="rubro.post(`/stock/rubros${rubro.id ? '/' + rubro.id : ''}`, { preserveScroll: true, onSuccess: () => rubro.reset() })">Guardar</button><button v-if="rubro.id" class="btn-ghost !py-1 text-xs" @click="rubro.reset()">Cancelar</button></div>
+            <details class="col-span-2 text-xs" data-e2e="rubro-datos" :open="rubroTieneDatos">
+              <summary class="cursor-pointer font-semibold text-violeta">Datos que heredan los artículos</summary>
+              <p class="text-[11px] text-marca-muted my-1.5">Lo que dejes en "Hereda" lo toma del rubro de arriba. Un artículo nuevo arranca con estos datos; con <b>Aplicar</b> se llevan a los que ya existen.</p>
+              <div class="grid grid-cols-2 gap-2">
+                <div><label class="label !text-[10px]">IVA</label><select v-model="rubro.iva" class="input !py-1"><option :value="null">Hereda{{ heredado('iva', v => v + ' %') }}</option><option v-for="a in [0, 2.5, 5, 10.5, 21, 27]" :key="a" :value="a">{{ a }} %</option></select></div>
+                <div><label class="label !text-[10px]">Tipo</label><select v-model="rubro.tipo" class="input !py-1"><option :value="null">Hereda{{ heredado('tipo', v => tipos[v]?.split(' (')[0]) }}</option><option v-for="(l, k) in tipos" :key="k" :value="k">{{ l.split(' (')[0] }}</option></select></div>
+                <div v-for="m in marcasRubro" :key="m.k"><label class="label !text-[10px]">{{ m.l }}</label><select v-model="rubro[m.k]" class="input !py-1" :data-e2e="`rubro-${m.k}`"><option :value="null">Hereda{{ heredado(m.k, v => v ? 'sí' : 'no') }}</option><option :value="true">Sí</option><option :value="false">No</option></select></div>
+                <div class="col-span-2"><label class="label !text-[10px]">Cuenta contable de ventas</label><select v-model="rubro.cuenta_ventas_id" class="input !py-1"><option :value="null">Hereda (o Ventas)</option><option v-for="c in cuentasVentas" :key="c.id" :value="c.id">{{ c.codigo }} · {{ c.nombre }}</option></select></div>
+                <div><label class="label !text-[10px]">Percepción IVA especial %</label><input v-model.number="rubro.perc_iva" type="number" step="0.01" min="0" class="input !py-1" placeholder="la general" /></div>
+                <div><label class="label !text-[10px]">Percepción IIBB especial %</label><input v-model.number="rubro.perc_iibb" type="number" step="0.01" min="0" class="input !py-1" placeholder="la general" /></div>
+                <div class="col-span-2"><label class="label !text-[10px]">Foto para la tienda (URL)</label><input v-model="rubro.imagen" class="input !py-1" placeholder="https://…" /></div>
+              </div>
+            </details>
+            <div class="col-span-2 flex flex-wrap gap-2"><button class="btn-primary !py-1 text-xs" :disabled="!rubro.nombre" @click="guardarRubro">Guardar</button><button v-if="rubro.id" class="btn-ghost !py-1 text-xs" @click="rubro.reset()">Cancelar</button>
+              <button v-if="rubro.id" class="btn-secondary !py-1 text-xs ml-auto" data-e2e="aplicar-rubro" @click="router.post(`/stock/rubros/${rubro.id}/aplicar`, { campos: ['iva', 'tipo', 'perecedero', 'seriado', 'controla_stock', 'control_turno', 'en_tienda'] }, { preserveScroll: true })">Aplicar a sus artículos</button></div>
           </div>
         </div>
         <div>
@@ -165,7 +180,7 @@ import ArticuloModal from '@/Components/ArticuloModal.vue'
 import { moneda, entero, cantidad, hoyISO } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ lista: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, kpis: Object, proveedores: Array, ultimosInventarios: Array, cotizacion: Object })
+const props = defineProps({ cuentasVentas: { type: Array, default: () => [] }, lista: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, kpis: Object, proveedores: Array, ultimosInventarios: Array, cotizacion: Object })
 const { puede } = usePermisos()
 const f = reactive({ buscar: props.filtros.buscar ?? '', rubro: props.filtros.rubro ?? '', tipo: props.filtros.tipo ?? '', estado: props.filtros.estado ?? '' })
 function filtrar() { router.get('/stock', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
@@ -187,7 +202,14 @@ const marcas = computed(() => [...new Set((props.lista?.data ?? props.lista ?? [
 async function previsualizar() { prevCargando.value = true; try { const r = await fetch('/stock/precios/previsualizar', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify(pr.data()) }); prev.value = r.ok ? await r.json() : null } catch (e) { prev.value = null } finally { prevCargando.value = false } }
 
 const configAbierto = ref(false)
-const rubro = useForm({ id: null, nombre: '', parent_id: null, color: '#4f3089' })
+const rubroVacio = { id: null, nombre: '', parent_id: null, color: '#4f3089', iva: null, tipo: null, perecedero: null, seriado: null, controla_stock: null, control_turno: null, en_tienda: null, cuenta_ventas_id: null, perc_iva: null, perc_iibb: null, imagen: null }
+const rubro = useForm({ ...rubroVacio })
+const marcasRubro = [{ k: 'controla_stock', l: 'Controla stock' }, { k: 'perecedero', l: 'Perecedero' }, { k: 'seriado', l: 'Con número de serie' }, { k: 'control_turno', l: 'Se cuenta en el turno' }, { k: 'en_tienda', l: 'Sale en la tienda' }]
+function editarRubro(r) { Object.assign(rubro, rubroVacio, Object.fromEntries(Object.keys(rubroVacio).map(k => [k, r[k] ?? rubroVacio[k]])), { color: r.color || '#6f6a62' }) }
+const rubroTieneDatos = computed(() => ['iva', 'tipo', 'perecedero', 'seriado', 'controla_stock', 'control_turno', 'en_tienda', 'cuenta_ventas_id', 'perc_iva', 'perc_iibb', 'imagen'].some(k => rubro[k] !== null && rubro[k] !== ''))
+// Lo que heredaría del rubro padre elegido, para mostrarlo en la opción "Hereda".
+function heredado(k, fmt) { const p = props.rubros.find(x => x.id === rubro.parent_id); const e = p?.efectivos?.[k]; return e ? ` (${fmt(e.valor)} de ${e.de || p.nombre})` : '' }
+function guardarRubro() { rubro.transform(d => ({ ...d, perc_iva: d.perc_iva === '' ? null : d.perc_iva, perc_iibb: d.perc_iibb === '' ? null : d.perc_iibb, imagen: d.imagen || null })).post(`/stock/rubros${rubro.id ? '/' + rubro.id : ''}`, { preserveScroll: true, onSuccess: () => rubro.reset() }) }
 // Un rubro no puede colgar de sí mismo ni de sus propias subcategorías.
 const esDescendiente = (r, id) => { if (!id) return false; let x = r; while (x) { if (x.id === id) return true; x = props.rubros.find(y => y.id === x.parent_id) } return false }
 const dep = useForm({ id: null, nombre: '', business_location_id: null, direccion: '', es_default: false, activo: true })

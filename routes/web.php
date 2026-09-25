@@ -309,6 +309,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::post('/rubros/{id}/aplicar',      [\App\Http\Controllers\Stock\StockController::class, 'aplicarRubro'])->middleware('permiso:stock,editar');
         Route::delete('/rubros/{id}',            [\App\Http\Controllers\Stock\StockController::class, 'eliminarRubro'])->middleware('permiso:stock,editar');
         Route::post('/precios/previsualizar', [\App\Http\Controllers\Stock\StockController::class, 'previsualizarPrecios'])->middleware('permiso:stock,editar');
         Route::post('/precios/deshacer', [\App\Http\Controllers\Stock\StockController::class, 'deshacerPrecios'])->middleware('permiso:stock,editar');
