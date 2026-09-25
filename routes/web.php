@@ -412,6 +412,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/conceptos/{id?}', [$c, 'guardarConcepto'])->middleware('permiso:sueldos,editar');
         Route::post('/conceptos/{id}/borrar', [$c, 'borrarConcepto'])->middleware('permiso:sueldos,editar');
         Route::post('/config', [$c, 'guardarConfig'])->middleware('permiso:sueldos,editar');
+        Route::post('/plantilla/{plantilla}', [$c, 'plantilla'])->middleware('permiso:sueldos,editar');
+        Route::post('/{id}/deposito', [$c, 'deposito'])->middleware('permiso:sueldos,crear');
         Route::post('/liquidar', [$c, 'liquidar'])->middleware('permiso:sueldos,crear');
         Route::post('/importar', [$c, 'importar'])->middleware('permiso:sueldos,crear');
         Route::post('/{id}/confirmar', [$c, 'confirmar'])->middleware('permiso:sueldos,crear');

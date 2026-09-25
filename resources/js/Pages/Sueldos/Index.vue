@@ -3,10 +3,11 @@
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Sueldos</h1><p class="page-subtitle">Legajos, liquidación mensual con los conceptos de tu convenio (o la que manda el contador), recibos, asiento y pago desde fondos.</p></div>
       <div class="flex flex-wrap gap-2">
+        <button class="btn-secondary" @click="configAbierto = true">Configuración</button>
         <button class="btn-secondary" @click="conceptosAbierto = true">Conceptos</button>
         <button class="btn-secondary" @click="importarAbierto = true">Importar del contador</button>
         <button class="btn-secondary" @click="abrirEmpleado()">Nuevo empleado</button>
-        <button class="btn-primary" @click="liquidarAbierto = true">Liquidar</button>
+        <button class="btn-primary" @click="abrirLiquidar">Liquidar</button>
       </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -41,6 +42,13 @@
             </tbody>
             <tfoot><tr class="font-bold bg-gris-light/50"><td>Totales</td><td></td><td class="text-right tabular-nums">{{ moneda(enCurso.bruto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.no_rem, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.deducciones, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.neto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.contribuciones, 0) }}</td><td></td></tr></tfoot>
           </table>
+          <div class="flex flex-wrap items-end gap-2 px-4 py-3 border-t border-marca-borde text-xs" data-e2e="deposito">
+            <span class="font-semibold text-marca-muted w-full sm:w-auto sm:mr-2">Último depósito de aportes (sale en el recibo)</span>
+            <div><label class="label !text-[10px]">Fecha</label><input v-model="dep.deposito_fecha" type="date" class="input !py-1" /></div>
+            <div><label class="label !text-[10px]">Banco</label><input v-model="dep.deposito_banco" class="input !py-1 !w-36" placeholder="BCO.REGIONAL" /></div>
+            <div><label class="label !text-[10px]">Mes</label><input v-model="dep.deposito_periodo" type="month" class="input !py-1" /></div>
+            <button class="btn-secondary !py-1 text-xs" :disabled="dep.processing" @click="dep.post(`/sueldos/${enCurso.id}/deposito`, { preserveScroll: true })">Guardar</button>
+          </div>
           <p v-if="enCurso.notas" class="px-4 py-2 text-xs text-marca-muted border-t border-marca-borde">{{ enCurso.notas }}</p>
         </div>
         <div v-else class="card text-center text-marca-muted py-8 text-sm">No hay liquidación para {{ periodo }}. Usá <b>Liquidar</b> para calcularla con tus conceptos o <b>Importar</b> la que mandó el contador.</div>
@@ -73,7 +81,7 @@
         <div class="card text-sm">
           <h2 class="font-bold mb-2">Cómo funciona</h2>
           <ol class="list-decimal pl-4 space-y-1 text-xs text-marca-muted">
-            <li>Cargás los empleados con su básico y fecha de ingreso.</li><li>Cada mes liquidás con las novedades (días, horas extra, premios, anticipos) o importás el CSV del contador.</li><li>Confirmás: se genera el asiento (sueldos y cargas al gasto, neto y F931 al pasivo).</li><li>Pagás desde caja o banco; las cargas se pagan aparte cuando vence el F931.</li>
+            <li>Cargás la plantilla de tu convenio (Conceptos → Cargar Comercio) y los empleados con básico, jornada y fecha de ingreso.</li><li>Cada mes liquidás con las novedades (días, horas extra, premios, anticipos) o importás el CSV del contador.</li><li>Confirmás: se genera el asiento (sueldos y cargas al gasto, neto y F931 al pasivo).</li><li>Pagás desde caja o banco; las cargas se pagan aparte cuando vence el F931.</li>
           </ol>
         </div>
       </div>
@@ -86,14 +94,16 @@
         <div><label class="label">Tipo</label><select v-model="lq.tipo" class="input"><option v-for="(l, k) in tiposLiq" :key="k" :value="k">{{ l }}</option></select></div>
         <div><label class="label">Fecha de pago</label><input v-model="lq.fecha" type="date" class="input" /></div>
       </div>
-      <p class="text-xs text-marca-muted mb-2">Novedades del mes por empleado. Lo que no toques queda en 30 días y sin extras.</p>
+      <p class="text-xs text-marca-muted mb-2">Novedades del mes por empleado. Lo que no toques queda en 30 días y sin extras. Al cargar feriados o vacaciones, los días normales se ajustan solos (30 − feriados − vacaciones).</p>
       <div class="overflow-x-auto"><table class="table text-xs">
-        <thead><tr><th></th><th>Empleado</th><th class="text-right">Días</th><th class="text-right">HE 50%</th><th class="text-right">HE 100%</th><th class="text-right">Premios</th><th class="text-right">No rem.</th><th class="text-right">Anticipos</th></tr></thead>
+        <thead><tr><th></th><th>Empleado</th><th class="text-right">Días</th><th class="text-right">Feriados</th><th class="text-right">Vacac.</th><th class="text-right">HE 50%</th><th class="text-right">HE 100%</th><th class="text-right">Premios</th><th class="text-right">No rem.</th><th class="text-right">Anticipos</th></tr></thead>
         <tbody>
           <tr v-for="e in empleados.filter(x => x.activo)" :key="e.id">
             <td><input type="checkbox" class="accent-carmin" :checked="!lq.novedades[e.id].excluir" @change="lq.novedades[e.id].excluir = !$event.target.checked" title="Incluir" /></td>
             <td class="font-medium whitespace-nowrap">{{ e.nombre }}</td>
             <td><input v-model.number="lq.novedades[e.id].dias" type="number" min="0" max="31" class="input !py-1 !w-16 text-right" /></td>
+            <td><input v-model.number="lq.novedades[e.id].feriados" type="number" min="0" max="31" class="input !py-1 !w-14 text-right" @input="ajustarDias(e.id)" /></td>
+            <td><input v-model.number="lq.novedades[e.id].vacaciones" type="number" min="0" max="31" class="input !py-1 !w-14 text-right" @input="ajustarDias(e.id)" /></td>
             <td><input v-model.number="lq.novedades[e.id].horas_extra_50" type="number" step="0.5" min="0" class="input !py-1 !w-16 text-right" /></td>
             <td><input v-model.number="lq.novedades[e.id].horas_extra_100" type="number" step="0.5" min="0" class="input !py-1 !w-16 text-right" /></td>
             <td><input v-model.number="lq.novedades[e.id].adicionales" type="number" min="0" class="input !py-1 !w-24 text-right" /></td>
@@ -137,44 +147,96 @@
     <Modal :abierto="empleadoAbierto" :titulo="ef.id ? 'Editar empleado' : 'Nuevo empleado'" ancho="max-w-2xl" @cerrar="empleadoAbierto = false">
       <div class="grid sm:grid-cols-2 gap-3">
         <div class="sm:col-span-2"><label class="label">Nombre y apellido</label><input v-model="ef.nombre" class="input" /><p v-if="ef.errors.nombre" class="text-carmin text-xs mt-1">{{ ef.errors.nombre }}</p></div>
-        <div><label class="label">CUIL</label><input v-model="ef.cuil" class="input" placeholder="20-12345678-9" /></div><div><label class="label">Fecha de ingreso</label><input v-model="ef.fecha_ingreso" type="date" class="input" /></div>
+        <div><label class="label">CUIL</label><input v-model="ef.cuil" class="input" placeholder="20-12345678-9" /></div><div><label class="label">Documento</label><input v-model="ef.documento" class="input" placeholder="25781816" /></div><div><label class="label">Fecha de ingreso</label><input v-model="ef.fecha_ingreso" type="date" class="input" /></div>
+        <div><label class="label">Jornada</label><select v-model="ef.jornada" class="input"><option v-for="(l, k) in jornadas" :key="k" :value="k">{{ l }}</option></select></div>
+        <div><label class="label">Centro de costo</label><input v-model="ef.centro_costo" class="input" placeholder="ADMINISTRACION" /></div><div><label class="label">Lugar de trabajo</label><input v-model="ef.lugar_trabajo" class="input" placeholder="MENDOZA" /></div>
         <div><label class="label">Categoría</label><input v-model="ef.categoria" class="input" placeholder="Vendedor B, Oficial…" /></div><div><label class="label">Convenio</label><input v-model="ef.convenio" class="input" placeholder="Comercio 130/75, UOCRA…" /></div>
         <div><label class="label">Puesto</label><input v-model="ef.puesto" class="input" /></div><div><label class="label">Obra social</label><input v-model="ef.obra_social" class="input" /></div>
         <div><label class="label">Sueldo básico</label><input v-model.number="ef.sueldo_basico" type="number" min="0" class="input" /></div><div><label class="label">Modalidad</label><select v-model="ef.modalidad" class="input"><option value="mensual">Mensual</option><option value="jornal">Jornal (por día)</option></select></div>
         <div><label class="label">CBU para acreditar</label><input v-model="ef.cbu" class="input" /></div><div><label class="label">Teléfono</label><input v-model="ef.telefono" class="input" /></div>
         <div><label class="label">Email</label><input v-model="ef.email" type="email" class="input" /></div><div v-if="ef.id"><label class="label">Fecha de egreso</label><input v-model="ef.fecha_egreso" type="date" class="input" /></div>
         <label v-if="ef.id" class="flex items-center gap-2 text-sm sm:col-span-2"><input v-model="ef.activo" type="checkbox" class="accent-carmin" /> Activo (entra en las liquidaciones)</label>
+        <div class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="asignados">
+          <p class="label">Conceptos propios del empleado</p>
+          <p class="text-xs text-marca-muted mb-2">Los marcados "solo asignados" (como el seguro CEC) se liquidan únicamente a quien los tenga. Un valor propio reemplaza al del concepto; vacío usa el general.</p>
+          <div class="grid sm:grid-cols-2 gap-2">
+            <label v-for="c in conceptos" :key="c.id" class="flex items-center gap-2 text-xs"><input type="checkbox" class="accent-carmin" :checked="!!asig(c.id)" @change="toggleAsig(c.id, $event.target.checked)" /><span class="font-mono">{{ c.codigo }}</span> <span class="truncate">{{ c.nombre }}</span><span v-if="c.solo_asignados" class="badge bg-violeta/10 text-violeta">solo asignados</span>
+              <input v-if="asig(c.id)" v-model.number="asig(c.id).valor" type="number" step="0.01" class="input !py-0.5 !w-20 text-right ml-auto" :placeholder="String(c.valor)" /></label>
+          </div>
+        </div>
       </div>
       <template #pie><button class="btn-secondary" @click="empleadoAbierto = false">Cancelar</button><button class="btn-primary" :disabled="ef.processing || !ef.nombre || !ef.fecha_ingreso" @click="ef.post(`/sueldos/empleados/${ef.id || ''}`, { preserveScroll: true, onSuccess: () => (empleadoAbierto = false) })">Guardar</button></template>
     </Modal>
 
     <!-- Conceptos -->
-    <Modal :abierto="conceptosAbierto" titulo="Conceptos de liquidación" ancho="max-w-3xl" @cerrar="conceptosAbierto = false">
-      <p class="text-xs text-marca-muted mb-2">Porcentajes de ley y de convenio. La antigüedad multiplica el % por los años del empleado. Editá el valor y guardá.</p>
-      <table class="table text-xs">
-        <thead><tr><th>Código</th><th>Concepto</th><th>Tipo</th><th class="text-right">Valor</th><th>Sobre</th><th></th></tr></thead>
+    <Modal :abierto="conceptosAbierto" titulo="Conceptos de liquidación" ancho="max-w-5xl" @cerrar="conceptosAbierto = false">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3 rounded-xl bg-violeta/5 px-3 py-2">
+        <p class="text-xs text-marca-muted">Cada concepto: <b>%</b> de una base, <b>importe fijo</b> o <b>base ÷ valor × cantidad</b> (ej. básico ÷ 30 × días). La base admite <code>BASICO</code>, <code>REM</code>, <code>NOREM</code> o códigos sumados: <code>REM+1238</code>.</p>
+        <div class="flex gap-2"><button v-for="(l, k) in plantillas" :key="k" class="btn-primary !py-1 text-xs" data-e2e="plantilla" @click="plantillaConfirm = k">Cargar {{ l }}</button></div>
+      </div>
+      <div v-if="plantillaConfirm" class="mb-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs flex flex-wrap items-center gap-2">
+        <span>Se desactivan los conceptos actuales y se cargan los de {{ plantillas[plantillaConfirm] }}. Las sumas del acuerdo (1200 y 1238) hay que actualizarlas con cada paritaria.</span>
+        <button class="btn-primary !py-1 text-xs" data-e2e="plantilla-ok" @click="router.post(`/sueldos/plantilla/${plantillaConfirm}`, {}, { preserveScroll: true, onSuccess: () => { plantillaConfirm = null; conceptosAbierto = false } })">Sí, cargar</button>
+        <button class="btn-ghost !py-1 text-xs" @click="plantillaConfirm = null">Cancelar</button>
+      </div>
+      <div class="overflow-x-auto"><table class="table text-xs">
+        <thead><tr><th>Código</th><th>Concepto</th><th>Tipo</th><th>Cálculo</th><th class="text-right">Valor</th><th>Base</th><th>Cantidad</th><th></th></tr></thead>
         <tbody>
-          <tr v-for="c in conceptosEdit" :key="c.id">
-            <td class="font-mono">{{ c.codigo }}</td><td><input v-model="c.nombre" class="input !py-1" /></td><td class="text-marca-muted">{{ tiposConcepto[c.tipo] }}</td>
-            <td><input v-model.number="c.valor" type="number" step="0.01" class="input !py-1 !w-24 text-right" /></td><td class="text-marca-muted">{{ c.modo === 'fijo' ? '$ fijo' : c.base === 'bruto' ? '% del bruto' : '% del básico' }}</td>
-            <td class="text-right whitespace-nowrap"><button class="btn-ghost !px-2 text-xs" @click="router.post(`/sueldos/conceptos/${c.id}`, c, { preserveScroll: true })">Guardar</button><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.post(`/sueldos/conceptos/${c.id}/borrar`, {}, { preserveScroll: true })">Quitar</button></td>
-          </tr>
+          <template v-for="c in conceptosEdit" :key="c.id">
+            <tr>
+              <td class="font-mono">{{ c.codigo }}</td><td><input v-model="c.nombre" class="input !py-1 min-w-[12rem]" /></td><td class="text-marca-muted whitespace-nowrap">{{ tiposConcepto[c.tipo] }}</td>
+              <td><select v-model="c.modo" class="input !py-1"><option v-for="(l, k) in modos" :key="k" :value="k">{{ l }}</option></select></td>
+              <td><input v-model.number="c.valor" type="number" step="0.0001" class="input !py-1 !w-24 text-right" /></td>
+              <td><input v-model="c.base" class="input !py-1 !w-28 font-mono" /></td>
+              <td><select v-model="c.cantidad" class="input !py-1"><option v-for="(l, k) in cantidades" :key="k" :value="k || null">{{ l }}</option></select></td>
+              <td class="text-right whitespace-nowrap"><button class="btn-ghost !px-2 text-xs" @click="c._mas = !c._mas">{{ c._mas ? 'Menos' : 'Más' }}</button><button class="btn-ghost !px-2 text-xs" @click="router.post(`/sueldos/conceptos/${c.id}`, c, { preserveScroll: true })">Guardar</button><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.post(`/sueldos/conceptos/${c.id}/borrar`, {}, { preserveScroll: true })">Quitar</button></td>
+            </tr>
+            <tr v-if="c._mas" class="bg-gris-light/40"><td></td><td colspan="7">
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 py-1">
+                <label class="flex items-center gap-1"><input v-model="c.por_anio" type="checkbox" class="accent-carmin" /> × años de antigüedad</label>
+                <label class="flex items-center gap-1">+ <input v-model.number="c.mas_antiguedad" type="number" step="0.01" class="input !py-0.5 !w-16 text-right" /> % por año</label>
+                <label class="flex items-center gap-1"><input v-model="c.proporcional_jornada" type="checkbox" class="accent-carmin" /> Fijo proporcional a la jornada</label>
+                <label class="flex items-center gap-1"><input v-model="c.jornada_completa" type="checkbox" class="accent-carmin" /> Base llevada a jornada completa</label>
+                <label class="flex items-center gap-1"><input v-model="c.con_detraccion" type="checkbox" class="accent-carmin" /> Resta la detracción</label>
+                <label class="flex items-center gap-1"><input v-model="c.solo_asignados" type="checkbox" class="accent-carmin" /> Solo empleados asignados</label>
+                <label class="flex items-center gap-1">Grupo <select v-model="c.grupo" class="input !py-0.5"><option :value="null">—</option><option v-for="(l, k) in grupos" :key="k" :value="k">{{ l }}</option></select></label>
+                <label class="flex items-center gap-1">Orden <input v-model.number="c.orden" type="number" class="input !py-0.5 !w-16" /></label>
+              </div>
+            </td></tr>
+          </template>
           <tr>
             <td><input v-model="nc.codigo" class="input !py-1 !w-20" placeholder="COD" /></td><td><input v-model="nc.nombre" class="input !py-1" placeholder="Nuevo concepto" /></td>
             <td><select v-model="nc.tipo" class="input !py-1"><option v-for="(l, k) in tiposConcepto" :key="k" :value="k">{{ l }}</option></select></td>
-            <td><input v-model.number="nc.valor" type="number" step="0.01" class="input !py-1 !w-24 text-right" /></td>
-            <td><select v-model="nc.modo" class="input !py-1"><option value="porcentaje">%</option><option value="fijo">$ fijo</option></select><select v-if="nc.modo === 'porcentaje'" v-model="nc.base" class="input !py-1 mt-1"><option value="basico">del básico</option><option value="bruto">del bruto</option></select></td>
+            <td><select v-model="nc.modo" class="input !py-1"><option v-for="(l, k) in modos" :key="k" :value="k">{{ l }}</option></select></td>
+            <td><input v-model.number="nc.valor" type="number" step="0.0001" class="input !py-1 !w-24 text-right" /></td>
+            <td><input v-model="nc.base" class="input !py-1 !w-28 font-mono" /></td>
+            <td><select v-model="nc.cantidad" class="input !py-1"><option v-for="(l, k) in cantidades" :key="k" :value="k || null">{{ l }}</option></select></td>
             <td class="text-right"><button class="btn-primary !py-1 text-xs" :disabled="!nc.codigo || !nc.nombre" @click="nc.post('/sueldos/conceptos', { preserveScroll: true, onSuccess: () => nc.reset() })">Agregar</button></td>
           </tr>
         </tbody>
-      </table>
+      </table></div>
+      <p v-if="Object.keys(nc.errors).length" class="text-carmin text-xs mt-2">{{ Object.values(nc.errors).join(' ') }}</p>
+    </Modal>
+
+    <!-- Configuración -->
+    <Modal :abierto="configAbierto" titulo="Configuración de sueldos" ancho="max-w-2xl" @cerrar="configAbierto = false">
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label">Día de pago (mes siguiente)</label><input v-model.number="cf.dia_pago" type="number" min="1" max="28" class="input" /></div>
+        <div><label class="label">Cuenta de pago habitual</label><select v-model="cf.cuenta_id" class="input"><option :value="null">—</option><option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div>
+        <div class="sm:col-span-2"><label class="label">Actividad</label><input v-model="cf.actividad" class="input" placeholder="Servicios de Informática N.C.P." /></div>
+        <div><label class="label">Convenio</label><input v-model="cf.convenio" class="input" placeholder="COMERCIO CCT N° 130/75" /></div><div><label class="label">Obra social</label><input v-model="cf.obra_social" class="input" placeholder="OSECAC - COMERCIO" /></div>
+        <div><label class="label">Banco de depósito de aportes</label><input v-model="cf.deposito_banco" class="input" placeholder="BCO.REGIONAL" /></div><div><label class="label">Lugar de pago</label><input v-model="cf.lugar_pago" class="input" /></div>
+        <div><label class="label">Detracción (jornada completa)</label><input v-model.number="cf.detraccion" type="number" step="0.01" class="input" /><p class="text-[11px] text-marca-muted mt-1">Se resta de la base de contribuciones, proporcional a la jornada.</p></div>
+        <div><label class="label">Redondeo del neto</label><select v-model="cf.redondeo" class="input"><option value="no">Sin redondeo</option><option value="peso">Al peso siguiente</option></select><input v-if="cf.redondeo === 'peso'" v-model="cf.codigo_redondeo" class="input mt-1" placeholder="Código (3950)" /></div>
+      </div>
+      <template #pie><button class="btn-secondary" @click="configAbierto = false">Cancelar</button><button class="btn-primary" :disabled="cf.processing" @click="cf.post('/sueldos/config', { preserveScroll: true, onSuccess: () => (configAbierto = false) })">Guardar</button></template>
     </Modal>
 
     <!-- Detalle recibo -->
     <Modal :abierto="!!detalle" :titulo="detalle?.empleado" @cerrar="detalle = null">
       <table v-if="detalle" class="table text-sm">
         <tbody>
-          <tr v-for="(d, i) in detalle.detalle" :key="i"><td>{{ d.nombre }}</td><td class="text-right tabular-nums" :class="{ 'text-carmin': d.tipo === 'deduccion', 'text-marca-muted': d.tipo === 'contribucion' }">{{ d.tipo === 'deduccion' ? '−' : '' }}{{ moneda(d.monto) }}<span v-if="d.tipo === 'contribucion'" class="text-[10px] ml-1">(patronal)</span></td></tr>
+          <tr v-for="(d, i) in detalle.detalle" :key="i"><td><span class="font-mono text-xs text-marca-muted mr-1">{{ d.codigo }}</span>{{ d.nombre }}<span v-if="d.cantidad != null" class="text-xs text-marca-muted"> · {{ d.cantidad }}</span></td><td class="text-right tabular-nums" :class="{ 'text-carmin': d.tipo === 'deduccion', 'text-marca-muted': d.tipo === 'contribucion' }">{{ d.tipo === 'deduccion' ? '−' : '' }}{{ moneda(d.monto) }}<span v-if="d.tipo === 'contribucion'" class="text-[10px] ml-1">(patronal)</span></td></tr>
           <tr class="font-extrabold"><td>Neto</td><td class="text-right tabular-nums">{{ moneda(detalle.neto) }}</td></tr>
         </tbody>
       </table>
@@ -188,16 +250,23 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
-const props = defineProps({ empleados: Array, conceptos: Array, tiposConcepto: Object, tiposLiq: Object, estados: Object, liquidaciones: Array, periodo: String, tipo: String, enCurso: Object, cuentas: Array, kpis: Object, config: Object })
+const props = defineProps({ empleados: Array, conceptos: Array, tiposConcepto: Object, tiposLiq: Object, estados: Object, liquidaciones: Array, periodo: String, tipo: String, enCurso: Object, cuentas: Array, kpis: Object, config: Object, modos: Object, cantidades: Object, grupos: Object, plantillas: Object, jornadas: Object })
 const fmt = iso => iso ? iso.split('-').reverse().join('/') : ''
-const liquidarAbierto = ref(false), importarAbierto = ref(false), pagarAbierto = ref(false), empleadoAbierto = ref(false), conceptosAbierto = ref(false), detalle = ref(null), anticipo = ref(null)
-const nov = {}; props.empleados.forEach(e => { nov[e.id] = { dias: 30, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false } })
+const liquidarAbierto = ref(false), importarAbierto = ref(false), pagarAbierto = ref(false), empleadoAbierto = ref(false), conceptosAbierto = ref(false), configAbierto = ref(false), plantillaConfirm = ref(null), detalle = ref(null), anticipo = ref(null)
+const nov = {}; props.empleados.forEach(e => { nov[e.id] = { dias: 30, feriados: 0, vacaciones: 0, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false } })
 const lq = useForm({ periodo: props.periodo, tipo: props.tipo, fecha: '', novedades: nov })
 const im = useForm({ periodo: props.periodo, tipo: 'mensual', csv: '' })
 const pg = useForm({ cuenta_id: props.config?.cuenta_id ?? props.cuentas[0]?.id ?? null, fecha: hoyISO(), cargas: false })
-const ef = useForm({ id: null, nombre: '', cuil: '', fecha_ingreso: hoyISO(), fecha_egreso: '', categoria: '', convenio: '', puesto: '', obra_social: '', sueldo_basico: 0, modalidad: 'mensual', cbu: '', telefono: '', email: '', activo: true })
-function abrirEmpleado(e = null) { ef.clearErrors(); Object.assign(ef, { id: e?.id ?? null, nombre: e?.nombre ?? '', cuil: e?.cuil ?? '', fecha_ingreso: e?.fecha_ingreso ?? hoyISO(), fecha_egreso: '', categoria: e?.categoria ?? '', convenio: e?.convenio ?? '', puesto: e?.puesto ?? '', obra_social: e?.obra_social ?? '', sueldo_basico: e?.sueldo_basico ?? 0, modalidad: e?.modalidad ?? 'mensual', cbu: e?.cbu ?? '', telefono: e?.telefono ?? '', email: e?.email ?? '', activo: e?.activo ?? true }); empleadoAbierto.value = true }
+// Las novedades se arman al abrir: así incluyen a los empleados dados de alta después de cargar la pantalla.
+function abrirLiquidar() { props.empleados.forEach(e => { lq.novedades[e.id] ??= { dias: 30, feriados: 0, vacaciones: 0, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false } }); liquidarAbierto.value = true }
+function ajustarDias(id) { const n = lq.novedades[id]; n.dias = Math.max(0, 30 - (n.feriados || 0) - (n.vacaciones || 0)) }
+const dep = useForm({ deposito_fecha: props.enCurso?.deposito_fecha ?? '', deposito_banco: props.enCurso?.deposito_banco ?? props.config?.deposito_banco ?? '', deposito_periodo: props.enCurso?.deposito_periodo ?? '' })
+const cf = useForm({ ...props.config })
+const ef = useForm({ id: null, nombre: '', cuil: '', documento: '', centro_costo: '', lugar_trabajo: '', jornada: '1', asignados: [], fecha_ingreso: hoyISO(), fecha_egreso: '', categoria: '', convenio: '', puesto: '', obra_social: '', sueldo_basico: 0, modalidad: 'mensual', cbu: '', telefono: '', email: '', activo: true })
+function abrirEmpleado(e = null) { ef.clearErrors(); Object.assign(ef, { id: e?.id ?? null, nombre: e?.nombre ?? '', cuil: e?.cuil ?? '', fecha_ingreso: e?.fecha_ingreso ?? hoyISO(), fecha_egreso: '', categoria: e?.categoria ?? '', convenio: e?.convenio ?? '', puesto: e?.puesto ?? '', obra_social: e?.obra_social ?? '', sueldo_basico: e?.sueldo_basico ?? 0, modalidad: e?.modalidad ?? 'mensual', cbu: e?.cbu ?? '', telefono: e?.telefono ?? '', email: e?.email ?? '', activo: e?.activo ?? true, documento: e?.documento ?? '', centro_costo: e?.centro_costo ?? '', lugar_trabajo: e?.lugar_trabajo ?? '', jornada: e?.jornada ?? '1', asignados: (e?.asignados ?? []).map(a => ({ ...a })) }); empleadoAbierto.value = true }
+const asig = id => ef.asignados.find(a => a.id === id)
+function toggleAsig(id, on) { ef.asignados = on ? [...ef.asignados, { id, valor: null }] : ef.asignados.filter(a => a.id !== id) }
 const conceptosEdit = reactive(props.conceptos.map(c => ({ ...c })))
-const nc = useForm({ codigo: '', nombre: '', tipo: 'haber', modo: 'porcentaje', valor: 0, base: 'basico' })
+const nc = useForm({ codigo: '', nombre: '', tipo: 'haber', modo: 'porcentaje', valor: 0, base: 'BASICO', cantidad: null })
 function leerArchivo(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => (im.csv = r.result); r.readAsText(f, 'utf-8') }
 </script>

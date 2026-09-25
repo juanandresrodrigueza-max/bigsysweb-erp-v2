@@ -27,53 +27,99 @@ class SueldosService
         return SueldoConcepto::where('activo', true)->orderBy('orden')->get();
     }
 
-    // Calcula un recibo. $nov: dias, horas_extra_50, horas_extra_100, adicionales, no_rem_extra, anticipos.
-    public function calcular(Empleado $e, $conceptos, array $nov, string $tipo = 'mensual', ?Carbon $periodo = null): array
+    public const DETRACCION = 7003.68; // Ley 27.541: se descuenta de la base de contribuciones, proporcional a la jornada
+
+    // Redondeo a 2 decimales, mitad hacia arriba, a prueba de errores de coma flotante (54611,295 → 54611,30).
+    private static function r2(float $x): float { return round($x + ($x >= 0 ? 1e-7 : -1e-7), 2); }
+
+    // Calcula un recibo. $nov: dias, feriados, vacaciones, horas_extra_50, horas_extra_100, adicionales, no_rem_extra, anticipos.
+    // Los conceptos se calculan por tipo (haberes, no remunerativos, deducciones, contribuciones) y dentro de cada tipo por orden,
+    // así REM y NOREM ya están completos cuando se calculan los aportes.
+    public function calcular(Empleado $e, $conceptos, array $nov, string $tipo = 'mensual', ?Carbon $periodo = null, array $cfg = []): array
     {
         $periodo ??= today();
         $basico = (float) $e->sueldo_basico;
-        $dias = (int) ($nov['dias'] ?? 30);
-        $det = [];
+        $jornada = (float) ($e->jornada ?: 1);
+        $anios = $e->antiguedadAnios($periodo);
+        $dias = (int) ($nov['dias'] ?? 30); $feriados = (int) ($nov['feriados'] ?? 0); $vacaciones = (int) ($nov['vacaciones'] ?? 0);
+        $cant = ['dias' => $dias, 'feriados' => $feriados, 'vacaciones' => $vacaciones, 'anios' => $anios, 'horas_extra_50' => (float) ($nov['horas_extra_50'] ?? 0), 'horas_extra_100' => (float) ($nov['horas_extra_100'] ?? 0)];
+        $asignados = $e->relationLoaded('conceptos') ? $e->conceptos : $e->conceptos()->get();
+        $det = []; $bruto = 0.0; $noRem = 0.0; $ded = 0.0; $contrib = 0.0;
+        $agregar = function (string $codigo, string $nombre, string $t, float $monto, $cantidad = null, ?string $unidad = null, ?string $grupo = null) use (&$det, &$bruto, &$noRem, &$ded, &$contrib) {
+            $monto = self::r2($monto); if (abs($monto) < 0.005) return;
+            $det[] = ['codigo' => $codigo, 'nombre' => $nombre, 'tipo' => $t, 'monto' => $monto, 'cantidad' => $cantidad, 'unidad' => $unidad, 'grupo' => $grupo];
+            match ($t) { 'haber' => $bruto += $monto, 'no_remunerativo' => $noRem += $monto, 'deduccion' => $ded += $monto, 'contribucion' => $contrib += $monto, default => null };
+        };
+        // Sin un concepto de "días" (conceptos genéricos) el básico se liquida como antes: proporcional a los días.
+        $conDias = $tipo !== 'sac' && $conceptos->contains(fn($c) => $c->tipo === 'haber' && $c->cantidad === 'dias');
+        $basicoHaber = $basico;
         if ($tipo === 'sac') {
-            // Aguinaldo: 50% de la mejor remuneración del semestre (simplificado: básico + antigüedad), proporcional a los días trabajados.
-            $ant = $conceptos->firstWhere('codigo', 'ANT');
-            $mejor = $basico * (1 + ($ant ? (float) $ant->valor * $e->antiguedadAnios($periodo) / 100 : 0));
-            $bruto = round($mejor / 2 * min(1, $dias / 180), 2);
-            $det[] = ['codigo' => 'SAC', 'nombre' => 'Sueldo anual complementario', 'tipo' => 'haber', 'monto' => $bruto];
-        } else {
+            // Aguinaldo: 50 % de la mejor remuneración mensual del semestre, proporcional a los días trabajados.
+            $desde = $periodo->month <= 6 ? $periodo->copy()->startOfYear() : $periodo->copy()->month(7)->startOfMonth();
+            $mejor = (float) LiquidacionItem::where('empleado_id', $e->id)->whereHas('liquidacion', fn($q) => $q->where('tipo', 'mensual')->whereBetween('periodo', [$desde->format('Y-m'), $periodo->format('Y-m')]))->max('bruto');
+            if ($mejor <= 0) { $ant = $conceptos->first(fn($c) => $c->por_anio && $c->tipo === 'haber'); $mejor = $basico * (1 + ($ant ? (float) $ant->valor * $anios / 100 : 0)); }
+            $agregar('SAC', 'Sueldo anual complementario', 'haber', $mejor / 2 * min(1, $dias / 180), $dias);
+        } elseif (! $conDias) {
             $prop = $e->modalidad === 'jornal' ? $dias : min(1, $dias / 30);
-            $b = round($basico * $prop, 2);
-            $det[] = ['codigo' => 'BAS', 'nombre' => $e->modalidad === 'jornal' ? "Jornales ({$dias} días)" : 'Sueldo básico' . ($dias < 30 ? " ({$dias} días)" : ''), 'tipo' => 'haber', 'monto' => $b];
-            $bruto = $b;
-            $valorHora = $basico / 200;
-            if (($h = (float) ($nov['horas_extra_50'] ?? 0)) > 0) { $m = round($h * $valorHora * 1.5, 2); $bruto += $m; $det[] = ['codigo' => 'HE50', 'nombre' => "Horas extra 50% ({$h} h)", 'tipo' => 'haber', 'monto' => $m]; }
-            if (($h = (float) ($nov['horas_extra_100'] ?? 0)) > 0) { $m = round($h * $valorHora * 2, 2); $bruto += $m; $det[] = ['codigo' => 'HE100', 'nombre' => "Horas extra 100% ({$h} h)", 'tipo' => 'haber', 'monto' => $m]; }
-            if (($a = (float) ($nov['adicionales'] ?? 0)) > 0) { $bruto += $a; $det[] = ['codigo' => 'ADI', 'nombre' => 'Adicionales / premios', 'tipo' => 'haber', 'monto' => $a]; }
-            foreach ($conceptos->where('tipo', 'haber') as $c) {
-                $m = $this->monto($c, $b, $bruto, $e, $periodo);
-                if ($m > 0) { $bruto += $m; $det[] = ['codigo' => $c->codigo, 'nombre' => $c->nombre, 'tipo' => 'haber', 'monto' => $m]; }
-            }
+            $basicoHaber = self::r2($basico * $prop);
+            $agregar('BAS', $e->modalidad === 'jornal' ? "Jornales ({$dias} días)" : 'Sueldo básico' . ($dias < 30 ? " ({$dias} días)" : ''), 'haber', $basicoHaber, $dias);
         }
-        $noRem = (float) ($nov['no_rem_extra'] ?? 0);
-        if ($noRem > 0) $det[] = ['codigo' => 'NR', 'nombre' => 'No remunerativo', 'tipo' => 'no_remunerativo', 'monto' => round($noRem, 2)];
-        foreach ($conceptos->where('tipo', 'no_remunerativo') as $c) { $m = $this->monto($c, $basico, $bruto, $e, $periodo); if ($m > 0) { $noRem += $m; $det[] = ['codigo' => $c->codigo, 'nombre' => $c->nombre, 'tipo' => 'no_remunerativo', 'monto' => $m]; } }
-        $ded = 0; $contrib = 0;
-        foreach ($conceptos->where('tipo', 'deduccion') as $c) { $m = $this->monto($c, $basico, $bruto, $e, $periodo); if ($m > 0) { $ded += $m; $det[] = ['codigo' => $c->codigo, 'nombre' => $c->nombre, 'tipo' => 'deduccion', 'monto' => $m]; } }
-        foreach ($conceptos->where('tipo', 'contribucion') as $c) { $m = $this->monto($c, $basico, $bruto, $e, $periodo); if ($m > 0) { $contrib += $m; $det[] = ['codigo' => $c->codigo, 'nombre' => $c->nombre, 'tipo' => 'contribucion', 'monto' => $m]; } }
-        $ant = round((float) ($nov['anticipos'] ?? 0), 2);
-        if ($ant > 0) $det[] = ['codigo' => 'ANTI', 'nombre' => 'Anticipos ya pagados', 'tipo' => 'deduccion', 'monto' => $ant];
-        $neto = round($bruto + $noRem - $ded - $ant, 2);
-        return ['dias' => $dias, 'horas_extra_50' => (float) ($nov['horas_extra_50'] ?? 0), 'horas_extra_100' => (float) ($nov['horas_extra_100'] ?? 0), 'adicionales' => (float) ($nov['adicionales'] ?? 0), 'no_rem_extra' => (float) ($nov['no_rem_extra'] ?? 0), 'anticipos' => $ant,
-            'bruto' => round($bruto, 2), 'no_rem' => round($noRem, 2), 'deducciones' => round($ded, 2), 'neto' => $neto, 'contribuciones' => round($contrib, 2), 'detalle' => $det];
+        if ($tipo !== 'sac') {
+            $valorHora = $basico / 200;
+            if ($cant['horas_extra_50'] > 0) $agregar('HE50', "Horas extra 50% ({$cant['horas_extra_50']} h)", 'haber', $cant['horas_extra_50'] * $valorHora * 1.5, $cant['horas_extra_50']);
+            if ($cant['horas_extra_100'] > 0) $agregar('HE100', "Horas extra 100% ({$cant['horas_extra_100']} h)", 'haber', $cant['horas_extra_100'] * $valorHora * 2, $cant['horas_extra_100']);
+            if (($a = (float) ($nov['adicionales'] ?? 0)) > 0) $agregar('ADI', 'Adicionales / premios', 'haber', $a);
+        }
+        $detraccion = (float) ($cfg['detraccion'] ?? self::DETRACCION);
+        $orden = ['haber' => 0, 'no_remunerativo' => 1, 'deduccion' => 2, 'contribucion' => 3];
+        foreach ($conceptos->sortBy(fn($c) => [$orden[$c->tipo] ?? 9, $c->orden, $c->id]) as $c) {
+            // En el aguinaldo solo corren los aportes y contribuciones porcentuales.
+            if ($tipo === 'sac' && (in_array($c->tipo, ['haber', 'no_remunerativo'], true) || $c->modo !== 'porcentaje')) continue;
+            $asig = $asignados->firstWhere('id', $c->id);
+            if ($c->solo_asignados && ! $asig) continue;
+            if ($c->tipo === 'haber' && $c->cantidad === 'dias' && $tipo === 'sac') continue;
+            $valor = $asig && $asig->pivot->valor !== null ? (float) $asig->pivot->valor : (float) $c->valor;
+            $base = $this->base($c->base, $c->tipo === 'haber' ? $basicoHaber : $basico, $bruto, $noRem, $det);
+            if ($c->jornada_completa && $jornada > 0) $base /= $jornada;
+            if ($c->con_detraccion) $base = max(0, $base - $detraccion * $jornada);
+            $cantidad = $c->cantidad ? ($cant[$c->cantidad] ?? 0) : 1;
+            $monto = match ($c->modo) {
+                'fijo' => $valor * ($c->proporcional_jornada ? $jornada : 1),
+                'division' => $valor > 0 ? $base / $valor * $cantidad : 0,
+                default => $base * $valor * ($c->por_anio ? $anios : 1) / 100,
+            };
+            if ((float) $c->mas_antiguedad > 0) $monto *= 1 + $anios * (float) $c->mas_antiguedad / 100;
+            $agregar($c->codigo, $c->nombre, $c->tipo, $monto, $c->cantidad ? $cantidad : null, $c->etiqueta, $c->grupo);
+        }
+        $noRemExtra = (float) ($nov['no_rem_extra'] ?? 0);
+        if ($noRemExtra > 0) $agregar('NR', 'No remunerativo', 'no_remunerativo', $noRemExtra);
+        $ant = self::r2((float) ($nov['anticipos'] ?? 0));
+        if ($ant > 0) $det[] = ['codigo' => 'ANTI', 'nombre' => 'Anticipos ya pagados', 'tipo' => 'deduccion', 'monto' => $ant, 'cantidad' => null, 'unidad' => null, 'grupo' => null];
+        $neto = self::r2($bruto + $noRem - $ded - $ant);
+        // Redondeo al peso siguiente (como el recibo del estudio): la diferencia va como "redondeo" y suma al neto.
+        $redondeo = 0.0;
+        if (($cfg['redondeo'] ?? 'no') === 'peso' && $neto > 0) {
+            $redondeo = self::r2(ceil(round($neto, 2)) - $neto);
+            if ($redondeo > 0) { $det[] = ['codigo' => $cfg['codigo_redondeo'] ?? 'RED', 'nombre' => 'REDONDEO', 'tipo' => 'redondeo', 'monto' => $redondeo, 'cantidad' => null, 'unidad' => null, 'grupo' => null]; $neto = self::r2($neto + $redondeo); }
+        }
+        return ['dias' => $dias, 'feriados' => $feriados, 'vacaciones' => $vacaciones, 'horas_extra_50' => $cant['horas_extra_50'], 'horas_extra_100' => $cant['horas_extra_100'], 'adicionales' => (float) ($nov['adicionales'] ?? 0), 'no_rem_extra' => $noRemExtra, 'anticipos' => $ant,
+            'bruto' => self::r2($bruto), 'no_rem' => self::r2($noRem), 'deducciones' => self::r2($ded), 'neto' => $neto, 'contribuciones' => self::r2($contrib), 'redondeo' => $redondeo, 'detalle' => $det];
     }
 
-    private function monto(SueldoConcepto $c, float $basico, float $bruto, Empleado $e, Carbon $periodo): float
+    // Base de un concepto: BASICO, REM (remunerativo hasta acá), NOREM o códigos, sumados con "+".
+    private function base(?string $expr, float $basico, float $rem, float $noRem, array $det): float
     {
-        if ($c->modo === 'fijo') return round((float) $c->valor, 2);
-        $base = $c->base === 'bruto' ? $bruto : $basico;
-        $pct = (float) $c->valor;
-        if ($c->codigo === 'ANT') $pct *= $e->antiguedadAnios($periodo); // 1% por año
-        return round($base * $pct / 100, 2);
+        $total = 0.0;
+        foreach (preg_split('/\s*\+\s*/', strtoupper(trim((string) ($expr ?: 'BASICO')))) as $tok) {
+            $total += match ($tok) { 'BASICO', 'BASICO_PROP' => $basico, 'REM', 'BRUTO' => $rem, 'NOREM', 'NR' => $noRem, '' => 0, default => (float) collect($det)->where('codigo', $tok)->sum('monto') };
+        }
+        return $total;
+    }
+
+    // Configuración de sueldos de la empresa (detracción, redondeo, datos del recibo).
+    public function config(Business $b): array
+    {
+        return array_replace(['dia_pago' => 4, 'cuenta_id' => null, 'detraccion' => self::DETRACCION, 'redondeo' => 'no', 'codigo_redondeo' => 'RED', 'actividad' => '', 'convenio' => '', 'obra_social' => '', 'lugar_pago' => '', 'deposito_banco' => ''], (array) ($b->sueldos ?? []));
     }
 
     // Arma o rehace la liquidación en borrador de un período con las novedades por empleado.
@@ -85,12 +131,15 @@ class SueldosService
             $liq->fill(['business_id' => $b->id, 'user_id' => Auth::id(), 'fecha' => $fecha ?: Carbon::parse($periodo . '-01')->endOfMonth()->toDateString(), 'estado' => 'borrador', 'importada' => false])->save();
             $liq->items()->delete();
             $conceptos = $this->conceptos($b);
+            $cfg = $this->config($b);
             $per = Carbon::parse($periodo . '-01')->endOfMonth();
-            foreach (Empleado::where('activo', true)->orderBy('legajo')->get() as $e) {
+            foreach (Empleado::where('activo', true)->with('conceptos')->orderBy('legajo')->get() as $e) {
                 $nov = $novedades[$e->id] ?? [];
                 if (! empty($nov['excluir'])) continue;
-                $liq->items()->create(['empleado_id' => $e->id] + $this->calcular($e, $conceptos, $nov, $tipo, $per));
+                $liq->items()->create(['empleado_id' => $e->id] + $this->calcular($e, $conceptos, $nov, $tipo, $per, $cfg));
             }
+            // Último depósito de aportes (art. 140 LCT): el que se cargó, o el mes anterior con el banco de la configuración.
+            if (! $liq->deposito_periodo) $liq->forceFill(['deposito_periodo' => Carbon::parse($periodo . '-01')->subMonth()->format('Y-m'), 'deposito_banco' => $cfg['deposito_banco'] ?: null])->save();
             $liq->recalcular();
             AuditLog::registrar($liq->wasRecentlyCreated ? 'crear' : 'editar', $liq, "Liquidación {$liq->periodoLabel()} en borrador");
             return $liq->fresh('items.empleado');
