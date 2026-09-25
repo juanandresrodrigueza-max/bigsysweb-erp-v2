@@ -408,6 +408,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/turnos/{id}/cobrar',   [\App\Http\Controllers\AgendaController::class, 'cobrar'])->middleware('permiso:agenda,crear');
     });
 
+    // Documentos adjuntos a clientes, proveedores y artículos
+    Route::get('/documentos/{tipo}/{id}', [\App\Http\Controllers\DocumentosController::class, 'index'])->whereIn('tipo', ['contacto', 'articulo'])->whereNumber('id');
+    Route::post('/documentos/{tipo}/{id}', [\App\Http\Controllers\DocumentosController::class, 'subir'])->whereIn('tipo', ['contacto', 'articulo'])->whereNumber('id');
+    Route::get('/documentos/{doc}/descargar', [\App\Http\Controllers\DocumentosController::class, 'descargar'])->whereNumber('doc');
+    Route::delete('/documentos/{doc}', [\App\Http\Controllers\DocumentosController::class, 'borrar'])->whereNumber('doc');
+
     // Personas de contacto de clientes y proveedores
     Route::get('/contactos/{contacto}/personas', [\App\Http\Controllers\Clientes\PersonasController::class, 'index']);
     Route::post('/contactos/{contacto}/personas/{id?}', [\App\Http\Controllers\Clientes\PersonasController::class, 'guardar']);

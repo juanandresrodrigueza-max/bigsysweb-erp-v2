@@ -22,6 +22,10 @@ En **Stock → ⚙ Rubros y depósitos → editar**, cada rubro tiene **Datos qu
 - **Cuenta de ventas**: las ventas de los artículos del rubro se imputan a esa cuenta en el asiento (el resto va a Ventas).
 - **Percepción especial**: si sos agente y el cliente está alcanzado, los artículos del rubro llevan esa alícuota en vez de la general (la del padrón o la de la ficha del cliente siguen mandando en IIBB).
 
+## Documentos del artículo
+
+Al pie de la ficha del artículo, **Documentos**: fichas técnicas, certificados, manuales y fotos del producto. Se abren con un clic y entran en la copia de seguridad.
+
 ## Movimientos
 
 El stock se mueve solo con cada factura, remito, compra y producción. Para ajustes a mano: **Stock → Movimiento** (entrada, salida, ajuste de inventario, transferencia entre depósitos). Cada movimiento queda con quién lo hizo y por qué.
