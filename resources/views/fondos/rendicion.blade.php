@@ -35,6 +35,15 @@
     @forelse($movs as $m)<tr><td>{{ $m->concepto }}</td><td>{{ $m->origen }}</td><td class="r">{{ $m->ingreso > 0 ? $fmt($m->ingreso) : '' }}</td><td class="r">{{ $m->egreso > 0 ? $fmt($m->egreso) : '' }}</td></tr> @empty<tr><td colspan="4" style="color:#6f6a62">Sin movimientos.</td></tr> @endforelse
     <tr><td colspan="2"><b>Totales</b></td><td class="r"><b>{{ $fmt($movs->sum('ingreso')) }}</b></td><td class="r"><b>{{ $fmt($movs->sum('egreso')) }}</b></td></tr>
   </table></div>
+  @if($t->stock)
+  @php $cn = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ','); $imp = (float) $t->stock_importe; $fac = collect($t->stock)->sum(fn($f) => $f['facturado'] * $f['precio']); @endphp
+  <div class="sec"><h4>Stock final del turno</h4><table>
+    <tr><th>Artículo</th><th class="r">Inicial</th><th class="r">Entró</th><th class="r">Final</th><th class="r">Salió</th><th class="r">Facturado</th><th class="r">Sin facturar</th><th class="r">Importe</th></tr>
+    @foreach($t->stock as $f)<tr><td>{{ $f['nombre'] }}</td><td class="r">{{ $cn($f['inicial']) }}</td><td class="r">{{ $cn($f['entradas'] - $f['otras_salidas']) }}</td><td class="r">{{ $cn($f['final']) }}</td><td class="r">{{ $cn($f['salio']) }}</td><td class="r">{{ $cn($f['facturado']) }}</td><td class="r" style="{{ abs($f['diferencia']) > 0.0005 ? 'color:#e4003f;font-weight:700' : '' }}">{{ $cn($f['diferencia']) }}</td><td class="r">{{ $fmt($f['importe']) }}</td></tr>@endforeach
+    <tr><td colspan="7"><b>Salió por conteo</b> (facturado {{ $fmt($fac) }})</td><td class="r"><b>{{ $fmt($imp) }}</b></td></tr>
+    <tr><td colspan="7"><b>Recaudado − stock</b></td><td class="r" style="{{ abs((float) $t->stock_diferencia) > 0.005 ? 'color:#e4003f' : 'color:#047857' }}"><b>{{ $fmt($t->stock_diferencia) }}</b></td></tr>
+  </table></div>
+  @endif
   @if($t->notas)<div class="sec"><h4>Notas</h4>{{ $t->notas }}</div> @endif
   <div class="firma"><div>Cajero</div><div>Responsable</div></div>
 </div>

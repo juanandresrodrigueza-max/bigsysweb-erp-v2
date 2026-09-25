@@ -36,8 +36,8 @@ class FondosController extends Controller
 
         return Inertia::render('Fondos/Index', [
             'cuentas' => $cuentas->map(fn($c) => ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombre, 'banco' => $c->banco, 'cbu' => $c->cbu, 'alias' => $c->alias, 'saldo' => (float) $c->saldo, 'saldo_minimo' => (float) $c->saldo_minimo, 'activa' => $c->activa, 'es_default' => $c->es_default, 'business_location_id' => $c->business_location_id, 'sucursal' => $c->location?->name,
-                'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial, 'esperado' => $this->service->esperadoPorMedio($c->turnoAbierto)] : null]),
-            'turnosCerrados' => TurnoCaja::whereNotNull('cierre')->with('user:id,name', 'cuenta:id,nombre')->orderByDesc('cierre')->limit(8)->get()->map(fn($t) => ['id' => $t->id, 'caja' => $t->cuenta?->nombre, 'usuario' => $t->user?->name, 'apertura' => $t->apertura->format('d/m H:i'), 'cierre' => $t->cierre->format('d/m H:i'), 'esperado' => (float) $t->saldo_esperado, 'contado' => (float) $t->saldo_contado, 'diferencia' => (float) $t->diferencia]),
+                'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial, 'esperado' => $this->service->esperadoPorMedio($c->turnoAbierto), 'stock' => app(\App\Services\Fondos\StockTurnoService::class)->planilla($c->turnoAbierto), 'cobrado' => (float) $c->turnoAbierto->movimientos()->where('origen', 'cobro')->sum('ingreso')] : null]),
+            'turnosCerrados' => TurnoCaja::whereNotNull('cierre')->with('user:id,name', 'cuenta:id,nombre')->orderByDesc('cierre')->limit(8)->get()->map(fn($t) => ['id' => $t->id, 'caja' => $t->cuenta?->nombre, 'usuario' => $t->user?->name, 'apertura' => $t->apertura->format('d/m H:i'), 'cierre' => $t->cierre->format('d/m H:i'), 'esperado' => (float) $t->saldo_esperado, 'contado' => (float) $t->saldo_contado, 'diferencia' => (float) $t->diferencia, 'stock_diferencia' => $t->stock_diferencia !== null ? (float) $t->stock_diferencia : null]),
             'cuentaActual' => $cuentaId, 'movimientos' => $movs, 'filtros' => $request->only('cuenta', 'desde', 'hasta'),
             'totales' => ['disponible' => (float) $cuentas->where('activa', true)->sum('saldo'), 'cheques_cartera' => (float) $chequesCartera, 'cheques_propios' => (float) $chequesPropios,
                 'ingresos_mes' => (float) MovimientoFondos::whereMonth('fecha', $hoy->month)->whereYear('fecha', $hoy->year)->whereNotIn('origen', ['transferencia', 'apertura'])->sum('ingreso'),
@@ -92,10 +92,20 @@ class FondosController extends Controller
 
     public function cerrarTurno(Request $request, int $id)
     {
-        $data = $request->validate(['saldo_contado' => 'required|numeric|min:0', 'notas' => 'nullable|string|max:500', 'rendicion' => 'nullable|array']);
-        $t = $this->service->cerrarTurno(TurnoCaja::findOrFail($id), (float) $data['saldo_contado'], $data['notas'] ?? null, $data['rendicion'] ?? []);
+        $data = $request->validate(['saldo_contado' => 'required|numeric|min:0', 'notas' => 'nullable|string|max:500', 'rendicion' => 'nullable|array', 'stock' => 'nullable|array', 'stock.*' => 'nullable|numeric|min:0', 'ajustar_stock' => 'boolean']);
+        $turno = TurnoCaja::findOrFail($id);
+        $st = app(\App\Services\Fondos\StockTurnoService::class);
+        $planilla = ! empty($data['stock']) ? $st->planilla($turno) : [];
+        $t = $this->service->cerrarTurno($turno, (float) $data['saldo_contado'], $data['notas'] ?? null, $data['rendicion'] ?? []);
         $dif = (float) $t->diferencia;
-        return back()->with($dif == 0.0 ? 'success' : 'error', 'Turno cerrado. ' . ($dif == 0.0 ? 'Sin diferencias.' : 'Diferencia: $ ' . number_format($dif, 2, ',', '.')));
+        $msg = 'Turno cerrado. ' . ($dif == 0.0 ? 'Caja sin diferencias.' : 'Diferencia de caja: $ ' . number_format($dif, 2, ',', '.') . '.');
+        if ($planilla) {
+            $otros = collect($t->rendicion ?? [])->except('efectivo')->all() + collect($t->esperado_medios ?? [])->except('efectivo')->all();
+            $r = $st->cerrar($t, $data['stock'], $st->recaudacion($t, $dif, $otros), (bool) ($data['ajustar_stock'] ?? true));
+            if ($r['filas']) $msg .= ' Stock: salió $ ' . number_format($r['importe'], 2, ',', '.') . ' por conteo' . (abs($r['faltante']) > 0.005 ? ', $ ' . number_format($r['faltante'], 2, ',', '.') . ' sin facturar' : ', todo facturado') . '.';
+            if ($r['filas'] && abs($r['faltante']) > 0.005) $dif = 1;
+        }
+        return back()->with($dif == 0.0 ? 'success' : 'error', $msg);
     }
 
     public function rendicion(int $id)

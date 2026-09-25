@@ -152,6 +152,29 @@
           <span class="tabular-nums text-right text-xs font-semibold" :class="dif(medio, esp) === null ? 'text-marca-muted' : Math.abs(dif(medio, esp)) < 0.005 ? 'text-emerald-700' : 'text-carmin'">{{ dif(medio, esp) === null ? '' : moneda(dif(medio, esp)) }}</span>
         </div>
       </div>
+      <div v-if="cuenta?.turno?.stock?.length" class="mt-4" data-e2e="stock-turno">
+        <p class="font-bold text-sm">Stock final</p>
+        <p class="text-xs text-marca-muted mb-2">Contá lo que queda de cada artículo. Lo que salió se calcula desde el stock final del turno anterior, más las entradas del turno, y se compara con lo facturado y con lo cobrado.</p>
+        <div class="overflow-x-auto"><table class="table text-xs">
+          <thead><tr><th>Artículo</th><th class="text-right">Inicial</th><th class="text-right">Entró</th><th class="text-right">Facturado</th><th class="text-right">Final contado</th><th class="text-right">Salió</th><th class="text-right">Sin facturar</th></tr></thead>
+          <tbody>
+            <tr v-for="f in cuenta.turno.stock" :key="f.product_id">
+              <td class="font-medium">{{ f.nombre }}<span class="block text-[10px] text-marca-muted">{{ moneda(f.precio) }} · inicial del {{ f.inicial_origen }}</span></td>
+              <td class="text-right tabular-nums">{{ cant(f.inicial) }}</td><td class="text-right tabular-nums">{{ cant(f.entradas - f.otras_salidas) }}</td><td class="text-right tabular-nums">{{ cant(f.facturado) }}</td>
+              <td><input v-model.number="tc.stock[f.product_id]" type="number" step="any" min="0" class="input !py-1 !w-20 text-right ml-auto" :placeholder="cant(f.esperado)" /></td>
+              <td class="text-right tabular-nums">{{ salio(f) === null ? '' : cant(salio(f)) }}</td>
+              <td class="text-right tabular-nums font-semibold" :class="salio(f) === null ? '' : Math.abs(salio(f) - f.facturado) < 0.0005 ? 'text-emerald-700' : 'text-carmin'">{{ salio(f) === null ? '' : cant(salio(f) - f.facturado) }}</td>
+            </tr>
+          </tbody>
+        </table></div>
+        <div class="grid sm:grid-cols-3 gap-2 mt-2 text-xs">
+          <div class="rounded-lg bg-gris-light/60 px-3 py-2">Salió por conteo<b class="block text-sm tabular-nums">{{ moneda(stockTot.importe) }}</b></div>
+          <div class="rounded-lg bg-gris-light/60 px-3 py-2">Recaudado en el turno<b class="block text-sm tabular-nums">{{ moneda(recaudado) }}</b></div>
+          <div class="rounded-lg px-3 py-2" :class="Math.abs(recaudado - stockTot.importe) < 0.005 ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin'">Recaudado − stock<b class="block text-sm tabular-nums" data-e2e="dif-stock">{{ moneda(recaudado - stockTot.importe) }}</b></div>
+        </div>
+        <p class="text-[11px] text-marca-muted mt-1">"Sin facturar" es mercadería que salió y no está en ninguna venta. "Recaudado − stock" cierra en cero cuando todo lo que vendés se cuenta; si también vendés artículos que no se cuentan, la diferencia incluye esas ventas.</p>
+        <label class="flex items-center gap-2 text-xs mt-2"><input v-model="tc.ajustar_stock" type="checkbox" class="accent-carmin" /> Dejar el stock del sistema igual a lo contado</label>
+      </div>
       <label class="label mt-3">Notas</label><input v-model="tc.notas" class="input" />
       <template #pie><button class="btn-secondary" @click="cierreAbierto = false">Cancelar</button><button class="btn-violeta" :disabled="tc.processing" @click="tc.post(`/fondos/turnos/${cuenta.turno.id}/cerrar`, { preserveScroll: true, onSuccess: () => (cierreAbierto = false) })">Cerrar turno</button></template>
     </Modal>
@@ -202,6 +225,11 @@ const turnoAbierto = ref(false), cierreAbierto = ref(false), catAbierto = ref(fa
 const aq = useForm({ contado: null, notas: '' })
 const rt = useForm({ monto: null, destino_id: props.cuentas.find(c => c.tipo === 'banco')?.id ?? null, referencia: '' })
 const ta = useForm({ saldo_inicial: 0 })
-const tc = useForm({ saldo_contado: null, notas: '', rendicion: {} })
+const tc = useForm({ saldo_contado: null, notas: '', rendicion: {}, stock: {}, ajustar_stock: true })
+const cant = n => (Math.round(Number(n) * 1000) / 1000).toLocaleString('es-AR')
+const salio = f => { const v = tc.stock[f.product_id]; return v === undefined || v === null || v === '' ? null : Math.round((f.inicial + f.entradas - f.otras_salidas - v) * 1000) / 1000 }
+const stockTot = computed(() => ({ importe: (cuenta.value?.turno?.stock ?? []).reduce((a, f) => a + (salio(f) ?? 0) * f.precio, 0) }))
+// Recaudación del turno: efectivo cobrado corregido por la diferencia de caja + lo declarado (o esperado) en los otros medios.
+const recaudado = computed(() => { const t = cuenta.value?.turno; if (!t) return 0; const efe = tc.saldo_contado === null || tc.saldo_contado === '' ? 0 : tc.saldo_contado - (t.esperado.efectivo ?? 0); return t.cobrado + efe + Object.entries(t.esperado).filter(([m]) => m !== 'efectivo').reduce((a, [m, e]) => a + (tc.rendicion[m] === undefined || tc.rendicion[m] === '' || tc.rendicion[m] === null ? e : Number(tc.rendicion[m])), 0) })
 const cat = useForm({ name: '', color: '#4f3089', tipo_costo: null, imputacion: null })
 </script>
