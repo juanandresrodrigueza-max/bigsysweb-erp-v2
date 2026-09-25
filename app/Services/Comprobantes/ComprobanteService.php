@@ -100,6 +100,7 @@ class ComprobanteService
                     'product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'),
                     'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'costo_unit' => $product?->costoPesos(),
                     'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'origen_item_id' => $it['origen_item_id'] ?? null, ...$calc,
+                    'lote_id' => ! empty($it['lote_id']) && $product && \App\Models\Lote::where('product_id', $product->id)->whereKey($it['lote_id'])->exists() ? (int) $it['lote_id'] : null,
                 ]);
             }
 
@@ -385,11 +386,15 @@ class ComprobanteService
         }
         $sentido = $c->esNotaCredito() ? 1 : -1; // NC devuelve mercadería
         $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
+        // Lotes (Fase 27.1): la venta sale del lote elegido o por vencimiento; vencidos y bloqueados no se venden si la empresa
+        // lo tiene activo. La nota de crédito devuelve a los lotes de la factura original.
+        $estricto = app(\App\Services\Stock\LotesService::class)->config($c->business)['bloquear_vencidos'];
         foreach ($c->items as $it) {
             if (! $it->product_id || ! ($p = Product::find($it->product_id))) {
                 continue;
             }
-            $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "{$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id);
+            $lote = $sentido < 0 ? ['lote_id' => $it->lote_id, 'serie' => $it->serie ?: null, 'estricto' => $estricto] : ($c->origen ? ['devolver_de' => $c->origen] : []);
+            $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "{$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id, $lote);
         }
         $c->forceFill(['stock_impactado' => true])->save();
     }
@@ -402,7 +407,9 @@ class ComprobanteService
             if (! $it->product_id || ! ($p = Product::find($it->product_id))) {
                 continue;
             }
-            $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Anulación {$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id);
+            // Anular una venta devuelve a los mismos lotes; anular una nota de crédito los vuelve a sacar (sin frenar por vencidos).
+            $lote = $sentido > 0 ? ['devolver_de' => $c] : ['permitir_vencidos' => true, 'incluir_bloqueados' => true];
+            $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Anulación {$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id, $lote);
         }
         $c->forceFill(['stock_impactado' => false])->save();
     }
