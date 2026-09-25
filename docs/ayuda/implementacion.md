@@ -65,6 +65,7 @@ Tené a mano:
 2. **Configuración → Empresa → Avisos al dueño**: resumen diario por WhatsApp y alertas críticas.
 3. **Contable → Contador**: dale acceso al estudio con su email. Ve libros, exportaciones y todo lo que necesita cada mes sin pedirte nada.
 4. **Configuración → Copias de seguridad**: verificá que la copia automática esté encendida y bajá una para guardarla afuera.
+5. **Sueldos** (si liquidás en el sistema): cargá la plantilla de tu convenio en Conceptos (Comercio viene lista), completá en Configuración la actividad, el convenio y el banco de depósito, y cargá los empleados con básico, jornada y fecha de ingreso. Liquidá un mes que ya tengas hecho por el estudio y compará recibo contra recibo antes de dejar el sistema anterior.
 
 ## El corte con el sistema anterior
 
