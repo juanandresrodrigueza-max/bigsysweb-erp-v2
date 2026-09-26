@@ -1,0 +1,22 @@
+// Fase 27.5: centro de etiquetas: góndola con precio por kilo, oferta y ZPL para Zebra.
+import { execSync } from 'node:child_process'
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+execSync(`php artisan tinker --execute 'App\\Models\\Product::withoutGlobalScopes()->where("business_id",1)->where("controla_stock",1)->orderBy("id")->first()?->update(["contenido_neto"=>500,"contenido_unidad"=>"g","precio_actualizado_en"=>now()]);'`, { stdio: 'ignore' })
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'etq-' + n)
+await _login(page, 'demo@bigsys.com.ar')
+await page.click('button:has-text("Saltar")').catch(() => {})
+await page.goto(`${BASE}/stock/etiquetas`); await idle()
+await page.click('[data-e2e="cambios"]'); await idle(); await page.waitForTimeout(500)
+console.log('  precios cambiados:', await page.locator('tbody tr').count(), 'artículos')
+await page.locator('tbody tr').first().locator('input[type=checkbox]').check()
+await page.selectOption('[data-e2e="diseno"]', 'gondola'); await page.waitForTimeout(300)
+console.log('  góndola con precio por medida:', (await page.locator('[data-e2e="preview"] .et-medida').innerText().catch(() => '—')).trim())
+await shot('01-gondola')
+await page.selectOption('[data-e2e="diseno"]', 'oferta'); await page.fill('[data-e2e="descuento"]', '20'); await page.waitForTimeout(300)
+console.log('  oferta: antes', (await page.locator('[data-e2e="preview"] .et-antes').innerText()).trim(), '· ahora', (await page.locator('[data-e2e="preview"] .et-pre').innerText()).trim())
+await shot('02-oferta')
+const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-e2e="zpl"]')])
+const fs = await import('node:fs'); const zpl = fs.readFileSync(await dl.path(), 'utf8')
+console.log('  ZPL:', zpl.startsWith('^XA') && zpl.includes('^XZ') ? 'ok' : 'mal', '·', (zpl.match(/\^XA/g) || []).length, 'etiqueta(s)')
+await fin(browser)

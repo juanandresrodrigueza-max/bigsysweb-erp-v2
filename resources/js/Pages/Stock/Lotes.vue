@@ -50,6 +50,7 @@
           <button v-if="sel.estado !== 'disponible'" class="btn-secondary !py-1 text-xs" @click="cambiar('disponible')">Habilitar para la venta</button>
           <button class="btn-secondary !py-1 text-xs" data-e2e="baja" @click="baja.abierto = true">Dar de baja</button>
           <a :href="`/stock/lotes/${sel.id}/retiro.csv`" class="btn-ghost !py-1 text-xs">Planilla de clientes</a>
+          <Link :href="`/stock/etiquetas?lotes=${sel.id}`" class="btn-ghost !py-1 text-xs">Etiquetas del lote</Link>
         </div>
         <div v-if="accion" class="rounded-xl border border-amber-300 bg-amber-50 p-3 mb-3 text-sm flex flex-wrap items-end gap-2">
           <div class="flex-1 min-w-[14rem]"><label class="label">Motivo</label><input v-model="motivo" class="input !py-1.5" :placeholder="accion === 'retirado' ? 'Disposición ANMAT, alerta del proveedor…' : 'Control de calidad, envase dañado…'" /></div>

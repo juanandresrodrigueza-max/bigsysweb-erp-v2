@@ -48,14 +48,44 @@ class InformesController extends Controller
         return back()->with('success', "Stock mínimo actualizado en {$n} artículos.");
     }
 
+    // Centro de etiquetas (Fase 27.5): artículos, una compra recibida, cambios de precio, lotes o números de serie.
     public function etiquetas(Request $request)
     {
-        $ids = array_filter(array_map('intval', explode(',', (string) $request->ids)));
-        $q = Product::with('rubro:id,nombre')->where('active', true)->when($ids, fn($q) => $q->whereIn('id', $ids))->when($request->rubro, fn($q, $r) => $q->where('rubro_id', $r))->when($request->q, fn($q, $s) => $q->where(fn($w) => $w->where('name', 'like', "%{$s}%")->orWhere('sku', 'like', "%{$s}%")->orWhere('barcode', 'like', "%{$s}%")))->orderBy('name')->limit(300);
+        $lista = max(1, min(6, (int) ($request->lista ?: 1)));
+        $b = $request->user()->business;
+        $fila = function (Product $p, array $extra = []) use ($lista) {
+            $precio = $p->precioLista($lista);
+            return array_replace(['k' => $p->id . '-' . ($extra['lote_id'] ?? '') . '-' . ($extra['serie'] ?? ''), 'id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode ?: $p->sku, 'precio' => $precio, 'medida' => $p->precioPorMedida($precio),
+                'contenido' => $p->contenido_neto ? rtrim(rtrim(number_format((float) $p->contenido_neto, 3, ',', '.'), '0'), ',') . ' ' . $p->contenido_unidad : null, 'rubro' => $p->rubro?->nombre, 'unit' => $p->unit, 'cantidad' => 1, 'lote' => null, 'vence' => null, 'serie' => null], $extra);
+        };
+        $origen = null;
+        if ($request->compra) {
+            $c = \App\Models\Comprobante::compras()->with('items.product.rubro', 'contact:id,name')->findOrFail($request->compra);
+            $origen = "{$c->nombreTipo()} {$c->numeroFormateado()} · {$c->contact?->name}";
+            $filas = collect();
+            foreach ($c->items as $it) {
+                if (! $it->product) continue;
+                $series = \App\Services\Stock\LotesService::series($it->serie);
+                if ($it->product->seriado && $series) foreach ($series as $sn) $filas->push($fila($it->product, ['serie' => $sn, 'lote' => $it->lote, 'vence' => $it->vencimiento ? \Carbon\Carbon::parse($it->vencimiento)->format('d/m/Y') : null]));
+                else $filas->push($fila($it->product, ['cantidad' => $it->product->unit === 'kg' ? 1 : max(1, (int) round((float) $it->cantidad)), 'lote' => $it->lote, 'vence' => $it->vencimiento ? \Carbon\Carbon::parse($it->vencimiento)->format('d/m/Y') : null]));
+            }
+        } elseif ($request->lotes) {
+            $ls = Lote::with('product.rubro')->whereIn('id', array_map('intval', explode(',', (string) $request->lotes)))->get();
+            $origen = 'Lotes y series elegidos';
+            $filas = $ls->filter(fn($l) => $l->product)->map(fn($l) => $fila($l->product, ['lote_id' => $l->id, 'lote' => $l->lote, 'serie' => $l->serie, 'vence' => $l->vencimiento?->format('d/m/Y'), 'cantidad' => $l->serie ? 1 : max(1, (int) round((float) $l->cantidad))]));
+        } elseif ($request->cambios) {
+            $dias = max(1, (int) $request->cambios);
+            $origen = "Precios cambiados en los últimos {$dias} días";
+            $filas = Product::with('rubro:id,nombre')->where('active', true)->where('precio_actualizado_en', '>=', now()->subDays($dias))->orderBy('name')->limit(500)->get()->map(fn($p) => $fila($p));
+        } else {
+            $ids = array_filter(array_map('intval', explode(',', (string) $request->ids)));
+            $filas = Product::with('rubro:id,nombre')->where('active', true)->when($ids, fn($q) => $q->whereIn('id', $ids))->when($request->rubro, fn($q, $r) => $q->where('rubro_id', $r))
+                ->when($request->q, fn($q, $s) => $q->where(fn($w) => $w->where('name', 'like', "%{$s}%")->orWhere('sku', 'like', "%{$s}%")->orWhere('barcode', 'like', "%{$s}%")))->orderBy('name')->limit(300)->get()->map(fn($p) => $fila($p));
+        }
         return Inertia::render('Stock/Etiquetas', [
-            'articulos' => $q->get()->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode ?: $p->sku, 'precio' => $p->precioLista(1), 'rubro' => $p->rubro?->nombre, 'unit' => $p->unit]),
-            'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre']), 'filtros' => $request->only('rubro', 'q', 'ids'),
-            'empresa' => $request->user()->business->only('name'),
+            'articulos' => $filas->values(), 'origen' => $origen, 'preseleccion' => (bool) ($origen || $request->ids),
+            'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre']), 'filtros' => $request->only('rubro', 'q', 'ids', 'lista', 'compra', 'lotes', 'cambios'),
+            'empresa' => $b->only('name') + ['color' => $b->marcaImpresion()['color_primario'] ?? '#e4003f', 'texto' => $b->marcaImpresion()['texto_primario'] ?? '#ffffff'],
         ]);
     }
 
