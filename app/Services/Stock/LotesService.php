@@ -15,7 +15,9 @@ use Illuminate\Validation\ValidationException;
 // indicada). Cada entrada y salida queda en lote_movimientos para la trazabilidad (de qué proveedor vino, a qué cliente fue).
 class LotesService
 {
-    public const DEFAULT = ['bloquear_vencidos' => true, 'dias_aviso' => 30];
+    public const DEFAULT = ['bloquear_vencidos' => true, 'dias_aviso' => 30, 'exigir_serie' => true];
+
+    public static function series(?string $s): array { return array_values(array_unique(array_filter(array_map('trim', preg_split('/[,;\n]+/', (string) $s))))); }
 
     public function config(?Business $b): array
     {
@@ -49,7 +51,8 @@ class LotesService
         $permitirVencidos = (bool) ($o['permitir_vencidos'] ?? false);
         $q = Lote::where('product_id', $p->id)->where('cantidad', '>', 0)->when($dep, fn($q) => $q->where('deposito_id', $dep->id));
         if (empty($o['incluir_bloqueados'])) $q->where('estado', 'disponible');
-        if ($serie) $q->where('serie', $serie);
+        $series = ! empty($o['series']) ? array_values(array_filter(array_map('trim', (array) $o['series']))) : ($serie ? array_values(array_filter(array_map('trim', preg_split('/[,;\n]+/', $serie)))) : []);
+        if ($series) $q->whereIn('serie', $series);
         if (! empty($o['lote_id'])) $q->where('id', $o['lote_id']);
         if (! $permitirVencidos) $q->where(fn($w) => $w->whereNull('vencimiento')->orWhere('vencimiento', '>=', $hoy));
         // FEFO: primero lo que vence antes; los sin fecha después; (si se permiten) los vencidos primero, para sacarlos.

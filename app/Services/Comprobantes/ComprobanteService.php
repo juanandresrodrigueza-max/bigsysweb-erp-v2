@@ -100,6 +100,7 @@ class ComprobanteService
                     'product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'),
                     'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'costo_unit' => $product?->costoPesos(),
                     'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'origen_item_id' => $it['origen_item_id'] ?? null, ...$calc,
+                    'serie' => ! empty($it['serie']) ? implode(', ', \App\Services\Stock\LotesService::series($it['serie'])) : null,
                     'lote_id' => ! empty($it['lote_id']) && $product && \App\Models\Lote::where('product_id', $product->id)->whereKey($it['lote_id'])->exists() ? (int) $it['lote_id'] : null,
                 ]);
             }
@@ -388,15 +389,42 @@ class ComprobanteService
         $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
         // Lotes (Fase 27.1): la venta sale del lote elegido o por vencimiento; vencidos y bloqueados no se venden si la empresa
         // lo tiene activo. La nota de crédito devuelve a los lotes de la factura original.
-        $estricto = app(\App\Services\Stock\LotesService::class)->config($c->business)['bloquear_vencidos'];
+        $cfgL = app(\App\Services\Stock\LotesService::class)->config($c->business);
+        $estricto = $cfgL['bloquear_vencidos'];
         foreach ($c->items as $it) {
             if (! $it->product_id || ! ($p = Product::find($it->product_id))) {
                 continue;
             }
-            $lote = $sentido < 0 ? ['lote_id' => $it->lote_id, 'serie' => $it->serie ?: null, 'estricto' => $estricto] : ($c->origen ? ['devolver_de' => $c->origen] : []);
+            // Números de serie (Fase 27.2): la venta de un artículo con serie lleva una por unidad y tienen que estar en stock.
+            $series = \App\Services\Stock\LotesService::series($it->serie);
+            if ($sentido < 0 && $p->seriado) $this->validarSeries($p, $deposito, $series, (float) $it->cantidad, (bool) $cfgL['exigir_serie']);
+            $lote = $sentido < 0 ? ['lote_id' => $it->lote_id, 'series' => $series, 'estricto' => $estricto || ($p->seriado && $series)] : ($c->origen ? ['devolver_de' => $c->origen] : []);
             $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "{$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id, $lote);
+            if ($p->seriado) $this->marcarSeries($c, $p, $sentido);
         }
         $c->forceFill(['stock_impactado' => true])->save();
+    }
+
+    private function validarSeries(Product $p, ?\App\Models\Deposito $dep, array $series, float $cantidad, bool $exigir): void
+    {
+        $n = (int) round($cantidad);
+        if ($exigir && count($series) !== $n) throw ValidationException::withMessages(['items' => "{$p->name} lleva número de serie: cargá " . ($n === 1 ? 'la serie' : "las {$n} series") . ' (cargaste ' . count($series) . ').']);
+        if (! $series) return;
+        $hay = \App\Models\Lote::where('product_id', $p->id)->whereIn('serie', $series)->where('cantidad', '>', 0)->where('estado', 'disponible')->when($dep, fn($q) => $q->where('deposito_id', $dep->id))->pluck('serie')->all();
+        $faltan = array_values(array_diff($series, $hay));
+        if ($faltan) {
+            $vendida = \App\Models\Lote::with('cliente:id,name')->where('product_id', $p->id)->whereIn('serie', $faltan)->first();
+            throw ValidationException::withMessages(['items' => "{$p->name}: la serie " . implode(', ', $faltan) . ' no está en stock' . ($vendida?->cliente ? " (se vendió a {$vendida->cliente->name})" : ($vendida && $vendida->estado !== 'disponible' ? ' (está bloqueada)' : '')) . '.']);
+        }
+    }
+
+    // Cada serie vendida queda con el cliente, el comprobante, la fecha y la garantía; una devolución las libera.
+    private function marcarSeries(Comprobante $c, Product $p, int $sentido): void
+    {
+        $ids = \App\Models\LoteMovimiento::where('movable_type', Comprobante::class)->where('movable_id', $c->id)->where('product_id', $p->id)->where('cantidad', $sentido < 0 ? '<' : '>', 0)->pluck('lote_id');
+        $q = \App\Models\Lote::whereIn('id', $ids)->whereNotNull('serie');
+        if ($sentido < 0) $q->update(['cliente_id' => $c->contact_id, 'comprobante_venta_id' => $c->id, 'vendido_en' => $c->fecha?->toDateString(), 'garantia_hasta' => $p->garantia_meses ? $c->fecha?->copy()->addMonthsNoOverflow($p->garantia_meses)->toDateString() : null]);
+        else $q->update(['cliente_id' => null, 'comprobante_venta_id' => null, 'vendido_en' => null, 'garantia_hasta' => null]);
     }
 
     private function revertirStock(Comprobante $c): void
@@ -410,6 +438,7 @@ class ComprobanteService
             // Anular una venta devuelve a los mismos lotes; anular una nota de crédito los vuelve a sacar (sin frenar por vencidos).
             $lote = $sentido > 0 ? ['devolver_de' => $c] : ['permitir_vencidos' => true, 'incluir_bloqueados' => true];
             $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Anulación {$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id, $lote);
+            if ($p->seriado && $sentido > 0) \App\Models\Lote::where('comprobante_venta_id', $c->id)->where('product_id', $p->id)->update(['cliente_id' => null, 'comprobante_venta_id' => null, 'vendido_en' => null, 'garantia_hasta' => null]);
         }
         $c->forceFill(['stock_impactado' => false])->save();
     }

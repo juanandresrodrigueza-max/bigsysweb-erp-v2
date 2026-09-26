@@ -310,6 +310,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::get('/series',                    [\App\Http\Controllers\Stock\SeriesController::class, 'index']);
+        Route::get('/series/{id}',               [\App\Http\Controllers\Stock\SeriesController::class, 'ver'])->whereNumber('id');
+        Route::post('/series/{id}/servicio',     [\App\Http\Controllers\Stock\SeriesController::class, 'servicio'])->middleware('permiso:servicios,crear');
         Route::get('/almacen',                   [\App\Http\Controllers\Stock\AlmacenController::class, 'index']);
         Route::get('/almacen/escanear',          [\App\Http\Controllers\Stock\AlmacenController::class, 'escanear']);
         Route::get('/almacen/etiquetas',         [\App\Http\Controllers\Stock\AlmacenController::class, 'etiquetas']);
@@ -513,6 +516,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::prefix($v)->middleware("permiso:{$v}")->group(function () use ($v) {
             Route::get('/',            [\App\Http\Controllers\Pos\PosController::class, 'index']);
             Route::get('/buscar',      [\App\Http\Controllers\Pos\PosController::class, 'buscar']);
+            Route::get('/serie',       [\App\Http\Controllers\Pos\PosController::class, 'serie']);
             Route::post('/vender',     [\App\Http\Controllers\Pos\PosController::class, 'vender'])->middleware("permiso:{$v},crear");
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
             Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);

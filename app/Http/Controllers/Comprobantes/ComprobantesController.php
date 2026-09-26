@@ -269,6 +269,7 @@ class ComprobantesController extends Controller
             'items'           => 'required|array|min:1',
             'items.*.product_id'   => 'nullable|integer|exists:products,id',
             'items.*.lote_id'      => 'nullable|integer',
+            'items.*.serie'        => 'nullable|string|max:2000',
             'items.*.descripcion'  => 'nullable|string|max:255',
             'items.*.cantidad'     => 'required|numeric|gt:0',
             'items.*.unidad'       => 'nullable|string|max:10',

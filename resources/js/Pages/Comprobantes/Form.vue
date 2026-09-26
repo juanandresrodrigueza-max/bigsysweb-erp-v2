@@ -108,6 +108,7 @@
                     <input v-if="!it.product_id" v-model="it.descripcion" class="input mt-1 !py-1 text-xs" placeholder="Descripción libre" />
                     <p v-else class="text-[11px] text-marca-muted mt-1">{{ it.descripcion }} <span v-if="origenDe(it)" class="badge bg-violeta/10 text-violeta !text-[10px] !py-0" data-origen-precio>{{ origenDe(it) }}</span> <span v-if="stockDe(it) !== null" :class="stockDe(it) < it.cantidad ? 'text-carmin font-semibold' : ''">· stock {{ cantidad(stockDe(it)) }}</span></p>
                     <select v-if="it.product_id && esPerecedero(it) && esFiscalOVenta" v-model="it.lote_id" class="input !py-0.5 mt-1 text-[11px]" data-e2e="lote-linea" @focus="cargarLotes(it.product_id)"><option :value="null">Lote: automático (sale lo que vence primero)</option><option v-for="l in lotesDe[it.product_id] ?? []" :key="l.id" :value="l.id">{{ l.etiqueta }} · {{ cantidad(l.cantidad) }} disp.{{ l.deposito ? ' · ' + l.deposito : '' }}</option></select>
+                    <template v-if="it.product_id && esSeriado(it) && esFiscalOVenta"><input v-model="it.serie" :list="`series-${it.product_id}`" class="input !py-0.5 mt-1 text-[11px] font-mono" :class="seriesDe(it).length !== Math.round(Number(it.cantidad) || 0) ? 'border-amber-400' : ''" placeholder="N° de serie (una por unidad, separadas por coma)" data-e2e="serie-linea" @focus="cargarLotes(it.product_id)" /><datalist :id="`series-${it.product_id}`"><option v-for="l in (lotesDe[it.product_id] ?? []).filter(x => x.serie)" :key="l.id" :value="l.serie" /></datalist><span class="text-[10px]" :class="seriesDe(it).length !== Math.round(Number(it.cantidad) || 0) ? 'text-amber-700' : 'text-emerald-700'">{{ seriesDe(it).length }} de {{ Math.round(Number(it.cantidad) || 0) }} series</span></template>
                   </td>
                   <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" :data-cant="i" @focus.once="it._cantPrev = it.cantidad" @change="alCambiarCantidad(it)" @keydown.enter.prevent="enfocar(i, 'precio')" @focus="$event.target.select()" /></td>
                   <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" :data-precio="i" @keydown.enter.prevent="siguienteFila(i)" @focus="$event.target.select()" /></td>
@@ -289,7 +290,9 @@ function alCambiarCantidad(it) {
 const origenDe = it => { const p = productosCat.value.find(x => x.id === it.product_id); return p ? condPara(p, it.cantidad).origen : null }
 const opcionesProductos = computed(() => productosCat.value.map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: moneda(condPara(p).precio) + (condPara(p).origen ? ` · ${condPara(p).origen}` : ''), precios: p.precios, rubro_id: p.rubro_id, unit: p.unit, iva: p.iva, stock: p.stock, sugerido: p.sugerido })))
 // Lotes (Fase 27.1): en artículos perecederos se puede elegir de qué lote sale; si no, sale lo que vence primero.
-const esPerecedero = it => !!productosCat.value.find(p => p.id === it.product_id)?.perecedero
+const esPerecedero = it => !!productosCat.value.find(p => p.id === it.product_id)?.perecedero && !esSeriado(it)
+const esSeriado = it => !!productosCat.value.find(p => p.id === it.product_id)?.seriado
+const seriesDe = it => (it.serie || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)
 const esFiscalOVenta = computed(() => !['PRE', 'NCX', 'NCA', 'NCB', 'NCC'].includes(form.tipo))
 const lotesDe = reactive({})
 async function cargarLotes(id) { if (lotesDe[id]) return; try { lotesDe[id] = (await window.axios.get(`/stock/lotes/de/${id}`)).data } catch (e) { lotesDe[id] = [] } }

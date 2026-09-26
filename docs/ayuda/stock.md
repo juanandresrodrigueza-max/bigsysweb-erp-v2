@@ -12,6 +12,18 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+## Números de serie (Stock → Números de serie)
+
+Para electrónica, celulares, herramientas y todo lo que se identifica por unidad. En la ficha del artículo tildá **Con número de serie** y poné la **garantía en meses**.
+
+- **Compra**: en cada renglón cargás las series recibidas (una por unidad, separadas por coma o una por línea; la pistola las carga seguidas).
+- **Venta**: el artículo pide **una serie por unidad** y tiene que estar en stock. Si no está, la factura avisa por qué (por ejemplo "se vendió a López"). En el **punto de venta** alcanza con escanear la etiqueta de la serie: suma ese artículo con esa unidad.
+- Al vender, cada serie queda con **el cliente, el comprobante, la fecha y la garantía** (fecha de venta + meses de garantía).
+- **Ficha del equipo**: buscás la serie (o el cliente, o el artículo) y ves de qué proveedor vino, a quién se vendió, hasta cuándo tiene garantía y sus services anteriores.
+- **Service**: desde la ficha, **Ingresar a servicio técnico** crea la orden con el cliente, el equipo y la serie, y aclara si está **en garantía**.
+- Las **notas de crédito** y las **anulaciones** devuelven la serie al stock y la liberan.
+- Si no querés exigir la serie en cada venta, se desactiva en Stock → Lotes y vencimientos → Configuración.
+
 ## Almacén: ubicaciones y pistola (Stock → Almacén)
 
 Cada depósito se arma en **ubicaciones** (pasillo, estante, nivel) con su código de barras, y el sistema sabe qué hay en cada una. Lo que todavía no está en ningún lugar aparece en **Sin ubicar**.

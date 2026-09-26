@@ -84,6 +84,7 @@
     <Modal :abierto="cfgAbierto" titulo="Configuración de lotes" @cerrar="cfgAbierto = false">
       <label class="flex items-center gap-2 text-sm"><input v-model="cfg.bloquear_vencidos" type="checkbox" class="accent-carmin" /> No dejar vender lotes vencidos ni bloqueados</label>
       <p class="text-xs text-marca-muted mt-1 mb-3">Si no hay stock vendible, la factura avisa qué lotes están trabados.</p>
+      <label class="flex items-center gap-2 text-sm mb-3"><input v-model="cfg.exigir_serie" type="checkbox" class="accent-carmin" /> Exigir el número de serie en cada venta de artículos con serie</label>
       <label class="label">Avisar cuando falten (días)</label><input v-model.number="cfg.dias_aviso" type="number" min="1" max="365" class="input !w-32" />
       <template #pie><button class="btn-secondary" @click="cfgAbierto = false">Cancelar</button><button class="btn-primary" @click="cfg.post('/stock/lotes/config', { preserveScroll: true, onSuccess: () => (cfgAbierto = false) })">Guardar</button></template>
     </Modal>
