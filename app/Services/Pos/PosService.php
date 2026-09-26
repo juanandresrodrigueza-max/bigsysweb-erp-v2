@@ -43,7 +43,7 @@ class PosService
                 $al = $tipo === 'FC' ? 0 : (float) ($i['alicuota_iva'] ?? $p?->iva ?? 21);
                 $precio = (float) $i['precio_unit'];
                 if ($conIva && $al > 0) $precio = round($precio / (1 + $al / 100), 4);
-                return ['product_id' => $p?->id, 'descripcion' => $i['descripcion'] ?? null, 'cantidad' => $i['cantidad'], 'precio_unit' => $precio, 'descuento' => $i['descuento'] ?? 0, 'alicuota_iva' => $al];
+                return ['product_id' => $p?->id, 'descripcion' => $i['descripcion'] ?? null, 'cantidad' => $i['cantidad'], 'precio_unit' => $precio, 'descuento' => $i['descuento'] ?? 0, 'alicuota_iva' => $al, 'serie' => $i['serie'] ?? null];
             })->all();
 
             $c = $this->comprobantes->guardarBorrador([

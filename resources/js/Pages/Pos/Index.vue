@@ -52,7 +52,8 @@
         </div>
         <div class="flex-1 overflow-y-auto">
           <div v-for="(it, i) in ticket" :key="i" class="flex items-center gap-2 px-4 py-2 border-b border-marca-borde/60 text-sm">
-            <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ it.descripcion }}</p><p class="text-xs text-marca-muted tabular-nums">{{ moneda(it.precio_unit) }} c/u<span v-if="it.descuento"> · −{{ it.descuento }}%</span></p></div>
+            <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ it.descripcion }}</p><p class="text-xs text-marca-muted tabular-nums">{{ moneda(it.precio_unit) }} c/u<span v-if="it.descuento"> · −{{ it.descuento }}%</span></p>
+              <input v-if="it.seriado" v-model="it.serie" class="input !py-0.5 mt-0.5 text-[11px] font-mono" :class="(it.serie || '').split(',').filter(x => x.trim()).length !== Math.round(it.cantidad) ? 'border-amber-400' : ''" placeholder="Serie(s), separadas por coma" data-e2e="pos-serie" /></div>
             <div class="flex items-center gap-1"><button @click="it.cantidad = Math.max(0, it.cantidad - 1); if (!it.cantidad) ticket.splice(i, 1)" class="w-7 h-7 rounded-lg bg-marca-fondo font-bold">−</button><input v-model.number="it.cantidad" type="number" step="any" min="0" class="input !py-1 w-16 text-center tabular-nums" /><button @click="it.cantidad++" class="w-7 h-7 rounded-lg bg-marca-fondo font-bold">+</button></div>
             <span class="w-24 text-right font-semibold tabular-nums">{{ moneda(it.cantidad * it.precio_unit * (1 - it.descuento / 100)) }}</span>
             <button @click="ticket.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
@@ -137,9 +138,9 @@ const visibles = computed(() => {
   if (rubroSel.value) return catalogo.value.filter(p => p.rubro_id === rubroSel.value || props.rubros.find(r => r.id === p.rubro_id)?.parent_id === rubroSel.value)
   const fav = catalogo.value.filter(p => p.favorito); return fav.length ? fav : catalogo.value.slice(0, 24)
 })
-function agregar(p, cant = 1) {
+function agregar(p, cant = 1, serie = null) {
   const ex = ticket.value.find(i => i.product_id === p.id)
-  if (ex) ex.cantidad += cant; else ticket.value.push({ product_id: p.id, descripcion: p.name, cantidad: cant, precio_unit: precioDe(p), descuento: Number(cliente.value?.descuento ?? 0), alicuota_iva: p.iva })
+  if (ex) { ex.cantidad += cant; if (serie) ex.serie = [ex.serie, serie].filter(Boolean).join(', ') } else ticket.value.push({ product_id: p.id, descripcion: p.name, cantidad: cant, precio_unit: precioDe(p), descuento: Number(cliente.value?.descuento ?? 0), alicuota_iva: p.iva, seriado: !!p.seriado, serie: serie ?? '' })
   q.value = ''; nextTick(() => buscador.value?.focus())
 }
 // Balanza: EAN-13 de peso variable (prefijo + 5 dígitos de artículo + 5 de peso/importe + verificador).
@@ -157,7 +158,15 @@ function enterBuscar() {
   const bz = balanza(t); if (bz) { agregar(bz.p, bz.cant); return }
   const porBarra = catalogo.value.find(p => p.barcode === t) ?? catalogo.value.find(p => norm(p.sku) === norm(t))
   const p = porBarra ?? visibles.value[0]
-  if (p) agregar(p); else { error.value = null }
+  if (p) { agregar(p); return }
+  // Etiqueta de serie de una unidad: suma ese artículo con esa serie.
+  fetch(`${location.pathname.replace(/\/$/, '')}/serie?codigo=${encodeURIComponent(t)}`, { headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
+    if (!d) { error.value = `Nada con el código ${t}.`; return }
+    if (!catalogo.value.some(x => x.id === d.producto.id)) catalogo.value.push(d.producto)
+    const ya = ticket.value.find(i => i.product_id === d.producto.id)
+    if (ya && (ya.serie || '').split(',').map(x => x.trim()).includes(d.serie)) { error.value = `La serie ${d.serie} ya está en el ticket.`; return }
+    agregar(d.producto, 1, d.serie)
+  }).catch(() => {})
 }
 const total = computed(() => Math.round(ticket.value.reduce((a, i) => a + i.cantidad * i.precio_unit * (1 - i.descuento / 100), 0) * 100) / 100)
 // Con factura A el total a cobrar lleva el IVA aparte.

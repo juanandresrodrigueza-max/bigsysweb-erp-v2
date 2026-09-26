@@ -62,9 +62,18 @@ class PosController extends Controller
             ->where(fn($w) => $w->where('name', $like, $t)->orWhere('sku', $like, $t)->orWhere('barcode', $like, $t))->orderBy('name')->limit(40)->get()->map(fn($p) => $this->fila($p, $ri))->values());
     }
 
+    // Lectura de la etiqueta de serie de una unidad: devuelve el artículo y esa serie si está en stock (Fase 27.2).
+    public function serie(Request $request)
+    {
+        $l = \App\Models\Lote::with('product.rubro')->where('serie', trim((string) $request->codigo))->where('cantidad', '>', 0)->where('estado', 'disponible')->first();
+        if (! $l || ! $l->product) return response()->json(['error' => 'No hay ninguna unidad en stock con esa serie.'], 404);
+        $ri = ($request->user()->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
+        return response()->json(['producto' => $this->fila($l->product, $ri), 'serie' => $l->serie]);
+    }
+
     private function fila(Product $p, bool $ri): array
     {
-        return ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos];
+        return ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos, 'seriado' => (bool) $p->seriado];
     }
 
     // Precio final que ve el cajero: IVA incluido cuando la empresa es RI (el comprobante guarda el neto).
@@ -77,7 +86,7 @@ class PosController extends Controller
     {
         $d = $request->validate([
             'contact_id' => 'nullable|exists:contacts,id', 'notas' => 'nullable|string|max:200', 'a_cuenta' => 'boolean', 'precios_con_iva' => 'boolean',
-            'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:150', 'items.*.cantidad' => 'required|numeric|min:0.001', 'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100',
+            'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|exists:products,id', 'items.*.serie' => 'nullable|string|max:2000', 'items.*.descripcion' => 'nullable|string|max:150', 'items.*.cantidad' => 'required|numeric|min:0.001', 'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100',
             'medios' => 'nullable|array', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array', 'medios.*.datos.tarjeta' => 'nullable|string|max:60', 'medios.*.datos.cuotas' => 'nullable|integer|min:1|max:60',
             'offline_id' => 'nullable|string|max:64', 'fecha_offline' => 'nullable|date',
         ]);

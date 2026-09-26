@@ -79,7 +79,7 @@ class LotesController extends Controller
 
     public function config(Request $request)
     {
-        $d = $request->validate(['bloquear_vencidos' => 'boolean', 'dias_aviso' => 'required|integer|min:1|max:365']);
+        $d = $request->validate(['bloquear_vencidos' => 'boolean', 'dias_aviso' => 'required|integer|min:1|max:365', 'exigir_serie' => 'boolean']);
         $request->user()->business->update(['lotes_config' => $d]);
         return back()->with('success', 'Configuración de lotes guardada.');
     }
@@ -89,7 +89,7 @@ class LotesController extends Controller
     {
         $p = Product::findOrFail($product);
         return response()->json(Lote::with('deposito:id,nombre')->where('product_id', $p->id)->where('cantidad', '>', 0)->where('estado', 'disponible')->where(fn($w) => $w->whereNull('vencimiento')->orWhere('vencimiento', '>=', today()->toDateString()))
-            ->orderByRaw('CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END')->orderBy('vencimiento')->get()->map(fn($l) => ['id' => $l->id, 'etiqueta' => $l->etiqueta(), 'cantidad' => (float) $l->cantidad, 'deposito' => $l->deposito?->nombre]));
+            ->orderByRaw('CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END')->orderBy('vencimiento')->get()->map(fn($l) => ['id' => $l->id, 'etiqueta' => $l->etiqueta(), 'serie' => $l->serie, 'cantidad' => (float) $l->cantidad, 'deposito' => $l->deposito?->nombre]));
     }
 
     // Planilla del retiro: clientes que recibieron el lote, con cuánto y cómo contactarlos.

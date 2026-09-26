@@ -12,8 +12,11 @@ class Lote extends Model
     use \App\Models\Concerns\FechaSoloDia;
     use BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'product_id', 'deposito_id', 'lote', 'serie', 'vencimiento', 'cantidad', 'costo_unit', 'estado', 'motivo', 'proveedor_id', 'ingreso'];
-    protected $casts = ['vencimiento' => 'date', 'cantidad' => 'decimal:3', 'costo_unit' => 'decimal:4', 'ingreso' => 'date'];
+    protected $fillable = ['business_id', 'product_id', 'deposito_id', 'lote', 'serie', 'vencimiento', 'cantidad', 'costo_unit', 'estado', 'motivo', 'proveedor_id', 'ingreso', 'cliente_id', 'comprobante_venta_id', 'vendido_en', 'garantia_hasta'];
+    protected $casts = ['vencimiento' => 'date', 'cantidad' => 'decimal:3', 'costo_unit' => 'decimal:4', 'ingreso' => 'date', 'vendido_en' => 'date', 'garantia_hasta' => 'date'];
+
+    public function cliente(): BelongsTo { return $this->belongsTo(Contact::class, 'cliente_id'); }
+    public function comprobanteVenta(): BelongsTo { return $this->belongsTo(Comprobante::class, 'comprobante_venta_id'); }
 
     public const ESTADOS = ['disponible' => 'Disponible', 'bloqueado' => 'Bloqueado', 'retirado' => 'Retirado del mercado'];
 
