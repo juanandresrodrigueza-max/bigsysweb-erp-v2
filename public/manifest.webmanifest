@@ -5,16 +5,56 @@
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#faf9f7",
-  "theme_color": "#e4003f",
+  "theme_color": "#4f3089",
   "lang": "es-AR",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/isologo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
-    { "name": "Mi negocio", "url": "/dueno" },
-    { "name": "Punto de venta", "url": "/retail" },
-    { "name": "Nueva factura", "url": "/comprobantes/nuevo" },
-    { "name": "Pedidos web", "url": "/comprobantes/pedidos" }
+    {
+      "name": "Mi negocio",
+      "url": "/dueno"
+    },
+    {
+      "name": "Punto de venta",
+      "url": "/retail"
+    },
+    {
+      "name": "Nueva factura",
+      "url": "/comprobantes/nuevo"
+    },
+    {
+      "name": "Pedidos web",
+      "url": "/comprobantes/pedidos"
+    }
   ]
 }

@@ -2,7 +2,7 @@
 // - Assets compilados (/build): cache primero.
 // - Páginas del POS (/retail, /minimarket): red primero; si no hay red, la última copia guardada.
 // - Todo lo demás: red; si falla, página "sin conexión".
-const VERSION = 'bigsys-v1'
+const VERSION = 'bigsys-v2'
 const OFFLINE_PAGES = ['/retail', '/minimarket']
 
 self.addEventListener('install', e => { self.skipWaiting() })
