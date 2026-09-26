@@ -147,10 +147,10 @@ function agregar(p, cant = 1, serie = null) {
 function balanza(t) {
   const cfg = props.posConfig; const pre = cfg.balanza_prefijo || '2'
   if (!/^\d{13}$/.test(t) || !t.startsWith(pre)) return null
-  const cod = t.slice(pre.length, pre.length + 5); const val = Number(t.slice(pre.length + 5, pre.length + 10)); const dec = Number(cfg.balanza_decimales ?? 3)
-  const p = catalogo.value.find(x => x.sku === cod || x.barcode === cod || Number(x.sku) === Number(cod) || (x.barcode && x.barcode.endsWith(cod)))
+  const dig = Math.min(6, Math.max(4, Number(cfg.balanza_digitos_plu ?? 5))); const cod = t.slice(pre.length, pre.length + dig); const val = Number(t.slice(pre.length + dig, pre.length + dig + 5)); const dec = Number(cfg.balanza_decimales ?? 3)
+  const p = catalogo.value.find(x => x.plu && Number(x.plu) === Number(cod)) ?? catalogo.value.find(x => x.sku === cod || x.barcode === cod || Number(x.sku) === Number(cod) || (x.barcode && x.barcode.endsWith(cod)))
   if (!p) return null
-  const cant = cfg.balanza_modo === 'importe' ? Math.round(val / Math.pow(10, 2) / precioDe(p) * 1000) / 1000 : val / Math.pow(10, dec)
+  const cant = cfg.balanza_modo === 'importe' ? Math.round(val / Math.pow(10, dec) / precioDe(p) * 1000) / 1000 : val / Math.pow(10, dec)
   return { p, cant }
 }
 function enterBuscar() {

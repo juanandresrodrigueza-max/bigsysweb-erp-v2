@@ -189,6 +189,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/ultima-de/{contact}',  [ComprobantesController::class, 'ultimaDe'])->whereNumber('contact');
         Route::get('/condiciones-de/{id}',  [\App\Http\Controllers\Clientes\CondicionesController::class, 'json'])->whereNumber('id');
         Route::get('/descuentos-lista/{lista}', [\App\Http\Controllers\Stock\DescuentosListaController::class, 'json'])->whereNumber('lista');
+        Route::get('/leer-codigo',          [\App\Http\Controllers\Stock\DespieceController::class, 'leer']);
         Route::post('/{id}/reintentar-cae', [ComprobantesController::class, 'reintentarCae'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
         Route::get('/{id}/verificar-arca',  [ComprobantesController::class, 'verificarArca'])->whereNumber('id');
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
@@ -310,6 +311,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/inventario/{id}',           [\App\Http\Controllers\Stock\StockController::class, 'verInventario']);
         Route::post('/depositos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardarDeposito'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id?}',             [\App\Http\Controllers\Stock\StockController::class, 'guardarRubro'])->middleware('permiso:stock,editar');
+        Route::get('/despiece',                  [\App\Http\Controllers\Stock\DespieceController::class, 'index']);
+        Route::get('/despiece/plu.csv',          [\App\Http\Controllers\Stock\DespieceController::class, 'plu']);
+        Route::post('/despiece/plantillas/{id?}', [\App\Http\Controllers\Stock\DespieceController::class, 'guardar'])->middleware('permiso:stock,editar');
+        Route::post('/despiece/{id}/ejecutar',   [\App\Http\Controllers\Stock\DespieceController::class, 'ejecutar'])->middleware('permiso:stock,editar');
         Route::get('/series',                    [\App\Http\Controllers\Stock\SeriesController::class, 'index']);
         Route::get('/series/{id}',               [\App\Http\Controllers\Stock\SeriesController::class, 'ver'])->whereNumber('id');
         Route::post('/series/{id}/servicio',     [\App\Http\Controllers\Stock\SeriesController::class, 'servicio'])->middleware('permiso:servicios,crear');

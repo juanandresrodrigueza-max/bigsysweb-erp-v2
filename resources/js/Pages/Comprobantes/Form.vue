@@ -96,6 +96,7 @@
         <div class="card p-0 overflow-hidden">
           <div class="flex items-center justify-between px-4 py-3 border-b border-marca-borde">
             <h2 class="font-bold">Ítems</h2>
+            <input v-model="codigoScan" class="input !py-1 !w-44 text-xs font-mono" placeholder="Escanear código o balanza" data-e2e="scan-factura" @keydown.enter.prevent="leerCodigo" /><span v-if="scanMsg" class="text-[11px] text-carmin">{{ scanMsg }}</span>
             <button type="button" @click="agregar()" class="btn-secondary !py-1 text-xs"><Icono nombre="plus" clase="w-3.5 h-3.5" /> Agregar</button><button v-if="esFactura && puntos && puntos.activo && puntos.puntos >= puntos.minimo && !form.canje_puntos" type="button" class="btn-ghost !py-1 text-xs text-violeta" @click="usarPuntos" :title="`${puntos.puntos} puntos = ${moneda(puntos.pesos)}`">★ Usar {{ puntos.puntos }} puntos ({{ moneda(puntos.pesos, 0) }})</button>
           </div>
           <div class="overflow-x-auto">
@@ -326,6 +327,19 @@ function usarPuntos() {
   if (usar < puntos.value.minimo) return
   form.canje_puntos = usar
   form.items.push({ product_id: null, descripcion: `Canje de ${usar} puntos`, cantidad: 1, unidad: 'un', precio_unit: -Math.round(usar * puntos.value.valor_punto * 100) / 100, descuento: 0, alicuota_iva: 0 })
+}
+// Lector de código de barras o etiqueta de balanza (Fase 27.3): suma la línea con el peso o el importe de la etiqueta.
+const codigoScan = ref(''), scanMsg = ref('')
+async function leerCodigo() {
+  const c = codigoScan.value.trim(); codigoScan.value = ''; if (!c) return
+  try {
+    const d = (await window.axios.get('/comprobantes/leer-codigo', { params: { codigo: c, lista: lista.value } })).data
+    if (!productosCat.value.some(p => p.id === d.producto.id)) productosCat.value.push(d.producto)
+    const o = opcionesProductos.value.find(x => x.id === d.producto.id)
+    const it = { product_id: d.producto.id, descripcion: '', cantidad: d.cantidad, unidad: null, precio_unit: 0, descuento: 0, alicuota_iva: 21 }
+    form.items.push(it); alElegirProducto(form.items[form.items.length - 1], o); form.items[form.items.length - 1].cantidad = d.cantidad
+    scanMsg.value = ''
+  } catch (e) { scanMsg.value = e.response?.data?.error || 'Código no encontrado.' }
 }
 function agregar(pre = {}) { form.items.push({ product_id: null, descripcion: '', cantidad: 1, unidad: null, precio_unit: 0, descuento: cliente.value?.descuento ?? 0, alicuota_iva: 21, ...pre }) }
 // Facturar sin mouse: elegir artículo → cantidad → precio → Enter agrega la fila siguiente y vuelve al buscador.

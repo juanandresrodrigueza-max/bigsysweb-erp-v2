@@ -15,7 +15,7 @@ class EmpresaController extends Controller
         $sub = $b->activeSubscription;
 
         return Inertia::render('Configuracion/Empresa', [
-            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'verticalesExtra' => (array) ($request->user()->business->verticales_extra ?? []), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
+            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'balanza_digitos_plu' => 5, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'verticalesExtra' => (array) ($request->user()->business->verticales_extra ?? []), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
             'tarjetas' => app(\App\Services\Pos\CuotasService::class)->planes($b),
             'mercadopago' => ['access_token' => ! empty($b->mercadopago_settings['access_token']) ? '••••' . substr((string) $b->mercadopago_settings['access_token'], -4) : '', 'user_id' => $b->mercadopago_settings['user_id'] ?? '', 'pos_external_id' => $b->mercadopago_settings['pos_external_id'] ?? '', 'point_device_id' => $b->mercadopago_settings['point_device_id'] ?? '', 'tiene_token' => ! empty($b->mercadopago_settings['access_token'])],
             'empresa' => [
@@ -158,7 +158,7 @@ class EmpresaController extends Controller
 
     public function guardarPos(Request $request)
     {
-        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna', 'ancho' => 'required|integer|in:32,42,48']);
+        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'balanza_digitos_plu' => 'nullable|integer|min:4|max:6', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna', 'ancho' => 'required|integer|in:32,42,48']);
         $b = $request->user()->business;
         $b->update(['pos' => array_replace($b->pos ?? [], $d)]);
         return back()->with('success', 'Punto de venta configurado.');

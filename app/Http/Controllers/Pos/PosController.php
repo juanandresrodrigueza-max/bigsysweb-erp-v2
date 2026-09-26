@@ -49,7 +49,7 @@ class PosController extends Controller
             'empresaLetra' => $ri ? 'B' : 'C', 'preciosConIva' => $ri,
             'planesCuotas' => app(\App\Services\Pos\CuotasService::class)->planes($user->business),
             'mp' => ['qr' => app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->qrConfigurado($user->business), 'point' => app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->pointConfigurado($user->business)],
-            'posConfig' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $user->business->pos ?? []),
+            'posConfig' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'balanza_digitos_plu' => 5, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $user->business->pos ?? []),
         ]);
     }
 
@@ -73,7 +73,7 @@ class PosController extends Controller
 
     private function fila(Product $p, bool $ri): array
     {
-        return ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos, 'seriado' => (bool) $p->seriado];
+        return ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos, 'seriado' => (bool) $p->seriado, 'plu' => $p->plu];
     }
 
     // Precio final que ve el cajero: IVA incluido cuando la empresa es RI (el comprobante guarda el neto).
