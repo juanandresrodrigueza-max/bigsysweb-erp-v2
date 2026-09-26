@@ -34,8 +34,14 @@ Tené a mano:
 1. ★ **Configuración → Importar datos → Artículos**: bajá la plantilla, pegá tu lista (código, descripción, rubro, costo, precios, IVA, stock) y subila. Si venís de Tango, Bejerman, Colppy o del BigSys viejo, elegí el perfil en "Viene de" y el mapeo se arma solo. Con BigSys tildá "Los precios del archivo son finales con IVA". Revisá la vista previa y confirmá.
 2. **Stock → artículo**: revisá que los rubros hayan quedado bien y que los artículos de servicio (mano de obra, flete) estén como "servicio" para que no muevan stock.
 3. **Stock → Precios**: si tus precios son un margen sobre el costo, configurá el margen por rubro; así al subir el costo sube el precio.
-4. **Stock → Etiquetas**: imprimí códigos de barras para lo que no tiene.
-5. **Stock → Catálogos**: armá un catálogo por cada lista que uses (mostrador, mayorista) para mandar a los clientes.
+4. **Stock → ⚙ Rubros**: cargá en cada rubro lo que heredan sus artículos (IVA, perecedero, con serie, pesable en la tienda, cuenta de ventas) y tocá **Aplicar a sus artículos**.
+5. Según el rubro del negocio:
+   - **Supermercado, farmacia, alimentos**: marcá **Perecedero** y cargá lote y vencimiento en las compras. Revisá **Stock → Lotes y vencimientos**.
+   - **Electrónica, celulares, herramientas**: marcá **Con número de serie** y la garantía en meses.
+   - **Carnicería, fiambrería, verdulería**: marcá **Pesable** con su PLU, exportá el archivo a la balanza y armá la plantilla de despiece en **Stock → Carnicería y pesables**.
+   - **Mayorista o depósito grande**: generá las ubicaciones en **Stock → Almacén**, imprimí sus etiquetas y guardá la mercadería con la pistola.
+6. **Stock → Etiquetas**: imprimí los códigos de barras que falten y las etiquetas de góndola (con el precio por kilo o por litro: cargá el contenido neto del envase).
+7. **Stock → Catálogos** y **Stock → Descuentos por lista**: un catálogo por cada lista que uses y los descuentos por cantidad de cada lista.
 
 **Prueba del día**: en el buscador (Ctrl+K) escribí parte del nombre de tres artículos y verificá precio y stock. Escaneá uno con el lector en Punto de venta.
 

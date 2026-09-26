@@ -40,6 +40,10 @@ Hacé una de prueba desde **Comprobantes → Nueva factura**. Se puede anular de
 - El **asistente** (botón violeta abajo a la derecha) responde preguntas y hace cosas: "¿cuánto me debe López?", "cobrale 5000 a Pérez en efectivo".
 - En el celular, la barra de abajo lleva a **Mi negocio**, ventas, buscar y cobrar.
 
+## En el celular
+
+El sistema se usa igual desde el celular. Para tenerlo como app: en el iPhone, Safari → Compartir → **Agregar a inicio**; en Android, Chrome → ⋮ → **Instalar app**. Queda con el ícono de BigSys.
+
 ## Si algo no sale
 
 Desde **Soporte** (menú) abrís un ticket y el equipo de BigSys te responde ahí y por mail. Podés también escribir por WhatsApp al número que figura en la pantalla de soporte.

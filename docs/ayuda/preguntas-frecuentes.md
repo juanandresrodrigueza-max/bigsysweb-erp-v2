@@ -70,3 +70,31 @@ En la factura nueva tildá **Manual de talonario** y cargá el punto de venta, e
 ## ¿Puedo liquidar los sueldos de Comercio acá?
 
 Sí. En **Sueldos → Conceptos → Cargar Comercio** quedan listos todos los conceptos del CCT 130/75, como los liquida un estudio: días, feriados, vacaciones, antigüedad, presentismo, sumas del acuerdo, aportes, sindicato, FAECYS y contribuciones. En cada empleado cargás el básico, la jornada y, si corresponde, el seguro CEC. El recibo legal sale con el último depósito de aportes y tu logo. Las sumas del acuerdo cambian con cada paritaria: actualizalas en Conceptos.
+
+## ¿Cómo sé qué se me vence?
+
+En **Stock → Lotes y vencimientos** ves lo vencido y lo que vence en los próximos días, con lo que vale. Además llega una alerta todos los días. Lo vencido no se vende.
+
+## Un laboratorio retiró un lote, ¿qué hago?
+
+Buscá el lote en **Stock → Lotes y vencimientos**, tocá **Retiro del mercado** y cargá el motivo. Queda bloqueado en todos los depósitos y te muestra a qué clientes se vendió, con cuánto y cómo contactarlos.
+
+## ¿Puedo seguir cada equipo por su número de serie?
+
+Sí. En **Stock → Números de serie** buscás la serie y ves de qué proveedor vino, a quién se vendió, hasta cuándo tiene garantía y sus services. Desde ahí lo ingresás a servicio técnico.
+
+## Tengo carnicería, ¿sirve?
+
+Sí: artículos pesables con el PLU de la balanza (la caja y la factura leen la etiqueta), y el **despiece** de media res con el rinde de cada corte y su costo real por kilo, en **Stock → Carnicería y pesables**.
+
+## ¿Puedo ordenar el depósito por estanterías?
+
+Sí, en **Stock → Almacén**: ubicaciones por pasillo, estante y nivel con código de barras. Con la pistola guardás, movés, buscás y contás, y la hoja de preparación te dice de qué estante sacar cada cosa.
+
+## ¿Cómo pongo el precio por kilo en la góndola?
+
+Cargá el **contenido neto** del envase en la ficha del artículo (500 g, 1,5 l) y en **Stock → Etiquetas** elegí el diseño **Góndola**. Con **Precios cambiados (7 días)** reimprimís solo lo que cambió.
+
+## ¿Puedo tenerlo como app en el celular?
+
+Sí. Abrí el sistema en el navegador del celular y elegí **Agregar a inicio** (iPhone, desde Safari → Compartir) o **Instalar app** (Android, desde Chrome → ⋮). Queda con el ícono de BigSys y se abre como una app.
