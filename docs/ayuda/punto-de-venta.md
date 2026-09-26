@@ -24,8 +24,13 @@ Con las credenciales cargadas (Configuración → Empresa → Mercado Pago), el 
 
 ## Balanza e impresora
 
-- **Balanza**: los códigos de peso variable (EAN-13 que empieza con el prefijo configurado) cargan el artículo y el peso o el importe.
+- **Balanza**: los códigos de peso variable (EAN-13 que empieza con el prefijo configurado) cargan el artículo por su **PLU** y el peso o el importe. El PLU se carga en la ficha del artículo pesable y el archivo para la balanza se baja en Stock → Carnicería y pesables.
+- **Números de serie**: escaneá la etiqueta de la serie de la unidad y se suma ese artículo con esa serie; queda registrada la venta y la garantía.
 - **Impresora térmica**: por la ventana del navegador o directo por USB/serie (WebSerial, sin driver). Se puede imprimir automáticamente al cobrar.
+
+## Cierre de turno
+
+Al cerrar la caja se cuenta la plata por medio de pago y, para los artículos marcados **Contar en el cierre de turno**, el stock que queda. El sistema compara lo que salió con lo facturado y con lo cobrado (ver la guía de Fondos).
 
 ## Sin conexión
 
