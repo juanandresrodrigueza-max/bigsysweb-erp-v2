@@ -18,7 +18,7 @@ class Product extends Model
     protected $fillable = [
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
-        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'control_turno', 'en_tienda', 'descripcion_tienda',
+        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'control_turno', 'en_tienda', 'descripcion_tienda',
     ];
 
     protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'control_turno' => 'boolean', 'pesable' => 'boolean', 'en_tienda' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2', 'desc_cant2_min' => 'decimal:3', 'desc_cant2_pct' => 'decimal:2'];
@@ -28,6 +28,14 @@ class Product extends Model
     {
         $p = $lista <= 1 ? (float) $this->price : (($v = $this->prices[(string) $lista] ?? $this->prices[$lista] ?? null) !== null && $v !== '' ? (float) $v : (float) $this->price);
         return $this->moneda === 'USD' ? round($p * $this->cotizacion(), 2) : $p;
+    }
+
+    // Precio por unidad de medida (ley de góndolas): por kg, litro o unidad según el contenido neto del envase.
+    public function precioPorMedida(float $precio): ?array
+    {
+        $c = (float) $this->contenido_neto; $u = $this->contenido_unidad;
+        if ($c <= 0 || ! $u) return null;
+        return match ($u) { 'g' => ['precio' => round($precio / $c * 1000, 2), 'unidad' => 'kg'], 'kg' => ['precio' => round($precio / $c, 2), 'unidad' => 'kg'], 'ml' => ['precio' => round($precio / $c * 1000, 2), 'unidad' => 'litro'], 'l' => ['precio' => round($precio / $c, 2), 'unidad' => 'litro'], 'un' => ['precio' => round($precio / $c, 2), 'unidad' => 'unidad'], default => null };
     }
 
     public function cotizacion(): float

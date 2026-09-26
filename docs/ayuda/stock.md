@@ -12,6 +12,15 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+## Centro de etiquetas (Stock → Etiquetas)
+
+Todas las etiquetas en un lugar, en hoja A4 (65, 24 u 8 por hoja), en rollo para impresora de etiquetas o en **ZPL** para impresoras **Zebra** (Bajar ZPL y mandarlo a la impresora).
+
+- **Diseños**: estándar (nombre, código y precio); **góndola** con el precio grande y el **precio por kilo o por litro** que pide la ley de góndolas (cargá el **contenido neto** del envase en la ficha del artículo: 500 g, 1,5 l…); **oferta** con el precio anterior tachado, el precio nuevo y el % de descuento; **lote y vencimiento**; **número de serie** (con el código de barras de la serie, para escanear en la caja).
+- **De dónde salen**: buscás artículos o un rubro y elegís la lista de precios; **Precios cambiados (7 días)** trae lo que cambió de precio para renovar la góndola; desde una **compra registrada** (botón Etiquetas) sale una por unidad, con su lote o su serie; desde **Lotes** y **Números de serie** imprimís la del lote o la del equipo.
+- **Con el color de la empresa** usa el color de la marca de Configuración → Empresa.
+- El formato que elegís queda guardado en ese navegador.
+
 ## Carnicería y pesables (Stock → Carnicería y pesables)
 
 Para carnicerías, fiambrerías, verdulerías, panaderías y todo lo que se vende por peso.

@@ -20,6 +20,7 @@
           <Link :href="`/proveedores/compras/${c.id}/registrar`" method="post" as="button" class="btn-primary">Registrar</Link>
         </template>
         <template v-else-if="c.estado === 'emitido'">
+          <Link :href="`/stock/etiquetas?compra=${c.id}`" class="btn-secondary" data-e2e="etiquetas-compra">Etiquetas</Link>
           <Link v-if="c.estado_pago === 'pendiente' || c.estado_pago === 'parcial'" :href="`/proveedores/${c.contact_id}?pagar=${c.id}`" class="btn-primary">Registrar pago</Link>
           <Link v-if="puedeNC" :href="`/proveedores/compras/${c.id}/nota-credito`" method="post" as="button" class="btn-secondary">Nota de crédito</Link>
         </template>
