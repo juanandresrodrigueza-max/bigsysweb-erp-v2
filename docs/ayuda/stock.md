@@ -12,6 +12,15 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+## Carnicería y pesables (Stock → Carnicería y pesables)
+
+Para carnicerías, fiambrerías, verdulerías, panaderías y todo lo que se vende por peso.
+
+- **Pesables**: en la ficha del artículo tildá **Pesable (balanza)** y poné su **PLU** (el número que se carga en la balanza) y a los cuántos días vence. **Exportar PLU a la balanza** baja el archivo con PLU, nombre, precio por kg con IVA y vencimiento, para cargar la balanza.
+- **Etiqueta de la balanza**: la balanza imprime un código que empieza con el prefijo (por ejemplo 2), sigue el PLU y el peso o el importe. La **caja** y la **factura** (casilla "Escanear código o balanza") lo leen y suman el artículo con sus kilos. El prefijo, si trae peso o importe, los decimales y los dígitos del PLU se configuran en Configuración → Empresa → Punto de venta.
+- **Plantillas de despiece**: la materia prima (media res, cuarto trasero, cerdo, pollo) y sus cortes con el **rinde esperado** en %.
+- **Despiece**: cargás los kilos que entran y los kilos reales de cada corte. El sistema saca la materia prima del stock, suma cada corte, calcula la **merma** y reparte el costo **por valor de venta** (cada corte carga costo según lo que vale), así el costo por kilo de cada corte es el real. Ves el rinde real contra el esperado (en rojo si rindió menos) y el margen de cada corte y del despiece entero. Opcionalmente actualiza el costo de los cortes.
+
 ## Números de serie (Stock → Números de serie)
 
 Para electrónica, celulares, herramientas y todo lo que se identifica por unidad. En la ficha del artículo tildá **Con número de serie** y poné la **garantía en meses**.

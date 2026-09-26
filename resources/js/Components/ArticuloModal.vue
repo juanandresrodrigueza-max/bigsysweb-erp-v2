@@ -51,6 +51,8 @@
         <label class="flex items-center gap-2 text-sm col-span-2"><input v-model="form.controla_stock" type="checkbox" class="accent-carmin" /> Controla stock (avisa bajo mínimo)</label>
         <label class="flex items-center gap-2 text-sm" title="Pide lote y vencimiento al comprar; sale primero lo que vence primero"><input v-model="form.perecedero" type="checkbox" class="accent-carmin" /> Perecedero (lote y vencimiento)</label>
         <label class="flex items-center gap-2 text-sm" title="Pide número de serie por unidad al comprar"><input v-model="form.seriado" type="checkbox" class="accent-carmin" /> Con número de serie</label>
+        <label class="flex items-center gap-2 text-sm" title="Se vende por peso con etiqueta de balanza"><input v-model="form.pesable" type="checkbox" class="accent-carmin" data-e2e="pesable" /> Pesable (balanza)</label>
+        <div v-if="form.pesable" class="flex flex-wrap items-center gap-2 text-sm"><label class="flex items-center gap-1">PLU <input v-model="form.plu" class="input !py-1 !w-20" maxlength="6" placeholder="00123" data-e2e="plu" /></label><label class="flex items-center gap-1">Vence a los <input v-model.number="form.dias_vencimiento" type="number" min="0" class="input !py-1 !w-16 text-right" /> días</label></div>
         <label v-if="form.seriado" class="flex items-center gap-2 text-sm">Garantía <input v-model.number="form.garantia_meses" type="number" min="0" max="240" class="input !py-1 !w-20 text-right" data-e2e="garantia" /> meses</label>
         <label class="flex items-center gap-2 text-sm" title="Al cerrar el turno de caja se cuenta este artículo y se compara lo que salió con lo cobrado"><input v-model="form.control_turno" type="checkbox" class="accent-carmin" data-e2e="control-turno" /> Contar en el cierre de turno</label>
         <label class="flex items-center gap-2 text-sm col-span-2" title="Aparece en la tienda online y el menú QR"><input v-model="form.en_tienda" type="checkbox" class="accent-carmin" /> Publicado en la tienda online / menú</label>
@@ -74,7 +76,7 @@ import { moneda } from '@/util/formato'
 const props = defineProps({ abierto: Boolean, articulo: Object, rubros: Array, depositos: Array, proveedores: Array, tipos: Object, unidades: Object })
 const emit = defineEmits(['cerrar', 'guardado'])
 const vacio = () => ({ id: null, name: '', sku: '', tipo: 'producto', rubro_id: null, unit: 'un', barcode: '', marca: '', proveedor_id: null, cost: 0, price: 0, iva: 21, prices: { 2: '', 3: '', 4: '', 5: '', 6: '' }, stock_min: 0, stock_inicial: '', deposito_id: null, controla_stock: true, description: '', active: true,
-  precio_compra: 0, descuento_proveedor: 0, moneda: 'ARS', usar_margenes: false, margenes: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }, desc_cant_min: 0, desc_cant_pct: 0, desc_cant2_min: 0, desc_cant2_pct: 0, perecedero: false, seriado: false, garantia_meses: null, control_turno: false, en_tienda: true })
+  precio_compra: 0, descuento_proveedor: 0, moneda: 'ARS', usar_margenes: false, margenes: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }, desc_cant_min: 0, desc_cant_pct: 0, desc_cant2_min: 0, desc_cant2_pct: 0, perecedero: false, seriado: false, garantia_meses: null, pesable: false, plu: '', dias_vencimiento: null, control_turno: false, en_tienda: true })
 const form = useForm(vacio())
 // Artículo nuevo: al elegir el rubro toma sus datos (IVA, tipo y marcas de stock), propios o heredados.
 watch(() => form.rubro_id, id => {
