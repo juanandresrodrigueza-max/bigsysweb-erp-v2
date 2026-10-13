@@ -26,7 +26,7 @@
               <div v-if="m.propuesta" class="mt-2 rounded-xl border p-2 text-xs" :class="m.propuesta.estado === 'hecho' ? 'border-emerald-200 bg-emerald-50' : m.propuesta.estado === 'cancelado' ? 'border-marca-borde bg-marca-fondo opacity-70' : 'border-violeta/30 bg-violeta-light/40'">
                 <p class="font-bold text-sm">{{ m.propuesta.titulo }}</p>
                 <p class="text-marca-muted mt-0.5">{{ m.propuesta.detalle }}</p>
-                <div v-if="!m.propuesta.estado" class="flex gap-2 mt-2"><button class="btn-primary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="confirmar(m)">{{ ejecutando ? 'Haciendo…' : 'Confirmar' }}</button><button class="btn-secondary !py-1 !px-3 text-xs" @click="m.propuesta.estado = 'cancelado'">Cancelar</button></div>
+                <div v-if="!m.propuesta.estado" class="flex gap-2 mt-2"><button class="btn-primary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="confirmar(m)">{{ ejecutando ? 'Haciendo…' : 'Confirmar' }}</button><button class="btn-secondary !py-1 !px-3 text-xs" @click="cancelar(m)">Cancelar</button></div>
                 <p v-else-if="m.propuesta.estado === 'cancelado'" class="mt-1">Cancelado.</p>
               </div>
               <a v-if="m.url" :href="m.url" class="block mt-1 text-xs text-violeta font-semibold underline">Ver →</a>
@@ -74,13 +74,15 @@ const ejecutando = ref(false)
 async function confirmar(m) {
   ejecutando.value = true
   try {
-    const { data } = await window.axios.post('/agente/ejecutar', { accion: m.propuesta.accion, datos: m.propuesta.datos })
+    const { data } = await window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id })
     m.propuesta.estado = 'hecho'
     mensajes.value.push({ rol: 'assistant', texto: data.texto ?? 'Listo.', url: data.url ?? null })
   } catch (e) {
     mensajes.value.push({ rol: 'assistant', texto: e.response?.data?.message ?? 'No se pudo hacer. ' + (e.response?.status === 403 ? 'No tenés permiso para esta acción.' : 'Probá de nuevo.') })
   } finally { ejecutando.value = false; await bajar() }
 }
+
+function cancelar(m) { m.propuesta.estado = 'cancelado'; window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id, cancelar: true }).catch(() => {}) }
 
 async function enviar(pre) {
   const msg = (pre ?? texto.value).trim()

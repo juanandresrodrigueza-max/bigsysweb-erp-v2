@@ -23,6 +23,7 @@ const tabs = [
   { href: '/configuracion/importar', label: 'Importar datos' },
   { href: '/configuracion/datos', label: 'Copias de seguridad' },
   { href: '/configuracion/seguridad', label: 'Seguridad y API' },
+  { href: '/conexiones-ia', label: 'Conexiones IA' },
   { href: '/configuracion/auditoria', label: 'Auditoría' },
   { href: '/suscripcion', label: 'Suscripción' },
 ]

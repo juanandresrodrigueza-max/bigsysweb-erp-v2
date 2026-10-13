@@ -62,6 +62,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/suscripcion',          [SuscripcionController::class, 'index'])->name('suscripcion');
     Route::post('/suscripcion/pagar',   [SuscripcionController::class, 'pagar']);
     Route::get('/suscripcion/retorno',  [SuscripcionController::class, 'retorno']);
+    Route::get('/oauth/authorize',      [\App\Http\Controllers\Mcp\OAuthController::class, 'autorizar']);
+    Route::post('/oauth/authorize',     [\App\Http\Controllers\Mcp\OAuthController::class, 'decidir']);
     Route::post('/admin/volver',        [\App\Http\Controllers\Superadmin\EmpresasController::class, 'volver']);
 });
 
@@ -551,6 +553,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/reservas',                      [\App\Http\Controllers\Gastronomia\ReservasController::class, 'guardar'])->middleware('permiso:gastronomia,crear');
         Route::post('/reservas/{id}/estado',          [\App\Http\Controllers\Gastronomia\ReservasController::class, 'estado'])->middleware('permiso:gastronomia,editar');
     });
+
+    // Fase 28: cada usuario conecta su IA (Claude, ChatGPT…) por MCP con sus propios permisos.
+    Route::get('/conexiones-ia',                 [\App\Http\Controllers\Mcp\ConexionesController::class, 'index']);
+    Route::post('/conexiones-ia/token',          [\App\Http\Controllers\Mcp\ConexionesController::class, 'crearToken']);
+    Route::post('/conexiones-ia/{id}/modo',      [\App\Http\Controllers\Mcp\ConexionesController::class, 'modo'])->whereNumber('id');
+    Route::post('/conexiones-ia/{id}/revocar',   [\App\Http\Controllers\Mcp\ConexionesController::class, 'revocar'])->whereNumber('id');
 
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
