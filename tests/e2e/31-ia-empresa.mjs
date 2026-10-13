@@ -1,0 +1,15 @@
+// Cada empresa carga su clave de IA: tarjeta en Conexiones IA, validación y asistente en modo básico sin clave.
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'iaemp-' + n)
+await _login(page, 'demo@bigsys.com.ar')
+await page.click('button:has-text("Saltar")').catch(() => {})
+await page.goto(`${BASE}/conexiones-ia`); await idle()
+console.log('  estado:', (await page.innerText('[data-e2e="ia-estado"]')).trim())
+await page.fill('[data-e2e="ia-clave"]', 'esto-no-es-una-clave'); await page.click('[data-e2e="ia-guardar"]'); await idle(); await page.waitForTimeout(500)
+console.log('  clave inválida:', (await page.innerText('[data-e2e="ia-error"]')).trim())
+await page.locator('[data-e2e="ia-empresa"]').scrollIntoViewIfNeeded()
+await shot('01-tarjeta')
+const r = await page.evaluate(async () => (await window.axios.post('/agente/chat', { mensaje: 'hola' })).data)
+console.log('  asistente sin clave:', r.modo, '·', r.respuesta.slice(0, 80))
+await fin(browser)

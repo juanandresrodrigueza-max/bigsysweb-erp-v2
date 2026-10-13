@@ -3,6 +3,27 @@
     <h1 class="page-title mb-4">Configuración</h1>
     <ConfigTabs v-if="conTabs" />
 
+    <div class="card mb-4" data-e2e="ia-empresa">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="max-w-2xl">
+          <h2 class="font-bold mb-1">IA de tu empresa</h2>
+          <p class="text-sm text-marca-muted">El asistente del ERP y la IA del sistema (presupuestos desde WhatsApp, lectura de facturas, analista) usan <b>la clave de Anthropic de tu empresa</b>, y el consumo lo paga tu cuenta. Sin clave, el asistente funciona en modo básico.</p>
+        </div>
+        <span class="badge" :class="ia.cargada ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'" data-e2e="ia-estado">{{ ia.cargada ? 'Activa · ' + ia.mascara : 'Sin clave' }}</span>
+      </div>
+      <form v-if="ia.puedeEditar" class="grid sm:grid-cols-[1fr_16rem_auto] gap-2 items-end mt-3" @submit.prevent="clave.post('/conexiones-ia/clave', { preserveScroll: true, onSuccess: () => clave.reset('api_key') })">
+        <div><label class="label">{{ ia.cargada ? 'Cambiar la clave (dejala vacía para mantenerla)' : 'Clave de API de Anthropic' }}</label><input v-model="clave.api_key" type="password" autocomplete="off" class="input font-mono" placeholder="sk-ant-…" data-e2e="ia-clave" /></div>
+        <div><label class="label">Modelo</label><select v-model="clave.modelo" class="input"><option v-for="(t, k) in ia.modelos" :key="k" :value="k">{{ t }}</option></select></div>
+        <button class="btn-primary" :disabled="clave.processing || (!ia.cargada && !clave.api_key)" data-e2e="ia-guardar">{{ clave.processing ? 'Probando…' : 'Probar y guardar' }}</button>
+      </form>
+      <p v-if="clave.errors.api_key" class="text-carmin text-sm mt-1" data-e2e="ia-error">{{ clave.errors.api_key }}</p>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-marca-muted mt-3">
+        <span>¿Cómo la saco? En <b>console.anthropic.com</b>: Billing → cargá crédito; API Keys → Create Key.</span>
+        <span>Conviene poner un límite de gasto mensual en Billing → Limits.</span>
+        <button v-if="ia.cargada && ia.puedeEditar" class="text-carmin font-semibold" @click="router.delete('/conexiones-ia/clave', { preserveScroll: true })">Quitar clave</button>
+      </div>
+    </div>
+
     <div class="grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-4">
       <div class="card">
         <h2 class="font-bold mb-1">Conectá Claude, ChatGPT u otra IA a tu ERP</h2>
@@ -78,8 +99,9 @@ import { useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 
-defineProps({ url: String, esDueno: Boolean, conTabs: Boolean, modos: Object, tokenNuevo: String, conexiones: Array, llamadas: Array, propuestas: Array, herramientas: Array })
+const props = defineProps({ ia: Object, url: String, esDueno: Boolean, conTabs: Boolean, modos: Object, tokenNuevo: String, conexiones: Array, llamadas: Array, propuestas: Array, herramientas: Array })
 const nuevo = useForm({ nombre: '', modo: 'lectura' })
+const clave = useForm({ api_key: '', modelo: props.ia.modelo })
 const claseEstado = { pendiente: 'bg-amber-50 text-amber-700', ejecutada: 'bg-emerald-50 text-emerald-700', cancelada: 'bg-gris-light', vencida: 'bg-gris-light', error: 'bg-carmin-light text-carmin' }
 function copiar(t) { navigator.clipboard?.writeText(t).catch(() => {}) }
 </script>

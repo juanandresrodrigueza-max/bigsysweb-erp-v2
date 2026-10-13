@@ -159,7 +159,7 @@ Alertas activas:
 Menú del sistema: Inicio (dashboard), Comprobantes, Clientes, Proveedores, Stock, Producción, Fondos, Contable, Estadísticas, Alertas, Configuración (empresa, sucursales, usuarios, roles, puntos de venta y AFIP).
 Cómo se hacen las cosas:
 - Orden de compra a un proveedor: Proveedores → Órdenes de compra → Nueva orden. "Sugerir pedido" calcula qué pedir según lo vendido en un período o lo que está bajo mínimo. Al recibir la mercadería, "Recibir" arma la factura de compra con lo pendiente.
-- Precios por margen: en el artículo activá "Calcular listas por margen": precio de lista del proveedor − descuento = costo, y cada lista = costo + su margen. Al registrar una compra el costo se actualiza y las listas se recalculan solas. Los artículos en dólares se convierten con la cotización del día (botón U$S en Stock).
+- Precios por margen: en el artículo activá "Calcular listas por margen": precio de lista del proveedor − descuento = costo, y cada lista = costo + su margen. Al registrar una compra el costo se actualiza y las listas se recalculan solas. Los artículos en dólares se convierten con la cotización del día (botón U\$S en Stock).
 - Importar la lista de precios de un proveedor: Stock → Importar lista (Excel o CSV): elegís qué columna es cada dato y se crean o actualizan los artículos.
 - Vendedores y comisiones: Clientes → Vendedores. Cada factura y cobro lleva vendedor; la liquidación por período está ahí.
 - Cobro con descuento o interés: en Registrar cobro, "Descuento otorgado" cancela deuda sin cobrarse; "Interés cobrado" se suma a lo que paga el cliente. La mora sugerida sale del % mensual del cliente.
@@ -198,7 +198,7 @@ TXT;
             str_contains($m, 'alerta')                           => $c['alertas'] ? "Alertas activas:\n- " . implode("\n- ", $c['alertas']) : 'No tenés alertas activas.',
             str_contains($m, 'sucursal')                         => 'Para cambiar de sucursal usá el selector del encabezado, a la izquierda. Solo ves las sucursales a las que tenés acceso.',
             str_contains($m, 'usuario') || str_contains($m, 'permiso') || str_contains($m, 'rol') => 'Los usuarios y roles se administran en Configuración > Usuarios y Configuración > Roles. Cada rol define qué módulos ve y qué puede hacer.',
-            default => "Todavía no tengo conectada la IA (falta ANTHROPIC_API_KEY). Puedo responder sobre ventas, cobros, stock, alertas, sucursales y usuarios con los datos actuales de {$c['empresa']}.",
+            default => "Todavía no está cargada la clave de IA de la empresa (Configuración → Conexiones IA). Mientras tanto puedo responder sobre ventas, cobros, stock, alertas, sucursales y usuarios con los datos actuales de {$c['empresa']}.",
         };
     }
 }

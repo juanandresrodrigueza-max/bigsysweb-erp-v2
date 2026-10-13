@@ -20,7 +20,8 @@ class ConexionesController extends Controller
         $con = McpConexion::with('user:id,name')->whereNull('revocada_en')->when(! $dueno, fn($q) => $q->where('user_id', $u->id))->orderByDesc('ultimo_uso')->get();
         $ids = $dueno ? null : [$u->id];
         return Inertia::render('Mcp/Conexiones', [
-            'url' => url('/mcp'), 'esDueno' => $dueno, 'conTabs' => $u->puede('configuracion'), 'modos' => McpConexion::MODOS, 'tokenNuevo' => session('tokenNuevo'),
+            'url' => url('/mcp'), 'esDueno' => $dueno, 'conTabs' => $u->puede('configuracion'),
+            'ia' => ['cargada' => \App\Support\Ia::tiene($u->business), 'mascara' => \App\Support\Ia::mascara($u->business), 'modelo' => $u->business?->ia_settings['modelo'] ?? \App\Support\Ia::MODELO_DEFAULT, 'modelos' => \App\Support\Ia::MODELOS, 'puedeEditar' => $dueno || $u->puede('configuracion', 'editar')], 'modos' => McpConexion::MODOS, 'tokenNuevo' => session('tokenNuevo'),
             'conexiones' => $con->map(fn($c) => ['id' => $c->id, 'nombre' => $c->nombre, 'usuario' => $c->user?->name, 'propia' => $c->user_id === $u->id, 'modo' => $c->modo, 'tipo' => $c->client_id ? 'OAuth' : 'Token personal', 'ultimo_uso' => $c->ultimo_uso?->diffForHumans(), 'usos' => $c->usos, 'creada' => $c->created_at->format('d/m/Y')]),
             'llamadas' => IaLlamada::with('user:id,name')->when($ids, fn($q) => $q->whereIn('user_id', $ids))->orderByDesc('id')->limit(40)->get()->map(fn($l) => ['id' => $l->id, 'cuando' => $l->created_at?->format('d/m H:i'), 'usuario' => $l->user?->name, 'origen' => $l->origen, 'herramienta' => $l->herramienta, 'tipo' => $l->tipo, 'ok' => $l->ok, 'error' => $l->error, 'ms' => $l->ms]),
             'propuestas' => IaPropuesta::with('user:id,name')->when($ids, fn($q) => $q->whereIn('user_id', $ids))->orderByDesc('created_at')->limit(30)->get()->map(fn($p) => ['id' => $p->id, 'cuando' => $p->created_at?->format('d/m H:i'), 'usuario' => $p->user?->name, 'titulo' => $p->titulo, 'estado' => $p->estado === 'pendiente' && $p->expira_en->isPast() ? 'vencida' : $p->estado, 'origen' => $p->origen]),
@@ -56,6 +57,50 @@ class ConexionesController extends Controller
         IaPropuesta::where('conexion_id', $c->id)->where('estado', 'pendiente')->update(['estado' => 'cancelada']);
         AuditLog::registrar('eliminar', $c, "Conexión IA {$c->nombre} desconectada");
         return back()->with('ok', 'Conexión desconectada.');
+    }
+
+    // La clave de IA de la empresa: la usa el asistente y toda la IA del sistema. La paga cada empresa.
+    public function guardarIa(Request $r)
+    {
+        $u = $this->editorIa($r);
+        $d = $r->validate(['api_key' => 'nullable|string|max:300', 'modelo' => 'required|in:' . implode(',', array_keys(\App\Support\Ia::MODELOS))]);
+        $s = $u->business->ia_settings ?? [];
+        if (! empty($d['api_key'])) {
+            $k = trim($d['api_key']);
+            if (! str_starts_with($k, 'sk-ant-')) return back()->withErrors(['api_key' => 'La clave de Anthropic empieza con sk-ant-.']);
+            if ($e = $this->probarClave($k, $d['modelo'])) return back()->withErrors(['api_key' => $e]);
+            $s['api_key'] = $k;
+        } elseif (empty($s['api_key'])) {
+            return back()->withErrors(['api_key' => 'Pegá la clave.']);
+        }
+        $s['modelo'] = $d['modelo'];
+        $u->business->forceFill(['ia_settings' => $s])->save();
+        AuditLog::registrar('editar', $u->business, 'Clave de IA de la empresa ' . (! empty($d['api_key']) ? 'cargada' : 'actualizada') . ' (' . $d['modelo'] . ')');
+        return back()->with('ok', 'Listo: la IA de tu empresa quedó activa.');
+    }
+
+    public function quitarIa(Request $r)
+    {
+        $u = $this->editorIa($r);
+        $u->business->forceFill(['ia_settings' => null])->save();
+        AuditLog::registrar('editar', $u->business, 'Clave de IA de la empresa quitada');
+        return back()->with('ok', 'Clave quitada: el asistente vuelve al modo básico.');
+    }
+
+    private function editorIa(Request $r)
+    {
+        $u = $r->user();
+        abort_unless($u->business && ! $u->is_superadmin && ($u->esDueno() || $u->puede('configuracion', 'editar')), 403);
+        return $u;
+    }
+
+    private function probarClave(string $k, string $modelo): ?string
+    {
+        try {
+            $res = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => $k, 'anthropic-version' => '2023-06-01'])->timeout(20)->post('https://api.anthropic.com/v1/messages', ['model' => $modelo, 'max_tokens' => 5, 'messages' => [['role' => 'user', 'content' => 'OK']]]);
+        } catch (\Throwable $e) { return 'No pude conectarme con Anthropic. Probá de nuevo.'; }
+        if ($res->successful()) return null;
+        return match ($res->status()) { 401, 403 => 'La clave no es válida.', 400 => str_contains($res->body(), 'credit') ? 'La cuenta de Anthropic no tiene crédito: cargalo en console.anthropic.com → Billing.' : 'Anthropic rechazó la prueba: ' . mb_substr((string) $res->json('error.message'), 0, 150), 429 => 'La cuenta llegó a su límite de uso. Revisalo en console.anthropic.com.', default => 'Anthropic respondió con error ' . $res->status() . '.' };
     }
 
     private function conexion(Request $r, int $id): McpConexion

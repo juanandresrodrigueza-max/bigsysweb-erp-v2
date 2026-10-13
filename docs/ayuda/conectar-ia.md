@@ -17,6 +17,18 @@ El ERP funciona como **servidor MCP**, el estándar con el que las IA (Claude, C
 
 La IA usa **tu usuario**: ve y hace solo lo que tu rol permite.
 
+## La IA de tu empresa (asistente del ERP)
+
+El asistente del ERP (el botón violeta de abajo a la derecha) y la IA del sistema (presupuestos desde WhatsApp, lectura de facturas de compra, analista del negocio) usan **la clave de Anthropic de tu empresa**: el consumo lo paga tu cuenta, no la de otros.
+
+1. Entrá a **console.anthropic.com**, creá tu cuenta y en **Billing** cargá crédito (con 5 o 10 dólares alcanza para arrancar). Conviene poner un límite de gasto mensual en **Limits**.
+2. En **API Keys → Create Key** creá una clave y copiala (empieza con `sk-ant-`).
+3. En el ERP: **Configuración → Conexiones IA → IA de tu empresa**, pegá la clave, elegí el modelo y tocá **Probar y guardar**.
+
+Haiku es rápido y económico; Sonnet razona mejor los pedidos complicados. Sin clave, el asistente funciona en modo básico (entiende frases simples como cobros, gastos, saldos, stock y ventas). Solo el dueño o quien tenga permiso de editar la configuración puede cargar o quitar la clave. Se guarda cifrada.
+
+Conectar Claude o ChatGPT por MCP (lo que sigue) no usa esta clave: la IA la paga cada uno con su propia cuenta de Claude o ChatGPT.
+
 ## Conectar Claude
 
 1. Entrá a **Configuración → Conexiones IA** y copiá la dirección del servidor MCP (termina en `/mcp`).

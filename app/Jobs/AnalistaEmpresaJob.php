@@ -23,6 +23,7 @@ class AnalistaEmpresaJob implements ShouldQueue
 
     public function handle(AnalistaService $svc): void
     {
+        \App\Support\Ia::aplicar($this->empresa);
         $h = collect($svc->hallazgos($this->empresa))->whereIn('sev', ['critica', 'aviso'])->take(5);
         foreach ($h as $x) Alerta::emitir(['business_id' => $this->empresa->id, 'modulo' => 'estadisticas', 'tipo' => 'analista_' . $x['cat'], 'severidad' => $x['sev'] === 'critica' ? 'critica' : 'aviso', 'titulo' => $x['titulo'], 'detalle' => $x['detalle'], 'url' => '/estadisticas/analista']);
     }

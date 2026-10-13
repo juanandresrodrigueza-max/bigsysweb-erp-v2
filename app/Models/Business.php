@@ -41,6 +41,7 @@ class Business extends Model
         'arba_settings'        => 'encrypted:array',
         'crm_settings'         => 'encrypted:array',
         'tiendanube_settings'  => 'encrypted:array',
+        'ia_settings'          => 'encrypted:array',
     ];
 
     protected $hidden = ['afip_cert_path', 'afip_key_path', 'mercadopago_settings', 'tiendanube_settings', 'arba_settings', 'crm_settings'];
