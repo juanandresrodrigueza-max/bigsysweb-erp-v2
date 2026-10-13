@@ -22,6 +22,7 @@ class WhatsappController extends Controller
     {
         $b = Business::find($business);
         if (! $b) return response()->json(['ok' => false], 404);
+        \App\Support\Ia::aplicar($b);
         $ws = $b->whatsapp_settings ?? [];
         $mensajes = [];
         foreach ($request->input('entry', []) as $e) foreach ($e['changes'] ?? [] as $ch) foreach ($ch['value']['messages'] ?? [] as $m) if (($m['type'] ?? '') === 'text') $mensajes[] = ['de' => $m['from'] ?? null, 'texto' => $m['text']['body'] ?? ''];

@@ -556,6 +556,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     // Fase 28: cada usuario conecta su IA (Claude, ChatGPT…) por MCP con sus propios permisos.
     Route::get('/conexiones-ia',                 [\App\Http\Controllers\Mcp\ConexionesController::class, 'index']);
+    Route::post('/conexiones-ia/clave',          [\App\Http\Controllers\Mcp\ConexionesController::class, 'guardarIa'])->middleware('throttle:10,1');
+    Route::delete('/conexiones-ia/clave',        [\App\Http\Controllers\Mcp\ConexionesController::class, 'quitarIa']);
     Route::post('/conexiones-ia/token',          [\App\Http\Controllers\Mcp\ConexionesController::class, 'crearToken']);
     Route::post('/conexiones-ia/{id}/modo',      [\App\Http\Controllers\Mcp\ConexionesController::class, 'modo'])->whereNumber('id');
     Route::post('/conexiones-ia/{id}/revocar',   [\App\Http\Controllers\Mcp\ConexionesController::class, 'revocar'])->whereNumber('id');
