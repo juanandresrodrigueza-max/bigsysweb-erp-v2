@@ -27,12 +27,13 @@ class AgenteController extends Controller
         $contexto = $this->contexto($user);
         $apiKey   = config('services.anthropic.api_key');
         $acciones = app(\App\Services\IA\AccionesService::class);
+        $cat      = app(\App\Mcp\Catalogo::class);
 
         if (! $apiKey) {
             // Sin IA: se entienden las frases más comunes (cobros, gastos, recordatorios, presupuestos, saldos, stock, ventas).
             if ($i = $acciones->interpretarLocal($data['mensaje'])) {
                 if (isset($i['consulta'])) return response()->json(['respuesta' => $acciones->consultar($i['consulta'], $i['args']), 'modo' => 'local']);
-                $p = $acciones->proponer($user, $i['accion'], $i['args']);
+                $p = $this->proponer($cat, $user, $i['accion'], $i['args']);
                 return isset($p['error']) ? response()->json(['respuesta' => $p['error'], 'modo' => 'local']) : response()->json(['respuesta' => "Te propongo esto. ¿Confirmás?", 'propuesta' => $p, 'modo' => 'local']);
             }
             return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
@@ -44,7 +45,7 @@ class AgenteController extends Controller
             ->values()->all();
 
         try {
-            $tools = $acciones->herramientas($user);
+            $tools = $cat->paraAnthropic($user);
             $llamar = fn(array $msgs) => Http::withHeaders(['x-api-key' => $apiKey, 'anthropic-version' => '2023-06-01'])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
                 'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null), 'messages' => $msgs, 'tools' => $tools,
             ]);
@@ -55,12 +56,12 @@ class AgenteController extends Controller
                 $usos = collect($contenido)->where('type', 'tool_use');
                 $texto = collect($contenido)->where('type', 'text')->pluck('text')->implode("\n");
                 if ($usos->isEmpty()) return response()->json(['respuesta' => $texto ?: 'No pude generar una respuesta. Probá de nuevo.', 'modo' => 'ia']);
-                $accion = $usos->first(fn($u) => ! \App\Services\IA\AccionesService::esConsulta($u['name']));
+                $accion = $usos->first(fn($u) => ($cat->todas()[$u['name']]['tipo'] ?? null) === 'accion');
                 if ($accion) {
-                    $p = $acciones->proponer($user, $accion['name'], (array) $accion['input']);
+                    $p = $this->proponer($cat, $user, $accion['name'], (array) $accion['input']);
                     return isset($p['error']) ? response()->json(['respuesta' => trim($texto . "\n" . $p['error']), 'modo' => 'ia']) : response()->json(['respuesta' => trim($texto) ?: 'Te propongo esto. ¿Confirmás?', 'propuesta' => $p, 'modo' => 'ia']);
                 }
-                $resultados = $usos->map(fn($u) => ['type' => 'tool_result', 'tool_use_id' => $u['id'], 'content' => $acciones->consultar($u['name'], (array) $u['input'])])->values()->all();
+                $resultados = $usos->map(fn($u) => ['type' => 'tool_result', 'tool_use_id' => $u['id'], 'content' => json_encode($cat->llamar($user, $u['name'], (array) $u['input'], 'asistente'), JSON_UNESCAPED_UNICODE)])->values()->all();
                 $mensajes[] = ['role' => 'assistant', 'content' => $contenido];
                 $mensajes[] = ['role' => 'user', 'content' => $resultados];
                 $res = $llamar($mensajes);
@@ -77,12 +78,21 @@ class AgenteController extends Controller
         }
     }
 
-    // El usuario confirmó una propuesta: se ejecuta con sus permisos y queda auditado.
-    public function ejecutar(Request $request)
+    // El usuario confirmó una propuesta: se ejecuta con sus permisos (vueltos a chequear) y queda auditado. Mismo catálogo que MCP.
+    public function ejecutar(Request $request, \App\Mcp\Catalogo $cat)
     {
-        $d = $request->validate(['accion' => 'required|in:registrar_cobro,registrar_gasto,crear_presupuesto,recordar_deuda', 'datos' => 'required|array']);
-        $r = app(\App\Services\IA\AccionesService::class)->ejecutar($request->user(), $d['accion'], $d['datos']);
+        $d = $request->validate(['propuesta_id' => 'required|string|max:26', 'cancelar' => 'nullable|boolean']);
+        $r = $d['cancelar'] ?? false ? $cat->cancelar($request->user(), $d['propuesta_id']) : $cat->llamar($request->user(), 'confirmar_accion', ['propuesta_id' => $d['propuesta_id']], 'asistente');
+        if (isset($r['error'])) return response()->json(['message' => $r['error']], str_contains($r['error'], 'permiso') ? 403 : 422);
         return response()->json($r);
+    }
+
+    // Arma la propuesta en el catálogo y la devuelve con el formato del panel (id, título, detalle).
+    private function proponer(\App\Mcp\Catalogo $cat, $user, string $accion, array $args): array
+    {
+        $p = $cat->llamar($user, $accion, $args, 'asistente');
+        if (isset($p['error'])) return $p;
+        return ['id' => $p['propuesta_id'], 'accion' => $p['accion'], 'titulo' => $p['titulo'], 'detalle' => $p['detalle'], 'delicada' => $p['delicada']];
     }
 
     private function contexto($user): array

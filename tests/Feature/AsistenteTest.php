@@ -7,7 +7,6 @@ use App\Models\Cobro;
 use App\Models\ExpenseCategory;
 use App\Models\MovimientoFondos;
 use App\Models\Vendedor;
-use App\Services\IA\AccionesService;
 use Tests\ErpTestCase;
 
 // Fase 20: el asistente que hace las cosas (con confirmación y permisos), el panel del dueño y los paneles por rol.
@@ -42,7 +41,7 @@ class AsistenteTest extends ErpTestCase
         $this->assertSame('registrar_cobro', $r['propuesta']['accion']); $this->assertSame('Cobrar $ 5.000,00 a Ferretería López en transferencia', $r['propuesta']['titulo']);
         $this->assertStringContainsString($f->numeroFormateado(), $r['propuesta']['detalle'], 'Se imputa a la factura pendiente');
         $this->assertSame(0, Cobro::count(), 'Todavía no hizo nada: espera confirmación');
-        $e = $this->postJson('/agente/ejecutar', ['accion' => $r['propuesta']['accion'], 'datos' => $r['propuesta']['datos']])->assertOk()->json();
+        $e = $this->postJson('/agente/ejecutar', ['propuesta_id' => $r['propuesta']['id']])->assertOk()->json();
         $this->assertTrue($e['ok']); $this->assertSame(1, Cobro::count());
         $this->assertEqualsWithDelta(7100, (float) $cli->fresh()->balance, 0.01);
         $this->assertEqualsWithDelta(7100, (float) $f->fresh()->saldo, 0.01);
@@ -56,19 +55,19 @@ class AsistenteTest extends ErpTestCase
         ExpenseCategory::create(['business_id' => $this->empresa->id, 'name' => 'Combustible', 'tipo_costo' => 'variable', 'imputacion' => 'indirecto']);
         $r = $this->postJson('/agente/chat', ['mensaje' => 'Gasté 5000 en nafta de la camioneta'])->assertOk()->json();
         $this->assertSame('registrar_gasto', $r['propuesta']['accion']); $this->assertSame('Caja', $this->caja->nombre); $this->assertStringContainsString('Sale de Caja', $r['propuesta']['detalle']);
-        $this->postJson('/agente/ejecutar', ['accion' => 'registrar_gasto', 'datos' => $r['propuesta']['datos']])->assertOk()->assertJsonPath('ok', true);
+        $this->postJson('/agente/ejecutar', ['propuesta_id' => $r['propuesta']['id']])->assertOk()->assertJsonPath('ok', true);
         $this->assertSame(1, MovimientoFondos::where('origen', 'gasto')->count()); $this->assertEqualsWithDelta(-5000, (float) $this->caja->fresh()->saldo, 0.01);
         // Recordatorio de deuda.
         $p = $this->articulo(['stock_inicial' => 10]); $cli = $this->cliente(['name' => 'Pérez Hnos', 'mobile' => '3515550000']);
         $f = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 1000]]); $f->update(['fecha_vto' => today()->subDays(5)->toDateString()]);
         $r = $this->postJson('/agente/chat', ['mensaje' => 'Recordale a Pérez la deuda por whatsapp'])->assertOk()->json();
         $this->assertSame('recordar_deuda', $r['propuesta']['accion']); $this->assertStringContainsString('3515550000', $r['propuesta']['detalle']);
-        $this->postJson('/agente/ejecutar', ['accion' => 'recordar_deuda', 'datos' => $r['propuesta']['datos']])->assertOk()->assertJsonPath('ok', true);
+        $this->postJson('/agente/ejecutar', ['propuesta_id' => $r['propuesta']['id']])->assertOk()->assertJsonPath('ok', true);
         $this->assertSame(1, \App\Models\Envio::where('tipo', 'recordatorio')->count());
         // Presupuesto.
         $r = $this->postJson('/agente/chat', ['mensaje' => 'presupuesto para Pérez de 3 ' . $p->name . ' y 2 de ' . $p->name])->assertOk()->json();
         $this->assertSame('crear_presupuesto', $r['propuesta']['accion']);
-        $e = $this->postJson('/agente/ejecutar', ['accion' => 'crear_presupuesto', 'datos' => $r['propuesta']['datos']])->assertOk()->json();
+        $e = $this->postJson('/agente/ejecutar', ['propuesta_id' => $r['propuesta']['id']])->assertOk()->json();
         $this->assertStringContainsString('/editar', $e['url']); $this->assertSame(1, \App\Models\Comprobante::where('tipo', 'PRE')->where('estado', 'borrador')->count());
         // Cliente inexistente: explica en vez de proponer.
         $r = $this->postJson('/agente/chat', ['mensaje' => 'Cobrale 100 a Nadie Existente'])->assertOk()->json();
@@ -78,11 +77,17 @@ class AsistenteTest extends ErpTestCase
     public function test_el_asistente_respeta_los_permisos_del_rol(): void
     {
         $vend = $this->usuarioConRol('vendedor'); $this->actingAs($vend);
-        $this->postJson('/agente/chat', ['mensaje' => 'Gasté 100 en nafta'])->assertStatus(403);
-        $this->postJson('/agente/ejecutar', ['accion' => 'registrar_gasto', 'datos' => ['cuenta_fondos_id' => $this->caja->id, 'monto' => 100, 'concepto' => 'x']])->assertStatus(403);
+        $r = $this->postJson('/agente/chat', ['mensaje' => 'Gasté 100 en nafta'])->assertOk()->json();
+        $this->assertArrayNotHasKey('propuesta', $r); $this->assertStringContainsString('permiso', $r['respuesta']);
+        $this->assertSame(0, \App\Models\IaPropuesta::count());
+        // Una propuesta del dueño no la puede confirmar otro usuario.
+        $this->actingAs($this->dueno);
+        $id = $this->postJson('/agente/chat', ['mensaje' => 'Gasté 100 en nafta'])->json('propuesta.id');
+        $this->actingAs($vend)->postJson('/agente/ejecutar', ['propuesta_id' => $id])->assertStatus(422);
         $this->assertSame(0, MovimientoFondos::count());
-        $this->assertNotContains('registrar_gasto', array_column(app(AccionesService::class)->herramientas($vend), 'name'), 'La IA ni siquiera ve la herramienta');
-        $this->assertContains('registrar_cobro', array_column(app(AccionesService::class)->herramientas($vend), 'name'));
+        $nombres = array_column(app(\App\Mcp\Catalogo::class)->paraAnthropic($vend), 'name');
+        $this->assertNotContains('registrar_gasto', $nombres, 'La IA ni siquiera ve la herramienta');
+        $this->assertContains('registrar_cobro', $nombres);
     }
 
     public function test_panel_del_dueno_y_paneles_por_rol(): void
