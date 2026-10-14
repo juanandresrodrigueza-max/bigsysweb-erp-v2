@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permiso'    => \App\Http\Middleware\Permiso::class,
             'superadmin' => \App\Http\Middleware\SuperAdmin::class,
             'suscripcion' => \App\Http\Middleware\SuscripcionActiva::class,
+            'token.api'  => \App\Http\Middleware\SoloTokensDeApi::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

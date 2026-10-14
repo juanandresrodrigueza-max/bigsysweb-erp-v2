@@ -53,6 +53,8 @@ claude mcp add --transport http bigsys https://erp.bigsysweb.com/mcp --header "A
 - **Consultas y acciones con confirmación**: además, dar de alta clientes y artículos, registrar cobros y gastos, armar presupuestos y facturas en borrador, órdenes de compra, cambiar precios, bloquear lotes, crear órdenes de servicio y mandar recordatorios.
 - **También acciones delicadas**: emitir facturas en ARCA, anular comprobantes, pagar a proveedores, transferir entre cuentas y ajustar stock.
 
+El token de una conexión de IA sirve **solo para la IA** (la dirección `/mcp`): la API del ERP lo rechaza. Así, un token de «Solo consultas» no puede cambiar nada por otro camino. Para integrar otro sistema por la API, creá un token de API en **Seguridad y API → Tokens**.
+
 ## Las acciones siempre se confirman
 
 Cuando le pedís algo que cambia datos, la IA **no lo hace directamente**: el ERP arma una **propuesta** con el detalle (por ejemplo "Cobrar $ 50.000 a Ferretería López en transferencia; cancela la FA 0001-00000123") y la IA te la muestra. Solo si decís que sí, se ejecuta. Las propuestas vencen a los 30 minutos.

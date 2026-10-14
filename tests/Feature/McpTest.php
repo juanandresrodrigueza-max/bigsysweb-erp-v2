@@ -71,6 +71,25 @@ class McpTest extends ErpTestCase
         $this->rpc($this->token($sa), 'ping')->assertStatus(401);
     }
 
+    public function test_el_token_del_mcp_no_entra_a_la_api_rest(): void
+    {
+        // Un token «Solo consultas» no puede escribir (ni leer) por la API común: sólo sirve en /mcp.
+        $tk = $this->token($this->dueno);
+        $api = $this->dueno->createToken('api')->plainTextToken;
+        $conToken = function (string $t) {
+            Auth::forgetGuards();
+            $this->flushSession(); // un cliente de la API entra sin la sesión del navegador
+            return $this->withHeader('Authorization', "Bearer {$t}");
+        };
+        $conToken($tk)->getJson('/api/business')->assertStatus(403);
+        $conToken($tk)->postJson('/api/products', ['name' => 'Colado por el MCP'])->assertStatus(403);
+        $conToken($tk)->getJson('/api/auth/me')->assertStatus(403);
+        $this->assertSame(0, \App\Models\Product::withoutGlobalScopes()->where('name', 'Colado por el MCP')->count());
+        $this->rpc($tk, 'ping')->assertOk(); // en /mcp sigue andando
+        // El token de API común sigue entrando.
+        $conToken($api)->getJson('/api/business')->assertOk();
+    }
+
     public function test_cada_empresa_ve_solo_sus_datos(): void
     {
         $this->cliente(['name' => 'Cliente de Test']);
