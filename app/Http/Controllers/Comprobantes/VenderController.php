@@ -188,4 +188,16 @@ class VenderController extends Controller
         $nc = $this->pos->svc()->devolver(Comprobante::ventas()->with(['items'])->findOrFail($id), $d['items'], $request->user(), $d['medio'], $d['cuenta_fondos_id'] ?? null, $d['motivo'] ?? null);
         return response()->json(['ok' => true, 'comprobante_id' => $nc->id, 'numero' => $nc->numeroFormateado(), 'total' => (float) $nc->total, 'mensaje' => "{$nc->nombreTipo()} {$nc->numeroFormateado()} por $ " . number_format((float) $nc->total, 2, ',', '.') . ' · la plata vuelve por ' . Cobro::MEDIOS[$d['medio']] . '.']);
     }
+
+    // Fase 32.2: la pantalla que mira el cliente (segundo monitor): total, último producto, vuelto y la cartelera. Se abre desde la caja.
+    public function pantallaCliente(Request $request)
+    {
+        $b = $request->user()->business;
+        $v = str_contains($request->path(), 'minimarket') ? 'minimarket' : (str_contains($request->path(), 'retail') ? 'retail' : 'vender');
+        return Inertia::render('Comprobantes/PantallaCliente', [
+            'vertical' => $v, 'empresa' => $b->name, 'logo' => $b->logoDataUri(),
+            'cartelera' => collect($b->pos['cartelera'] ?? [])->map(fn($c) => ['id' => $c['id'], 'tipo' => $c['tipo'], 'url' => "/{$v}/cartelera/{$c['id']}"])->values(),
+            'segundos' => (int) ($b->pos['cartelera_segundos'] ?? 8),
+        ]);
+    }
 }

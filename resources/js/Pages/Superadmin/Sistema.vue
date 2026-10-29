@@ -43,6 +43,8 @@
       <h2 class="font-bold">Aplicaciones para conectar tiendas con un botón</h2>
       <p class="text-sm text-marca-muted">Una sola vez para todos los clientes: la aplicación de BigSys en MercadoLibre (developers.mercadolibre.com.ar) y en Tienda Nube (partners.tiendanube.com). Con esto cada empresa conecta su cuenta entrando con su usuario, sin copiar claves. La URL de retorno de las dos es <code>{{ base }}/conectar/&lt;tienda&gt;/volver</code> y la de notificaciones de MercadoLibre <code>{{ base }}/api/canales/mercadolibre/notificaciones</code>.</p>
       <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label">Mercado Pago (cobros en el local) · App ID</label><input v-model="form.mp_app_id" class="input" /></div>
+        <div><label class="label">Mercado Pago · Secret {{ config.mp_app_secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.mp_app_secret" type="password" class="input" autocomplete="new-password" /></div>
         <div><label class="label">MercadoLibre · App ID</label><input v-model="form.ml_app_id" class="input" /></div>
         <div><label class="label">MercadoLibre · Secret {{ config.ml_app_secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.ml_app_secret" type="password" class="input" autocomplete="off" /></div>
         <div><label class="label">Tienda Nube · App ID</label><input v-model="form.tn_app_id" class="input" /></div>
@@ -88,7 +90,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
-const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls' })
+const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls' })
 const pruebaA = ref('')
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
 </script>

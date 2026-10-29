@@ -92,12 +92,27 @@
           <p v-if="Object.keys(tf.errors).length" class="text-carmin text-xs mt-1">Revisá nombres, cuotas (≥1) y recargos.</p>
         </div>
         <div class="card">
-          <h2 class="font-bold mb-1">Mercado Pago: links, QR de mostrador y Point</h2>
-          <p class="text-xs text-marca-muted mb-3">Con el access token se generan links de pago. Para cobrar con QR en el mostrador cargá tu user id y el id externo de la caja (POS) creada en Mercado Pago; para el lector Point, el id del dispositivo. {{ mercadopago.tiene_token ? 'Token cargado.' : 'Sin token: los links salen simulados.' }}</p>
+          <h2 class="font-bold mb-1" id="mercadopago">Mercado Pago: links, QR de la caja y Point</h2>
+          <!-- Fase 32.3: conectar con un botón; el token se renueva solo. Caja QR y terminal Point (modo PDV) se eligen de la cuenta. -->
+          <div v-if="mercadopago.oauth" class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-2 mb-2 flex flex-wrap items-center justify-between gap-2"><span>Conectado{{ mercadopago.nickname ? ' como ' + mercadopago.nickname : '' }} · el token se renueva solo.</span><button class="text-carmin font-semibold" @click="router.post('/configuracion/empresa/mercadopago/desconectar', {}, { preserveScroll: true })">Desconectar</button></div>
+          <a v-else-if="mercadopago.boton" href="/conectar/mercadopago" class="btn-primary w-full mb-2 text-center block" data-e2e="conectar-mp">Conectar con Mercado Pago</a>
+          <p class="text-xs text-marca-muted mb-3">{{ mercadopago.oauth ? 'Elegí la caja QR del mostrador y la terminal Point de la cuenta:' : 'O pegá el access token a mano. Con el token salen los links de pago; para el QR de la caja hace falta el user id y la caja; para el Point, la terminal.' }} {{ mercadopago.tiene_token ? 'Token cargado.' : 'Sin token: los links salen si hay uno en el servidor.' }}</p>
           <form @submit.prevent="mp.post('/configuracion/empresa/mercadopago', { preserveScroll: true })" class="space-y-2 text-sm">
-            <div><label class="label">Access token</label><input v-model="mp.access_token" class="input" placeholder="APP_USR-…" autocomplete="off" /></div>
-            <div class="grid grid-cols-2 gap-2"><div><label class="label">User id (collector)</label><input v-model="mp.user_id" class="input" placeholder="123456789" /></div><div><label class="label">Caja QR (external id)</label><input v-model="mp.pos_external_id" class="input" placeholder="CAJA01" /></div></div>
-            <div><label class="label">Point: id del dispositivo</label><input v-model="mp.point_device_id" class="input" placeholder="PAX_A910__SMARTPOS123…" /></div>
+            <div v-if="!mercadopago.oauth"><label class="label">Access token</label><input v-model="mp.access_token" class="input" placeholder="APP_USR-…" autocomplete="off" /></div>
+            <div class="grid grid-cols-2 gap-2">
+              <div><label class="label">User id (collector)</label><input v-model="mp.user_id" class="input" placeholder="123456789" :readonly="mercadopago.oauth" /></div>
+              <div><label class="label">Caja QR (external id) <button v-if="mercadopago.tiene_token" type="button" class="text-violeta font-semibold" @click="buscarCajas">· buscar cajas</button></label>
+                <select v-if="cajas.length" v-model="mp.pos_external_id" class="input"><option value="">Elegí la caja</option><option v-for="c in cajas" :key="c.external_id" :value="c.external_id">{{ c.nombre }} ({{ c.external_id }})</option></select>
+                <input v-else v-model="mp.pos_external_id" class="input" placeholder="CAJA01" /></div>
+            </div>
+            <div><label class="label">Terminal Point <button v-if="mercadopago.tiene_token" type="button" class="text-violeta font-semibold" @click="buscarTerminales">· buscar terminales</button></label>
+              <div v-if="terminales.length" class="space-y-1">
+                <div v-for="t in terminales" :key="t.id" class="flex items-center justify-between gap-2 rounded-xl border p-2 text-xs" :class="t.id === mp.point_device_id ? 'border-violeta bg-violeta/5' : 'border-marca-borde'"><span class="font-mono truncate">{{ t.id }} <span class="text-marca-muted">· modo {{ t.modo ?? '?' }}</span></span><button type="button" class="btn-secondary !py-1" @click="router.post('/configuracion/empresa/mercadopago/terminal', { device_id: t.id }, { preserveScroll: true, onSuccess: () => (mp.point_device_id = t.id) })">{{ t.id === mp.point_device_id && mercadopago.point_modo === 'PDV' ? 'Elegida (PDV)' : 'Usar ésta (modo PDV)' }}</button></div>
+              </div>
+              <input v-else v-model="mp.point_device_id" class="input" placeholder="PAX_A910__SMARTPOS123…" />
+              <p v-if="mp.point_device_id && mercadopago.point_modo === 'PDV'" class="text-[11px] text-emerald-700 mt-1">En modo PDV: la terminal sólo cobra lo que le manda la caja; la factura sale cuando el pago se aprueba, al fondo de débito o crédito que informe la Point.</p>
+            </div>
+            <p v-if="mpError" class="text-carmin text-xs">{{ mpError }}</p>
             <button class="btn-primary w-full" :disabled="mp.processing">Guardar Mercado Pago</button>
           </form>
         </div>
@@ -109,8 +124,23 @@
             <p class="text-xs text-marca-muted">Impresora térmica: por el navegador (ventana de impresión) o directo por cable/USB con WebSerial (Chrome/Edge), sin driver.</p>
             <div class="grid grid-cols-2 gap-2"><div><label class="label">Impresora</label><select v-model="pf.impresora" class="input"><option value="navegador">Ventana del navegador</option><option value="serial">Directa (WebSerial / ESC-POS)</option><option value="ninguna">No imprimir</option></select></div><div><label class="label">Ancho (caracteres)</label><select v-model.number="pf.ancho" class="input"><option :value="32">32 (58 mm)</option><option :value="42">42 (80 mm)</option><option :value="48">48 (80 mm chica)</option></select></div></div>
             <label class="flex items-center gap-2"><input v-model="pf.imprimir_auto" type="checkbox" class="accent-carmin" /> Imprimir el ticket automáticamente al cobrar</label>
+            <div><label class="label">Pantalla del cliente: segundos por imagen de la cartelera</label><input v-model.number="pf.cartelera_segundos" type="number" min="3" max="120" class="input w-32" /></div>
             <button class="btn-primary w-full" :disabled="pf.processing">Guardar</button>
           </form>
+        </div>
+        <!-- Fase 32.2: la cartelera que ve el cliente en el segundo monitor de la caja -->
+        <div class="card" id="cartelera">
+          <h2 class="font-bold mb-1">Cartelería y promociones</h2>
+          <p class="text-xs text-marca-muted mb-2">Imágenes y videos que se turnan en la <b>pantalla del cliente</b> de la caja (se abre desde Vender → En la caja → Pantalla del cliente). Conviene vertical, 1080 × 1600. Hasta 20 imágenes juntas; los videos de a uno.</p>
+          <input type="file" multiple accept="image/*,video/mp4,video/webm" class="input !py-1.5 text-xs" data-e2e="cartelera-archivos" @change="subirCartelera($event.target.files)" />
+          <p v-if="cf.processing" class="text-xs text-marca-muted mt-1">Subiendo…</p><p v-if="cf.errors['archivos.0'] || cf.errors.archivos" class="text-carmin text-xs mt-1">{{ cf.errors['archivos.0'] || cf.errors.archivos }}</p>
+          <div v-if="cartelera.length" class="grid grid-cols-4 gap-2 mt-3" data-e2e="cartelera-lista">
+            <div v-for="c in cartelera" :key="c.id" class="relative rounded-xl overflow-hidden border border-marca-borde aspect-[3/4] bg-gris-light">
+              <img v-if="c.tipo === 'imagen'" :src="c.url" class="w-full h-full object-cover" /><video v-else :src="c.url" class="w-full h-full object-cover" muted></video>
+              <button class="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 text-carmin text-xs font-bold" @click="router.delete(`/configuracion/empresa/cartelera/${c.id}`, { preserveScroll: true })">✕</button>
+            </div>
+          </div>
+          <p v-else class="text-xs text-marca-muted mt-2">Sin carteles: la pantalla del cliente muestra sólo el total y el último producto.</p>
         </div>
       </div>
     </div>
@@ -118,20 +148,26 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 import DisenoComprobantes from '@/Components/DisenoComprobantes.vue'
 
-const props = defineProps({ empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] }, tarjetas: { type: Array, default: () => [] }, mercadopago: { type: Object, default: () => ({}) }, marca: { type: Object, default: () => ({ mostrar: {} }) }, estilos: { type: Object, default: () => ({}) } })
+const props = defineProps({ cartelera: { type: Array, default: () => [] }, empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] }, tarjetas: { type: Array, default: () => [] }, mercadopago: { type: Object, default: () => ({}) }, marca: { type: Object, default: () => ({ mostrar: {} }) }, estilos: { type: Object, default: () => ({}) } })
 const tf = useForm({ tarjetas: JSON.parse(JSON.stringify(props.tarjetas)) })
 const mp = useForm({ access_token: props.mercadopago.access_token ?? '', user_id: props.mercadopago.user_id ?? '', pos_external_id: props.mercadopago.pos_external_id ?? '', point_device_id: props.mercadopago.point_device_id ?? '' })
 const verticalesDisponibles = { retail: 'Comercio / punto de venta', gastronomia: 'Gastronomía (mesas, comandas, cocina)', minimarket: 'Minimarket', servicios: 'Servicio técnico (órdenes de trabajo)', hoteleria: 'Hotelería (habitaciones, reservas, check-in)' }
 const vx = useForm({ verticales_extra: [...props.verticalesExtra] })
 const toggleVertical = k => { vx.verticales_extra = vx.verticales_extra.includes(k) ? vx.verticales_extra.filter(x => x !== k) : [...vx.verticales_extra, k] }
 const av = useForm({ activo: !!props.avisos?.activo, whatsapp: props.avisos?.whatsapp ?? '', hora: props.avisos?.hora ?? '21:00', resumen_diario: props.avisos?.resumen_diario ?? true, criticas: props.avisos?.criticas ?? true })
-const pf = useForm({ ...props.pos })
+const pf = useForm({ cartelera_segundos: 8, ...props.pos })
+// Fase 32.2 / 32.3: cartelera y Mercado Pago en el local
+const cf = useForm({ archivos: [] })
+function subirCartelera(files) { if (!files?.length) return; cf.archivos = Array.from(files); cf.post('/configuracion/empresa/cartelera', { forceFormData: true, preserveScroll: true, onSuccess: () => (cf.archivos = []) }) }
+const cajas = ref([]), terminales = ref([]), mpError = ref(null)
+async function buscarCajas() { mpError.value = null; try { const { data } = await window.axios.get('/configuracion/empresa/mercadopago/cajas'); cajas.value = data; if (!data.length) mpError.value = 'La cuenta no tiene cajas QR: crealas en Mercado Pago → Tu negocio → Sucursales y cajas.' } catch (e) { mpError.value = e.response?.data?.error ?? 'No se pudo consultar Mercado Pago.' } }
+async function buscarTerminales() { mpError.value = null; try { const { data } = await window.axios.get('/configuracion/empresa/mercadopago/terminales'); terminales.value = data; if (!data.length) mpError.value = 'La cuenta no tiene terminales Point asociadas.' } catch (e) { mpError.value = e.response?.data?.error ?? 'No se pudo consultar Mercado Pago.' } }
 const form = useForm({ ...props.empresa })
 const page = usePage()
 const puedeEditar = computed(() => { const p = page.props.auth?.permisos ?? {}; return !!(p['*'] || p.configuracion?.includes('editar')) })

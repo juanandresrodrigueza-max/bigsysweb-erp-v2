@@ -88,6 +88,8 @@ class CobroService
                         $this->fondos->registrar($cuenta, ['fecha' => $cobro->fecha, 'origen' => 'cobro', 'origen_id' => $cobro->id, 'concepto' => "Cobro {$cobro->numeroFormateado()} · {$contact->name}" . ($m['moneda'] === 'USD' ? " · USD " . number_format($m['monto_me'], 2, ',', '.') : ''), 'ingreso' => $m['moneda'] === 'USD' && $cuenta->moneda === 'USD' ? $m['monto_me'] : (float) $m['monto'], 'cotizacion' => $m['moneda'] === 'USD' && $cuenta->moneda === 'USD' ? $m['cotizacion'] : 1, 'referencia' => $m['referencia'] ?? null]);
                     }
                 }
+                // Tarjeta: el cupón se liquida después, pero queda anotado a qué fondo (débito o crédito) va, si la caja lo dijo.
+                if ($m['medio'] === 'tarjeta' && ! empty($m['cuenta_fondos_id'])) $cuentaId = (int) $m['cuenta_fondos_id'];
                 $medioRow = $cobro->medios()->create(['medio' => $m['medio'], 'monto' => $m['monto'], 'cuenta_fondos_id' => $cuentaId, 'cheque_id' => $chequeId, 'referencia' => $m['referencia'] ?? null, 'datos' => $m['datos'] ?? null, 'moneda' => $m['moneda'], 'cotizacion' => $m['cotizacion'], 'monto_me' => $m['monto_me']]);
                 if ($m['medio'] === 'tarjeta') app(\App\Services\Fondos\TarjetasService::class)->cuponDesdeCobro($cobro, $medioRow);
             }

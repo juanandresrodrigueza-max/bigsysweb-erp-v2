@@ -9,6 +9,7 @@
         <!-- Fase 32.1: hasta 3 ventas en espera ("el del gorro") y las últimas ventas para reimprimir, anular o devolver -->
         <button v-for="(e, k) in espera" :key="k" class="badge bg-amber-50 text-amber-800 border border-amber-200" :data-e2e="`espera-${k}`" @click="retomar(k)">⏸ {{ e.nombre }} · {{ moneda(e.total, 0) }}</button>
         <button class="badge bg-gris-light text-marca-texto" data-e2e="ultimas" @click="abrirUltimas">Últimas ventas</button>
+        <button v-if="caja" class="badge bg-gris-light text-marca-texto" data-e2e="pantalla-cliente" @click="abrirPantallaCliente">🖥 Pantalla del cliente</button>
         <button v-if="ultimaVenta?.comprobante_id" class="badge bg-lavanda-light text-violeta" @click="imprimirTicket(ultimaVenta.comprobante_id)"><Icono nombre="printer" clase="w-3.5 h-3.5 inline" /> Imprimir último ticket</button>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-sm">
@@ -185,6 +186,7 @@ const visibles = computed(() => {
 function agregar(p, cant = 1, serie = null) {
   const ex = ticket.value.find(i => i.product_id === p.id)
   if (ex) { ex.cantidad += cant; if (serie) ex.serie = [ex.serie, serie].filter(Boolean).join(', ') } else ticket.value.push({ product_id: p.id, descripcion: p.name, cantidad: cant, precio_unit: precioDe(p), descuento: Number(cliente.value?.descuento ?? 0), alicuota_iva: p.iva, seriado: !!p.seriado, serie: serie ?? '' })
+  ultimoAgregado.value = ticket.value.find(i => i.product_id === p.id) ?? null; if (ultimoAgregado.value) ultimoAgregado.value.promo = p.desc_cant_pct > 0 && p.desc_cant_min > 0 ? `LLEVANDO ${p.desc_cant_min} O MÁS, ${p.desc_cant_pct}% MENOS` : null
   q.value = ''; nextTick(() => buscador.value?.focus())
 }
 // Balanza: EAN-13 de peso variable (prefijo + 5 dígitos de artículo + 5 de peso/importe + verificador).
@@ -253,7 +255,12 @@ async function mpConsultar() {
   try {
     const r = await fetch(`${base()}/mp/estado?tipo=${mpCobro.value.tipo}&id=${encodeURIComponent(mpCobro.value.id)}`, { headers: { Accept: 'application/json' } }); const j = await r.json()
     mpCobro.value.estado = j.estado; mpCobro.value.error = j.error ?? null
-    if (j.estado === 'pagado') { clearInterval(mpTimer); mpCobro.value.medio.referencia = j.pago_id || mpCobro.value.id; if (j.monto) mpCobro.value.medio.monto = j.monto; cobrar() }
+    if (j.estado === 'pagado') {
+      clearInterval(mpTimer); const m = mpCobro.value.medio; m.referencia = j.pago_id || mpCobro.value.id; if (j.monto) m.monto = j.monto
+      // Point: la factura sale al fondo de débito o crédito que informó la terminal, con las cuotas anotadas.
+      if (mpCobro.value.tipo === 'point' && j.es_tarjeta) { m.medio = 'tarjeta'; m.datos = { tarjeta: j.tarjeta + (j.marca ? ' ' + j.marca : ''), cuotas: j.cuotas || 1, via: 'point' }; const cta = props.cuentas.find(c => c.tipo === 'tarjeta' && new RegExp(j.tarjeta === 'Débito' ? 'd[eé]bito' : 'cr[eé]dito', 'i').test(c.nombre)); if (cta) m.cuenta_fondos_id = cta.id }
+      cobrar()
+    }
     if (j.estado === 'cancelado') clearInterval(mpTimer)
   } catch (e) {}
 }
@@ -285,7 +292,7 @@ async function sincronizar() {
 function cobrar() {
   if (enviando.value) return
   enviando.value = true; error.value = null
-  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' || m.medio === 'cheque' ? m.datos : null })), receptor: contactId.value === props.consumidorFinalId && (receptor.documento || receptor.nombre) ? { documento: receptor.documento || null, nombre: receptor.nombre || null } : null }
+  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' || m.medio === 'cheque' ? m.datos : null, cuenta_fondos_id: m.cuenta_fondos_id ?? null })), receptor: contactId.value === props.consumidorFinalId && (receptor.documento || receptor.nombre) ? { documento: receptor.documento || null, nombre: receptor.nombre || null } : null }
   if (!navigator.onLine) {
     cola.value.push({ ...datos, offline_id: 'off-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), fecha_offline: new Date().toISOString() }); guardarCola()
     ultimaVenta.value = { numero: 'SIN CONEXIÓN', total: totalFinal.value, vuelto: Math.max(0, pagado.value - aCobrar.value), offline: true }
@@ -325,6 +332,21 @@ async function confirmarDevolucion() {
   const d = devol.value; d.enviando = true; d.error = null
   try { const r = await fetch(`${base()}/venta/${d.venta.id}/devolver`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ items: d.items.filter(i => i.cantidad > 0).map(i => ({ item_id: i.id, cantidad: i.cantidad })), medio: d.medio, motivo: d.motivo || null }) }); const j = await r.json(); if (!r.ok) { d.error = j.message ?? Object.values(j.errors ?? {})[0]?.[0] ?? 'No se pudo.'; d.enviando = false; return } msjUltimas.value = { texto: j.mensaje }; devol.value = null; cargarUltimas() } catch (e) { d.error = 'No se pudo.'; d.enviando = false }
 }
+// --- Fase 32.2 · Pantalla del cliente: otra ventana (segundo monitor) que escucha lo que pasa en esta caja ---
+let canalCliente = null
+try { canalCliente = new BroadcastChannel(`pos-cliente-${props.vertical}`) } catch (e) {}
+const ultimoAgregado = ref(null)
+function avisarCliente(extra = {}) {
+  if (!canalCliente) return
+  const ult = ultimoAgregado.value
+  // Recién cobrada y el ticket vacío: la pantalla dice gracias con el total y el vuelto de esa venta.
+  const g = ultimaVenta.value && !ticket.value.length && !cobroAbierto.value ? { gracias: true, total: ultimaVenta.value.total, vuelto: ultimaVenta.value.vuelto ?? 0 } : {}
+  canalCliente.postMessage({ total: totalFinal.value, items: ticket.value.reduce((a, i) => a + i.cantidad, 0), ultimo: ult ? { nombre: ult.descripcion, precio: ult.precio_unit, cantidad: ult.cantidad, promo: ult.promo ?? null } : null, pagado: cobroAbierto.value ? pagado.value : 0, vuelto: cobroAbierto.value ? Math.max(0, pagado.value - aCobrar.value - recargoTotal.value) : 0, cobrando: cobroAbierto.value, ...extra, ...g })
+}
+watch([ticket, () => pagado.value, cobroAbierto], () => avisarCliente(), { deep: true })
+watch(ultimaVenta, v => { if (v) { ultimoAgregado.value = null; avisarCliente() } })
+function abrirPantallaCliente() { window.open(`${base()}/pantalla-cliente`, 'pantalla-cliente', 'popup=yes,width=1280,height=800'); setTimeout(() => avisarCliente(), 800) }
+if (canalCliente) canalCliente.onmessage = e => { if (e.data?.hola) avisarCliente() }
 // --- Impresora térmica directa (WebSerial) ---
 let puerto = null
 const impresoraOk = ref(false)
