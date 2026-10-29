@@ -47,6 +47,33 @@ class BigcitoFotoAudioAyudaTest extends ErpTestCase
         $this->assertSame($juan->id, $f->fresh()->contact_id);
     }
 
+    public function test_nombre_parecido_con_ia_y_sin_inventar(): void
+    {
+        $cf = $this->cliente(['name' => 'Consumidor Final', 'cuit' => null]);
+        $juan = $this->cliente(['name' => 'Juan Carlos Pérez', 'cuit' => null]);
+        $f = $this->factura($cf, [['descripcion' => 'x', 'cantidad' => 1, 'precio_unit' => 100, 'alicuota_iva' => 21]]);
+        $f->forceFill(['receptor' => ['nombre' => 'J. C. Perez', 'documento' => '']])->save();
+        $g = $this->factura($cf, [['descripcion' => 'x', 'cantidad' => 1, 'precio_unit' => 100, 'alicuota_iva' => 21]]);
+        $g->forceFill(['receptor' => ['nombre' => 'Alguien Desconocido', 'documento' => '']])->save();
+        // Sin clave de IA no adivina: los dos quedan sin identificar.
+        $r = $this->mcp('comprobantes_sin_cliente');
+        $this->assertSame([], $r['encontrados']); $this->assertSame(2, $r['sin_identificar']);
+        // Con IA: la IA asigna el parecido; si devuelve un cliente que no existe, se descarta.
+        $this->empresa->forceFill(['ia_settings' => ['api_key' => 'sk-ant-test', 'modelo' => 'claude-haiku-5-5']])->save();
+        Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => json_encode(['asignar' => [['id' => $f->id, 'cliente' => $juan->id], ['id' => $g->id, 'cliente' => 999999]]])]]])]);
+        $this->dueno = $this->dueno->fresh(); config(['services.anthropic.api_key' => 'sk-ant-test']);
+        $r = $this->mcp('comprobantes_sin_cliente');
+        $this->assertCount(1, $r['encontrados']);
+        $this->assertSame(['comprobante_id' => $f->id, 'cliente_id' => $juan->id, 'como' => 'parecido (IA)'], array_intersect_key($r['encontrados'][0], array_flip(['comprobante_id', 'cliente_id', 'como'])));
+        $this->assertSame(1, $r['sin_identificar']);
+    }
+
+    public function test_bigcito_tiene_el_whatsapp_de_soporte(): void
+    {
+        \App\Models\SistemaConfig::set('soporte_whatsapp', '+54 9 351 555-0000');
+        $this->actingAs($this->dueno)->get('/dashboard')->assertInertia(fn($p) => $p->where('soporteWhatsapp', '+54 9 351 555-0000'));
+    }
+
     public function test_ayuda_guarda_vota_sin_respuesta_y_manual(): void
     {
         $r = $this->actingAs($this->dueno)->postJson('/ayuda/preguntar', ['q' => 'zzqxw inexistente', 'historial' => [['rol' => 'user', 'texto' => 'hola']]])->assertOk()->json();
