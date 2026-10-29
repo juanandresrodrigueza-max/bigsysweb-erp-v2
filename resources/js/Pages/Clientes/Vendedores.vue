@@ -59,6 +59,25 @@
             <button v-if="puede('configuracion','editar')" class="btn-secondary !py-1.5 text-xs" :disabled="calleForm.processing" @click="calleForm.post('/clientes/vendedores/calle', { preserveScroll: true })" data-e2e="guardar-calle">Guardar</button>
           </div>
         </div>
+        <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="rendiciones">
+          <h2 class="font-bold mb-1">Rendiciones de la calle</h2>
+          <p class="text-xs text-marca-muted mb-2">Lo que cada vendedor cobró ya bajó la deuda del cliente, pero la plata está a su nombre ("En mano") hasta que la recibís acá: el efectivo contado entra a la caja, las transferencias al banco y los cheques ya están en cartera.</p>
+          <p v-if="rendiciones.en_mano.length" class="text-xs mb-2">En mano ahora: <span v-for="e in rendiciones.en_mano" :key="e.vendedor" class="badge bg-amber-50 text-amber-800 mr-1">{{ e.vendedor }} · {{ moneda(e.saldo) }}</span></p>
+          <div v-for="r in rendiciones.pendientes" :key="r.id" class="rounded-xl border border-amber-300 bg-amber-50/40 p-3 text-sm mb-2" :data-e2e="`rendicion-${r.id}`">
+            <div class="flex flex-wrap justify-between gap-2"><b>{{ r.numero }} · {{ r.vendedor }}</b><span class="text-xs text-marca-muted">{{ r.cuando }} · {{ r.recibos }} recibo{{ r.recibos === 1 ? '' : 's' }}</span></div>
+            <p class="text-xs mt-1">Efectivo <b class="tabular-nums">{{ moneda(r.efectivo) }}</b> · transferencias <b class="tabular-nums">{{ moneda(r.transferencias) }}</b> · cheques <b class="tabular-nums">{{ moneda(r.cheques) }}</b></p>
+            <div v-if="puede('fondos','crear')" class="grid grid-cols-3 gap-2 mt-2 items-end">
+              <div v-if="r.efectivo > 0"><label class="label">Efectivo contado</label><input v-model.number="recibo[r.id].efectivo_contado" type="number" step="any" min="0" class="input !py-1.5" :data-e2e="`contado-${r.id}`" /></div>
+              <div v-if="r.efectivo > 0"><label class="label">A la caja</label><select v-model="recibo[r.id].caja_id" class="input !py-1.5"><option v-for="c in cajas.filter(x => x.tipo === 'caja')" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div>
+              <div v-if="r.transferencias > 0"><label class="label">Al banco</label><select v-model="recibo[r.id].banco_id" class="input !py-1.5"><option v-for="c in cajas.filter(x => x.tipo !== 'caja')" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div>
+              <button class="btn-primary !py-1.5 text-xs" @click="recibir(r)" :data-e2e="`recibir-${r.id}`">Recibir</button>
+            </div>
+          </div>
+          <p v-if="!rendiciones.pendientes.length" class="text-xs text-marca-muted">Nada por recibir.</p>
+          <details v-if="rendiciones.recibidas.length" class="mt-2 text-xs"><summary class="cursor-pointer text-marca-muted">Últimas recibidas</summary>
+            <table class="table text-xs mt-1"><thead><tr><th>Rendición</th><th>Vendedor</th><th class="text-right">Total</th><th class="text-right">Diferencia</th><th>Recibió</th></tr></thead><tbody><tr v-for="r in rendiciones.recibidas" :key="r.id"><td>{{ r.numero }} · {{ r.cuando }}</td><td>{{ r.vendedor }}</td><td class="text-right tabular-nums">{{ moneda(r.total) }}</td><td class="text-right tabular-nums" :class="r.diferencia < -0.005 ? 'text-carmin font-semibold' : r.diferencia > 0.005 ? 'text-emerald-700' : ''">{{ moneda(r.diferencia || 0) }}</td><td>{{ r.recibida_por }} · {{ r.recibida }}</td></tr></tbody></table>
+          </details>
+        </div>
         <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="autorizaciones">
           <h2 class="font-bold mb-1">Descuentos por encima del tope <span class="text-marca-muted font-normal text-sm">· últimos 30 días</span></h2>
           <p class="text-xs text-marca-muted mb-2">Quién lo pidió, de cuánto, a qué cliente y quién lo autorizó. Autoriza quien puede anular comprobantes, nunca uno mismo; el OK vale 15 minutos y una sola venta.</p>
@@ -88,8 +107,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { ref, reactive } from 'vue'
+import { Link, useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
@@ -97,7 +116,9 @@ import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object, autorizaciones: Object })
+const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object, autorizaciones: Object, rendiciones: Object, cajas: Array })
+const recibo = reactive(Object.fromEntries(props.rendiciones.pendientes.map(r => [r.id, { efectivo_contado: r.efectivo, caja_id: props.cajas.find(c => c.tipo === 'caja')?.id ?? null, banco_id: props.cajas.find(c => c.tipo !== 'caja')?.id ?? null }])))
+function recibir(r) { router.post(`/clientes/vendedores/rendiciones/${r.id}/recibir`, recibo[r.id], { preserveScroll: true }) }
 const { puede } = usePermisos()
 const abierto = ref(null), modal = ref(false)
 const vacio = () => ({ id: null, nombre: '', email: '', telefono: '', user_id: null, comision_venta: 0, comision_cobro: 0, activo: true, modo_default: 'mostrador', objetivo_mensual: null })

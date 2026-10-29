@@ -9,6 +9,7 @@ use App\Models\Comprobante;
 use App\Models\Contact;
 use App\Models\Vendedor;
 use App\Models\Visita;
+use App\Services\Ventas\CobranzaCalleService;
 use App\Services\Ventas\VenderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,7 +18,7 @@ use Inertia\Inertia;
 // /retail y /minimarket siguen entrando acá, en modo caja.
 class VenderController extends Controller
 {
-    public function __construct(private VenderService $vender, private PosController $pos) {}
+    public function __construct(private VenderService $vender, private PosController $pos, private CobranzaCalleService $calle) {}
 
     public function index(Request $request)
     {
@@ -32,7 +33,7 @@ class VenderController extends Controller
             'encargado' => $u->puede('clientes', 'editar'),
             'config' => $this->vender->config($u->business),
             'puede' => ['facturar' => $u->puede('comprobantes', 'crear'), 'precios' => $u->puede('comprobantes', 'editar'), 'cobrar' => $u->puede('clientes', 'crear')],
-            'motivos' => Visita::MOTIVOS,
+            'motivos' => Visita::MOTIVOS, 'motivosDevolucion' => CobranzaCalleService::MOTIVOS_DEVOLUCION, 'bancos' => \App\Support\Bancos::LISTA,
         ]);
     }
 
@@ -69,6 +70,52 @@ class VenderController extends Controller
         $d = $request->validate(['contact_id' => 'required|exists:contacts,id', 'pct' => 'required|numeric|min:0|max:100', 'email' => 'required|email', 'password' => 'required|string']);
         $a = $this->vender->autorizar($request->user(), Contact::customers()->findOrFail($d['contact_id']), (float) $d['pct'], $d['email'], $d['password']);
         return response()->json(['ok' => true, 'token' => $a->token, 'pct' => $a->pct, 'encargado' => $a->encargado->name, 'vence' => $a->vence_at->toIso8601String()]);
+    }
+
+    // ---- Fase 29.5: cobrar, rendir, devolver y confirmar la entrega ----
+    public function hoy(Request $request) { return response()->json($this->calle->hoy($request->user())); }
+
+    public function cobrar(Request $request, int $id)
+    {
+        $d = $request->validate(['medios' => 'required|array|min:1', 'medios.*.medio' => 'required|in:efectivo,transferencia,cheque', 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array', 'medios.*.datos.numero' => 'nullable|string|max:40', 'medios.*.datos.banco' => 'nullable|string|max:80', 'medios.*.datos.fecha_pago' => 'nullable|date', 'medios.*.datos.titular' => 'nullable|string|max:120', 'medios.*.datos.echeq' => 'nullable|boolean',
+            'firma' => 'nullable|string|max:300000', 'firma_nombre' => 'nullable|string|max:120', 'notas' => 'nullable|string|max:300', 'forzar_cheque' => 'boolean', 'lat' => 'nullable|numeric', 'lng' => 'nullable|numeric', 'offline_id' => 'nullable|string|max:64', 'fecha_offline' => 'nullable|date']);
+        $c = Contact::customers()->findOrFail($id);
+        if (! empty($d['offline_id']) && ($ya = \App\Models\Cobro::where('contact_id', $c->id)->where('notas', 'like', "%[{$d['offline_id']}]%")->first())) return response()->json(['ok' => true, 'repetida' => true, 'cobro_id' => $ya->id, 'numero' => $ya->numeroFormateado(), 'total' => (float) $ya->total]);
+        if (! empty($d['offline_id'])) $d['notas'] = trim(($d['notas'] ?? '') . " [{$d['offline_id']}]");
+        $co = $this->calle->cobrar($request->user(), $c, $d);
+        return response()->json(['ok' => true, 'cobro_id' => $co->id, 'numero' => $co->numeroFormateado(), 'total' => (float) $co->total, 'a_cuenta' => (float) $co->a_cuenta, 'saldo' => (float) $c->fresh()->balance]);
+    }
+
+    public function rendir(Request $request)
+    {
+        $d = $request->validate(['notas' => 'nullable|string|max:300']);
+        $r = $this->calle->rendir($request->user(), $d['notas'] ?? null);
+        return response()->json(['ok' => true, 'numero' => $r->numeroFormateado(), 'efectivo' => $r->efectivo, 'transferencias' => $r->transferencias, 'cheques' => $r->cheques, 'recibos' => $r->recibos]);
+    }
+
+    public function devolucion(Request $request, int $id)
+    {
+        $d = $request->validate(['items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.cantidad' => 'required|numeric|min:0.001', 'motivo' => 'required|in:' . implode(',', array_keys(CobranzaCalleService::MOTIVOS_DEVOLUCION)), 'nota' => 'nullable|string|max:300', 'lat' => 'nullable|numeric', 'lng' => 'nullable|numeric', 'offline_id' => 'nullable|string|max:64', 'fecha_offline' => 'nullable|date']);
+        $c = Contact::customers()->findOrFail($id);
+        if (! empty($d['offline_id']) && ($ya = Comprobante::ventas()->where('offline_id', $d['offline_id'])->first())) return response()->json(['ok' => true, 'repetida' => true, 'comprobante_id' => $ya->id]);
+        $nc = $this->calle->devolucion($request->user(), $c, $d);
+        if (! empty($d['offline_id'])) $nc->forceFill(['offline_id' => $d['offline_id']])->save();
+        return response()->json(['ok' => true, 'comprobante_id' => $nc->id, 'tipo' => $nc->nombreTipo(), 'estado' => $nc->estado, 'numero' => $nc->estado === 'emitido' ? $nc->numeroFormateado() : "#{$nc->id}", 'total' => (float) $nc->total]);
+    }
+
+    public function entrega(Request $request, int $id)
+    {
+        $d = $request->validate(['nombre' => 'required|string|max:120', 'firma' => 'nullable|string|max:300000', 'foto' => 'nullable|string|max:6000000', 'cuando' => 'nullable|date']);
+        $c = Comprobante::ventas()->findOrFail($id);
+        $c = $this->calle->confirmarEntrega($c, $request->user(), $d);
+        return response()->json(['ok' => true, 'entregado' => ['nombre' => $c->entrega_nombre, 'hora' => $c->entregado_at->format('H:i')]]);
+    }
+
+    public function fotoEntrega(int $id)
+    {
+        $c = Comprobante::ventas()->findOrFail($id);
+        abort_unless($c->entrega_foto && \Illuminate\Support\Facades\Storage::disk('local')->exists($c->entrega_foto), 404);
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($c->entrega_foto);
     }
 
     public function vender(Request $request)

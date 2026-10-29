@@ -22,6 +22,14 @@ El tope está en **Clientes → Vendedores → Cómo se vende en la calle**. Has
 
 Las **promociones por cantidad**, los **precios pactados** y los **descuentos de la lista** los decidió el dueño, no el vendedor: no piden permiso ni cuentan para el tope, y nunca se suman entre sí (se toma el mayor). En *Clientes → Vendedores* queda el cuadro *Descuentos por encima del tope* con quién lo pidió, de cuánto, a qué cliente, quién lo autorizó y cuántas autorizaciones se pidieron sin usar. Si el cliente se pasa del límite de crédito o tiene deuda vencida, avisa y podés vender igual: queda registrado quién y por qué.
 
+## Cobrar en la calle y rendir
+
+Desde la ficha del cliente, **Cobrar**: efectivo, transferencia o cheque (número, banco de la lista del BCRA, fecha y titular; si ese cheque ya está cargado, avisa). Sale un **recibo numerado** que el cliente firma en la pantalla y se imputa a las facturas más viejas. La deuda baja en el momento, pero la plata queda a nombre del vendedor en su caja **"En mano"** hasta que rinde. El vendedor no puede anular ni cambiar un cobro.
+
+En **Hoy** el vendedor ve lo cobrado, lo vendido y **Cerrar el turno y rendir**: se agrupa todo por medio. El encargado lo recibe en **Clientes → Vendedores → Rendiciones de la calle**: cuenta el efectivo (la diferencia queda como faltante o sobrante del vendedor), elige la caja y el banco, y la plata pasa a los fondos del negocio. Los cheques ya están en cartera.
+
+**Devolución**: desde la ficha, qué vuelve y el motivo (fallado, vencido, no era lo que pidió, no lo pudo vender, error al cargar, otro). Sale como nota de crédito, vuelve al stock y se resta de la comisión del vendedor. **Confirmación de entrega**: en cada factura o remito, nombre de quien recibe, firma con el dedo y foto; queda en el comprobante como constancia.
+
 ## Vender en el mostrador
 
 Escaneá o buscá el artículo (F2), ajustá cantidades, **Cobrar** (F9). Elegís el medio (efectivo, tarjeta, transferencia, Mercado Pago) y sale la factura y el ticket. Con efectivo, los botones de billetes calculan el vuelto.
