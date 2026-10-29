@@ -58,6 +58,66 @@
       </div>
     </div>
 
+    <!-- Fase 33.3: márgenes a vigilar, precios a revisar, el margen que se achica -->
+    <div class="card mb-5" data-e2e="vigilar">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 class="font-bold">Márgenes a vigilar <span class="text-marca-muted cursor-help font-normal text-sm" :title="vigilar.como">ⓘ</span></h2>
+        <div class="flex flex-wrap items-center gap-1.5 text-xs">
+          <span v-for="(n, k) in vigilar.cantidad" :key="k" class="rounded-full px-2.5 py-1 font-semibold cursor-pointer border" :class="[{ rojo: 'bg-red-100 text-red-800', amarillo: 'bg-amber-100 text-amber-800', verde: 'bg-emerald-50 text-emerald-700' }[k], filtroColor === k ? 'border-marca-texto' : 'border-transparent']" @click="ir({ color: filtroColor === k ? undefined : k })">{{ n }} {{ k }}</span>
+          <select :value="vigilar.lista" class="input !py-1 !text-xs w-auto" @change="ir({ lista: $event.target.value })"><option v-for="l in [1,2,3,4,5,6]" :key="l" :value="l">Lista {{ l }}</option></select>
+          <input :value="filtros.q" class="input !py-1 !text-xs w-36" placeholder="Buscar…" @keydown.enter="ir({ q: $event.target.value })" />
+          <button class="btn-secondary !py-1" data-e2e="minimos" @click="minAbierto = true">Mínimos</button>
+        </div>
+      </div>
+      <p v-if="vigilar.general === null && !vigilar.rubros.some(r => r.margen_minimo !== null) && !vigilar.items.length" class="text-sm text-marca-muted">Todavía no hay ningún mínimo: poné uno general, por rubro o por artículo en <b>Mínimos</b> y los artículos aparecen en rojo, amarillo o verde.</p>
+      <div v-else class="overflow-x-auto max-h-96"><table class="table text-xs">
+        <thead><tr><th></th><th>Artículo</th><th class="text-right">Precio</th><th class="text-right">Costo</th><th class="text-right">Margen s/costo</th><th class="text-right">Mínimo</th><th class="text-right">Hace 30 d</th><th class="text-right">Hace 90 d</th><th>Último cambio</th><th></th></tr></thead>
+        <tbody><tr v-for="i in vigilar.items" :key="i.id" :data-e2e="`vig-${i.id}`">
+          <td><span class="inline-block w-3 h-3 rounded-full" :class="{ rojo: 'bg-red-500', amarillo: 'bg-amber-400', verde: 'bg-emerald-500' }[i.estado]"></span></td>
+          <td><Link :href="`/stock/${i.id}`" class="font-medium hover:text-carmin">{{ i.nombre }}</Link> <span class="text-marca-muted">{{ i.sku }}<span v-if="i.rubro"> · {{ i.rubro }}</span></span></td>
+          <td class="text-right tabular-nums">{{ moneda(i.precio) }}</td><td class="text-right tabular-nums text-marca-muted">{{ moneda(i.costo) }}</td>
+          <td class="text-right tabular-nums font-bold" :class="{ rojo: 'text-red-700', amarillo: 'text-amber-700', verde: 'text-emerald-700' }[i.estado]">{{ i.margen }}%</td>
+          <td class="text-right tabular-nums">{{ i.minimo }}% <span class="text-marca-muted">({{ i.origen_minimo }})</span></td>
+          <td class="text-right tabular-nums">{{ flecha(i.margen, i.hace30) }}</td><td class="text-right tabular-nums">{{ flecha(i.margen, i.hace90) }}</td>
+          <td class="text-marca-muted">{{ i.ultimo_cambio ? `${i.ultimo_cambio.fecha}: precio ${moneda(i.ultimo_cambio.precio_antes, 0)} → ${moneda(i.ultimo_cambio.precio, 0)}, costo ${moneda(i.ultimo_cambio.costo_antes, 0)} → ${moneda(i.ultimo_cambio.costo, 0)}` : '—' }}</td>
+          <td class="text-right whitespace-nowrap"><button class="text-violeta font-semibold" @click="verHistorial(i)">Historial</button> · <input :value="i.margen_minimo_articulo" type="number" step="any" class="input !py-0.5 !text-xs w-16 text-right" placeholder="mín." title="Mínimo de este artículo" @change="minArticulo(i, $event.target.value)" /></td>
+        </tr><tr v-if="!vigilar.items.length"><td colspan="10" class="text-center text-marca-muted py-6">Nada con este filtro.</td></tr></tbody></table></div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-5 mb-5">
+      <div class="card" data-e2e="revisar">
+        <h2 class="font-bold mb-2">Precios a revisar <span class="text-marca-muted cursor-help font-normal text-sm" :title="revisar.como">ⓘ</span></h2>
+        <div class="flex gap-1.5 text-xs mb-2"><button v-for="t in [['debajo', `Debajo del costo (${revisar.debajo_costo.length})`], ['bajo', `Bajo el mínimo (${revisar.bajo_minimo.length})`], ['viejo', `Precio viejo (${revisar.total_viejo})`]]" :key="t[0]" class="rounded-full px-2.5 py-1 font-semibold border" :class="tabRev === t[0] ? 'bg-marca-texto text-white border-marca-texto' : 'border-marca-borde'" @click="tabRev = t[0]">{{ t[1] }}</button></div>
+        <div class="max-h-72 overflow-y-auto text-sm">
+          <template v-if="tabRev === 'debajo'"><div v-for="r in revisar.debajo_costo" :key="r.id" class="flex justify-between gap-2 py-1 border-t border-marca-borde"><Link :href="`/stock/${r.id}`" class="truncate hover:text-carmin">{{ r.nombre }}</Link><span class="tabular-nums text-carmin whitespace-nowrap">{{ moneda(r.precio) }} &lt; costo {{ moneda(r.costo) }}</span></div><p v-if="!revisar.debajo_costo.length" class="text-emerald-700 py-4 text-center">Ningún precio por debajo del costo.</p></template>
+          <template v-else-if="tabRev === 'bajo'"><div v-for="r in revisar.bajo_minimo" :key="r.id" class="flex justify-between gap-2 py-1 border-t border-marca-borde"><Link :href="`/stock/${r.id}`" class="truncate hover:text-carmin">{{ r.nombre }}</Link><span class="tabular-nums whitespace-nowrap"><b class="text-carmin">{{ r.margen }}%</b> de {{ r.minimo }}% mínimo</span></div><p v-if="!revisar.bajo_minimo.length" class="text-emerald-700 py-4 text-center">Todos cumplen su mínimo.</p></template>
+          <template v-else><div v-for="(g, k) in revisar.viejo" :key="k"><p v-if="g.length" class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mt-2">{{ { '90_180': '90 a 180 días', '180_365': '6 meses a 1 año', mas_365: 'más de un año', nunca: 'sin fecha de actualización' }[k] }} · {{ g.length }}</p><div v-for="r in g" :key="r.id" class="flex justify-between gap-2 py-1 border-t border-marca-borde"><Link :href="`/stock/${r.id}`" class="truncate hover:text-carmin">{{ r.nombre }}</Link><span class="tabular-nums whitespace-nowrap text-marca-muted">{{ moneda(r.precio) }}{{ r.dias ? ' · ' + r.dias + ' días' : '' }}</span></div></div><p v-if="!revisar.total_viejo" class="text-emerald-700 py-4 text-center">Todo lo que se vende tiene el precio actualizado.</p></template>
+        </div>
+      </div>
+      <div class="card" data-e2e="achica">
+        <h2 class="font-bold mb-1">El margen que se está achicando <span class="text-marca-muted cursor-help font-normal text-sm" :title="achica.como">ⓘ</span></h2>
+        <p class="text-xs text-marca-muted mb-2">{{ achica.mes }} contra {{ achica.mes_anterior }}. {{ achica.items.length ? `Dejaste de ganar ${moneda(achica.total, 0)} este mes.` : 'Ningún artículo perdió 2 puntos o más de margen.' }}</p>
+        <div class="max-h-72 overflow-y-auto text-sm"><div v-for="a in achica.items" :key="a.id" class="py-1.5 border-t border-marca-borde"><div class="flex justify-between gap-2"><Link :href="`/stock/${a.id}`" class="font-medium truncate hover:text-carmin">{{ a.nombre }}</Link><span class="tabular-nums whitespace-nowrap"><span class="text-marca-muted">{{ a.margen_anterior }}%</span> → <b class="text-carmin">{{ a.margen_actual }}%</b></span></div><p class="text-xs text-marca-muted">{{ a.motivo }}: costo {{ moneda(a.costo_anterior) }} → {{ moneda(a.costo_actual) }}, precio {{ moneda(a.precio_anterior) }} → {{ moneda(a.precio_actual) }} · dejaste de ganar <b>{{ moneda(a.dejaste_de_ganar, 0) }}</b></p></div></div>
+      </div>
+    </div>
+
+    <Modal :abierto="minAbierto" titulo="Márgenes mínimos a vigilar" ancho="max-w-2xl" @cerrar="minAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Sobre el costo, como la ficha. Manda el del artículo, después el del rubro, por último el general. Vacío = no se vigila.</p>
+      <div class="flex items-center gap-2 mb-3"><label class="label !mb-0">General para todo el negocio</label><input v-model="minForm.general" type="number" step="any" min="0" class="input w-28" data-e2e="min-general" /><span class="text-sm">%</span></div>
+      <div class="max-h-64 overflow-y-auto border border-marca-borde rounded-xl"><table class="table text-sm"><tbody><tr v-for="r in minForm.rubros" :key="r.id"><td :class="r.parent_id ? 'pl-8' : ''">{{ r.nombre }}</td><td class="text-right"><input v-model="r.margen_minimo" type="number" step="any" min="0" class="input !py-1 w-24 text-right" placeholder="—" /></td></tr></tbody></table></div>
+      <template #pie><button class="btn-secondary" @click="minAbierto = false">Cancelar</button><button class="btn-primary" :disabled="minForm.processing" data-e2e="min-guardar" @click="minForm.post('/estadisticas/rentabilidad/minimos', { preserveScroll: true, onSuccess: () => (minAbierto = false) })">Guardar</button></template>
+    </Modal>
+
+    <Modal :abierto="!!hist" :titulo="hist ? 'Historial · ' + hist.nombre : ''" ancho="max-w-2xl" @cerrar="hist = null">
+      <template v-if="hist">
+        <div class="flex items-end gap-1 h-32 mb-3 border-b border-marca-borde relative">
+          <div v-if="hist.minimo !== null" class="absolute left-0 right-0 border-t border-dashed border-carmin text-[10px] text-carmin" :style="{ bottom: Math.min(100, Math.max(0, hist.minimo / maxHist * 100)) + '%' }">mínimo {{ hist.minimo }}%</div>
+          <div v-for="(s, i) in hist.serie" :key="i" class="flex-1 flex flex-col items-center justify-end h-full" :title="`${s.fecha}: margen ${s.margen ?? '—'}%`"><div class="w-full max-w-[22px] rounded-t" :class="s.margen !== null && hist.minimo !== null && s.margen < hist.minimo ? 'bg-carmin' : 'bg-violeta'" :style="{ height: Math.max(2, ((s.margen ?? 0) / maxHist) * 100) + '%' }"></div></div>
+        </div>
+        <table class="table text-xs"><thead><tr><th>Fecha</th><th class="text-right">Precio</th><th class="text-right">Costo</th><th class="text-right">Margen</th><th>Quién</th></tr></thead><tbody><tr v-for="(s, i) in [...hist.serie].reverse()" :key="i"><td>{{ s.fecha }}{{ s.hoy ? ' (hoy)' : '' }}</td><td class="text-right tabular-nums">{{ moneda(s.precio) }}<span v-if="s.precio_antes !== undefined && s.precio_antes !== s.precio" class="text-marca-muted"> (antes {{ moneda(s.precio_antes) }})</span></td><td class="text-right tabular-nums">{{ moneda(s.costo) }}<span v-if="s.costo_antes !== undefined && s.costo_antes !== s.costo" class="text-marca-muted"> (antes {{ moneda(s.costo_antes) }})</span></td><td class="text-right tabular-nums font-semibold">{{ s.margen ?? '—' }}%</td><td class="text-marca-muted">{{ s.usuario ?? '' }}</td></tr></tbody></table>
+      </template>
+    </Modal>
+
     <!-- Serie mensual -->
     <div class="card mb-5">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h2 class="font-bold">Últimos 12 meses</h2><p class="text-[11px] text-marca-muted">Barra: ventas netas · línea violeta: margen bruto · punto: resultado</p></div>
@@ -159,7 +219,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import StatCard from '@/Components/StatCard.vue'
@@ -167,7 +227,18 @@ import Modal from '@/Components/Modal.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda, cantidad } from '@/util/formato'
 
-const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, kpis: Object, lineas: Array, dobles: Array, por: Object, serie: Array, config: Object, categorias: Array, sin_clasificar: Number, tipos: Object, imputaciones: Object })
+const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, kpis: Object, lineas: Array, dobles: Array, por: Object, serie: Array, config: Object, categorias: Array, sin_clasificar: Number, tipos: Object, imputaciones: Object, vigilar: Object, revisar: Object, achica: Object })
+// Fase 33.3: márgenes a vigilar
+const pagina = usePage()
+const filtros = computed(() => Object.fromEntries(new URLSearchParams(pagina.url.split('?')[1] ?? '')))
+const filtroColor = computed(() => filtros.value.color ?? null)
+function ir(extra) { router.get('/estadisticas/rentabilidad', Object.fromEntries(Object.entries({ ...filtros.value, ...extra }).filter(([, v]) => v !== undefined && v !== '')), { preserveState: true, preserveScroll: true, replace: true, only: ['vigilar'] }) }
+const flecha = (ahora, antes) => antes === null || antes === undefined ? '—' : (ahora > antes + 0.05 ? '▲ ' : ahora < antes - 0.05 ? '▼ ' : '= ') + antes + '%'
+const minAbierto = ref(false), tabRev = ref('debajo'), hist = ref(null)
+const minForm = useForm({ general: props.vigilar.general, rubros: props.vigilar.rubros.map(r => ({ id: r.id, parent_id: r.parent_id, nombre: r.nombre, margen_minimo: r.margen_minimo })) })
+function minArticulo(i, v) { router.post('/estadisticas/rentabilidad/minimos', { articulos: [{ id: i.id, margen_minimo: v === '' ? null : Number(v) }] }, { preserveScroll: true, only: ['vigilar'] }) }
+async function verHistorial(i) { const { data } = await window.axios.get(`/estadisticas/rentabilidad/historial/${i.id}`); hist.value = data }
+const maxHist = computed(() => Math.max(10, ...(hist.value?.serie.map(s => s.margen ?? 0) ?? []), hist.value?.minimo ?? 0))
 
 const pct = (v) => (v === null || v === undefined ? '' : `· ${v}%`)
 const cascada = computed(() => [

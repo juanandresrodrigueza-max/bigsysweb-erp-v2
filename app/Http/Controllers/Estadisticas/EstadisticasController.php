@@ -119,4 +119,14 @@ class EstadisticasController extends Controller
             'frenados' => $tab->frenados($sucursal), 'vendedores' => $tab->vendedores($desde, $hasta, $sucursal),
         ]);
     }
+
+    // Fase 33.4 · Stock y compras.
+    public function stock(Request $request, \App\Services\Estadisticas\StockComprasService $sc)
+    {
+        $b = $request->user()->business;
+        return Inertia::render('Estadisticas/StockCompras', [
+            'dejas' => $sc->dejasDeVender($b), 'pedir' => $sc->pedirPorProveedor($b), 'antiguedad' => $sc->antiguedad($b, $request->orden ?: 'sin_vender', $request->q ?: null),
+            'ajustes' => $sc->ajustesAbajo($b, (int) ($request->dias ?: 30)), 'aumentos' => $sc->aumentoProveedores($b), 'barato' => $sc->masBarato($b),
+        ]);
+    }
 }

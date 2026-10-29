@@ -12,7 +12,7 @@ class Rubro extends Model
 {
     use BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'parent_id', 'nombre', 'color', 'orden', 'iva', 'tipo', 'perecedero', 'seriado', 'controla_stock', 'control_turno', 'en_tienda', 'cuenta_ventas_id', 'perc_iva', 'perc_iibb', 'imagen'];
+    protected $fillable = ['business_id', 'parent_id', 'nombre', 'color', 'orden', 'iva', 'tipo', 'perecedero', 'seriado', 'controla_stock', 'control_turno', 'en_tienda', 'cuenta_ventas_id', 'perc_iva', 'perc_iibb', 'imagen', 'margen_minimo'];
     protected $casts = ['iva' => 'decimal:2', 'perc_iva' => 'decimal:2', 'perc_iibb' => 'decimal:2', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'controla_stock' => 'boolean', 'control_turno' => 'boolean', 'en_tienda' => 'boolean'];
 
     // Datos que hereda el artículo. Nulo en el rubro = lo toma del rubro padre.
