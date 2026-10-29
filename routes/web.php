@@ -322,6 +322,17 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/turnos/{id}/retiro',     [\App\Http\Controllers\Fondos\CierresController::class, 'retiro'])->middleware('permiso:fondos,crear');
         Route::get('/valores',                 [\App\Http\Controllers\Fondos\ValoresController::class, 'index']);
         Route::get('/tarjetas',                [\App\Http\Controllers\Fondos\TarjetasController::class, 'index']);
+        // Fase 35: conciliar las liquidaciones de tarjetas y billeteras
+        Route::get('/conciliar',               [\App\Http\Controllers\Fondos\ConciliarController::class, 'index']);
+        Route::post('/conciliar/fondos',       [\App\Http\Controllers\Fondos\ConciliarController::class, 'guardarFondos'])->middleware('permiso:fondos,editar');
+        Route::post('/conciliar/subir',        [\App\Http\Controllers\Fondos\ConciliarController::class, 'subir'])->middleware('permiso:fondos,crear');
+        Route::get('/conciliar/{id}',          [\App\Http\Controllers\Fondos\ConciliarController::class, 'ver'])->whereNumber('id');
+        Route::get('/conciliar/{id}/exportar', [\App\Http\Controllers\Fondos\ConciliarController::class, 'exportar'])->whereNumber('id');
+        Route::post('/conciliar/{id}/resolver', [\App\Http\Controllers\Fondos\ConciliarController::class, 'resolver'])->middleware('permiso:fondos,crear');
+        Route::post('/conciliar/{id}/banco',   [\App\Http\Controllers\Fondos\ConciliarController::class, 'banco'])->middleware('permiso:fondos,crear');
+        Route::post('/conciliar/{id}/probar',  [\App\Http\Controllers\Fondos\ConciliarController::class, 'probar'])->middleware('permiso:fondos,crear');
+        Route::post('/conciliar/{id}/asentar', [\App\Http\Controllers\Fondos\ConciliarController::class, 'asentar'])->middleware('permiso:fondos,crear');
+        Route::post('/conciliar/{id}/deshacer', [\App\Http\Controllers\Fondos\ConciliarController::class, 'deshacer'])->middleware('permiso:fondos,anular');
         Route::post('/tarjetas/liquidar',      [\App\Http\Controllers\Fondos\TarjetasController::class, 'liquidar'])->middleware('permiso:fondos,crear');
         Route::post('/tarjetas/liquidaciones/{id}/anular', [\App\Http\Controllers\Fondos\TarjetasController::class, 'anular'])->middleware('permiso:fondos,anular');
         Route::post('/tarjetas/cupones/{id}/rechazar',     [\App\Http\Controllers\Fondos\TarjetasController::class, 'rechazar'])->middleware('permiso:fondos,editar');

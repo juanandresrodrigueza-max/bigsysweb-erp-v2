@@ -30,8 +30,10 @@ class ImportacionPreciosService
         if (! mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'UTF-8', 'Windows-1252'); // CP1252: lo que exportan Clarion y Excel en Windows (incluye € “ ” –)
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
         $lineas = preg_split('/\r\n|\r|\n/', $raw);
-        $sep = substr_count($lineas[0] ?? '', ';') >= substr_count($lineas[0] ?? '', ',') ? ';' : ',';
-        if (substr_count($lineas[0] ?? '', "\t") > substr_count($lineas[0] ?? '', $sep)) $sep = "\t";
+        // Separador: el que más aparece en las primeras líneas (el título de arriba puede no tener ninguno).
+        $muestra = implode("\n", array_slice(array_values(array_filter($lineas, fn($l) => trim($l) !== '')), 0, 12));
+        $sep = collect([';', ',', "\t", '|'])->sortByDesc(fn($s) => substr_count($muestra, $s))->first();
+        if (substr_count($muestra, $sep) === 0) $sep = ';';
         return array_map(fn($l) => str_getcsv($l, $sep), array_filter($lineas, fn($l) => trim($l) !== ''));
     }
 

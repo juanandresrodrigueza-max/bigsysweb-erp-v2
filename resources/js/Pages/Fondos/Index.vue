@@ -6,7 +6,7 @@
         <p class="page-subtitle">Cajas, bancos y billeteras. Disponible {{ moneda(totales.disponible, 0) }} · cheques en cartera {{ moneda(totales.cheques_cartera, 0) }} · cheques propios a debitar {{ moneda(totales.cheques_propios, 0) }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <Link href="/fondos/tarjetas" class="btn-secondary">Tarjetas</Link>
+        <Link href="/fondos/tarjetas" class="btn-secondary">Tarjetas</Link><Link href="/fondos/conciliar" class="btn-secondary" data-ir-conciliar>Conciliar</Link>
         <Link href="/fondos/cheques" class="btn-secondary">Cheques</Link>
         <Link href="/fondos/valores" class="btn-secondary" title="De dónde vino y a dónde fue cada cheque o cupón">Valores</Link>
         <Link href="/fondos/moneda" class="btn-secondary" title="Cuentas en dólares, cotización y diferencia de cambio">Dólares</Link>
