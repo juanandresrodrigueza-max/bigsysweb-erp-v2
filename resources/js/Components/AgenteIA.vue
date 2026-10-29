@@ -31,6 +31,11 @@
                 <p v-else-if="m.propuesta.estado === 'cancelado'" class="mt-1">Cancelado.</p>
               </div>
               <a v-if="m.url" :href="m.url" class="block mt-1 text-xs text-violeta font-semibold underline">Ver →</a>
+              <!-- Fase 40.1: gráfico, planilla y repreguntas -->
+              <div v-if="m.grafico?.valores?.length" class="mt-2" data-e2e="grafico"><p class="text-[11px] font-semibold text-marca-muted mb-1">{{ m.grafico.titulo }}</p>
+                <div v-for="(v, k) in m.grafico.valores" :key="k" class="flex items-center gap-1.5 text-[10px] leading-4"><span class="w-24 truncate text-marca-muted">{{ m.grafico.etiquetas[k] }}</span><div class="flex-1 h-2.5 rounded bg-gris-light"><div class="h-2.5 rounded" :class="String(m.grafico.etiquetas[k]).includes('proy') ? 'bg-violeta/50' : 'bg-violeta'" :style="{ width: Math.max(2, v / Math.max(...m.grafico.valores, 1) * 100) + '%' }"></div></div><span class="w-16 text-right tabular-nums">{{ abreviar(v) }}</span></div></div>
+              <button v-if="m.tabla?.filas?.length" class="mt-2 text-xs text-violeta font-semibold underline" @click="excel(m.tabla)" data-e2e="excel">Bajar la lista a Excel ({{ m.tabla.filas.length }} filas)</button>
+              <div v-if="m.sugerencias?.length" class="flex flex-wrap gap-1 mt-2"><button v-for="q in m.sugerencias" :key="q" class="px-2 py-0.5 rounded-full bg-marca-fondo border border-marca-borde text-[11px] hover:border-violeta" @click="enviar(q)" data-e2e="repregunta">{{ q }}</button></div>
             </div>
           </div>
           <div v-if="cargando" class="flex"><div class="bg-white border border-marca-borde rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-marca-muted">Pensando…</div></div>
@@ -99,6 +104,13 @@ async function confirmar(m) {
 
 function cancelar(m) { m.propuesta.estado = 'cancelado'; window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id, cancelar: true }).catch(() => {}) }
 
+const abreviar = n => Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + ' M' : Math.abs(n) >= 1e3 ? Math.round(n / 1e3) + ' mil' : Math.round(n)
+// La planilla se arma acá mismo: CSV con separador ";" y BOM para que Excel lo abra con acentos.
+function excel(t) {
+  const esc = v => { const x = v === null || v === undefined ? '' : (typeof v === 'number' ? String(v).replace('.', ',') : String(v)); return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x }
+  const csv = '\ufeff' + [t.columnas, ...t.filas].map(f => f.map(esc).join(';')).join('\n')
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = (t.nombre || 'bigcito') + '.csv'; a.click(); URL.revokeObjectURL(a.href)
+}
 let porVozUltimo = false
 async function enviar(pre, porVoz = false) {
   const msg = (pre ?? texto.value).trim()
@@ -116,7 +128,7 @@ async function enviar(pre, porVoz = false) {
   try {
     const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component })
     modo.value = data.modo ?? 'ia'
-    mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', propuesta: data.propuesta ?? null })
+    mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', propuesta: data.propuesta ?? null, tabla: data.tabla ?? null, grafico: data.grafico ?? null, sugerencias: data.sugerencias ?? [] })
     if (porVoz) decir((data.respuesta ?? '') + (data.propuesta ? ` ${data.propuesta.titulo}. ¿Lo hago? Decime sí o no.` : ''))
   } catch (e) {
     const st = e.response?.status

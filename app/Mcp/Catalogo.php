@@ -23,7 +23,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 //   acción:   proponer(User, array): ['titulo', 'detalle', 'datos'] | ['error' => '...'];  confirmar(User, array $datos): ['texto', 'url'?]
 class Catalogo
 {
-    public const MODULOS = [Modulos\General::class, Modulos\Clientes::class, Modulos\Ventas::class, Modulos\Stock::class, Modulos\Compras::class, Modulos\Fondos::class, Modulos\Contable::class, Modulos\Personal::class, Modulos\Gestion::class];
+    public const MODULOS = [Modulos\General::class, Modulos\Clientes::class, Modulos\Ventas::class, Modulos\Stock::class, Modulos\Compras::class, Modulos\Fondos::class, Modulos\Contable::class, Modulos\Personal::class, Modulos\Gestion::class, Modulos\Consejos::class];
     public const VENCE_MINUTOS = 30;
     public const LIMITE_POR_MINUTO = 60;
 

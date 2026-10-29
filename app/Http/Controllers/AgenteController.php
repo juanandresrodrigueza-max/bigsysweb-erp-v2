@@ -49,19 +49,27 @@ class AgenteController extends Controller
             $llamar = fn(array $msgs) => Http::withHeaders(['x-api-key' => $apiKey, 'anthropic-version' => '2023-06-01'])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
                 'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null), 'messages' => $msgs, 'tools' => $tools,
             ]);
-            $res = $llamar($mensajes);
+            $res = $llamar($mensajes); $adjuntos = [];
             // Hasta 3 rondas: las consultas se resuelven y se le devuelven a la IA; una acción se propone al usuario.
             for ($ronda = 0; $ronda < 3 && $res->successful(); $ronda++) {
                 $contenido = $res->json('content', []);
                 $usos = collect($contenido)->where('type', 'tool_use');
                 $texto = collect($contenido)->where('type', 'text')->pluck('text')->implode("\n");
-                if ($usos->isEmpty()) return response()->json(['respuesta' => $texto ?: 'No pude generar una respuesta. Probá de nuevo.', 'modo' => 'ia']);
+                if ($usos->isEmpty()) return response()->json($this->armar($texto ?: 'No pude generar una respuesta. Probá de nuevo.', $adjuntos));
                 $accion = $usos->first(fn($u) => ($cat->todas()[$u['name']]['tipo'] ?? null) === 'accion');
                 if ($accion) {
                     $p = $this->proponer($cat, $user, $accion['name'], (array) $accion['input']);
                     return isset($p['error']) ? response()->json(['respuesta' => trim($texto . "\n" . $p['error']), 'modo' => 'ia']) : response()->json(['respuesta' => trim($texto) ?: 'Te propongo esto. ¿Confirmás?', 'propuesta' => $p, 'modo' => 'ia']);
                 }
-                $resultados = $usos->map(fn($u) => ['type' => 'tool_result', 'tool_use_id' => $u['id'], 'content' => json_encode($cat->llamar($user, $u['name'], (array) $u['input'], 'asistente'), JSON_UNESCAPED_UNICODE)])->values()->all();
+                $resultados = $usos->map(function ($u) use ($cat, $user, &$adjuntos) {
+                    $r = $cat->llamar($user, $u['name'], (array) $u['input'], 'asistente');
+                    // Fase 40.1: la tabla (para bajar a Excel) y el gráfico van al panel; al modelo le llega el resto.
+                    if (isset($r['_tabla'])) $adjuntos['tabla'] = $r['_tabla'] + ['nombre' => $u['name']];
+                    if (isset($r['_grafico'])) $adjuntos['grafico'] = $r['_grafico'];
+                    if (! isset($r['_tabla']) && ($lista = collect($r)->first(fn($v) => is_array($v) && array_is_list($v) && isset($v[0]) && is_array($v[0]) && count($v) >= 3))) $adjuntos['tabla'] ??= ['columnas' => array_keys($lista[0]), 'filas' => array_map(fn($f) => array_map(fn($x) => is_array($x) ? implode(', ', array_map('strval', $x)) : $x, array_values($f)), $lista), 'nombre' => $u['name']];
+                    unset($r['_tabla'], $r['_grafico']);
+                    return ['type' => 'tool_result', 'tool_use_id' => $u['id'], 'content' => json_encode($r, JSON_UNESCAPED_UNICODE)];
+                })->values()->all();
                 $mensajes[] = ['role' => 'assistant', 'content' => $contenido];
                 $mensajes[] = ['role' => 'user', 'content' => $resultados];
                 $res = $llamar($mensajes);
@@ -71,7 +79,7 @@ class AgenteController extends Controller
                 return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
             }
             $texto = collect($res->json('content', []))->where('type', 'text')->pluck('text')->implode("\n");
-            return response()->json(['respuesta' => $texto ?: 'No pude generar una respuesta. Probá de nuevo.', 'modo' => 'ia']);
+            return response()->json($this->armar($texto ?: 'No pude generar una respuesta. Probá de nuevo.', $adjuntos));
         } catch (\Throwable $e) {
             Log::error('Agente IA: error', ['e' => $e->getMessage()]);
             return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
@@ -85,6 +93,14 @@ class AgenteController extends Controller
         $r = $d['cancelar'] ?? false ? $cat->cancelar($request->user(), $d['propuesta_id']) : $cat->llamar($request->user(), 'confirmar_accion', ['propuesta_id' => $d['propuesta_id']], 'asistente');
         if (isset($r['error'])) return response()->json(['message' => $r['error']], str_contains($r['error'], 'permiso') ? 403 : 422);
         return response()->json($r);
+    }
+
+    // Fase 40.1: separa las repreguntas sugeridas ("SUGERENCIAS: a | b | c") del texto y suma la tabla y el gráfico.
+    private function armar(string $texto, array $adjuntos): array
+    {
+        $sug = [];
+        if (preg_match('/\n?\s*SUGERENCIAS?:\s*(.+)\s*$/iu', $texto, $m)) { $sug = array_values(array_filter(array_map('trim', explode('|', $m[1])))); $texto = trim(str_replace($m[0], '', $texto)); }
+        return ['respuesta' => $texto, 'modo' => 'ia', 'sugerencias' => array_slice($sug, 0, 3)] + $adjuntos;
     }
 
     // Arma la propuesta en el catálogo y la devuelve con el formato del panel (id, título, detalle).
@@ -135,6 +151,10 @@ Respondés en español rioplatense, claro y breve (máximo 6 líneas salvo que p
 Cuando te preguntan cómo hacer algo en el sistema, das los pasos concretos: menú, botón, campo. Si el módulo todavía no está disponible, lo decís sin inventar.
 Cuando te preguntan por datos del negocio, usás los números de abajo; si el dato no está, decís que todavía no lo tenés y en qué pantalla se vería.
 Nunca inventás importes ni comprobantes.
+Siempre decí el período que usaste ("este mes", "del 1 al 15 de octubre") y, si hiciste una cuenta o proyección, cómo la hiciste en una frase.
+Si la respuesta es una lista o una comparación, la pantalla muestra la tabla (con botón para bajarla a Excel) y el gráfico: no repitas todas las filas, resumí lo importante.
+Para consejos usá las herramientas: qué reponer (que_reponer), a quién cobrar primero, qué precio revisar, quién dejó de comprar, resumen del día, proyección de ventas y deudas por antigüedad.
+Al final, en una línea aparte, sugerí 2 o 3 preguntas cortas que sigan la charla con el formato exacto: SUGERENCIAS: pregunta 1 | pregunta 2 | pregunta 3
 Tenés herramientas: para consultar (saldo de un cliente, stock de un artículo, deudores, ventas de un período) usalas y respondé con el dato; para hacer cosas (registrar un cobro o un gasto, armar un presupuesto, mandar un recordatorio de deuda) llamá a la herramienta con lo que el usuario dijo: el sistema le muestra una propuesta y él la confirma. Si falta un dato clave (importe, cliente) preguntalo antes.
 
 Usuario: {$user->name}, rol {$c['rol']}, empresa {$c['empresa']}, sucursal {$c['sucursal']}.
