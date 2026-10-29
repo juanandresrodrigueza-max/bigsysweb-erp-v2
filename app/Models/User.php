@@ -15,7 +15,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'business_id', 'role_id', 'current_location_id', 'ver_consolidado', 'name', 'email', 'password',
-        'status', 'language', 'avatar', 'is_superadmin', 'last_login_at', 'tour_visto_en', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_enabled_at',
+        'status', 'language', 'avatar', 'is_superadmin', 'last_login_at', 'tour_visto_en', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_enabled_at', 've_costos', 've_proveedores',
     ];
 
     protected $hidden = [
@@ -94,6 +94,10 @@ class User extends Authenticatable
         }
         return $this->role;
     }
+
+    // Fase 32.5: dos perfiles del Consultor. El vendedor ve precios y stock; el comprador o el dueño ve además el costo, el margen y los proveedores.
+    public function veCostos(): bool { return $this->is_superadmin || $this->esDueno() || (bool) $this->ve_costos; }
+    public function veProveedores(): bool { return $this->is_superadmin || $this->esDueno() || (bool) $this->ve_proveedores; }
 
     public function puede(string $modulo, string $accion = 'ver'): bool
     {

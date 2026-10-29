@@ -90,3 +90,19 @@ En **Configuración → Mercado Pago**:
 - **Point**: «buscar terminales» muestra las Point de la cuenta; «Usar ésta» la deja en **modo PDV** (desde ahí el aparato sólo cobra lo que le manda la caja). El botón de tarjeta de la caja le manda el importe; la factura sale aprobada la tarjeta, como **tarjeta** al fondo de débito o de crédito según lo que informe la Point (si tenés fondos de tarjeta con «débito» o «crédito» en el nombre, elige solo), con el número de pago y las cuotas anotadas en el cupón.
 
 El posnet de SiPago queda para cuando tengamos su documentación técnica.
+
+## El Consultor de precios: para empleados o para clientes
+
+Está en **Stock → Consultor de precios** (reemplaza al verificador). Es sólo consulta: no vende ni toca el stock.
+
+- **Empleados.** Buscá como te acordás del producto: por nombre con las palabras en cualquier orden («2.25 coca»), por código, por código de barras, por rubro; la etiqueta de la balanza también se lee. Un código exacto aparece siempre primero, aunque el artículo esté discontinuado; si un número no es el código de nadie, lo dice. Arriba elegís la **lista** (queda elegida para la próxima) o un **cliente** (ves su precio con lo pactado). Cada artículo muestra el stock (y por depósito en la ficha), las seis listas y la oferta por cantidad.
+- **Como una caja.** Pasás un código y Enter: entra al simulador. Escribís `3*código`: entra con 3. Un número solo y Enter: es la cantidad del último renglón. Esc cierra la ficha. El simulador queda guardado en ese dispositivo; en **Recientes** están las últimas diez listas (abrir o borrar), y Vaciar no pierde nada.
+- **Cotización por WhatsApp.** Escribís el número del cliente (si elegiste uno, viene el de su ficha) y **Enviar por WhatsApp**: se guarda la cotización 30 días con un link al PDF (dice que no es un comprobante) y se abre el chat con el mensaje listo. **Imprimir / PDF** la abre para imprimir.
+- **Costo y margen.** Al lado de Lista 1 … 6 está **Costo y margen**, sólo para quien tiene el tilde **Ve el costo y el margen** (Configuración → Usuarios). Muestra el costo y el margen sobre la lista elegida o sobre el precio del cliente, en rojo si es menor al 15 %.
+- **Perfil comprador.** Con el tilde **Ve a qué proveedores comprar**, la ficha lista los proveedores que tienen el artículo (de las facturas cargadas y lo aprendido), del más barato al más caro, con la fecha del precio, la última compra a cada uno, cuál fue el último y cuánto más caro es que el mejor. El dueño ve todo siempre.
+- **Clientes: la pantalla del salón.** Con **Pantalla para clientes** armás una pantalla con nombre y lista (normalmente la 1): se abre con su propia **llave de sólo lectura** que no vence y no pide login, baja el catálogo sin costos ni cantidades, lo refresca cada 10 minutos y sigue andando sin internet con lo último que bajó. El cliente pasa el producto por el lector y ve el nombre, la foto, el precio final y la oferta, bien grande; con la etiqueta de la balanza muestra el peso y lo que cuesta ese peso. La cartelera es la misma de la caja. Para salir, mantené apretada 3 segundos la esquina de abajo a la izquierda. Las pantallas se renombran, cambian de lista o se dan de baja (la llave deja de servir) desde el mismo botón.
+
+## Impresión del ticket
+
+- **Ancho.** En Configuración → Punto de venta, el ancho de 32 caracteres es para rollos de **58 mm**; el ticket por el navegador y el ESC/POS salen a ese ancho (también podés abrir el ticket con `?ancho=58`).
+- **Bluetooth (BLE) desde el teléfono.** Con la impresora en «Bluetooth (BLE)», al cobrar el teléfono le habla directo a la térmica: la primera vez pide elegirla. Sólo anda con impresoras **BLE** (las Bluetooth clásicas no, y el navegador del iPhone no tiene Bluetooth): si falla, lo dice y queda «Imprimir» por el navegador, que anda en cualquier teléfono.

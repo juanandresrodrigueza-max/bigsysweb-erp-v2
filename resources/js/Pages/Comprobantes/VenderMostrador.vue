@@ -356,9 +356,25 @@ async function imprimirSerial(id) {
   if (!puerto) return false
   try { const bytes = new Uint8Array(await (await fetch(`${base()}/ticket/${id}/escpos`)).arrayBuffer()); const w = puerto.writable.getWriter(); await w.write(bytes); w.releaseLock(); return true } catch (e) { impresoraOk.value = false; return false }
 }
+// --- Fase 32.6 · Impresora Bluetooth (BLE) directo desde el teléfono: sólo las BLE, no las Bluetooth clásicas; iPhone no tiene Web Bluetooth ---
+let bleChar = null
+async function conectarBle() {
+  if (!navigator.bluetooth) { error.value = 'Este navegador no tiene Bluetooth (en iPhone no está): usá «Imprimir» por el navegador.'; return false }
+  try {
+    const dev = await navigator.bluetooth.requestDevice({ filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }], optionalServices: ['e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455'] })
+    const srv = await (await dev.gatt.connect()).getPrimaryServices()
+    for (const s of srv) { for (const ch of await s.getCharacteristics()) { if (ch.properties.write || ch.properties.writeWithoutResponse) { bleChar = ch; dev.addEventListener('gattserverdisconnected', () => (bleChar = null)); return true } } }
+    error.value = 'La impresora no acepta datos por BLE (puede ser Bluetooth clásico).'; return false
+  } catch (e) { error.value = 'No se pudo conectar la impresora Bluetooth: ' + (e.message || e); return false }
+}
+async function imprimirBle(id) {
+  if (!bleChar && !(await conectarBle())) return false
+  try { const bytes = new Uint8Array(await (await fetch(`${base()}/ticket/${id}/escpos`)).arrayBuffer()); for (let i = 0; i < bytes.length; i += 100) { const parte = bytes.slice(i, i + 100); bleChar.properties.writeWithoutResponse ? await bleChar.writeValueWithoutResponse(parte) : await bleChar.writeValue(parte) } return true } catch (e) { bleChar = null; error.value = 'Falló la impresión Bluetooth: ' + (e.message || e); return false }
+}
 async function imprimirTicket(id) {
   if (props.posConfig.impresora === 'ninguna') return
   if (props.posConfig.impresora === 'serial' && await imprimirSerial(id)) return
+  if (props.posConfig.impresora === 'ble' && await imprimirBle(id)) return
   window.open(`${base()}/ticket/${id}`, '_blank')
 }
 function imprimirAuto(id) { if (props.posConfig.imprimir_auto) imprimirTicket(id) }

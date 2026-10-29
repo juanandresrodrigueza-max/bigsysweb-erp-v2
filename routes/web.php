@@ -43,6 +43,12 @@ Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoControlle
 Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado'])->middleware('throttle:publico');
 
 // Tienda propia, menú QR, reservas y portal del cliente (públicos, sin login).
+// Fase 32.4: la pantalla del salón (llave de sólo lectura) y la cotización del Consultor mandada por WhatsApp
+Route::get('/salon/{token}',               [\App\Http\Controllers\SalonController::class, 'ver'])->middleware('throttle:publico');
+Route::get('/salon/{token}/catalogo',      [\App\Http\Controllers\SalonController::class, 'catalogo'])->middleware('throttle:publico');
+Route::get('/salon/{token}/cartelera/{id}', [\App\Http\Controllers\SalonController::class, 'cartelera'])->middleware('throttle:publico');
+Route::get('/q/{token}',                   [\App\Http\Controllers\SalonController::class, 'cotizacionVer'])->middleware('throttle:publico');
+Route::get('/q/{token}/pdf',               [\App\Http\Controllers\SalonController::class, 'cotizacionPdf'])->middleware('throttle:publico');
 Route::get('/t/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'catalogo'])->middleware('throttle:publico');
 Route::post('/t/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedir'])->middleware('throttle:publico');
 Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaController::class, 'pedido'])->middleware('throttle:publico');
@@ -410,7 +416,16 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/catalogos/{id}/renovar',   [\App\Http\Controllers\Stock\CatalogosController::class, 'renovarLink'])->middleware('permiso:stock,editar');
         Route::post('/catalogos/{id}/enviar',    [\App\Http\Controllers\Stock\CatalogosController::class, 'enviar'])->middleware('permiso:clientes,ver');
         Route::post('/catalogos/{id}/enviar-lista', [\App\Http\Controllers\Stock\CatalogosController::class, 'enviarLista'])->middleware('permiso:clientes,crear');
-        Route::get('/verificador',               [\App\Http\Controllers\Stock\InformesController::class, 'verificador']);
+        // Fase 32.4: el Consultor de precios reemplaza al verificador (la ruta vieja sigue andando)
+        Route::get('/verificador',               fn() => redirect('/stock/consultor'));
+        Route::get('/consultor',                 [\App\Http\Controllers\Stock\ConsultorController::class, 'index']);
+        Route::get('/consultor/buscar',          [\App\Http\Controllers\Stock\ConsultorController::class, 'buscar']);
+        Route::get('/consultor/articulo/{id}',   [\App\Http\Controllers\Stock\ConsultorController::class, 'articulo'])->whereNumber('id');
+        Route::post('/consultor/cotizar',        [\App\Http\Controllers\Stock\ConsultorController::class, 'cotizar']);
+        Route::post('/consultor/pantallas',      [\App\Http\Controllers\Stock\ConsultorController::class, 'crearPantalla'])->middleware('permiso:configuracion,editar');
+        Route::patch('/consultor/pantallas/{id}', [\App\Http\Controllers\Stock\ConsultorController::class, 'editarPantalla'])->middleware('permiso:configuracion,editar');
+        Route::delete('/consultor/pantallas/{id}', [\App\Http\Controllers\Stock\ConsultorController::class, 'bajaPantalla'])->middleware('permiso:configuracion,editar');
+        Route::get('/consultor/pantallas/{id}/url', [\App\Http\Controllers\Stock\ConsultorController::class, 'urlPantalla'])->middleware('permiso:configuracion,editar');
         Route::get('/verificar',                 [\App\Http\Controllers\Stock\InformesController::class, 'verificar']);
         Route::get('/{id}',                      [\App\Http\Controllers\Stock\StockController::class, 'show'])->whereNumber('id');
     });

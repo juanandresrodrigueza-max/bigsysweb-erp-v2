@@ -41,6 +41,12 @@
             <select v-model="form.role_id" class="input" :disabled="esDueno"><option v-for="r in roles" :key="r.id" :value="r.id">{{ r.nombre }}</option></select>
             <p v-if="form.errors.role_id" class="text-carmin text-xs mt-1">{{ form.errors.role_id }}</p>
           </div>
+          <!-- Fase 32.5: los dos perfiles del Consultor de precios -->
+          <div v-if="!esDueno" class="sm:col-span-2 rounded-xl bg-gris-light p-3 text-sm space-y-1.5">
+            <p class="text-xs font-bold uppercase tracking-widest text-marca-muted">Consultor de precios</p>
+            <label class="flex items-center gap-2"><input v-model="form.ve_costos" type="checkbox" class="accent-carmin" data-e2e="ve-costos" /> Ve el costo y el margen de cada artículo</label>
+            <label class="flex items-center gap-2"><input v-model="form.ve_proveedores" type="checkbox" class="accent-carmin" /> Ve a qué proveedores comprar (perfil comprador)</label>
+          </div>
         </div>
         <div>
           <label class="label">Sucursales a las que accede</label>
@@ -75,14 +81,14 @@ import Icono from '@/Components/Icono.vue'
 const props = defineProps({ usuarios: Array, roles: Array, listaSucursales: Array, limite: Object })
 const modal = ref(false)
 const esDueno = ref(false)
-const vacio = { id: null, name: '', email: '', password: '', status: 'active', role_id: null, sucursales: [] }
+const vacio = { id: null, name: '', email: '', password: '', status: 'active', role_id: null, sucursales: [], ve_costos: false, ve_proveedores: false }
 const form = useForm({ ...vacio })
 
 const iniciales = n => (n ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
 function abrir(u) {
   form.clearErrors()
   esDueno.value = !!u?.es_dueno
-  Object.assign(form, u ? { ...vacio, id: u.id, name: u.name, email: u.email, status: u.status, role_id: u.role_id ?? props.roles[0]?.id, sucursales: u.sucursales.map(s => ({ id: s.id, role_id: s.role_id })) } : { ...vacio, role_id: props.roles.find(r => r.slug === 'vendedor')?.id ?? props.roles[0]?.id })
+  Object.assign(form, u ? { ...vacio, id: u.id, name: u.name, email: u.email, status: u.status, ve_costos: !!u.ve_costos, ve_proveedores: !!u.ve_proveedores, role_id: u.role_id ?? props.roles[0]?.id, sucursales: u.sucursales.map(s => ({ id: s.id, role_id: s.role_id })) } : { ...vacio, role_id: props.roles.find(r => r.slug === 'vendedor')?.id ?? props.roles[0]?.id })
   modal.value = true
 }
 const tiene = id => form.sucursales.some(s => s.id === id)

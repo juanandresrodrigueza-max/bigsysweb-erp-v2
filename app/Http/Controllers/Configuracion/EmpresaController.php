@@ -160,7 +160,7 @@ class EmpresaController extends Controller
 
     public function guardarPos(Request $request)
     {
-        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'balanza_digitos_plu' => 'nullable|integer|min:4|max:6', 'cartelera_segundos' => 'nullable|integer|min:3|max:120', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna', 'ancho' => 'required|integer|in:32,42,48']);
+        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'balanza_digitos_plu' => 'nullable|integer|min:4|max:6', 'cartelera_segundos' => 'nullable|integer|min:3|max:120', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna,ble', 'ancho' => 'required|integer|in:32,42,48']);
         $b = $request->user()->business;
         $b->update(['pos' => array_replace($b->pos ?? [], $d)]);
         return back()->with('success', 'Punto de venta configurado.');

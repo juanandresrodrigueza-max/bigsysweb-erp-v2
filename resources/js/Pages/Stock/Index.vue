@@ -18,7 +18,7 @@
         <Link href="/stock/almacen" class="btn-secondary" data-ir-almacen>Almacén</Link>
         <Link href="/stock/series" class="btn-secondary" data-ir-series>Números de serie</Link>
         <Link href="/stock/despiece" class="btn-secondary" data-ir-despiece>Carnicería y pesables</Link>
-        <Link href="/stock/verificador" class="btn-ghost text-xs" title="Pantalla para que el cliente consulte precios con el lector">Verificador</Link>
+        <Link href="/stock/consultor" class="btn-secondary" data-ir-consultor title="Precio y stock al toque, también para la pantalla del salón">Consultor de precios</Link>
         <button v-if="puede('stock','editar')" @click="dolarAbierto = true" class="btn-ghost text-xs" :title="cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización'">U$S {{ cotizacion ? moneda(cotizacion.venta, 0).replace('$ ', '') : '—' }}</button>
         <button v-if="puede('stock','editar')" @click="configAbierto = true" class="btn-ghost"><Icono nombre="settings" clase="w-4 h-4" /></button>
         <button v-if="puede('stock','crear')" @click="abrirArticulo()" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Artículo</button>
