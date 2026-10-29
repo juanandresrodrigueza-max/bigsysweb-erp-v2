@@ -72,7 +72,7 @@ class TiendaService
                     if ($dl['descuento'] !== null) $precio = round($precio * (1 - $dl['descuento'] / 100), 2);
                 } elseif (($dq = $p->descuentoPorCantidad($cant)) > 0) $precio = round($precio * (1 - $dq / 100), 2);
             } else { $precio = (float) ($it['precio_unit'] ?? 0); }
-            if (isset($it['precio_unit']) && in_array($canal, ['mercadolibre', 'woocommerce', 'shopify', 'pedidosya', 'rappi'], true)) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
+            if (isset($it['precio_unit']) && in_array($canal, ['mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'pedidosya', 'rappi'], true)) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
             $items[] = ['product_id' => $p?->id, 'descripcion' => $p?->name ?? ($it['descripcion'] ?? 'Ítem'), 'cantidad' => $cant, 'precio_unit' => $precio, 'total' => round($cant * $precio, 2), 'unit' => $p?->unit];
             $subtotal += round($cant * $precio, 2);
         }
@@ -84,7 +84,7 @@ class TiendaService
         $contact ??= $this->buscarContacto($b, $cli);
         $pedido = PedidoWeb::create([
             'business_id' => $b->id, 'business_location_id' => $b->locations()->where('is_default', true)->value('id') ?? $b->locations()->value('id'), 'canal' => $canal, 'contact_id' => $contact?->id,
-            'cliente' => ['nombre' => $cli['nombre'] ?? $contact?->name ?? 'Cliente web', 'telefono' => $cli['telefono'] ?? $contact?->phone, 'email' => $cli['email'] ?? $contact?->email, 'direccion' => $cli['direccion'] ?? $contact?->address, 'notas' => $cli['notas'] ?? null],
+            'cliente' => ['cuit' => $cli['cuit'] ?? $contact?->cuit, 'condicion_iva' => $cli['condicion_iva'] ?? null, 'nombre' => $cli['nombre'] ?? $contact?->name ?? 'Cliente web', 'telefono' => $cli['telefono'] ?? $contact?->phone, 'email' => $cli['email'] ?? $contact?->email, 'direccion' => $cli['direccion'] ?? $contact?->address, 'notas' => $cli['notas'] ?? null],
             'items' => $items, 'subtotal' => $subtotal, 'envio' => $envio, 'descuento' => (float) ($d['descuento'] ?? 0), 'total' => round($subtotal + $envio - (float) ($d['descuento'] ?? 0), 2),
             'entrega' => $entrega, 'pago' => $d['pago'] ?? 'a_convenir', 'estado' => $d['estado'] ?? 'nuevo', 'external_id' => $d['external_id'] ?? null, 'texto_original' => $d['texto_original'] ?? null, 'notas' => $d['notas'] ?? null,
         ]);

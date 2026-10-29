@@ -12,6 +12,7 @@
         <Link href="/stock/informes" class="btn-secondary">Informes</Link>
         <Link href="/stock/etiquetas" class="btn-secondary">Etiquetas</Link>
         <Link href="/stock/catalogos" class="btn-secondary" data-ir-catalogos>Catálogos</Link>
+        <Link href="/stock/tienda-online" class="btn-secondary" data-e2e="ir-tienda-online">Tienda online</Link>
         <Link href="/stock/descuentos-lista" class="btn-secondary" data-ir-desc-lista>Descuentos por lista</Link>
         <Link href="/stock/lotes" class="btn-secondary" data-ir-lotes>Lotes y vencimientos</Link>
         <Link href="/stock/almacen" class="btn-secondary" data-ir-almacen>Almacén</Link>

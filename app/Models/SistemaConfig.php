@@ -38,10 +38,15 @@ class SistemaConfig extends Model
         'mail_encryption'    => 'tls',
         'mail_from_address'  => null,
         'mail_from_name'     => 'BigSysWeb',
+        // Aplicaciones de la plataforma para conectar tiendas con un botón (una sola vez para todos los clientes).
+        'ml_app_id'          => null,
+        'ml_app_secret'      => null,
+        'tn_app_id'          => null,
+        'tn_app_secret'      => null,
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret'];
 
     public static function get(string $clave, $default = null)
     {

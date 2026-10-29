@@ -39,6 +39,18 @@
       </div>
     </form>
 
+    <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="apps-tiendas">
+      <h2 class="font-bold">Aplicaciones para conectar tiendas con un botón</h2>
+      <p class="text-sm text-marca-muted">Una sola vez para todos los clientes: la aplicación de BigSys en MercadoLibre (developers.mercadolibre.com.ar) y en Tienda Nube (partners.tiendanube.com). Con esto cada empresa conecta su cuenta entrando con su usuario, sin copiar claves. La URL de retorno de las dos es <code>{{ base }}/conectar/&lt;tienda&gt;/volver</code> y la de notificaciones de MercadoLibre <code>{{ base }}/api/canales/mercadolibre/notificaciones</code>.</p>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label">MercadoLibre · App ID</label><input v-model="form.ml_app_id" class="input" /></div>
+        <div><label class="label">MercadoLibre · Secret {{ config.ml_app_secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.ml_app_secret" type="password" class="input" autocomplete="off" /></div>
+        <div><label class="label">Tienda Nube · App ID</label><input v-model="form.tn_app_id" class="input" /></div>
+        <div><label class="label">Tienda Nube · Secret {{ config.tn_app_secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.tn_app_secret" type="password" class="input" autocomplete="off" /></div>
+      </div>
+      <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+    </form>
+
     <div class="grid lg:grid-cols-2 gap-4 mt-4">
       <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3">
         <div class="flex items-center justify-between"><h2 class="font-bold">Inteligencia artificial (Claude)</h2><span class="badge" :class="ia ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ ia ? (config.ia_api_key_set ? 'clave del panel' : 'clave del .env') : 'modo básico' }}</span></div>
@@ -75,7 +87,8 @@ import { Link, useForm, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
-const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', mail_encryption: props.config.mail_encryption || 'tls' })
+const base = location.origin
+const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls' })
 const pruebaA = ref('')
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
 </script>
