@@ -2,7 +2,7 @@
   <AppLayout titulo="Servicio técnico">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Servicio técnico</h1><p class="page-subtitle">Órdenes de trabajo de recibido a entregado: diagnóstico, presupuesto aprobado por link, tareas, hoja de trabajo, firma y factura.</p></div>
-      <div class="flex gap-2"><Link href="/servicios/mis-ordenes" class="btn-secondary">Mis órdenes</Link><Link href="/servicios/tecnicos" class="btn-secondary">Qué pagarle a cada {{ config.tecnico.toLowerCase() }}</Link><button class="btn-secondary" @click="cfgAbierto = true" data-e2e="que-reparas">¿Qué reparás?</button><button class="btn-primary" @click="modal = true" data-e2e="nueva">Nueva orden</button></div>
+      <div class="flex gap-2"><Link href="/servicios/mis-ordenes" class="btn-secondary">Mis órdenes</Link><Link href="/servicios/que-vuelvan" class="btn-secondary">Que vuelvan</Link><Link href="/servicios/tecnicos" class="btn-secondary">Qué pagarle a cada {{ config.tecnico.toLowerCase() }}</Link><button class="btn-secondary" @click="cfgAbierto = true" data-e2e="que-reparas">¿Qué reparás?</button><button class="btn-primary" @click="modal = true" data-e2e="nueva">Nueva orden</button></div>
     </div>
     <!-- Fase 36.1: con un toque, las órdenes hablan como el taller -->
     <div v-if="!config.configurado" class="card mb-4 border-violeta/40" data-e2e="arrancar">
@@ -18,6 +18,8 @@
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Listas</p><p class="text-xl font-extrabold tabular-nums text-emerald-700">{{ kpis.listas }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Para facturar</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.facturable, 0) }}</p></div>
     </div>
+    <div v-if="para_revisar.length" class="card mb-4 border-amber-300" data-e2e="para-revisar"><h2 class="font-bold text-sm mb-1">Para revisar <span class="badge bg-amber-50 text-amber-700">{{ para_revisar.length }}</span></h2>
+      <Link v-for="r in para_revisar.slice(0, 8)" :key="r.id" :href="`/servicios/${r.id}`" class="flex justify-between text-sm py-0.5 border-t border-marca-borde"><span><b>{{ r.numero }}</b> · {{ r.equipo }} · {{ r.cliente }}</span><span class="text-amber-700 text-xs">{{ r.motivo }}</span></Link></div>
     <div class="overflow-x-auto pb-2">
       <div class="grid gap-3 min-w-[1100px]" style="grid-template-columns: repeat(7, minmax(0, 1fr))">
         <div v-for="k in columnas" :key="k" class="rounded-2xl bg-gris-light/60 p-2 min-h-[300px]">
@@ -72,7 +74,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
-const props = defineProps({ tablero: Object, estados: Object, prioridades: Object, entregadas: Array, clientes: Array, tecnicos: Array, kpis: Object, config: Object, rubros: Object })
+const props = defineProps({ tablero: Object, estados: Object, prioridades: Object, entregadas: Array, clientes: Array, tecnicos: Array, kpis: Object, config: Object, rubros: Object, para_revisar: { type: Array, default: () => [] } })
 const columnas = ['recibido', 'diagnostico', 'presupuestado', 'aprobado', 'en_curso', 'esperando', 'listo']
 const cfgAbierto = ref(false)
 const cf = reactive({ rubro: props.config.rubro ?? 'otro', equipo: props.config.equipo, serie: props.config.serie, medidor: props.config.medidor ?? '', tecnico: props.config.tecnico, campos_txt: props.config.campos.join(', '), pago_tecnico_pct: props.config.pago_tecnico_pct })

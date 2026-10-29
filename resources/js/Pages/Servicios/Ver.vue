@@ -64,6 +64,26 @@
           </table>
         </div>
 
+        <!-- Fase 36.2: la recepción -->
+        <div class="card" data-e2e="recepcion">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2"><h2 class="font-bold">Recepción</h2>
+            <span class="flex gap-2"><button v-if="ia" class="btn-violeta !py-1 text-xs" :disabled="!(fotos.recepcion || []).length" :title="(fotos.recepcion || []).length ? '' : 'Subí primero las fotos de recepción'" @click="router.post(`/servicios/${ot.id}/recepcion/ia`, {}, { preserveScroll: true })">Completar con IA desde las fotos</button><a :href="`/servicios/${ot.id}/acta`" target="_blank" class="btn-secondary !py-1 text-xs">Acta en PDF</a></span></div>
+          <div class="grid sm:grid-cols-3 gap-2 text-sm">
+            <label v-if="config.medidor">{{ config.medidor }}<input v-model.number="rc.medidor" type="number" min="0" class="input !py-1" /></label>
+            <label>Combustible<select v-model="rc.combustible" class="input !py-1"><option value="">—</option><option v-for="c in ['vacío', '1/4', '1/2', '3/4', 'lleno']" :key="c">{{ c }}</option></select></label>
+            <label>Testigos encendidos<input v-model="rc.luces_txt" class="input !py-1" placeholder="separados por coma" /></label>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2 text-xs"><span v-for="c in checklist" :key="c" class="flex items-center gap-1 border border-marca-borde rounded-full pl-2 pr-1 py-0.5">{{ c }}
+            <button v-for="v in ['verde', 'amarillo', 'rojo']" :key="v" class="w-4 h-4 rounded-full border" :class="[{ verde: 'bg-emerald-500', amarillo: 'bg-amber-400', rojo: 'bg-carmin' }[v], rc.checklist[c] === v ? 'ring-2 ring-marca-texto' : 'opacity-30']" @click="rc.checklist[c] = v" :title="v"></button></span></div>
+          <div class="mt-2 text-sm"><p class="label">Daños que ya tiene</p>
+            <div v-for="(d, i) in rc.danios" :key="i" class="flex gap-2 mb-1"><input v-model="d.zona" class="input !py-1 !w-40" placeholder="Zona" /><input v-model="d.detalle" class="input !py-1" placeholder="Qué tiene" /><a v-if="d.foto_id" :href="`/servicios/${ot.id}/fotos/${d.foto_id}`" target="_blank" class="text-xs text-violeta self-center">foto</a><button class="text-carmin text-xs" @click="rc.danios.splice(i, 1)">✕</button></div>
+            <button class="text-xs text-violeta" @click="rc.danios.push({ zona: '', detalle: '' })">+ daño</button></div>
+          <label class="text-sm block mt-2">Observaciones <button class="text-xs text-violeta" @click="dictar(t => (rc.observaciones = (rc.observaciones ? rc.observaciones + ' ' : '') + t))">🎤 dictar</button><textarea v-model="rc.observaciones" rows="2" class="input"></textarea></label>
+          <p v-if="ot.recepcion?.sugeridos?.length" class="text-xs mt-2"><b>Para ofrecer:</b> {{ ot.recepcion.sugeridos.join(' · ') }}</p>
+          <p v-if="ot.recepcion?.comparacion" class="text-xs mt-1 text-marca-muted" data-e2e="comparacion">Contra la visita anterior ({{ ot.recepcion.comparacion.ot_anterior }}, {{ ot.recepcion.comparacion.fecha_anterior }}): <span v-if="ot.recepcion.comparacion.anduvo !== null" :class="ot.recepcion.comparacion.medidor_baja ? 'text-carmin font-bold' : ''">anduvo {{ cantidad(ot.recepcion.comparacion.anduvo) }}{{ ot.recepcion.comparacion.por_dia ? ' (' + ot.recepcion.comparacion.por_dia + ' por día)' : '' }}</span><span v-if="ot.recepcion.comparacion.danios_nuevos.length" class="text-carmin"> · daños nuevos: {{ ot.recepcion.comparacion.danios_nuevos.join(', ') }}</span></p>
+          <button class="btn-primary !py-1 text-xs mt-2" @click="guardarRecepcion" data-e2e="guardar-recepcion">Guardar recepción</button>
+        </div>
+
         <div class="card" data-e2e="fotos">
           <h2 class="font-bold mb-2">Fotos</h2>
           <div class="grid sm:grid-cols-4 gap-3">
@@ -92,6 +112,25 @@
           </div>
           <div class="flex gap-2 mt-3"><input v-model="tarea.descripcion" class="input !py-1 text-xs" placeholder="Nueva tarea…" @keydown.enter.prevent="agregarTarea" /><button class="btn-secondary !py-1 text-xs" :disabled="!tarea.descripcion" @click="agregarTarea">+</button></div>
         </div>
+        <!-- Fase 36.5 -->
+        <div class="card text-sm" data-e2e="vuelta">
+          <h2 class="font-bold mb-1">Que vuelva</h2>
+          <p class="text-xs text-marca-muted mb-2">Cuándo le toca el próximo service. <Link href="/servicios/que-vuelvan" class="text-violeta">Ver a quiénes les toca →</Link></p>
+          <div class="flex gap-2"><label class="text-xs">En meses<input v-model.number="vu.meses" type="number" min="1" class="input !py-1" /></label><label v-if="config.medidor" class="text-xs">O a los {{ config.medidor }}<input v-model.number="vu.medidor" type="number" min="0" class="input !py-1" /></label></div>
+          <p v-if="uso_diario" class="text-[11px] text-marca-muted mt-1">Usa ~{{ uso_diario }} {{ config.medidor }} por día según sus visitas.</p>
+          <button class="btn-secondary !py-1 text-xs mt-2 w-full" @click="router.post(`/servicios/${ot.id}/vuelta`, vu, { preserveScroll: true })">Agendar</button>
+          <p v-if="ot.volver_el || ot.volver_medidor" class="text-xs text-emerald-700 mt-1">Agendado: {{ ot.volver_el ? 'el ' + ot.volver_el.split('-').reverse().join('/') : '' }}{{ ot.volver_medidor ? ' a los ' + cantidad(ot.volver_medidor) : '' }}</p>
+        </div>
+        <!-- Fase 36.6 -->
+        <div v-if="vida.length || flota.length" class="card text-sm" data-e2e="historia">
+          <h2 class="font-bold mb-1">Historia</h2>
+          <template v-if="vida.length"><p class="label">Del {{ config.equipo.toLowerCase() }} {{ ot.serie }}</p>
+            <div v-for="v in vida" :key="v.id" class="border-l-2 pl-2 py-1 text-xs" :class="v.actual ? 'border-carmin' : 'border-marca-borde'"><Link :href="`/servicios/${v.id}`" class="font-semibold">{{ v.numero }}</Link> · {{ v.fecha }}<span v-if="v.medidor !== null"> · {{ cantidad(v.medidor) }}</span> · {{ v.dueno }}<p class="text-marca-muted">{{ v.trabajos.join(', ') || v.falla }}</p></div></template>
+          <template v-if="flota.length > 1"><p class="label mt-2">Flota de {{ ot.cliente }}</p>
+            <Link v-for="f in flota" :key="f.ultima_id" :href="`/servicios/${f.ultima_id}`" class="flex justify-between text-xs py-0.5"><span>{{ f.equipo }} {{ f.serie }}</span><span class="text-marca-muted">{{ f.visitas }} visitas · {{ moneda(f.gastado, 0) }}</span></Link></template>
+          <div v-if="ot.serie" class="mt-2"><select v-model="nuevoDueno" class="input !py-1 text-xs"><option :value="null">Cambió de dueño…</option><option v-for="c in clientes.filter(c => c.id !== ot.contact_id)" :key="c.id" :value="c.id">{{ c.name }}</option></select>
+            <button v-if="nuevoDueno" class="btn-secondary !py-1 text-xs mt-1 w-full" @click="router.post(`/servicios/${ot.id}/dueno`, { contact_id: nuevoDueno }, { preserveScroll: true })">Pasar al nuevo dueño</button></div>
+        </div>
         <div class="card text-sm">
           <h2 class="font-bold mb-2">Seguimiento del cliente</h2>
           <p class="text-xs text-marca-muted">El cliente ve el estado y aprueba el presupuesto desde este link:</p>
@@ -108,7 +147,7 @@
         <div><label class="label">Equipo</label><input v-model="ef.equipo" class="input" /></div><div><label class="label">Marca y modelo</label><input v-model="ef.marca_modelo" class="input" /></div>
         <div><label class="label">Serie</label><input v-model="ef.serie" class="input" /></div><div><label class="label">Prioridad</label><select v-model="ef.prioridad" class="input"><option v-for="(l, k) in prioridades" :key="k" :value="k">{{ l }}</option></select></div>
         <div class="sm:col-span-2"><label class="label">Falla</label><textarea v-model="ef.falla" rows="2" class="input"></textarea></div>
-        <div class="sm:col-span-2"><label class="label">Diagnóstico</label><textarea v-model="ef.diagnostico" rows="2" class="input" placeholder="Qué tiene y qué hay que hacer"></textarea></div>
+        <div class="sm:col-span-2"><label class="label">Diagnóstico <button class="normal-case text-violeta" @click="dictar(t => (ef.diagnostico = (ef.diagnostico ? ef.diagnostico + ' ' : '') + t))">🎤 dictar</button></label><textarea v-model="ef.diagnostico" rows="2" class="input" placeholder="Qué tiene y qué hay que hacer"></textarea></div>
         <div><label class="label">Presupuesto (final, con IVA)</label><input v-model.number="ef.presupuesto" type="number" min="0" class="input" /></div><div><label class="label">Técnico</label><select v-model="ef.tecnico_id" class="input"><option :value="null">—</option><option v-for="t in tecnicos" :key="t.id" :value="t.id">{{ t.name }}</option></select></div>
         <div><label class="label">Ingreso</label><input v-model="ef.fecha_ingreso" type="date" class="input" /></div><div><label class="label">Prometido</label><input v-model="ef.fecha_prometida" type="date" class="input" /></div>
         <div class="sm:col-span-2"><label class="label">Notas internas</label><input v-model="ef.notas" class="input" /></div>
@@ -118,8 +157,9 @@
 
     <Modal :abierto="facturarAbierto" titulo="Entregar y facturar" @cerrar="facturarAbierto = false">
       <p class="text-sm mb-3">Se factura {{ ot.items.length ? 'la hoja de trabajo (' + moneda(ot.total_items) + ')' : 'el presupuesto (' + moneda(ot.presupuesto) + ')' }}. Los repuestos salen del stock al emitir.</p>
+      <label class="label">Comprobante</label><select v-model="fc.tipo" class="input mb-2"><option value="FX">Factura</option><option value="REM">Remito (se factura después, por ejemplo a fin de mes a la flota)</option></select>
       <label class="label">Condición</label><select v-model="fc.condicion" class="input"><option value="contado">Contado (cobrar ahora)</option><option value="cta_cte">Cuenta corriente</option></select>
-      <template #pie><button class="btn-secondary" @click="facturarAbierto = false">Cancelar</button><button class="btn-primary" :disabled="fc.processing" @click="fc.post(`/servicios/${ot.id}/facturar`)">Emitir factura</button></template>
+      <template #pie><button class="btn-secondary" @click="facturarAbierto = false">Cancelar</button><button class="btn-primary" :disabled="fc.processing" @click="fc.post(`/servicios/${ot.id}/facturar`)">{{ fc.tipo === 'REM' ? 'Emitir remito' : 'Emitir factura' }}</button></template>
     </Modal>
     <Modal :abierto="!!rep" :titulo="`Repartir: ${rep?.descripcion ?? ''}`" @cerrar="rep = null">
       <p class="text-xs text-marca-muted mb-2">Qué parte de esta mano de obra hizo cada {{ config.tecnico.toLowerCase() }}. Tiene que sumar 100 %.</p>
@@ -132,12 +172,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
-const props = defineProps({ ot: Object, estados: Object, prioridades: Object, clientes: Array, tecnicos: Array, productos: Array, config: Object, que_sigue: Object, pendientes: Array, plantillas: Array, fotos: [Object, Array], momentos: Object })
+const props = defineProps({ ot: Object, estados: Object, prioridades: Object, clientes: Array, tecnicos: Array, productos: Array, config: Object, que_sigue: Object, pendientes: Array, plantillas: Array, fotos: [Object, Array], momentos: Object, checklist: Array, vida: Array, flota: Array, uso_diario: Number, ia: Boolean })
 const page = usePage()
 const claseEstado = computed(() => ({ recibido: 'bg-gris-light text-marca-muted', diagnostico: 'bg-amber-50 text-amber-700', presupuestado: 'bg-amber-50 text-amber-700', aprobado: 'bg-violeta/10 text-violeta', en_curso: 'bg-violeta/10 text-violeta', listo: 'bg-emerald-50 text-emerald-700', entregado: 'bg-emerald-50 text-emerald-700', cancelado: 'bg-red-50 text-carmin' }[props.ot.estado]))
 const editar = ref(false), facturarAbierto = ref(false)
@@ -146,6 +186,13 @@ function esperar() { const m = window.prompt('¿Qué está esperando? (repuesto,
 function guardarPlantilla() { const n = window.prompt('Nombre de la plantilla (ej. Service 10.000 km)'); if (n) router.post(`/servicios/${props.ot.id}/plantilla`, { nombre: n }, { preserveScroll: true }) }
 function subirFotos(momento, files) { if (!files?.length) return; router.post(`/servicios/${props.ot.id}/fotos`, { momento, fotos: [...files] }, { forceFormData: true, preserveScroll: true }) }
 const rep = ref(null), reparto = ref([])
+const r0 = props.ot.recepcion ?? {}
+const rc = reactive({ medidor: props.ot.medidor, combustible: r0.combustible ?? '', luces_txt: (r0.luces ?? []).join(', '), checklist: { ...(r0.checklist ?? {}) }, danios: (r0.danios ?? []).map(d => ({ ...d })), observaciones: r0.observaciones ?? '' })
+function guardarRecepcion() { router.post(`/servicios/${props.ot.id}/recepcion`, { medidor: rc.medidor, combustible: rc.combustible, luces: rc.luces_txt.split(',').map(x => x.trim()).filter(Boolean), checklist: rc.checklist, danios: rc.danios.filter(d => d.zona || d.detalle), observaciones: rc.observaciones }, { preserveScroll: true }) }
+const vu = reactive({ meses: null, medidor: props.ot.volver_medidor })
+const nuevoDueno = ref(null)
+// Dictado por voz (el navegador lo hace; si no puede, avisa)
+function dictar(cb) { const R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R) return alert('Este navegador no puede dictar. Probá con Chrome.'); const r = new R(); r.lang = 'es-AR'; r.onresult = e => cb(e.results[0][0].transcript); r.start() }
 function abrirReparto(i) { rep.value = i; reparto.value = i.tecnicos.length ? i.tecnicos.map(t => ({ ...t })) : [{ user_id: props.ot.tecnico_id, pct: 100 }] }
 const it = useForm({ product_id: null, descripcion: '', cantidad: 1, precio_unit: null, actualizar_presupuesto: true })
 function alElegirProducto() { const p = props.productos.find(x => x.id === it.product_id); if (p) { it.descripcion = p.name; it.precio_unit = p.precio } }
@@ -153,7 +200,7 @@ const tarea = useForm({ descripcion: '' })
 function agregarTarea() { if (tarea.descripcion) tarea.post(`/servicios/${props.ot.id}/tareas`, { preserveScroll: true, onSuccess: () => tarea.reset() }) }
 const o = props.ot
 const ef = useForm({ contact_id: o.contact_id, nombre: o.nombre ?? '', telefono: o.telefono ?? '', equipo: o.equipo, marca_modelo: o.marca_modelo ?? '', serie: o.serie ?? '', falla: o.falla, diagnostico: o.diagnostico ?? '', prioridad: o.prioridad, tecnico_id: o.tecnico_id, fecha_ingreso: o.fecha_ingreso, fecha_prometida: o.fecha_prometida ?? '', presupuesto: o.presupuesto, notas: o.notas ?? '' })
-const fc = useForm({ condicion: 'contado' })
+const fc = useForm({ condicion: 'contado', tipo: 'FX' })
 // Firma en canvas
 const lienzo = ref(null), dibujando = ref(false), trazos = ref(0), firmaNombre = ref(o.cliente)
 const pos = e => { const r = lienzo.value.getBoundingClientRect(); return [(e.clientX - r.left) * lienzo.value.width / r.width, (e.clientY - r.top) * lienzo.value.height / r.height] }

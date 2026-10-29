@@ -588,6 +588,14 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/config', [$c, 'config'])->middleware('permiso:servicios,editar');
         Route::get('/mis-ordenes', [$c, 'misOrdenes']);
         Route::get('/tecnicos', [$c, 'tecnicos'])->middleware('permiso:servicios,editar');
+        Route::get('/que-vuelvan', [$c, 'queVuelvan']);
+        Route::post('/piezas', [$c, 'piezas'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/recepcion', [$c, 'recepcion'])->middleware('permiso:servicios,editar')->whereNumber('id');
+        Route::post('/{id}/recepcion/ia', [$c, 'recepcionIA'])->middleware('permiso:servicios,editar');
+        Route::get('/{id}/acta', [$c, 'acta'])->whereNumber('id');
+        Route::post('/{id}/vuelta', [$c, 'vuelta'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/recordado', [$c, 'recordado'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/dueno', [$c, 'cambiarDueno'])->middleware('permiso:servicios,editar');
         Route::post('/{id}/esperar', [$c, 'esperar'])->middleware('permiso:servicios,editar')->whereNumber('id');
         Route::post('/{id}/items/{item}/reparto', [$c, 'reparto'])->middleware('permiso:servicios,editar');
         Route::post('/{id}/pendientes/{item}', [$c, 'traerPendiente'])->middleware('permiso:servicios,editar');
