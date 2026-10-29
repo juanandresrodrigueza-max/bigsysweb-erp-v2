@@ -45,6 +45,20 @@
           <button v-if="puede('clientes','editar')" @click="abrir(v)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button>
         </div>
         <p v-if="!vendedores.length" class="text-sm text-marca-muted">Ninguno todavía.</p>
+        <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="config-calle">
+          <h2 class="font-bold mb-1">Cómo se vende en la calle</h2>
+          <p class="text-xs text-marca-muted mb-2">Vale para todos los vendedores en <Link href="/vender?modo=calle" class="text-violeta font-semibold">Vender → En la calle</Link>.</p>
+          <div class="space-y-2 text-sm">
+            <div><label class="label">Con qué comprobante arranca</label><select v-model="calleForm.calle_comprobante" class="input !py-1.5"><option value="PRE">Presupuesto (el cliente lo aprueba después)</option><option value="FX">Factura</option><option value="REM">Remito</option></select></div>
+            <label class="flex items-center gap-2"><input v-model="calleForm.calle_emite" type="checkbox" class="accent-carmin" /> La factura o el remito de la calle se emiten en el momento (si no, quedan pendientes de emitir en el local)</label>
+            <div class="grid grid-cols-3 gap-2">
+              <div><label class="label">Tope de descuento %</label><input v-model.number="calleForm.tope_descuento" type="number" step="any" min="0" class="input !py-1.5" /></div>
+              <div><label class="label">Mora tolerada (días)</label><input v-model.number="calleForm.dias_mora" type="number" min="0" class="input !py-1.5" /></div>
+              <div><label class="label">Avisar datos viejos (días)</label><input v-model.number="calleForm.avisar_datos_dias" type="number" min="0" class="input !py-1.5" /></div>
+            </div>
+            <button v-if="puede('configuracion','editar')" class="btn-secondary !py-1.5 text-xs" :disabled="calleForm.processing" @click="calleForm.post('/clientes/vendedores/calle', { preserveScroll: true })" data-e2e="guardar-calle">Guardar</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -56,6 +70,8 @@
         <div class="sm:col-span-2"><label class="label">Usuario del sistema (sus ventas se le atribuyen solas)</label><select v-model="form.user_id" class="input"><option :value="null">Ninguno</option><option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.name }}</option></select></div>
         <div><label class="label">Email</label><input v-model="form.email" type="email" class="input" /></div>
         <div><label class="label">Teléfono</label><input v-model="form.telefono" class="input" /></div>
+        <div><label class="label">Abre Vender en</label><select v-model="form.modo_default" class="input"><option v-for="(t, k) in modos" :key="k" :value="k">{{ t }}</option></select></div>
+        <div><label class="label">Objetivo mensual (opcional)</label><input v-model.number="form.objetivo_mensual" type="number" step="any" min="0" class="input" placeholder="$ facturado por mes" /></div>
         <label v-if="form.id" class="flex items-center gap-2 text-sm"><input v-model="form.activo" type="checkbox" class="accent-carmin" /> Activo</label>
       </div>
       <template #pie><button class="btn-secondary" @click="modal = false">Cancelar</button><button class="btn-primary" :disabled="form.processing" @click="form.post(`/clientes/vendedores${form.id ? '/' + form.id : ''}`, { preserveScroll: true, onSuccess: () => (modal = false) })">Guardar</button></template>
@@ -73,10 +89,11 @@ import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array })
+const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object })
 const { puede } = usePermisos()
 const abierto = ref(null), modal = ref(false)
-const vacio = () => ({ id: null, nombre: '', email: '', telefono: '', user_id: null, comision_venta: 0, comision_cobro: 0, activo: true })
+const vacio = () => ({ id: null, nombre: '', email: '', telefono: '', user_id: null, comision_venta: 0, comision_cobro: 0, activo: true, modo_default: 'mostrador', objetivo_mensual: null })
+const calleForm = useForm({ calle_comprobante: props.calle.calle_comprobante, calle_emite: !!props.calle.calle_emite, tope_descuento: props.calle.tope_descuento, dias_mora: props.calle.dias_mora, avisar_datos_dias: props.calle.avisar_datos_dias })
 const form = useForm(vacio())
 function abrir(v) { form.clearErrors(); Object.assign(form, vacio(), v ?? {}); modal.value = true }
 </script>

@@ -12,7 +12,7 @@ class Vendedor extends Model
     use BelongsToBusiness;
 
     protected $table = 'vendedores';
-    protected $fillable = ['business_id', 'user_id', 'nombre', 'email', 'telefono', 'comision_venta', 'comision_cobro', 'activo'];
+    protected $fillable = ['business_id', 'user_id', 'nombre', 'email', 'telefono', 'comision_venta', 'comision_cobro', 'activo', 'modo_default', 'objetivo_mensual'];
     protected $casts = ['comision_venta' => 'decimal:2', 'comision_cobro' => 'decimal:2', 'activo' => 'boolean'];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }

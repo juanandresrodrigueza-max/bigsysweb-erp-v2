@@ -38,7 +38,7 @@ class Comprobante extends Model
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'receptor', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id', 'crm_quote_id',
-        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id', 'transportista', 'transportista_cuit', 'patente', 'bultos', 'peso_kg', 'domicilio_entrega', 'cot', 'sin_arca', 'exportacion', 'manual', 'cai', 'cai_vto',
+        'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'orden_trabajo_id', 'estadia_id', 'transportista', 'transportista_cuit', 'patente', 'bultos', 'peso_kg', 'domicilio_entrega', 'cot', 'sin_arca', 'exportacion', 'manual', 'cai', 'cai_vto', 'modo_venta', 'lat', 'lng',
     ];
 
     protected $casts = [

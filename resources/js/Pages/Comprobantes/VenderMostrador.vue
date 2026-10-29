@@ -1,7 +1,7 @@
 <template>
-  <AppLayout :titulo="vertical === 'minimarket' ? 'Caja' : 'Punto de venta'">
+  <div>
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <div><h1 class="page-title">{{ vertical === 'minimarket' ? 'Caja rápida' : 'Punto de venta' }}</h1><p class="page-subtitle">Escaneá o buscá, cobrá y sale el ticket. <kbd class="px-1 rounded bg-marca-fondo text-[11px]">F2</kbd> buscar · <kbd class="px-1 rounded bg-marca-fondo text-[11px]">F9</kbd> cobrar</p></div>
+      <p class="text-xs text-marca-muted">Escaneá o buscá, cobrá y sale el ticket. <kbd class="px-1 rounded bg-marca-fondo text-[11px]">F2</kbd> buscar · <kbd class="px-1 rounded bg-marca-fondo text-[11px]">F9</kbd> cobrar</p>
       <div class="flex flex-wrap items-center gap-2 text-xs">
         <span class="badge" :class="online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-carmin'"><Icono nombre="wifi" clase="w-3.5 h-3.5 inline" /> {{ online ? 'Con conexión' : 'Sin conexión: las ventas se guardan acá' }}</span>
         <button v-if="cola.length" class="badge bg-amber-50 text-amber-700" :disabled="!online || sincronizando" @click="sincronizar">{{ sincronizando ? 'Sincronizando…' : `${cola.length} venta${cola.length > 1 ? 's' : ''} por sincronizar` }}</button>
@@ -17,14 +17,14 @@
 
     <div v-if="ultimaVenta" class="mb-4 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex flex-wrap items-center gap-3">
       <span>Venta <b>{{ ultimaVenta.numero }}</b> por <b class="tabular-nums">{{ moneda(ultimaVenta.total) }}</b><span v-if="ultimaVenta.vuelto > 0"> · vuelto <b class="tabular-nums text-lg">{{ moneda(ultimaVenta.vuelto) }}</b></span></span>
-      <a :href="`/${vertical}/ticket/${ultimaVenta.comprobante_id}?vuelto=${ultimaVenta.vuelto}`" target="_blank" class="btn-primary !py-1 text-xs">Imprimir ticket</a>
+      <a :href="`${base()}/ticket/${ultimaVenta.comprobante_id}?vuelto=${ultimaVenta.vuelto}`" target="_blank" class="btn-primary !py-1 text-xs">Imprimir ticket</a>
       <Link :href="`/comprobantes/${ultimaVenta.comprobante_id}`" class="text-xs font-semibold">Ver comprobante</Link>
       <button @click="ultimaVenta = null" class="ml-auto text-xs">✕</button>
     </div>
 
-    <div class="grid lg:grid-cols-5 gap-4">
+    <div class="grid lg:grid-cols-5 gap-4" :class="caja ? 'lg:grid-flow-dense' : ''">
       <!-- Buscador y grilla -->
-      <div class="lg:col-span-3 space-y-3">
+      <div class="space-y-3" :class="caja ? 'lg:col-span-2 lg:col-start-4' : 'lg:col-span-3'">
         <div class="relative">
           <Icono nombre="search" clase="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-marca-muted" />
           <input ref="buscador" v-model="q" @keydown.enter.prevent="enterBuscar" class="input !pl-10 !py-3 text-base" placeholder="Código de barras, nombre o SKU… (Enter agrega el primero)" autofocus />
@@ -45,7 +45,7 @@
       </div>
 
       <!-- Ticket -->
-      <div class="lg:col-span-2 card p-0 flex flex-col max-h-[calc(100vh-190px)]">
+      <div class="card p-0 flex flex-col max-h-[calc(100vh-190px)]" :class="caja ? 'lg:col-span-3 lg:col-start-1' : 'lg:col-span-2'">
         <div class="px-4 py-3 border-b border-marca-borde flex items-center gap-2">
           <select v-model="contactId" class="input !py-1.5 text-sm flex-1"><option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.name }}{{ c.condicion_iva === 'Responsable Inscripto' ? ' (A)' : '' }}</option></select>
           <span class="badge bg-lavanda-light text-violeta">Factura {{ letra }}</span>
@@ -62,7 +62,7 @@
         </div>
         <div class="px-4 py-3 border-t border-marca-borde space-y-2">
           <div class="flex items-center justify-between text-sm"><span class="text-marca-muted">{{ ticket.reduce((a, i) => a + i.cantidad, 0) }} ítems</span><button v-if="ticket.length" @click="ticket = []" class="text-xs text-carmin">Vaciar</button></div>
-          <div class="flex items-baseline justify-between"><span class="font-bold">TOTAL</span><span class="text-3xl font-black tabular-nums">{{ moneda(totalFinal) }}</span></div>
+          <div class="flex items-baseline justify-between"><span class="font-bold">TOTAL</span><span class="font-black tabular-nums" :class="caja ? 'text-5xl' : 'text-3xl'" data-e2e="total">{{ moneda(totalFinal) }}</span></div>
           <p v-if="letra === 'A'" class="text-[11px] text-marca-muted text-right">neto {{ moneda(total) }} + IVA</p>
           <button class="btn-primary w-full !py-3 text-base" :disabled="!ticket.length" @click="abrirCobro">Cobrar <span class="opacity-70 text-xs ml-1">F9</span></button>
         </div>
@@ -107,20 +107,21 @@
         <button class="btn-primary !px-6" :disabled="enviando || (pagado < aCobrar + recargoTotal - 0.005 && !aCuenta)" @click="cobrar">{{ enviando ? 'Cobrando…' : 'Confirmar y emitir' }}</button>
       </template>
     </Modal>
-  </AppLayout>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
-import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 import QRCode from 'qrcode'
 
-const props = defineProps({ vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) }, planesCuotas: { type: Array, default: () => [] }, mp: { type: Object, default: () => ({ qr: false, point: false }) } })
+const props = defineProps({ modo: String, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) }, planesCuotas: { type: Array, default: () => [] }, mp: { type: Object, default: () => ({ qr: false, point: false }) } })
 const page = usePage()
+const caja = computed(() => props.modo === 'caja')
+const base = () => `/${props.vertical === 'vender' ? 'vender' : props.vertical}`
 const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mercadopago: 'MercadoPago', billetera: 'Billetera' }
 const q = ref(''), rubroSel = ref(null), buscador = ref(null)
 const ticket = ref([]), contactId = ref(props.consumidorFinalId)
@@ -132,7 +133,7 @@ const norm = s => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[
 // Catálogo grande: lo que no está en la página se busca en el servidor y se suma a la lista local (también sirve para el lector de barras).
 const catalogo = ref([...props.productos]); const remotos = ref([]); let timerRemoto = null
 function sumarRemotos(filas) { const ids = new Set(catalogo.value.map(x => x.id)); filas.forEach(f => { if (!ids.has(f.id)) catalogo.value.push(f) }); remotos.value = filas }
-watch(q, t => { if (!props.catalogoParcial || t.trim().length < 2) { remotos.value = []; return } clearTimeout(timerRemoto); timerRemoto = setTimeout(async () => { try { const r = await fetch(`${location.pathname.replace(/\/$/, '')}/buscar?q=${encodeURIComponent(t.trim())}`, { headers: { Accept: 'application/json' } }); if (r.ok) sumarRemotos(await r.json()) } catch (e) {} }, 200) })
+watch(q, t => { if (!props.catalogoParcial || t.trim().length < 2) { remotos.value = []; return } clearTimeout(timerRemoto); timerRemoto = setTimeout(async () => { try { const r = await fetch(`${base()}/buscar?q=${encodeURIComponent(t.trim())}`, { headers: { Accept: 'application/json' } }); if (r.ok) sumarRemotos(await r.json()) } catch (e) {} }, 200) })
 const visibles = computed(() => {
   if (q.value.trim()) { const t = norm(q.value); return catalogo.value.filter(p => norm(p.name).includes(t) || norm(p.sku).includes(t) || (p.barcode && p.barcode.includes(q.value.trim()))).slice(0, 60) }
   if (rubroSel.value) return catalogo.value.filter(p => p.rubro_id === rubroSel.value || props.rubros.find(r => r.id === p.rubro_id)?.parent_id === rubroSel.value)
@@ -160,7 +161,7 @@ function enterBuscar() {
   const p = porBarra ?? visibles.value[0]
   if (p) { agregar(p); return }
   // Etiqueta de serie de una unidad: suma ese artículo con esa serie.
-  fetch(`${location.pathname.replace(/\/$/, '')}/serie?codigo=${encodeURIComponent(t)}`, { headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
+  fetch(`${base()}/serie?codigo=${encodeURIComponent(t)}`, { headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => {
     if (!d) { error.value = `Nada con el código ${t}.`; return }
     if (!catalogo.value.some(x => x.id === d.producto.id)) catalogo.value.push(d.producto)
     const ya = ticket.value.find(i => i.product_id === d.producto.id)
@@ -196,7 +197,7 @@ async function mpIniciar(tipo, m) {
   const monto = Number(m.monto) || 0; if (monto <= 0) return
   mpCobro.value = { tipo, monto, estado: 'iniciando', medio: m }
   try {
-    const r = await fetch(`/${props.vertical}/mp/iniciar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ tipo, monto }) })
+    const r = await fetch(`${base()}/mp/iniciar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ tipo, monto }) })
     const j = await r.json(); if (!r.ok) { mpCobro.value = null; error.value = j.error ?? j.message ?? 'No se pudo iniciar el cobro.'; return }
     mpCobro.value = { ...mpCobro.value, id: j.id, qr_data: j.qr_data, estado: 'pendiente' }
     if (tipo === 'qr' && j.qr_data) nextTick(() => { const c = Array.isArray(mpQr.value) ? mpQr.value[0] : mpQr.value; if (c) QRCode.toCanvas(c, j.qr_data, { width: 112, margin: 1, color: { dark: '#4f3089' } }).catch(() => {}) })
@@ -206,7 +207,7 @@ async function mpIniciar(tipo, m) {
 async function mpConsultar() {
   if (!mpCobro.value?.id) return
   try {
-    const r = await fetch(`/${props.vertical}/mp/estado?tipo=${mpCobro.value.tipo}&id=${encodeURIComponent(mpCobro.value.id)}`, { headers: { Accept: 'application/json' } }); const j = await r.json()
+    const r = await fetch(`${base()}/mp/estado?tipo=${mpCobro.value.tipo}&id=${encodeURIComponent(mpCobro.value.id)}`, { headers: { Accept: 'application/json' } }); const j = await r.json()
     mpCobro.value.estado = j.estado; mpCobro.value.error = j.error ?? null
     if (j.estado === 'pagado') { clearInterval(mpTimer); mpCobro.value.medio.referencia = j.pago_id || mpCobro.value.id; if (j.monto) mpCobro.value.medio.monto = j.monto; cobrar() }
     if (j.estado === 'cancelado') clearInterval(mpTimer)
@@ -214,7 +215,7 @@ async function mpConsultar() {
 }
 async function mpCancelar() {
   clearInterval(mpTimer)
-  if (mpCobro.value?.id) try { await fetch(`/${props.vertical}/mp/cancelar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ tipo: mpCobro.value.tipo, id: mpCobro.value.id }) }) } catch (e) {}
+  if (mpCobro.value?.id) try { await fetch(`${base()}/mp/cancelar`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ tipo: mpCobro.value.tipo, id: mpCobro.value.id }) }) } catch (e) {}
   mpCobro.value = null
 }
 watch(cobroAbierto, v => { if (!v) { clearInterval(mpTimer); mpCobro.value = null } })
@@ -230,7 +231,7 @@ async function sincronizar() {
   const token = decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
   for (const v of [...cola.value]) {
     try {
-      const r = await fetch(`/${props.vertical}/vender`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify(v) })
+      const r = await fetch(`${base()}/vender`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify(v) })
       if (r.ok || r.status === 422) { cola.value = cola.value.filter(x => x.offline_id !== v.offline_id); guardarCola(); if (r.ok) { const j = await r.json(); ultimaVenta.value = { comprobante_id: j.comprobante_id, numero: j.numero, total: j.total, vuelto: j.vuelto, sync: true } } }
       else break
     } catch (e) { break }
@@ -240,13 +241,13 @@ async function sincronizar() {
 function cobrar() {
   if (enviando.value) return
   enviando.value = true; error.value = null
-  const datos = { contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' ? m.datos : null })) }
+  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' ? m.datos : null })) }
   if (!navigator.onLine) {
     cola.value.push({ ...datos, offline_id: 'off-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), fecha_offline: new Date().toISOString() }); guardarCola()
     ultimaVenta.value = { numero: 'SIN CONEXIÓN', total: totalFinal.value, vuelto: Math.max(0, pagado.value - aCobrar.value), offline: true }
     ticket.value = []; cobroAbierto.value = false; contactId.value = props.consumidorFinalId; enviando.value = false; nextTick(() => buscador.value?.focus()); return
   }
-  router.post(`/${props.vertical}/vender`, datos, {
+  router.post(`${base()}/vender`, datos, {
     preserveScroll: true,
     onSuccess: () => { ultimaVenta.value = page.props.flash?.pos ?? null; ticket.value = []; cobroAbierto.value = false; contactId.value = props.consumidorFinalId; nextTick(() => buscador.value?.focus()); if (ultimaVenta.value?.comprobante_id) imprimirAuto(ultimaVenta.value.comprobante_id) },
     onError: e => { error.value = Object.values(e)[0] },
@@ -260,12 +261,12 @@ const tieneSerial = 'serial' in navigator
 async function conectarImpresora() { try { puerto = await navigator.serial.requestPort(); await puerto.open({ baudRate: 9600 }); impresoraOk.value = true } catch (e) { impresoraOk.value = false } }
 async function imprimirSerial(id) {
   if (!puerto) return false
-  try { const bytes = new Uint8Array(await (await fetch(`/${props.vertical}/ticket/${id}/escpos`)).arrayBuffer()); const w = puerto.writable.getWriter(); await w.write(bytes); w.releaseLock(); return true } catch (e) { impresoraOk.value = false; return false }
+  try { const bytes = new Uint8Array(await (await fetch(`${base()}/ticket/${id}/escpos`)).arrayBuffer()); const w = puerto.writable.getWriter(); await w.write(bytes); w.releaseLock(); return true } catch (e) { impresoraOk.value = false; return false }
 }
 async function imprimirTicket(id) {
   if (props.posConfig.impresora === 'ninguna') return
   if (props.posConfig.impresora === 'serial' && await imprimirSerial(id)) return
-  window.open(`/${props.vertical}/ticket/${id}`, '_blank')
+  window.open(`${base()}/ticket/${id}`, '_blank')
 }
 function imprimirAuto(id) { if (props.posConfig.imprimir_auto) imprimirTicket(id) }
 function teclas(e) { if (e.key === 'F2') { e.preventDefault(); buscador.value?.focus() } if (e.key === 'F9') { e.preventDefault(); cobroAbierto.value ? cobrar() : abrirCobro() } if (e.key === 'Escape' && cobroAbierto.value) cobroAbierto.value = false }

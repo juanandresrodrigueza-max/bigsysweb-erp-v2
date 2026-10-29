@@ -78,7 +78,7 @@ class ClientesController extends Controller
         }
 
         return Inertia::render('Clientes/Ver', [
-            'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'percepcion_iva', 'percepcion_ganancias', 'pais_codigo', 'cuit_pais', 'id_impositivo', 'balance', 'is_active', 'notes', 'tipo_cliente_id', 'interes_mora', 'vendedor_id', 'recordar_precio', 'cobrador_id') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida(), 'vendedor' => $c->vendedor?->nombre, 'interes_calculado' => $this->interesMora($c, $pendientes), 'portal_url' => \App\Http\Controllers\PortalController::url($c), 'puntos' => (float) $c->puntos, 'puntos_pesos' => app(\App\Services\Ventas\FidelizacionService::class)->valorEnPesos($request->user()->business, (float) $c->puntos), 'fidelizacion_activa' => (bool) app(\App\Services\Ventas\FidelizacionService::class)->config($request->user()->business)['activo']],
+            'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'percepcion_iva', 'percepcion_ganancias', 'pais_codigo', 'cuit_pais', 'id_impositivo', 'balance', 'is_active', 'notes', 'tipo_cliente_id', 'interes_mora', 'vendedor_id', 'recordar_precio', 'cobrador_id', 'visitas') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida(), 'vendedor' => $c->vendedor?->nombre, 'interes_calculado' => $this->interesMora($c, $pendientes), 'portal_url' => \App\Http\Controllers\PortalController::url($c), 'puntos' => (float) $c->puntos, 'puntos_pesos' => app(\App\Services\Ventas\FidelizacionService::class)->valorEnPesos($request->user()->business, (float) $c->puntos), 'fidelizacion_activa' => (bool) app(\App\Services\Ventas\FidelizacionService::class)->config($request->user()->business)['activo']],
             'cc' => $cc, 'pendientes' => $pendientes, 'antiguedad' => $antiguedad,
             'rubros' => \App\Models\Rubro::with('parent')->orderBy('nombre')->get()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombreCompleto()])->sortBy('nombre')->values(),
             'comprobantes' => Comprobante::where('contact_id', $c->id)->orderByDesc('fecha')->orderByDesc('id')->limit(30)->get()->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'estado' => $x->estado, 'estado_cobro' => $x->estadoCobro(), 'es_acopio' => $x->es_acopio]),
@@ -135,6 +135,15 @@ class ClientesController extends Controller
         AuditLog::registrar($id ? 'editar' : 'crear', $c, "Cliente {$c->name}");
         if (! $id) app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'cliente.creado', $c->only('id', 'name', 'cuit', 'email', 'phone', 'condicion_iva', 'lista_precios'));
         return $id ? back()->with('success', 'Cliente actualizado.') : redirect("/clientes/{$c->id}")->with('success', 'Cliente creado.');
+    }
+
+    // Fase 29: agenda de visitas del vendedor (qué día pasa), por cliente.
+    public function agenda(Request $request, int $id)
+    {
+        $d = $request->validate(['visitas' => 'required|array', 'visitas.*' => 'in:no,dia,man,tar,1er,2do,3er,ult']);
+        $c = Contact::customers()->findOrFail($id);
+        $c->update(['visitas' => array_filter($d['visitas'], fn($v) => $v !== 'no') ?: null]);
+        return back()->with('success', 'Agenda de visitas guardada.');
     }
 
     public function guardarTipo(Request $request, ?int $id = null)

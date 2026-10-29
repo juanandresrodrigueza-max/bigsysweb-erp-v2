@@ -138,6 +138,13 @@
       <div><p class="label">Email</p>{{ cliente.email ?? '—' }}</div><div><p class="label">Teléfono</p>{{ cliente.phone ?? cliente.mobile ?? '—' }}</div>
       <div class="sm:col-span-2"><p class="label">Dirección</p>{{ [cliente.address, cliente.city, cliente.province, cliente.postal_code].filter(Boolean).join(', ') || '—' }}</div>
       <div class="sm:col-span-2"><p class="label">Notas</p><span class="whitespace-pre-line">{{ cliente.notes ?? '—' }}</span></div>
+      <div class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="agenda-visitas">
+        <p class="label">Agenda de visitas del vendedor</p>
+        <p class="text-xs text-marca-muted mb-2">Qué día pasa el vendedor. Si no cargás nada, la ruta se arma sola con el ritmo de compra del cliente.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          <div v-for="d in dias" :key="d.k"><p class="text-[11px] font-bold uppercase text-marca-muted">{{ d.t }}</p><select v-model="agenda[d.k]" class="input !py-1 text-xs" @change="guardarAgenda"><option value="no">No</option><option v-for="(t, k) in agendaOpciones" :key="k" :value="k">{{ t }}</option></select></div>
+        </div>
+      </div>
     </div>
 
     <EnviarModal :abierto="!!envio" :modelo="envio?.modelo" :id="envio?.id" titulo="Enviar al cliente" @cerrar="envio = null" />
@@ -260,12 +267,16 @@ import ContactosPersonas from '@/Components/ContactosPersonas.vue'
 import DocumentosAdjuntos from '@/Components/DocumentosAdjuntos.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
+const dias = [{ k: 'lun', t: 'Lun' }, { k: 'mar', t: 'Mar' }, { k: 'mie', t: 'Mié' }, { k: 'jue', t: 'Jue' }, { k: 'vie', t: 'Vie' }, { k: 'sab', t: 'Sáb' }, { k: 'dom', t: 'Dom' }]
+const agendaOpciones = { dia: 'Todo el día', man: 'A la mañana', tar: 'A la tarde', '1er': '1ª semana', '2do': '2ª semana', '3er': '3ª semana', ult: 'Última semana' }
 const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : (m.medio === 'retencion' ? { impuesto: 'iibb', jurisdiccion: '', certificado: '' } : {})) }
 const envio = ref(null)
 function enviarDoc(modelo, id) { envio.value = { modelo, id } }
 const tab = ref('cc')
+const agenda = reactive(Object.fromEntries(dias.map(d => [d.k, props.cliente.visitas?.[d.k] ?? 'no'])))
+function guardarAgenda() { router.post(`/clientes/${props.cliente.id}/agenda`, { visitas: { ...agenda } }, { preserveScroll: true, preserveState: true }) }
 const tabs = computed(() => [
   { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },
   { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'contactos', label: 'Contactos' }, { key: 'documentos', label: 'Documentos' }, { key: 'datos', label: 'Datos' },

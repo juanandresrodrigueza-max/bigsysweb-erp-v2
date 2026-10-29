@@ -212,7 +212,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cobranzas/{id}/recordar',    [\App\Http\Controllers\Clientes\CobranzasController::class, 'recordar'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/{id}/refinanciar', [\App\Http\Controllers\Clientes\CobranzasController::class, 'refinanciar'])->middleware('permiso:clientes,crear');
         Route::get('/vendedores',              [\App\Http\Controllers\Clientes\VendedoresController::class, 'index']);
+        Route::post('/vendedores/calle',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'configCalle'])->middleware('permiso:configuracion,editar');
         Route::post('/vendedores/{id?}',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'guardar'])->middleware('permiso:clientes,editar');
+        Route::post('/{id}/agenda',            [\App\Http\Controllers\Clientes\ClientesController::class, 'agenda'])->middleware('permiso:clientes,editar')->whereNumber('id');
         Route::post('/tipos/{id?}',            [ClientesController::class, 'guardarTipo'])->middleware('permiso:clientes,editar');
         Route::delete('/tipos/{id}',           [ClientesController::class, 'eliminarTipo'])->middleware('permiso:clientes,anular');
         Route::get('/fidelizacion',            [\App\Http\Controllers\Clientes\FidelizacionController::class, 'index']);
@@ -518,18 +520,22 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/envios/borrador',      [\App\Http\Controllers\EnviosController::class, 'borrador']);
     Route::post('/envios/{id}/marcar',  [\App\Http\Controllers\EnviosController::class, 'marcar']);
 
-    // Punto de venta (comercio y minimarket comparten pantalla)
-    foreach (['retail', 'minimarket'] as $v) {
-        Route::prefix($v)->middleware("permiso:{$v}")->group(function () use ($v) {
-            Route::get('/',            [\App\Http\Controllers\Pos\PosController::class, 'index']);
+    // Fase 29: Vender, una sola pantalla con tres modos (calle, mostrador, caja). Comercio y minimarket entran a la misma en modo caja.
+    foreach (['vender' => 'comprobantes', 'retail' => 'retail', 'minimarket' => 'minimarket'] as $v => $perm) {
+        Route::prefix($v)->middleware("permiso:{$perm}")->group(function () use ($v, $perm) {
+            Route::get('/',            [\App\Http\Controllers\Comprobantes\VenderController::class, 'index']);
+            Route::get('/paquete',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'paquete']);
+            Route::get('/ruta',        [\App\Http\Controllers\Comprobantes\VenderController::class, 'ruta']);
+            Route::get('/cliente/{id}', [\App\Http\Controllers\Comprobantes\VenderController::class, 'ficha'])->whereNumber('id');
+            Route::post('/cliente/{id}/visita', [\App\Http\Controllers\Comprobantes\VenderController::class, 'visita'])->whereNumber('id');
             Route::get('/buscar',      [\App\Http\Controllers\Pos\PosController::class, 'buscar']);
             Route::get('/serie',       [\App\Http\Controllers\Pos\PosController::class, 'serie']);
-            Route::post('/vender',     [\App\Http\Controllers\Pos\PosController::class, 'vender'])->middleware("permiso:{$v},crear");
+            Route::post('/vender',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'vender'])->middleware("permiso:{$perm},crear");
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
             Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);
-            Route::post('/mp/iniciar', [\App\Http\Controllers\Pos\PosController::class, 'mpIniciar'])->middleware("permiso:{$v},crear");
+            Route::post('/mp/iniciar', [\App\Http\Controllers\Pos\PosController::class, 'mpIniciar'])->middleware("permiso:{$perm},crear");
             Route::get('/mp/estado',   [\App\Http\Controllers\Pos\PosController::class, 'mpEstado']);
-            Route::post('/mp/cancelar', [\App\Http\Controllers\Pos\PosController::class, 'mpCancelar'])->middleware("permiso:{$v},crear");
+            Route::post('/mp/cancelar', [\App\Http\Controllers\Pos\PosController::class, 'mpCancelar'])->middleware("permiso:{$perm},crear");
         });
     }
 
