@@ -84,3 +84,13 @@ Copia automática diaria (se puede bajar) y restauración con un clic. Antes de 
 ## Suscripción
 
 Plan actual, usuarios y sucursales incluidos, renovación por Mercado Pago o transferencia. También muestra las **facturas emitidas en el mes** y los **artículos cargados** contra lo que incluye el plan (en rojo desde el 80 %). Al llegar al máximo, la factura siguiente del mes o el artículo nuevo no se pueden cargar hasta pasar a un plan mayor; presupuestos, remitos y notas de crédito no cuentan.
+
+## Perfiles listos (Configuración → Usuarios)
+
+Al crear o editar un usuario, elegí un **perfil** y quedan tildados todos sus permisos de una: **Vendedor**, **Administrador de ventas**, **Depósito**, **Administrador**, **Sólo mirar** (ve todo y no cambia nada), Contador, Cajero, Compras o Técnico. Si necesitás algo distinto, armá un rol a mano en Roles. Aparte, dos tildes: ver costo y margen, y ver a qué proveedores comprar.
+
+El **Inicio** de cada persona muestra sólo lo que tiene habilitado: alguien de depósito ve el stock, no las ventas ni la plata. Cuando alguien intenta algo que no puede, el mensaje dice **qué permiso le falta** y a quién pedírselo.
+
+## Otras empresas por persona
+
+Si manejás varias empresas, en la ficha del usuario aparece **Otras empresas a las que entra**: tildá las que quieras y elegí el perfil en cada una. Lo demás no lo ve: el servidor lo controla al cambiar de empresa, no sólo la pantalla.

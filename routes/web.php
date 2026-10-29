@@ -149,6 +149,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->whereNumber('id')->name('sucursal.cambiar');
     Route::post('/empresa/{id}',  [\App\Http\Controllers\EmpresaSwitchController::class, 'cambiar'])->whereNumber('id')->name('empresa.cambiar');
     Route::get('/contador/empresas', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'index']);
+    Route::post('/contador/estudio', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'guardarEstudio']);
+    Route::get('/conjuntos/{id}', [\App\Http\Controllers\ConjuntosController::class, 'ver'])->whereNumber('id');
+    Route::post('/conjuntos/{id?}', [\App\Http\Controllers\ConjuntosController::class, 'guardar'])->whereNumber('id');
+    Route::post('/conjuntos/{id}/borrar', [\App\Http\Controllers\ConjuntosController::class, 'borrar'])->whereNumber('id');
     // Centro de ayuda y tour
     Route::get('/ayuda',                 [\App\Http\Controllers\AyudaController::class, 'index']);
     Route::get('/ayuda/manual',          [\App\Http\Controllers\AyudaController::class, 'manual']);
@@ -760,6 +764,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/sucursales/{id?}',     [SucursalesController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('sucursales.guardar');
 
         Route::get('/usuarios',              [UsuariosController::class, 'index'])->name('usuarios');
+        Route::post('/usuarios/{id}/empresas', [UsuariosController::class, 'empresas'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/usuarios/{id?}',       [UsuariosController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('usuarios.guardar');
 
         Route::get('/roles',                 [RolesController::class, 'index'])->name('roles');

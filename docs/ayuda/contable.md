@@ -40,3 +40,15 @@ Si el contador ya usa BigSysWeb con otro cliente, se le da acceso con el **mismo
 
 - **Un comprobante sin asiento**: aparece en el panel del contador; "Regenerar asientos" del período lo resuelve.
 - **El balance no cierra**: cada asiento balancea por construcción; si ves diferencia, hay un asiento manual desbalanceado en borrador.
+
+## Conjuntos de empresas (Mis empresas → Conjuntos)
+
+Armá un conjunto con nombre ("Todo el grupo") con las empresas que querés mirar juntas. El tablero del conjunto suma ventas, compras, lo que te deben, lo que debés y lo disponible, y **saca las ventas entre empresas del grupo** (las detecta por el CUIT del cliente), así no se cuentan dos veces. Arriba avisa qué empresa está **atrasada** (sin ventas cargadas hace más de una semana o sin compras hace más de un mes).
+
+## El estudio contable (Mis empresas)
+
+Si atendés clientes, marcá **Somos un estudio contable** y poné el nombre: aparece arriba del panel. Cada empresa tiene un **semáforo** de qué falta en el mes: comprobantes sin CAE (rojo), sueldos sin liquidar (rojo), libros de IVA vacíos, comprobantes esperando en borrador o sin asiento (amarillo). Las rojas van primero.
+
+**Precio progresivo**: configurá los tramos (por ejemplo, hasta 5 empresas a un precio, de la 6 a la 20 a otro) y el panel calcula cuánto cobrás por mes por las empresas que administrás.
+
+**Vencimientos**: la DDJJ de IVA de cada empresa según la terminación de su CUIT, en orden. Los días vienen cargados con el calendario habitual; como ARCA los cambia cada año, se corrigen en "configurar".

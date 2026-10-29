@@ -25,7 +25,11 @@ class UsuariosController extends Controller
                 'sucursales' => $u->locations->map(fn($l) => ['id' => $l->id, 'name' => $l->name, 'role_id' => $l->pivot->role_id]),
                 'ultimo_acceso' => $u->last_login_at?->diffForHumans(),
                 'actividad' => $uso[$u->id] ?? null,
+                'empresas' => $u->empresas()->get()->map(fn($e) => ['business_id' => $e->id, 'perfil' => \App\Models\Role::withoutGlobalScopes()->find($e->pivot->role_id)?->slug])->values(),
             ]),
+            // Fase 39: perfiles listos y las otras empresas donde quien mira manda.
+            'perfiles' => collect(config('erp.roles_sistema'))->except(['dueno', 'mozo', 'cocina', 'recepcion'])->map(fn($r, $slug) => ['slug' => $slug, 'nombre' => $r['nombre'], 'descripcion' => $r['descripcion'], 'role_id' => $b->roles()->where('slug', $slug)->value('id')])->values(),
+            'otrasEmpresas' => app(\App\Services\Empresas\GrupoService::class)->dondeManda($request->user())->where('id', '!=', $b->id)->map(fn($e) => ['id' => $e->id, 'nombre' => $e->name])->values(),
             'externos' => $b->usuariosExternos()->get()->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'ultimo_acceso' => $u->last_login_at?->diffForHumans()]),
             'roles'      => $b->roles()->orderBy('nombre')->get(['id', 'nombre', 'slug']),
             'listaSucursales' => $b->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -75,5 +79,14 @@ class UsuariosController extends Controller
         AuditLog::registrar($id ? 'editar' : 'crear', $user, "Usuario {$user->email}");
         \App\Services\Integraciones\CrmSyncService::encolar($b->id, 'usuarios', [$user->id]); // el CRM espeja el alta, el rol y la baja
         return back()->with('success', $id ? 'Usuario actualizado.' : 'Usuario creado.');
+    }
+
+    // Fase 39.2: a qué otras empresas entra esta persona y con qué perfil (validado: sólo las empresas donde manda quien lo hace).
+    public function empresas(Request $request, int $id)
+    {
+        $d = $request->validate(['empresas' => 'present|array', 'empresas.*.business_id' => 'required|integer', 'empresas.*.perfil' => 'required|string|max:30']);
+        $u = $request->user()->business->users()->findOrFail($id);
+        app(\App\Services\Empresas\GrupoService::class)->accesos($request->user(), $u, $d['empresas']);
+        return back()->with('success', "Empresas de {$u->name} actualizadas.");
     }
 }
