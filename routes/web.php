@@ -63,6 +63,10 @@ Route::post('/reparto/{token}/parada/{item}/entregue', [\App\Http\Controllers\Co
 Route::post('/reparto/{token}/parada/{item}/no',     [\App\Http\Controllers\Comprobantes\RepartoController::class, 'noSePudo'])->middleware('throttle:publico');
 Route::get('/seguimiento/{token}',                   [\App\Http\Controllers\Comprobantes\RepartoController::class, 'seguimiento'])->middleware('throttle:publico');
 Route::get('/pase/{token}',                          [\App\Http\Controllers\Stock\PasesController::class, 'pdf'])->middleware('throttle:publico');
+// Fase 38: el empleado mira y firma su recibo de sueldo desde el link.
+Route::get('/recibo/{token}',        [\App\Http\Controllers\Sueldos\RecibosController::class, 'publico'])->middleware('throttle:publico');
+Route::get('/recibo/{token}/ver',    [\App\Http\Controllers\Sueldos\RecibosController::class, 'ver'])->middleware('throttle:publico');
+Route::post('/recibo/{token}',       [\App\Http\Controllers\Sueldos\RecibosController::class, 'firmar'])->middleware('throttle:publico');
 Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\OrdenesController::class, 'publico'])->middleware('throttle:publico');
 Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder'])->middleware('throttle:publico');
 Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore'])->middleware('throttle:publico');
@@ -567,6 +571,15 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::prefix('sueldos')->middleware('permiso:sueldos')->group(function () {
         $c = \App\Http\Controllers\Sueldos\SueldosController::class;
         Route::get('/', [$c, 'index']);
+        // Fase 38
+        Route::get('/recibos', [\App\Http\Controllers\Sueldos\RecibosController::class, 'historial']);
+        Route::post('/firma-empleador', [\App\Http\Controllers\Sueldos\RecibosController::class, 'firmaEmpleador'])->middleware('permiso:sueldos,editar');
+        Route::post('/externos', [\App\Http\Controllers\Sueldos\RecibosController::class, 'importar'])->middleware('permiso:sueldos,crear');
+        Route::post('/externos/{id}/asignar', [\App\Http\Controllers\Sueldos\RecibosController::class, 'asignar'])->middleware('permiso:sueldos,editar');
+        Route::get('/externos/{id}/pdf', [\App\Http\Controllers\Sueldos\RecibosController::class, 'pdfExterno']);
+        Route::post('/periodo', [\App\Http\Controllers\Sueldos\RecibosController::class, 'datosPeriodo'])->middleware('permiso:sueldos,editar');
+        Route::post('/enviar/{tipo}/{id}', [\App\Http\Controllers\Sueldos\RecibosController::class, 'enviarUno'])->middleware('permiso:sueldos,crear')->where('tipo', 'propio|externo');
+        Route::post('/{id}/enviar', [\App\Http\Controllers\Sueldos\RecibosController::class, 'enviar'])->middleware('permiso:sueldos,crear')->whereNumber('id');
         Route::post('/empleados/{id?}', [$c, 'guardarEmpleado'])->middleware('permiso:sueldos,crear');
         Route::post('/empleados/{id}/anticipo', [$c, 'anticipo'])->middleware('permiso:sueldos,crear');
         Route::post('/conceptos/{id?}', [$c, 'guardarConcepto'])->middleware('permiso:sueldos,editar');

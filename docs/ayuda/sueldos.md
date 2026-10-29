@@ -46,3 +46,21 @@ Si el contador liquida afuera, **Importar** su planilla (CSV) y el sistema hace 
 ## Para el contador
 
 **Libro CSV** (libro de sueldos) y **F.931**: resumen por empleado con remuneración, no remunerativo, aportes, contribuciones y neto, listo para cargar en SICOSS o Libro de Sueldos Digital.
+
+## Enviar los recibos para firmar
+
+En **Sueldos**, con la liquidación confirmada, **Enviar para firmar** le manda a cada empleado su link por mail (si tiene) y por WhatsApp. El empleado abre el link desde el celular, sin usuario, mira su recibo y **firma con el dedo**. Puede firmar conforme o **en disconformidad**, diciendo en qué no está de acuerdo. Queda guardada la fecha, la hora, la IP y el navegador, y el recibo muestra "Firmado digitalmente".
+
+Al lado de cada recibo se ve el estado: enviado, lo vio, firmado o firmó disconforme. **Reenviar a los que faltan** vuelve a mandar sólo a los que no firmaron.
+
+**La firma del empleador** se carga una sola vez (Sueldos → Firmas y recibos → Firma del empleador) y sale en todos los recibos.
+
+**Historial**: en Firmas y recibos, quién lo recibió, cuándo lo vio y cuándo lo firmó, con la IP. Se baja a Excel.
+
+## Recibos que vienen de afuera
+
+Si liquidás con otro programa o lo hace el contador, subí el **PDF de la liquidación entera** en Firmas y recibos → Recibos externos. El sistema lo **separa por hoja**, lee cada una y la asigna a su empleado por **CUIL, DNI o legajo** (y por último por el nombre). Lo que no pudo asignar te lo pregunta. Si subís el mismo PDF otra vez, aunque tenga otro nombre, no se duplica. Después se mandan y se firman igual que los de acá.
+
+## Datos del período y costo laboral
+
+En **Datos del período** cargás una vez por mes la **fecha de pago** y el **último depósito jubilatorio** (fecha, banco y mes), y salen en todos los recibos del período. Al lado, el **costo laboral de los últimos 12 meses**: bruto, no remunerativo y contribuciones del empleador, mes por mes.

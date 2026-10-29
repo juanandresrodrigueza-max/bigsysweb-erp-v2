@@ -122,8 +122,8 @@
   @endif
 
   <table class="firma"><tr>
-    <td style="width:50%"><div class="linea">Firma del empleador</div></td>
-    <td><div class="linea">Recibí el importe neto de esta liquidación y un duplicado de este recibo · {{ $e->nombre }}</div></td>
+    <td style="width:50%">@if(!empty($b->sueldos['firma_empleador']))<img src="{{ $b->sueldos['firma_empleador'] }}" style="height:46px;display:block;margin:0 auto -6px">@endif<div class="linea">Firma del empleador</div></td>
+    <td>@if($i->firma)<img src="{{ $i->firma }}" style="height:46px;display:block;margin:0 auto -6px">@endif<div class="linea">Recibí el importe neto de esta liquidación y un duplicado de este recibo · {{ $e->nombre }}@if($i->firmado_en)<br>Firmado digitalmente el {{ $i->firmado_en->format('d/m/Y H:i') }} desde {{ $i->firma_ip }}@if($i->conformidad === 'disconforme') · <b>en disconformidad:</b> {{ $i->observacion }}@endif @endif</div></td>
   </tr></table>
 </div>
 @endforeach
