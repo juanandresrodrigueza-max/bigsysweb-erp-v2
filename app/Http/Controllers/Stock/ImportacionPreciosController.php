@@ -18,7 +18,7 @@ class ImportacionPreciosController extends Controller
     public function index()
     {
         return Inertia::render('Stock/Importar', [
-            'proveedores' => Contact::suppliers()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'proveedores' => Contact::suppliers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'compras_config'])->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'recordado' => $c->compras_config['mapeo_precios']['fecha'] ?? null]),
             'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre']),
             'campos' => ImportacionPreciosService::CAMPOS,
             'articulos' => \App\Models\Product::where('active', true)->orderBy('name')->limit(3000)->get(['id', 'name', 'sku']),
@@ -29,21 +29,24 @@ class ImportacionPreciosController extends Controller
     // Lee el archivo y devuelve una muestra con el mapeo sugerido. El archivo queda guardado para el paso 2.
     public function previsualizar(Request $request)
     {
-        $request->validate(['archivo' => 'required|file|max:10240|mimes:csv,txt,xlsx']);
+        $request->validate(['archivo' => 'required|file|max:10240|mimes:csv,txt,xlsx', 'contact_id' => 'nullable|integer']);
         $f = $request->file('archivo');
         $filas = $this->service->leer($f->getRealPath(), $f->getClientOriginalName());
         abort_if(count($filas) < 1, 422, 'El archivo está vacío.');
         $path = $f->storeAs('importaciones/' . $request->user()->business_id, uniqid() . '.' . $f->getClientOriginalExtension());
         $mapeo = $this->service->sugerirMapeo($filas[0]); $ia = false;
+        // 34.2: si ya importamos una lista de este proveedor, el mapeo y la preparación vienen recordados.
+        $rec = $this->service->mapeoRecordado($request->integer('contact_id') ?: null);
+        if ($rec && count($filas[0]) >= max(array_keys($rec['mapeo'] ?: [0 => null])) + 1) $mapeo = array_map('strval', array_combine(array_map('intval', array_keys($rec['mapeo'])), $rec['mapeo'])); else $rec = null;
         // Si el encabezado no dice qué es cada columna, la IA lo deduce mirando los datos.
-        if ((! in_array('descripcion', $mapeo, true) || ! array_intersect(['precio_compra', 'costo', 'precio_venta'], $mapeo)) && ($m2 = $this->service->mapeoConIA(array_slice($filas, 0, 4)))) { $mapeo = $m2 + $mapeo; $ia = true; }
-        return response()->json(['path' => $path, 'nombre' => $f->getClientOriginalName(), 'total' => count($filas), 'columnas' => count($filas[0]), 'muestra' => array_slice($filas, 0, 8), 'mapeo' => $mapeo, 'mapeo_ia' => $ia]);
+        if (! $rec && (! in_array('descripcion', $mapeo, true) || ! array_intersect(['precio_compra', 'costo', 'precio_venta'], $mapeo)) && ($m2 = $this->service->mapeoConIA(array_slice($filas, 0, 4)))) { $mapeo = $m2 + $mapeo; $ia = true; }
+        return response()->json(['path' => $path, 'nombre' => $f->getClientOriginalName(), 'total' => count($filas), 'columnas' => max(array_map('count', array_slice($filas, 0, 50))), 'muestra' => array_slice($filas, 0, 12), 'mapeo' => $mapeo, 'mapeo_ia' => $ia, 'recordado' => $rec]);
     }
 
     // Paso de revisión: cruza la lista con el catálogo (código, barras, nombre parecido y, si hay clave, la IA) y muestra qué pasaría.
     public function analizar(Request $request)
     {
-        $d = $request->validate(['path' => 'required|string', 'nombre' => 'required|string|max:150', 'mapeo' => 'required|array', 'encabezado' => 'boolean', 'contact_id' => 'nullable|integer', 'solo_proveedor' => 'boolean']);
+        $d = $request->validate(['path' => 'required|string', 'nombre' => 'required|string|max:150', 'mapeo' => 'required|array', 'encabezado' => 'boolean', 'contact_id' => 'nullable|integer', 'solo_proveedor' => 'boolean', 'limite_pct' => 'nullable|numeric|min:1|max:1000', 'crear_nuevos' => 'boolean', 'prep' => 'nullable|array', 'prep.desde_fila' => 'nullable|integer|min:1', 'prep.hasta_fila' => 'nullable|integer|min:0', 'prep.titulos_como_rubro' => 'boolean', 'prep.quitar_encabezado_repetido' => 'boolean', 'prep.filtros' => 'nullable|array', 'prep.filtros.*.col' => 'required|integer', 'prep.filtros.*.op' => 'required|string', 'prep.filtros.*.valor' => 'nullable|string|max:80', 'prep.desc_extra' => 'nullable|array', 'prep.desc_extra.*' => 'integer', 'prep.factor' => 'nullable|numeric|min:0.0001|max:1000', 'prep.precios_con_iva' => 'boolean', 'prep.iva_lista' => 'nullable|numeric', 'prep.rellenar_vacios' => 'nullable|array', 'prep.rellenar_vacios.*' => 'integer']);
         $full = storage_path('app/private/' . $d['path']); if (! file_exists($full)) $full = storage_path('app/' . $d['path']);
         abort_unless(file_exists($full) && str_starts_with($d['path'], 'importaciones/' . $request->user()->business_id . '/'), 422, 'El archivo ya no está; volvé a subirlo.');
         return response()->json($this->service->analizar($this->service->leer($full, $d['nombre']), array_filter($d['mapeo']), $d));
@@ -51,7 +54,7 @@ class ImportacionPreciosController extends Controller
 
     public function aplicar(Request $request)
     {
-        $d = $request->validate(['path' => 'required|string', 'nombre' => 'required|string|max:150', 'mapeo' => 'required|array', 'encabezado' => 'boolean', 'contact_id' => 'nullable|exists:contacts,id', 'rubro_id' => 'nullable|exists:rubros,id', 'iva' => 'nullable|numeric', 'margen' => 'nullable|numeric|min:0|max:1000', 'decisiones' => 'nullable|array', 'nombres' => 'nullable|array', 'rubros_fila' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'crear' => 'boolean', 'solo_proveedor' => 'boolean']);
+        $d = $request->validate(['path' => 'required|string', 'nombre' => 'required|string|max:150', 'mapeo' => 'required|array', 'encabezado' => 'boolean', 'contact_id' => 'nullable|exists:contacts,id', 'rubro_id' => 'nullable|exists:rubros,id', 'iva' => 'nullable|numeric', 'margen' => 'nullable|numeric|min:0|max:1000', 'decisiones' => 'nullable|array', 'nombres' => 'nullable|array', 'rubros_fila' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'crear' => 'boolean', 'solo_proveedor' => 'boolean', 'solo_costo' => 'boolean', 'todo_o_nada' => 'boolean', 'recordar' => 'boolean', 'limite_pct' => 'nullable|numeric', 'prep' => 'nullable|array', 'prep.desde_fila' => 'nullable|integer|min:1', 'prep.hasta_fila' => 'nullable|integer|min:0', 'prep.titulos_como_rubro' => 'boolean', 'prep.quitar_encabezado_repetido' => 'boolean', 'prep.filtros' => 'nullable|array', 'prep.filtros.*.col' => 'required|integer', 'prep.filtros.*.op' => 'required|string', 'prep.filtros.*.valor' => 'nullable|string|max:80', 'prep.desc_extra' => 'nullable|array', 'prep.desc_extra.*' => 'integer', 'prep.factor' => 'nullable|numeric|min:0.0001|max:1000', 'prep.precios_con_iva' => 'boolean', 'prep.iva_lista' => 'nullable|numeric', 'prep.rellenar_vacios' => 'nullable|array', 'prep.rellenar_vacios.*' => 'integer']);
         $full = storage_path('app/private/' . $d['path']);
         if (! file_exists($full)) $full = storage_path('app/' . $d['path']);
         abort_unless(file_exists($full) && str_starts_with($d['path'], 'importaciones/' . $request->user()->business_id . '/'), 422, 'El archivo ya no está; volvé a subirlo.');

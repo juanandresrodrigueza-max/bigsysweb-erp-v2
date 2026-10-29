@@ -146,3 +146,23 @@ Todo queda en el **Historial** de la derecha: quién, cuándo, qué, y el valor 
 Desde la lista de Stock, si tildás varios artículos, el botón "Actualizar precios de estos" abre el asistente con esos ya elegidos.
 
 Por el asistente de IA también podés pedirlo con palabras: "subime 15 % el rubro bebidas". Te muestra cuántos artículos son y algunos ejemplos, y aplica recién cuando confirmás.
+
+## Importar la lista del proveedor: preparar, reconocer y revisar
+
+Las listas reales vienen feas. En **Importar lista de precios**, debajo de la tabla de columnas, está **Preparar la lista**:
+
+- **Renglones a importar**: del X al Y (para saltear la portada o el pie).
+- **Títulos como rubro**: los renglones con texto y sin precio ("DISCOS", "LIJAS") se toman como rubro de los artículos que siguen.
+- **Quitar el encabezado repetido**: cuando la planilla lo repite en cada hoja.
+- **Filtros por columna**: contiene, no contiene, igual, vacía, mayor que… (por ejemplo, sacar lo "discontinuado").
+- **Descripción armada**: pegar marca + modelo + medida a la descripción.
+- **Precios con IVA**: se les quita el IVA (con la columna de IVA si hay, o el que elijas). **Multiplicar por**: un factor para toda la lista.
+- **Celdas combinadas**: repetir el valor de arriba en las columnas que marques (marca o rubro que viene una sola vez).
+
+Si elegís el proveedor, al terminar queda **recordado** el mapeo y la preparación: la próxima lista de ese proveedor se abre ya armada.
+
+**Cómo reconoce cada fila**, en orden: el código del proveedor que ya anotamos (compras, recepciones o importaciones anteriores), tu código, el código de barras, el nombre exacto, un código de fabricante dentro de la descripción, y por último el parecido (que te pide confirmación). Cada vez que importás con proveedor, el código del proveedor queda anotado para la próxima.
+
+**La pantalla que salva**: antes de importar, lo raro viene en rojo y destildado: sube o baja más del límite que pongas (50 % por defecto), precio de venta bajo el costo, cero o texto en vez de número, repetido en el archivo, o no encontrado cuando no se crean nuevos. Vos lo revisás y lo tildás sólo si está bien. Con la revisión hecha, se importa **todo o nada**: si una fila tildada falla, no se importa ninguna.
+
+Parámetros: **Sólo el precio de compra** (actualiza el costo y no toca los precios de venta), **Crear los artículos que no existan** (destildado: sólo actualiza), y el margen para la lista 1.
