@@ -3,6 +3,7 @@
     <!-- Estado de la conexión y del paquete: siempre a la vista -->
     <div class="flex flex-wrap items-center gap-2 text-xs mb-3">
       <span class="badge" :class="online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-carmin'"><Icono nombre="wifi" clase="w-3.5 h-3.5 inline" /> {{ online ? 'En línea' : 'Sin señal: se vende igual' }}</span>
+      <button v-if="esperanOk.length" class="badge bg-amber-100 text-amber-900 border border-amber-300" @click="pedirOkPara(esperanOk[0])" data-e2e="esperan-ok">{{ esperanOk.length }} espera{{ esperanOk.length > 1 ? 'n' : '' }} el OK del encargado</button>
       <button v-if="cola.length" class="badge bg-amber-50 text-amber-700" :disabled="!online || sincronizando" @click="sincronizar" data-e2e="cola">{{ sincronizando ? 'Mandando…' : `${cola.length} por mandar` }}</button>
       <span v-if="rechazadas.length" class="badge bg-carmin-light text-carmin">{{ rechazadas.length }} que no entraron</span>
       <span v-if="paquete" class="text-marca-muted">Datos del {{ fecha(paquete.generado) }}</span>
@@ -111,6 +112,7 @@
           <div v-for="(it, i) in pedido" :key="i" class="px-4 py-2 border-b border-marca-borde/60 text-sm flex items-center gap-2">
             <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ it.descripcion }}</p><p class="text-xs text-marca-muted tabular-nums">{{ moneda(it.precio_unit) }} c/u<span v-if="it.descuento"> · {{ it.origen === 'promo' ? `${it.descuento}% de promo` : it.origen === 'pactado' || it.origen === 'rubro' ? `${it.descuento}% pactado` : `−${it.descuento}%` }}</span></p></div>
             <input v-model.number="it.cantidad" type="number" step="any" min="0" class="input !py-1 w-16 text-center tabular-nums" />
+            <input v-if="puede.precios" v-model.number="it.descuento" type="number" step="any" min="0" max="100" class="input !py-1 w-14 text-center tabular-nums" :class="sobreTope(it) ? '!border-amber-500' : ''" title="Descuento %" @change="it.origen = it.descuento > (it._auto ?? 0) + 0.005 ? 'manual' : it._origenAuto" :data-e2e="`dto-${it.product_id}`" />
             <span class="w-20 text-right font-semibold tabular-nums">{{ moneda(it.cantidad * it.precio_unit * (1 - it.descuento / 100) * (ri ? 1 + it.alicuota_iva / 100 : 1)) }}</span>
             <button @click="pedido.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
           </div>
@@ -121,6 +123,7 @@
           <div class="flex items-baseline justify-between"><span class="font-bold">TOTAL</span><span class="text-3xl font-black tabular-nums" data-e2e="total">{{ moneda(totales.total) }}</span></div>
           <input v-model="notas" class="input !py-1.5 text-xs" placeholder="Notas del comprobante (entregar después de las 14…)" maxlength="300" />
           <p v-if="avisoCredito" class="text-xs rounded-lg bg-carmin-light text-carmin px-2 py-1" data-e2e="aviso-credito">{{ avisoCredito }}</p>
+          <p v-if="pideOk" class="text-xs rounded-lg bg-amber-50 text-amber-800 px-2 py-1" data-e2e="aviso-tope">Más de {{ config.tope_descuento }}%: al confirmar te va a pedir el OK del encargado{{ ok && ok.contact_id === cli.id && ok.pct + 0.005 >= pctMaximo ? ` (ya lo dio ${ok.encargado})` : '' }}.</p>
           <p v-if="error" class="text-carmin text-xs">{{ error }}</p>
           <button class="btn-primary w-full !py-3" :disabled="!pedido.length || enviando" @click="confirmar()" data-e2e="confirmar">{{ enviando ? 'Mandando…' : (tipo === 'PRE' ? 'Guardar presupuesto' : 'Confirmar pedido') }}</button>
           <button v-if="pedido.length" class="w-full text-xs text-carmin" @click="pedido = []">Vaciar</button>
@@ -142,6 +145,18 @@
       <div class="grid gap-1.5"><button v-for="(t, k) in motivos" :key="k" class="text-left rounded-lg border px-3 py-2 text-sm" :class="motivo === k ? 'border-violeta bg-violeta/5' : 'border-marca-borde'" @click="motivo = k" :data-e2e="`motivo-${k}`">{{ t }}</button></div>
       <input v-model="notaVisita" class="input mt-2" placeholder="Nota (opcional)" />
       <template #pie><button class="btn-secondary" @click="noVendi = null">Cancelar</button><button class="btn-primary" :disabled="!motivo" @click="visita(noVendi, 'no_vendi'); noVendi = null" data-e2e="guardar-no-vendi">Guardar</button></template>
+    </Modal>
+
+    <!-- OK del encargado: pone su usuario y clave en este teléfono -->
+    <Modal :abierto="!!okPedido" titulo="OK del encargado" @cerrar="okPedido = null">
+      <p class="text-sm">Descuento de <b>{{ okPedido?.pct }}%</b> para <b>{{ okPedido?.nombre }}</b>: pasa el tope de {{ config.tope_descuento }}%. El encargado pone su usuario y clave acá. Vale 15 minutos y una sola venta.</p>
+      <div class="grid gap-2 mt-3">
+        <input v-model="okForm.email" type="email" class="input" placeholder="Usuario (email) del encargado" autocomplete="off" data-e2e="ok-email" />
+        <input v-model="okForm.password" type="password" class="input" placeholder="Su clave" autocomplete="new-password" data-e2e="ok-clave" />
+        <p v-if="okForm.error" class="text-carmin text-xs">{{ okForm.error }}</p>
+        <p v-if="!online" class="text-amber-700 text-xs">Para autorizar hace falta señal: la clave la valida el sistema.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="okPedido = null">Cancelar</button><button class="btn-primary" :disabled="!okForm.email || !okForm.password || okForm.enviando || !online" @click="pedirOk" data-e2e="ok-autorizar">Autorizar</button></template>
     </Modal>
 
     <!-- Vender igual -->
@@ -224,9 +239,30 @@ function sumar(p, cant) {
   const cantidadTotal = (ex?.cantidad ?? 0) + cant
   // Promo por cantidad: gana la mayor entre la promo y el descuento del cliente, nunca se suman.
   let desc = b.descuento, orig = b.origen; if (p.promo && cantidadTotal >= p.promo.desde && p.promo.pct > desc) { desc = p.promo.pct; orig = 'promo' }
-  if (ex) { ex.cantidad = cantidadTotal; ex.descuento = desc; ex.origen = orig } else pedido.value.push({ product_id: p.id, descripcion: p.name, cantidad: cant, precio_unit: b.precio, descuento: desc, origen: orig, alicuota_iva: p.iva, _promo: p.promo })
+  if (ex) { if (ex.origen !== 'manual') { ex.descuento = desc; ex.origen = orig } ex.cantidad = cantidadTotal; ex._auto = desc; ex._origenAuto = orig } else pedido.value.push({ product_id: p.id, descripcion: p.name, cantidad: cant, precio_unit: b.precio, descuento: desc, origen: orig, alicuota_iva: p.iva, _promo: p.promo, _auto: desc, _origenAuto: orig })
 }
-watch(pedido, v => v.forEach(i => { if (i._promo) { const b = base(porId.value[i.product_id] ?? {}); if (i.cantidad >= i._promo.desde && i._promo.pct > b.descuento) { i.descuento = i._promo.pct; i.origen = 'promo' } else if (i.origen === 'promo') { i.descuento = b.descuento; i.origen = b.origen } } }), { deep: true })
+// La promo por cantidad se recalcula al cambiar la cantidad; lo que puso el vendedor a mano por encima de lo automático se respeta.
+watch(pedido, v => v.forEach(i => { if (i._promo) { const b = base(porId.value[i.product_id] ?? {}); const auto = i.cantidad >= i._promo.desde && i._promo.pct > b.descuento ? { d: i._promo.pct, o: 'promo' } : { d: b.descuento, o: b.origen }; i._auto = auto.d; i._origenAuto = auto.o; if (i.origen !== 'manual') { i.descuento = auto.d; i.origen = auto.o } } }), { deep: true })
+// Tope de descuento: lo automático (pactado, promo, lista) no cuenta; lo que el vendedor pone de más, por encima del tope, pide el OK del encargado.
+const sobreTope = it => props.config.tope_descuento > 0 && (it.descuento ?? 0) > (it._auto ?? 0) + 0.005 && it.descuento > props.config.tope_descuento
+const pctMaximo = computed(() => Math.max(0, ...pedido.value.filter(sobreTope).map(i => i.descuento)))
+const pideOk = computed(() => pedido.value.some(sobreTope))
+const ok = ref(null), okPedido = ref(null), okForm = reactive({ email: '', password: '', error: null, enviando: false })
+const esperanOk = computed(() => cola.value.filter(c => c._pide_ok))
+// Abre el pedido de OK para el pedido en pantalla o para una venta de la cola que el servidor devolvió por el tope.
+function pedirOkPara(c) { okPedido.value = c ? { contact_id: c.contact_id, pct: c._pide_ok.pct, nombre: c._pide_ok.nombre, cola: c.offline_id } : { contact_id: cli.value.id, pct: pctMaximo.value, nombre: cli.value.nombre } }
+async function pedirOk() {
+  okForm.enviando = true; okForm.error = null
+  try {
+    const r = await post('/vender/autorizar', { contact_id: okPedido.value.contact_id, pct: okPedido.value.pct, email: okForm.email, password: okForm.password }); const j = await r.json().catch(() => ({}))
+    if (!r.ok) { okForm.error = Object.values(j.errors ?? {}).flat()[0] ?? j.message ?? 'No se pudo.'; return }
+    ok.value = { token: j.token, pct: j.pct, encargado: j.encargado, contact_id: okPedido.value.contact_id, vence: j.vence }
+    const enCola = okPedido.value.cola ? cola.value.find(x => x.offline_id === okPedido.value.cola) : null
+    okPedido.value = null; okForm.password = ''
+    if (enCola) { enCola.items.forEach(i => { if (i.descuento > j.pct - 0.005 || i._sobre_tope) i.autorizado = j.token }); delete enCola._pide_ok; guardar(); sincronizar() }
+    else confirmar(forzar.value ? true : false)
+  } catch (e) { okForm.error = 'Sin señal.' } finally { okForm.enviando = false }
+}
 const totales = computed(() => { let neto = 0, iva = 0; pedido.value.forEach(i => { const n = Math.round(i.cantidad * i.precio_unit * (1 - i.descuento / 100) * 100) / 100; neto += n; iva += Math.round(n * i.alicuota_iva / 100 * 100) / 100 }); return { neto: Math.round(neto * 100) / 100, iva: Math.round(iva * 100) / 100, total: Math.round((neto + iva) * 100) / 100 } })
 const avisoCredito = computed(() => { if (!cli.value || tipo.value === 'PRE') return null; const a = []; if (cli.value.limite > 0 && cli.value.saldo + totales.value.total > cli.value.limite) a.push('con este pedido se pasa del límite de crédito'); if (cli.value.vencido > 0 && cli.value.mora_dias > (props.config.dias_mora || 0)) a.push(`tiene ${moneda(cli.value.vencido, 0)} vencidos`); return a.length ? a.join(' y ') + '. Al confirmar te va a preguntar.' : null })
 function repetirUltimo() { if (!ficha.value?.ultimo) return; let faltan = 0; ficha.value.ultimo.items.forEach(i => { const p = porId.value[i.product_id]; if (p) sumar(p, i.cantidad); else faltan++ }); if (faltan) error.value = `${faltan} artículo(s) del último pedido ya no están en el catálogo.` }
@@ -244,6 +280,8 @@ async function sincronizar() {
     try {
       const r = await post(c._url, c); const j = await r.json().catch(() => ({}))
       if (r.ok) { cola.value = cola.value.filter(x => x.offline_id !== c.offline_id); if (j.comprobante_id) resultado.value = { ...j, sync: true } }
+      else if (r.status === 422 && j.errors?.descuento && !c._pide_ok) { c._pide_ok = { pct: Math.max(...c.items.map(i => i.descuento || 0)), nombre: c._que.replace(/^.* a /, '').replace(/ por .*$/, '') }; c.items.forEach(i => { if (i.autorizado) i.autorizado = null }) }
+      else if (r.status === 422 && j.errors?.descuento) { /* sigue esperando el OK */ }
       else if (r.status === 422 || r.status === 403) { cola.value = cola.value.filter(x => x.offline_id !== c.offline_id); rechazadas.value.push({ ...c, _error: j.message ?? Object.values(j.errors ?? {}).flat()[0] ?? 'rechazada' }) }
       else break
       guardar()
@@ -261,15 +299,19 @@ async function visita(c, tipoV) {
 const noVendi = ref(null), motivo = ref(null), notaVisita = ref('')
 async function confirmar(vendoIgual = false) {
   if (enviando.value || !pedido.value.length) return
+  // Más del tope: con señal, primero el OK del encargado; sin señal, queda en la cola y lo pide al mandar.
+  const tok = ok.value && ok.value.contact_id === cli.value.id && ok.value.pct + 0.005 >= pctMaximo.value && new Date(ok.value.vence) > new Date() ? ok.value.token : null
+  if (pideOk.value && !tok && navigator.onLine) { pedirOkPara(null); return }
   enviando.value = true; error.value = null; forzar.value = null
   const pos = await ubicacion()
-  const datos = { modo: 'calle', tipo: tipo.value, contact_id: cli.value.id, notas: notas.value || null, forzar: vendoIgual, items: pedido.value.map(i => ({ product_id: i.product_id, descripcion: i.descripcion, cantidad: i.cantidad, precio_unit: i.precio_unit, descuento: i.descuento })), ...pos, offline_id: offlineId(), fecha_offline: new Date().toISOString(), _url: '/vender/vender', _que: `${tipo.value === 'PRE' ? 'Presupuesto' : tipo.value === 'REM' ? 'Remito' : 'Factura'} a ${cli.value.nombre} por ${moneda(totales.value.total)}` }
+  const datos = { modo: 'calle', tipo: tipo.value, contact_id: cli.value.id, notas: notas.value || null, forzar: vendoIgual, items: pedido.value.map(i => ({ product_id: i.product_id, descripcion: i.descripcion, cantidad: i.cantidad, precio_unit: i.precio_unit, descuento: i.descuento, autorizado: sobreTope(i) ? tok : null, _sobre_tope: sobreTope(i) })), ...pos, offline_id: offlineId(), fecha_offline: new Date().toISOString(), _url: '/vender/vender', _que: `${tipo.value === 'PRE' ? 'Presupuesto' : tipo.value === 'REM' ? 'Remito' : 'Factura'} a ${cli.value.nombre} por ${moneda(totales.value.total)}` }
   const limpiar = () => { pedido.value = []; notas.value = ''; localStorage.removeItem('vender_pendiente_' + cli.value.id); enviando.value = false }
-  if (!navigator.onLine) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; limpiar(); return }
+  if (!navigator.onLine) { if (pideOk.value && !tok) datos._pide_ok = { pct: pctMaximo.value, nombre: cli.value.nombre }; cola.value.push(datos); guardar(); resultado.value = { offline: true }; limpiar(); return }
   try {
     const r = await post(datos._url, datos); const j = await r.json().catch(() => ({}))
-    if (r.ok) { resultado.value = j; if (j.aviso) resultado.value.aviso = j.aviso; limpiar(); if (cli.value) cli.value.saldo += tipo.value === 'FX' ? totales.value.total : 0; return }
+    if (r.ok) { resultado.value = j; if (j.aviso) resultado.value.aviso = j.aviso; ok.value = null; limpiar(); if (cli.value) cli.value.saldo += tipo.value === 'FX' ? totales.value.total : 0; return }
     if (r.status === 422 && j.errors?.credito) { forzar.value = j.errors.credito[0]; enviando.value = false; return }
+    if (r.status === 422 && j.errors?.descuento) { ok.value = null; enviando.value = false; pedirOkPara(null); return }
     error.value = j.message ?? Object.values(j.errors ?? {}).flat()[0] ?? 'No se pudo.'; enviando.value = false
   } catch (e) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; limpiar() }
 }

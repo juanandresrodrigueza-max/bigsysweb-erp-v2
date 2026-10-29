@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\AutorizacionDescuento;
 use App\Models\Comprobante;
 use App\Models\Vendedor;
 use App\Models\Visita;
@@ -90,18 +91,66 @@ class VenderCalleTest extends ErpTestCase
         $this->assertAsientosBalancean();
     }
 
-    public function test_el_vendedor_no_cambia_precios_sin_permiso_y_el_tope_de_descuento_pide_autorizacion(): void
+    public function test_el_vendedor_no_cambia_precios_sin_permiso_y_el_tope_de_descuento_pide_el_ok_del_encargado(): void
     {
         [$u, $v] = $this->vendedor();
         $p = $this->articulo(['price' => 100, 'stock_inicial' => 10]); $c = $this->cliente(['vendedor_id' => $v->id]);
         $this->actingAs($this->dueno)->post('/clientes/vendedores/calle', ['calle_comprobante' => 'PRE', 'tope_descuento' => 15])->assertRedirect();
-        // Más del tope: necesita autorización del encargado.
-        $this->actingAs($u)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100, 'descuento' => 20]]])->assertStatus(422)->assertJsonValidationErrors('descuento');
-        $this->actingAs($u)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100, 'descuento' => 20, 'autorizado' => 'Dueño']]])->assertOk();
-        // Un cajero no puede tocar el precio.
+        $linea = fn($desc, $tok = null) => ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100, 'descuento' => $desc, 'autorizado' => $tok]]];
+        // Hasta el tope, solo.
+        $this->actingAs($u)->postJson('/vender/vender', $linea(15))->assertOk();
+        // Más del tope: necesita el OK del encargado.
+        $this->actingAs($u)->postJson('/vender/vender', $linea(20))->assertStatus(422)->assertJsonValidationErrors('descuento');
+        // Un token inventado no sirve; autorizarse a sí mismo tampoco; una clave mala tampoco; un usuario sin permiso de anular tampoco.
+        $this->actingAs($u)->postJson('/vender/vender', $linea(20, 'cualquiera'))->assertStatus(422);
+        $this->actingAs($u)->postJson('/vender/autorizar', ['contact_id' => $c->id, 'pct' => 20, 'email' => $u->email, 'password' => 'password'])->assertStatus(422)->assertJsonValidationErrors('email');
+        $this->actingAs($u)->postJson('/vender/autorizar', ['contact_id' => $c->id, 'pct' => 20, 'email' => $this->dueno->email, 'password' => 'mala'])->assertStatus(422)->assertJsonValidationErrors('password');
         $caj = $this->usuarioConRol('cajero');
+        $this->actingAs($u)->postJson('/vender/autorizar', ['contact_id' => $c->id, 'pct' => 20, 'email' => $caj->email, 'password' => 'password'])->assertStatus(422)->assertJsonValidationErrors('email');
+        // El dueño pone su clave en el teléfono del vendedor.
+        $r = $this->actingAs($u)->postJson('/vender/autorizar', ['contact_id' => $c->id, 'pct' => 20, 'email' => $this->dueno->email, 'password' => 'password'])->assertOk()->json();
+        $this->assertSame($this->dueno->name, $r['encargado']);
+        // No sirve para más porcentaje ni para otro cliente.
+        $this->actingAs($u)->postJson('/vender/vender', $linea(25, $r['token']))->assertStatus(422);
+        $otro = $this->cliente(['name' => 'Otro', 'cuit' => '20-12345678-6']);
+        $this->actingAs($u)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $otro->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100, 'descuento' => 20, 'autorizado' => $r['token']]]])->assertStatus(422);
+        // Con el OK entra, y se quema: la segunda vez ya no sirve.
+        $ok = $this->actingAs($u)->postJson('/vender/vender', $linea(20, $r['token']))->assertOk()->json();
+        $a = AutorizacionDescuento::where('token', $r['token'])->first();
+        $this->assertSame($ok['comprobante_id'], $a->comprobante_id); $this->assertNotNull($a->usada_at);
+        $this->assertTrue(AuditLog::where('accion', 'descuento_autorizado')->exists());
+        $this->actingAs($u)->postJson('/vender/vender', $linea(20, $r['token']))->assertStatus(422);
+        // Vencida a los 15 minutos.
+        $r2 = $this->actingAs($u)->postJson('/vender/autorizar', ['contact_id' => $c->id, 'pct' => 20, 'email' => $this->dueno->email, 'password' => 'password'])->json();
+        AutorizacionDescuento::where('token', $r2['token'])->update(['vence_at' => now()->subMinute()]);
+        $this->actingAs($u)->postJson('/vender/vender', $linea(20, $r2['token']))->assertStatus(422);
+        // El panel del encargado: 2 pedidas, 1 usada.
+        $this->actingAs($this->dueno)->get('/clientes/vendedores')->assertInertia(fn($pg) => $pg->where('autorizaciones.pedidas', 2)->where('autorizaciones.usadas', 1)->where('autorizaciones.items.1.cliente', $c->name));
+        // Un cajero no puede tocar el precio ni descontar.
         $this->actingAs($caj)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 80]]])->assertStatus(403);
+        $this->actingAs($caj)->postJson('/vender/vender', $linea(5))->assertStatus(403);
         $this->actingAs($caj)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]])->assertOk();
+    }
+
+    public function test_promos_pactados_y_descuentos_de_lista_no_piden_permiso_ni_cuentan_para_el_tope(): void
+    {
+        [$u, $v] = $this->vendedor();
+        $this->actingAs($this->dueno)->post('/clientes/vendedores/calle', ['calle_comprobante' => 'FX', 'calle_emite' => true, 'tope_descuento' => 10])->assertRedirect();
+        $promo = $this->articulo(['price' => 100, 'stock_inicial' => 50, 'desc_cant_min' => 10, 'desc_cant_pct' => 25]);
+        $comun = $this->articulo(['price' => 100, 'stock_inicial' => 50]);
+        $c = $this->cliente(['vendedor_id' => $v->id, 'descuento' => 5]);
+        \App\Models\PrecioPactado::create(['business_id' => $this->empresa->id, 'contact_id' => $c->id, 'product_id' => $comun->id, 'descuento' => 30, 'origen' => 'manual']);
+        $caj = $this->usuarioConRol('cajero'); // sin permiso de editar comprobantes
+        $r = $this->actingAs($caj)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [
+            ['product_id' => $promo->id, 'cantidad' => 10, 'precio_unit' => 100, 'descuento' => 25],  // promo por cantidad del artículo
+            ['product_id' => $comun->id, 'cantidad' => 1, 'precio_unit' => 100, 'descuento' => 30],   // pactado con el cliente
+        ]])->assertOk()->json();
+        $this->assertEqualsWithDelta((10 * 75 + 70) * 1.21, $r['total'], 0.01, 'El mayor entre promo, pactado y general; nunca se suman');
+        // Si no manda descuento, el servidor pone el automático igual.
+        $r = $this->actingAs($caj)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $promo->id, 'cantidad' => 10, 'precio_unit' => 100]]])->assertOk()->json();
+        $this->assertEqualsWithDelta(10 * 75 * 1.21, $r['total'], 0.01);
+        // Con menos cantidad no hay promo: 25% sería un descuento del vendedor.
+        $this->actingAs($caj)->postJson('/vender/vender', ['modo' => 'calle', 'contact_id' => $c->id, 'items' => [['product_id' => $promo->id, 'cantidad' => 2, 'precio_unit' => 100, 'descuento' => 25]]])->assertStatus(403);
     }
 
     public function test_control_de_credito_avisa_y_se_puede_vender_igual_con_registro(): void

@@ -531,6 +531,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::get('/buscar',      [\App\Http\Controllers\Pos\PosController::class, 'buscar']);
             Route::get('/serie',       [\App\Http\Controllers\Pos\PosController::class, 'serie']);
             Route::post('/vender',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'vender'])->middleware("permiso:{$perm},crear");
+            Route::post('/autorizar',  [\App\Http\Controllers\Comprobantes\VenderController::class, 'autorizar'])->middleware(["permiso:{$perm},crear", 'throttle:login']);
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
             Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);
             Route::post('/mp/iniciar', [\App\Http\Controllers\Pos\PosController::class, 'mpIniciar'])->middleware("permiso:{$perm},crear");

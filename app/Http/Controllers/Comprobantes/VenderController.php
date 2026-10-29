@@ -63,6 +63,14 @@ class VenderController extends Controller
         return response()->json(['ok' => true, 'id' => $v->id]);
     }
 
+    // El encargado pone su usuario y clave en el teléfono del vendedor y la app recibe un OK que vale 15 minutos y una venta.
+    public function autorizar(Request $request)
+    {
+        $d = $request->validate(['contact_id' => 'required|exists:contacts,id', 'pct' => 'required|numeric|min:0|max:100', 'email' => 'required|email', 'password' => 'required|string']);
+        $a = $this->vender->autorizar($request->user(), Contact::customers()->findOrFail($d['contact_id']), (float) $d['pct'], $d['email'], $d['password']);
+        return response()->json(['ok' => true, 'token' => $a->token, 'pct' => $a->pct, 'encargado' => $a->encargado->name, 'vence' => $a->vence_at->toIso8601String()]);
+    }
+
     public function vender(Request $request)
     {
         $d = $request->validate([

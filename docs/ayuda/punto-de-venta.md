@@ -14,7 +14,13 @@ resumen: Una sola pantalla para vender: en la calle con la ruta del día, en el 
 - **En el local**: arranca buscando productos, consumidor final, cobrás y sale el ticket.
 - **En la caja**: el mismo mostrador con pantalla ancha (ticket a la izquierda, total grande). /retail y /minimarket entran acá.
 
-Los precios en la calle los pone el sistema con las condiciones del cliente; cambiar un precio o hacer más descuento pide el permiso de editar comprobantes, y pasarse del tope de descuento pide la autorización del encargado. Si el cliente se pasa del límite de crédito o tiene deuda vencida, avisa y podés vender igual: queda registrado quién y por qué.
+Los precios en la calle los pone el sistema con las condiciones del cliente; cambiar un precio o hacer más descuento pide el permiso de editar comprobantes.
+
+## Descuentos: hasta dónde puede el vendedor solo
+
+El tope está en **Clientes → Vendedores → Cómo se vende en la calle**. Hasta ahí el vendedor descuenta solo. Por encima, al confirmar la app pide el **OK del encargado**: el encargado pone su usuario y su clave en el mismo teléfono del vendedor. Autoriza cualquiera que pueda anular comprobantes (dueño, administrador); nadie puede autorizarse a sí mismo. El OK vale 15 minutos, para una sola venta, y queda atado a ese vendedor, ese cliente y ese porcentaje. Para autorizar hace falta señal; sin señal la venta queda en la cola y pide el OK al mandarla.
+
+Las **promociones por cantidad**, los **precios pactados** y los **descuentos de la lista** los decidió el dueño, no el vendedor: no piden permiso ni cuentan para el tope, y nunca se suman entre sí (se toma el mayor). En *Clientes → Vendedores* queda el cuadro *Descuentos por encima del tope* con quién lo pidió, de cuánto, a qué cliente, quién lo autorizó y cuántas autorizaciones se pidieron sin usar. Si el cliente se pasa del límite de crédito o tiene deuda vencida, avisa y podés vender igual: queda registrado quién y por qué.
 
 ## Vender en el mostrador
 
