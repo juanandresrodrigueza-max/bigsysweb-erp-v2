@@ -494,6 +494,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/estadisticas/rentabilidad/dim', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'dimension'])->middleware('permiso:estadisticas');
     Route::post('/estadisticas/rentabilidad/categorias', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'clasificar'])->middleware('permiso:fondos,editar');
     Route::post('/estadisticas/rentabilidad/config', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'configurar'])->middleware('permiso:configuracion,editar');
+    Route::post('/estadisticas/rentabilidad/minimos', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'minimos'])->middleware('permiso:stock,editar');
+    Route::get('/estadisticas/rentabilidad/historial/{id}', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'historial'])->middleware('permiso:estadisticas')->whereNumber('id');
+    Route::get('/estadisticas/stock', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'stock'])->middleware('permiso:estadisticas');
 
     // Agenda de turnos
     Route::prefix('agenda')->middleware('permiso:agenda')->group(function () {

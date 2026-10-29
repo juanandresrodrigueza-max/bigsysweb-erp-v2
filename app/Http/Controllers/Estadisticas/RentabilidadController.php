@@ -25,7 +25,11 @@ class RentabilidadController extends Controller
             AuditLog::registrar('exportar', null, "Exportó rentabilidad {$desde->toDateString()} a {$hasta->toDateString()}");
             return response($this->svc->csv($r, $desde->toDateString(), $hasta->toDateString()), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=rentabilidad_{$desde->toDateString()}_{$hasta->toDateString()}.csv"]);
         }
+        $vig = app(\App\Services\Estadisticas\VigilanciaService::class); $b = $request->user()->business;
         return Inertia::render('Estadisticas/Rentabilidad', $r + [
+            // Fase 33.3: márgenes a vigilar, precios a revisar y el margen que se achica
+            'vigilar' => $vig->margenes($b, (int) ($request->lista ?: 1), $request->color ?: null, $request->rubro ? (int) $request->rubro : null, $request->q ?: null),
+            'revisar' => $vig->preciosARevisar($b), 'achica' => $vig->margenQueSeAchica($b),
             'periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'sucursalId' => $sucursal,
             'listaSucursales' => $request->user()->business->locations()->orderBy('name')->get(['id', 'name']),
             'tipos' => ExpenseCategory::TIPOS, 'imputaciones' => ExpenseCategory::IMPUTACIONES,
@@ -57,5 +61,19 @@ class RentabilidadController extends Controller
         $b = $request->user()->business;
         $b->update(['rentabilidad' => array_merge($b->rentabilidad ?? [], $data)]);
         return back()->with('success', 'Configuración de rentabilidad guardada.');
+    }
+
+    // Fase 33.3: el mínimo general, por rubro o por artículo; y el historial de precio y costo de un artículo.
+    public function minimos(Request $request, \App\Services\Estadisticas\VigilanciaService $vig)
+    {
+        $d = $request->validate(['general' => 'nullable|numeric|min:0|max:1000', 'rubros' => 'nullable|array', 'rubros.*.id' => 'required|integer', 'rubros.*.margen_minimo' => 'nullable|numeric|min:0|max:1000', 'articulos' => 'nullable|array', 'articulos.*.id' => 'required|integer', 'articulos.*.margen_minimo' => 'nullable|numeric|min:0|max:1000']);
+        $vig->guardarMinimos($request->user()->business, $d + (array_key_exists('general', $request->all()) ? ['general' => $request->input('general')] : []));
+        AuditLog::registrar('editar', null, 'Cambió los márgenes mínimos a vigilar');
+        return back()->with('success', 'Mínimos guardados.');
+    }
+
+    public function historial(int $id, \App\Services\Estadisticas\VigilanciaService $vig)
+    {
+        return response()->json($vig->historial(\App\Models\Product::findOrFail($id)));
     }
 }

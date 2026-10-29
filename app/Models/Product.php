@@ -18,12 +18,25 @@ class Product extends Model
     protected $fillable = [
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
-        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'unidades_bulto', 'control_turno', 'en_tienda', 'descripcion_tienda',
+        'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'unidades_bulto', 'control_turno', 'en_tienda', 'descripcion_tienda', 'margen_minimo',
     ];
 
     protected $casts = ['price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'control_turno' => 'boolean', 'pesable' => 'boolean', 'en_tienda' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2', 'desc_cant2_min' => 'decimal:3', 'desc_cant2_pct' => 'decimal:2'];
 
     // Precio de la lista en pesos. Si el artículo está en dólares, se convierte con la cotización vigente.
+    // Fase 33.3: cada cambio de precio de lista 1 o de costo queda en el historial (para los márgenes a vigilar).
+    protected static function booted(): void
+    {
+        static::updated(function (Product $p) {
+            if (! $p->wasChanged(['price', 'cost'])) return;
+            PrecioHistorial::create(['business_id' => $p->business_id, 'product_id' => $p->id, 'user_id' => \Illuminate\Support\Facades\Auth::id(), 'fecha' => today()->toDateString(), 'precio' => (float) $p->price, 'costo' => (float) $p->cost, 'precio_antes' => (float) $p->getOriginal('price'), 'costo_antes' => (float) $p->getOriginal('cost')]);
+        });
+    }
+
+    // Margen sobre el costo (como la ficha) de la lista pedida, y el mínimo que le corresponde: el del artículo, si no el del rubro, si no el general.
+    public function margenSobreCosto(int $lista = 1): ?float { $c = $this->costoPesos(); return $c > 0 ? round(($this->precioLista($lista) - $c) / $c * 100, 2) : null; }
+    public function margenMinimo(?float $general = null): ?float { return $this->margen_minimo !== null ? (float) $this->margen_minimo : ($this->rubro?->margen_minimo !== null ? (float) $this->rubro->margen_minimo : $general); }
+
     public function precioLista(int $lista = 1): float
     {
         $p = $lista <= 1 ? (float) $this->price : (($v = $this->prices[(string) $lista] ?? $this->prices[$lista] ?? null) !== null && $v !== '' ? (float) $v : (float) $this->price);
