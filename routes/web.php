@@ -262,6 +262,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras',                 [ComprasController::class, 'store'])->middleware('permiso:proveedores,crear');
         Route::post('/compras/ocr',             [ComprasController::class, 'ocr'])->middleware('permiso:proveedores,crear');
         Route::post('/compras/importar-afip',   [ComprasController::class, 'importarAfip'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras/cruzar-afip',     [ComprasController::class, 'cruzarAfip']);
         Route::post('/compras/revisar',         [ComprasController::class, 'revisar']);
         Route::post('/compras/regla-pie',       [ComprasController::class, 'reglaPie'])->middleware('permiso:proveedores,crear');
         Route::post('/compras/comparar-oc',     [ComprasController::class, 'compararOc']);

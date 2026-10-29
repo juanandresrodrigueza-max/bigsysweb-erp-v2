@@ -192,10 +192,25 @@ class ComprasController extends Controller
 
     public function importarAfip(Request $request, AfipCsvImportService $import)
     {
-        $request->validate(['archivo' => 'required|file|mimes:csv,txt|max:4096', 'registrar' => 'boolean']);
-        $res = $import->importar(file_get_contents($request->file('archivo')->getRealPath()), $request->boolean('registrar'));
+        $request->validate(['archivo' => 'required_without:token|file|mimes:csv,txt|max:4096', 'token' => 'nullable|string|max:80', 'solo' => 'nullable|array', 'solo.*' => 'string|max:80', 'registrar' => 'boolean']);
+        // Fase 31.6: desde el cruce se crean sólo las que faltan (o las que elegiste), sin volver a subir el archivo.
+        $contenido = $request->hasFile('archivo') ? file_get_contents($request->file('archivo')->getRealPath()) : \Illuminate\Support\Facades\Cache::get('afip_csv_' . $request->user()->business_id . '_' . $request->input('token'));
+        abort_if($contenido === null, 422, 'El archivo ya no está: volvé a subirlo.');
+        $res = $import->importar($contenido, $request->boolean('registrar'), $request->filled('solo') ? $request->input('solo') : null);
         $msg = "Importación AFIP: {$res['creadas']} compras creadas, {$res['existentes']} ya existían, {$res['proveedores_nuevos']} proveedores nuevos." . ($res['errores'] ? ' Errores: ' . implode(' | ', array_slice($res['errores'], 0, 5)) : '');
         return back()->with($res['errores'] && ! $res['creadas'] ? 'error' : 'success', $msg);
+    }
+
+    // Fase 31.6 · Qué me falta cargar: el CSV de Mis Comprobantes recibidos contra lo cargado. El archivo queda media hora para crear las que faltan.
+    public function cruzarAfip(Request $request, AfipCsvImportService $import)
+    {
+        $request->validate(['archivo' => 'required|file|mimes:csv,txt|max:4096']);
+        $contenido = file_get_contents($request->file('archivo')->getRealPath());
+        $res = $import->cruzar($contenido);
+        abort_if($res['filas'] === 0, 422, 'No se encontraron comprobantes en el archivo: ¿es el CSV de Mis Comprobantes → Recibidos?');
+        $token = \Illuminate\Support\Str::random(24);
+        \Illuminate\Support\Facades\Cache::put('afip_csv_' . $request->user()->business_id . '_' . $token, $contenido, now()->addMinutes(30));
+        return response()->json($res + ['token' => $token]);
     }
 
     private function datosForm(Request $request, ?Comprobante $c): array

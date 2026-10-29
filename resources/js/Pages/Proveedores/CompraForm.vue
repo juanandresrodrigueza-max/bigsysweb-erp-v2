@@ -189,7 +189,7 @@ async function leerOCR(file) {
     form.origen_carga = 'ocr'; form.adjunto_id = data.adjunto_id ?? null
     form.items = (d.items ?? []).map(i => ({ product_id: i.product_id ?? null, descripcion: i.descripcion ?? '', codigo: i.codigo ?? null, cantidad: Number(i.cantidad) || 1, unidad: null, precio_unit: Number(i.precio_unit) || 0, descuento: Number(i.descuento) || 0, alicuota_iva: Number(i.alicuota_iva ?? 21), actualiza_costo: i.actualiza_costo ?? !i.sin_cargo, bulto: i.bulto ?? null, por: i.por ?? null, sin_cargo: !!i.sin_cargo }))
     ocr.avisos = d.avisos ?? []; ocr.qr = !!d.cabecera_qr; pendientesPie.value = d.preguntar ?? []; siguientePie()
-    if (form.contact_id) cargarAbiertos()
+    if (form.contact_id) { await cargarAbiertos(); if (abiertos.ordenes.length === 1) comparar() } // 31.6: si hay una sola orden abierta, se compara sola
     form.impuestos = (d.percepciones ?? []).filter(p => Number(p.monto) > 0).map(p => ({ tipo: (p.tipo || 'otros').startsWith('iibb') ? 'iibb' : (['iva', 'ganancias'].includes(p.tipo) ? p.tipo : 'otros'), jurisdiccion: '', monto: Number(p.monto) }))
     ocr.totalLeido = Number(d.total) || null
     ocr.ok = true
