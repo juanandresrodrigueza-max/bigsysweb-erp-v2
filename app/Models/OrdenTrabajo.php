@@ -15,8 +15,8 @@ class OrdenTrabajo extends Model
     public const PRIORIDADES = ['baja' => 'Baja', 'normal' => 'Normal', 'alta' => 'Urgente'];
 
     protected $table = 'ordenes_trabajo';
-    protected $fillable = ['business_id', 'business_location_id', 'numero', 'contact_id', 'nombre', 'telefono', 'equipo', 'marca_modelo', 'serie', 'falla', 'diagnostico', 'estado', 'prioridad', 'tecnico_id', 'proyecto_id', 'fecha_ingreso', 'fecha_prometida', 'entregado_en', 'presupuesto', 'aprobado_en', 'comprobante_id', 'firma', 'firma_nombre', 'token', 'notas', 'datos_equipo', 'medidor', 'esperando_motivo', 'esperando_desde', 'aprobacion'];
-    protected $casts = ['fecha_ingreso' => 'date', 'fecha_prometida' => 'date', 'entregado_en' => 'datetime', 'aprobado_en' => 'datetime', 'presupuesto' => 'decimal:2', 'datos_equipo' => 'array', 'aprobacion' => 'array', 'esperando_desde' => 'datetime', 'medidor' => 'decimal:1'];
+    protected $fillable = ['business_id', 'business_location_id', 'numero', 'contact_id', 'nombre', 'telefono', 'equipo', 'marca_modelo', 'serie', 'falla', 'diagnostico', 'estado', 'prioridad', 'tecnico_id', 'proyecto_id', 'fecha_ingreso', 'fecha_prometida', 'entregado_en', 'presupuesto', 'aprobado_en', 'comprobante_id', 'firma', 'firma_nombre', 'token', 'notas', 'datos_equipo', 'medidor', 'esperando_motivo', 'esperando_desde', 'aprobacion', 'recepcion', 'volver_el', 'volver_medidor', 'recordado_en'];
+    protected $casts = ['fecha_ingreso' => 'date', 'fecha_prometida' => 'date', 'entregado_en' => 'datetime', 'aprobado_en' => 'datetime', 'presupuesto' => 'decimal:2', 'datos_equipo' => 'array', 'aprobacion' => 'array', 'esperando_desde' => 'datetime', 'medidor' => 'decimal:1', 'recepcion' => 'array', 'volver_el' => 'date', 'volver_medidor' => 'decimal:1', 'recordado_en' => 'datetime'];
 
     public function contact() { return $this->belongsTo(Contact::class); }
     public function tecnico() { return $this->belongsTo(User::class, 'tecnico_id'); }

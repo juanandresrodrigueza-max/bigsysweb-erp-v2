@@ -80,17 +80,17 @@ class OrdenesService
     }
 
     // Entrega: arma la factura con la hoja de trabajo (materiales salen del stock al emitir) y cierra la OT.
-    public function facturar(OrdenTrabajo $ot, string $condicion = 'contado'): Comprobante
+    public function facturar(OrdenTrabajo $ot, string $condicion = 'contado', string $tipo = 'FX'): Comprobante
     {
         abort_if($ot->comprobante_id, 422, 'La orden ya está facturada.');
-        return DB::transaction(function () use ($ot, $condicion) {
+        return DB::transaction(function () use ($ot, $condicion, $tipo) {
             $contact = $ot->contact ?? Contact::customers()->where('name', 'Consumidor Final')->first();
             abort_if(! $contact, 422, 'Asigná un cliente a la orden.');
             $ri = (Auth::user()->business->condicion_iva ?? '') === 'Responsable Inscripto';
             $items = $ot->items()->with('product')->where(fn($q) => $q->whereNull('aprobado')->orWhere('aprobado', true))->get(); // lo que el cliente dejó para después no se factura
             $lineas = $items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => $ri && $i->product ? round((float) $i->precio_unit / (1 + (float) $i->product->iva / 100), 2) : ($ri ? round((float) $i->precio_unit / 1.21, 2) : (float) $i->precio_unit), 'descuento' => 0, 'alicuota_iva' => $i->product ? (float) $i->product->iva : 21])->all();
             if (! $lineas) $lineas = [['product_id' => null, 'descripcion' => "Reparación {$ot->equipo} · OT {$ot->numeroFormateado()}", 'cantidad' => 1, 'precio_unit' => $ri ? round((float) $ot->presupuesto / 1.21, 2) : (float) $ot->presupuesto, 'descuento' => 0, 'alicuota_iva' => 21]];
-            $c = $this->comprobantes->guardarBorrador(['contact_id' => $contact->id, 'tipo' => 'FX', 'fecha' => today()->toDateString(), 'condicion' => $condicion, 'orden_trabajo_id' => $ot->id, 'notas' => "OT {$ot->numeroFormateado()} · {$ot->equipo}" . ($ot->serie ? " · serie {$ot->serie}" : ''), 'items' => $lineas]);
+            $c = $this->comprobantes->guardarBorrador(['contact_id' => $contact->id, 'tipo' => in_array($tipo, ['FX', 'REM'], true) ? $tipo : 'FX', 'fecha' => today()->toDateString(), 'condicion' => $condicion, 'orden_trabajo_id' => $ot->id, 'notas' => "OT {$ot->numeroFormateado()} · {$ot->equipo}" . ($ot->serie ? " · serie {$ot->serie}" : ''), 'items' => $lineas]);
             $c = $this->comprobantes->emitir($c);
             $ot->update(['comprobante_id' => $c->id, 'estado' => 'entregado', 'entregado_en' => now()]);
             AuditLog::registrar('emitir', $ot, "Facturó OT {$ot->numeroFormateado()}: {$c->nombreTipo()} {$c->numeroFormateado()}");
