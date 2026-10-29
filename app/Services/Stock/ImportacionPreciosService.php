@@ -112,22 +112,85 @@ class ImportacionPreciosService
         return trim(preg_replace('/\s+/', ' ', $s));
     }
 
+
+    // Fase 34.2: preparar la lista antes de cruzarla. Devuelve [indiceOriginal => fila] (los índices se conservan para que las decisiones del paso de
+    // revisión sigan valiendo) y, aparte, el rubro que cada fila hereda de un título de sección.
+    //  $prep: desde_fila, hasta_fila (1-based, contando el encabezado como 1) · titulos_como_rubro · quitar_encabezado_repetido · filtros [{col, op, valor}]
+    //         desc_extra [cols] (se pegan a la descripción) · factor (×) · precios_con_iva (se les quita el IVA) · rellenar_vacios [cols] (celdas combinadas del Excel)
+    public function preparar(array $filas, array $mapeo, array $prep, bool $encabezado = true): array
+    {
+        $col = array_flip($mapeo);
+        $desde = max(1, (int) ($prep['desde_fila'] ?? 1)); $hasta = (int) ($prep['hasta_fila'] ?? 0);
+        $filtros = array_values(array_filter((array) ($prep['filtros'] ?? []), fn($f) => isset($f['col'], $f['op'])));
+        $extra = array_map('intval', (array) ($prep['desc_extra'] ?? [])); $rellenar = array_map('intval', (array) ($prep['rellenar_vacios'] ?? []));
+        $factor = (float) ($prep['factor'] ?? 1) ?: 1; $conIva = (bool) ($prep['precios_con_iva'] ?? false);
+        $cabecera = $encabezado ? array_map(fn($c) => mb_strtolower(trim((string) $c)), $filas[0] ?? []) : null;
+        $colsPrecio = array_values(array_filter([$col['precio_compra'] ?? null, $col['costo'] ?? null, $col['precio_venta'] ?? null], fn($c) => $c !== null));
+        $numS = function ($v) { $s = trim((string) $v); if ($s === '') return null; if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $s)) $s = str_replace('.', '', $s); $s = preg_replace('/[^\d,.\-]/', '', $s); return $s === '' || $s === '-' ? null : (float) str_replace(',', '.', $s); };
+        $out = []; $rubroFila = []; $tituloActual = null; $ultimo = [];
+        foreach ($filas as $n => $f) {
+            if ($n === 0 && $encabezado) { $out[$n] = $f; continue; }
+            $renglon = $n + 1;
+            if ($renglon < $desde || ($hasta && $renglon > $hasta)) continue;
+            if (! empty($prep['quitar_encabezado_repetido']) && $cabecera && array_map(fn($c) => mb_strtolower(trim((string) $c)), $f) === $cabecera) continue;
+            foreach ($rellenar as $c) { $v = trim((string) ($f[$c] ?? '')); if ($v === '' && isset($ultimo[$c])) $f[$c] = $ultimo[$c]; elseif ($v !== '') $ultimo[$c] = $v; }
+            $desc = isset($col['descripcion']) ? trim((string) ($f[$col['descripcion']] ?? '')) : '';
+            $tienePrecio = false; foreach ($colsPrecio as $c) if ($numS($f[$c] ?? '') !== null) { $tienePrecio = true; break; }
+            $tieneCodigo = isset($col['codigo']) && trim((string) ($f[$col['codigo']] ?? '')) !== '';
+            // Un renglón con texto y sin precio ni código es un título de sección: queda como rubro de los que siguen.
+            $llenas = array_values(array_filter(array_map(fn($c) => trim((string) $c), $f), fn($c) => $c !== ''));
+            if (! empty($prep['titulos_como_rubro']) && ! $tienePrecio && $colsPrecio && (($desc !== '' && ! $tieneCodigo) || (count($llenas) === 1 && ! is_numeric($llenas[0])))) { $tituloActual = mb_convert_case(mb_strtolower($desc !== '' ? $desc : $llenas[0]), MB_CASE_TITLE); continue; }
+            $pasa = true;
+            foreach ($filtros as $ft) {
+                $v = mb_strtolower(trim((string) ($f[(int) $ft['col']] ?? ''))); $q = mb_strtolower(trim((string) ($ft['valor'] ?? '')));
+                $ok = match ($ft['op']) { 'contiene' => $q !== '' && str_contains($v, $q), 'no_contiene' => $q === '' || ! str_contains($v, $q), 'igual' => $v === $q, 'distinto' => $v !== $q, 'vacio' => $v === '', 'no_vacio' => $v !== '', 'mayor' => $numS($v) !== null && $numS($v) > (float) $q, 'menor' => $numS($v) !== null && $numS($v) < (float) $q, default => true };
+                if (! $ok) { $pasa = false; break; }
+            }
+            if (! $pasa) continue;
+            if ($extra && isset($col['descripcion'])) { $partes = [$desc]; foreach ($extra as $c) if (($v = trim((string) ($f[$c] ?? ''))) !== '' && $c !== $col['descripcion']) $partes[] = $v; $f[$col['descripcion']] = trim(implode(' ', array_filter($partes))); }
+            if ($factor != 1 || $conIva) {
+                $iva = isset($col['iva']) ? ($numS($f[$col['iva']] ?? '') ?? 21) : (float) ($prep['iva_lista'] ?? 21); if ($iva <= 1) $iva *= 100;
+                foreach ($colsPrecio as $c) { $v = $numS($f[$c] ?? ''); if ($v === null) continue; $v *= $factor; if ($conIva) $v /= (1 + $iva / 100); $f[$c] = number_format($v, 2, '.', ''); }
+            }
+            $out[$n] = $f; if ($tituloActual) $rubroFila[$n] = $tituloActual;
+        }
+        return ['filas' => $out, 'rubro_fila' => $rubroFila, 'titulos' => array_values(array_unique($rubroFila))];
+    }
+
+    // Fase 34.3: ¿algún token de la descripción es un código de fabricante que ya tengo como código o barras? (p. ej. "Disco flap 115 BOSCH 2608607254")
+    private function codigoEnDescripcion(string $desc, $porSku, $porBar): ?Product
+    {
+        foreach (preg_split('/[\s,;\/()]+/', $desc) as $t) {
+            $t = trim($t, ".-"); if (strlen($t) < 5 || ! preg_match('/\d/', $t) || ! preg_match('/^[A-Za-z0-9.\-]+$/', $t)) continue;
+            if ($p = $porSku[mb_strtolower($t)] ?? $porBar[$t] ?? null) return $p;
+        }
+        return null;
+    }
+
     // Analiza la lista antes de importar: qué artículo existente corresponde a cada fila (por código, barras, nombre exacto o parecido), cuánto cambia el costo y qué se crearía.
     public function analizar(array $filas, array $mapeo, array $opt): array
     {
         $col = array_flip($mapeo);
         $g = fn($f, $k) => isset($col[$k]) ? trim((string) ($f[$col[$k]] ?? '')) : '';
         $numS = function ($v) { $s = trim((string) $v); if ($s === '') return null; if (preg_match('/^\d{1,3}(\.\d{3})+(,\d+)?$/', $s)) $s = str_replace('.', '', $s); return (float) str_replace(',', '.', preg_replace('/[^\d,.\-]/', '', $s)); };
+        $prepd = $this->preparar($filas, $mapeo, (array) ($opt['prep'] ?? []), (bool) ($opt['encabezado'] ?? true)); $filas = $prepd['filas'];
         $todos = Product::where('active', true)->get(['id', 'name', 'sku', 'barcode', 'cost', 'price', 'proveedor_id', 'rubro_id']);
         $porSku = $todos->filter(fn($p) => $p->sku)->keyBy(fn($p) => mb_strtolower($p->sku)); $porBar = $todos->filter(fn($p) => $p->barcode)->keyBy('barcode'); $porNombre = $todos->keyBy(fn($p) => $this->normalizar($p->name));
+        // 34.3: el código del proveedor que ya anotamos otras veces (compras, recepciones o importaciones anteriores)
+        $porCodigoProv = ($opt['contact_id'] ?? null) ? \App\Models\ProveedorArticulo::where('contact_id', $opt['contact_id'])->whereNotNull('product_id')->get(['codigo', 'product_id'])->keyBy(fn($x) => mb_strtolower(trim($x->codigo)))->map(fn($x) => $todos->firstWhere('id', $x->product_id))->filter() : collect();
         $candidatos = ($opt['solo_proveedor'] ?? false) && ($opt['contact_id'] ?? null) ? $todos->where('proveedor_id', $opt['contact_id']) : $todos;
+        $limitePct = (float) ($opt['limite_pct'] ?? 50); $vistos = [];
         $out = []; $dudosas = [];
         foreach ($filas as $n => $f) {
             if ($n === 0 && ($opt['encabezado'] ?? true)) continue;
             $desc = $g($f, 'descripcion'); $sku = $g($f, 'codigo'); $bar = $g($f, 'barcode');
             if ($desc === '' && $sku === '') continue;
             $pc = $numS($g($f, 'precio_compra')); $dto = $numS($g($f, 'descuento')) ?? 0; $costo = $numS($g($f, 'costo')) ?? ($pc !== null ? round($pc * (1 - $dto / 100), 2) : null);
-            $p = ($sku !== '' ? $porSku[mb_strtolower($sku)] ?? null : null) ?? ($bar !== '' ? $porBar[$bar] ?? null : null) ?? ($desc !== '' ? $porNombre[$this->normalizar($desc)] ?? null : null);
+            // 34.3: en orden, el código del proveedor ya anotado, mi código, el código de barras, el nombre exacto y el código de fabricante dentro de la descripción.
+            $p = null; $como = null;
+            foreach ([['código del proveedor', fn() => $sku !== '' ? $porCodigoProv[mb_strtolower($sku)] ?? null : null], ['código', fn() => $sku !== '' ? $porSku[mb_strtolower($sku)] ?? null : null], ['código de barras', fn() => $bar !== '' ? $porBar[$bar] ?? null : null], ['nombre', fn() => $desc !== '' ? $porNombre[$this->normalizar($desc)] ?? null : null], ['código de fabricante en la descripción', fn() => $desc !== '' ? $this->codigoEnDescripcion($desc, $porSku, $porBar) : null]] as [$nombre, $buscar]) {
+                if ($p = $buscar()) { $como = $nombre; break; }
+            }
             $estado = $p ? 'existente' : 'nuevo'; $conf = $p ? 100 : 0;
             if (! $p && $desc !== '') {
                 // Parecido por nombre: tokens en común y similitud de texto.
@@ -141,7 +204,20 @@ class ImportacionPreciosService
                 if ($mejor && $mejorScore >= 55) { $p = $mejor; $estado = 'sugerido'; $conf = (int) round($mejorScore); }
                 elseif ($mejor && $mejorScore >= 35) $dudosas[$n] = ['desc' => $desc, 'candidato' => $mejor];
             }
-            $out[$n] = ['fila' => $n, 'desc' => $desc ?: $sku, 'codigo' => $sku, 'barcode' => $bar, 'costo_nuevo' => $costo, 'precio_venta' => $numS($g($f, 'precio_venta')), 'estado' => $estado, 'confianza' => $conf, 'product_id' => $p?->id, 'product_nombre' => $p?->name, 'product_sku' => $p?->sku, 'costo_actual' => $p ? (float) $p->cost : null, 'variacion' => $p && (float) $p->cost > 0 && $costo !== null ? round(($costo / (float) $p->cost - 1) * 100, 1) : null, 'sin_precio' => $costo === null && $numS($g($f, 'precio_venta')) === null];
+            $pv = $numS($g($f, 'precio_venta')); $var = $p && (float) $p->cost > 0 && $costo !== null ? round(($costo / (float) $p->cost - 1) * 100, 1) : null;
+            // 34.4: lo raro viene marcado y destildado: sube o baja más del límite, precio de venta bajo el costo, cero o texto en vez de número, repetido en el archivo, no encontrado (si no se crean nuevos)
+            $clave = $sku !== '' ? 'c:' . mb_strtolower($sku) : ($bar !== '' ? 'b:' . $bar : 'd:' . $this->normalizar($desc));
+            $alerta = match (true) {
+                $costo === null && $pv === null => 'sin_precio',
+                ($costo !== null && $costo <= 0) || ($pv !== null && $pv <= 0) => 'cero',
+                isset($vistos[$clave]) => 'repetido',
+                $pv !== null && $costo !== null && $pv < $costo => 'bajo_costo',
+                $var !== null && abs($var) > $limitePct => $var > 0 ? 'sube_mucho' : 'baja_mucho',
+                ! $p && empty($opt['crear_nuevos'] ?? true) => 'no_encontrado',
+                default => null,
+            };
+            $vistos[$clave] = $n;
+            $out[$n] = ['fila' => $n, 'desc' => $desc ?: $sku, 'codigo' => $sku, 'barcode' => $bar, 'costo_nuevo' => $costo, 'precio_venta' => $pv, 'estado' => $estado, 'confianza' => $conf, 'como' => $como, 'product_id' => $p?->id, 'product_nombre' => $p?->name, 'product_sku' => $p?->sku, 'costo_actual' => $p ? (float) $p->cost : null, 'variacion' => $var, 'sin_precio' => $costo === null && $pv === null, 'alerta' => $alerta, 'incluir' => $alerta === null, 'rubro_titulo' => $prepd['rubro_fila'][$n] ?? null];
         }
         // Las dudosas y las nuevas se las mostramos a la IA con los candidatos parecidos para que decida (si hay clave).
         $nuevas = array_filter($out, fn($r) => $r['estado'] === 'nuevo');
@@ -161,7 +237,7 @@ class ImportacionPreciosService
             } catch (\Throwable) {}
         }
         $out = array_values($out);
-        return ['filas' => $out, 'resumen' => ['total' => count($out), 'existentes' => count(array_filter($out, fn($r) => $r['estado'] === 'existente')), 'sugeridos' => count(array_filter($out, fn($r) => $r['estado'] === 'sugerido')), 'nuevos' => count(array_filter($out, fn($r) => $r['estado'] === 'nuevo')), 'sin_precio' => count(array_filter($out, fn($r) => $r['sin_precio'])), 'suben_mucho' => count(array_filter($out, fn($r) => ($r['variacion'] ?? 0) > 30), ), 'bajan' => count(array_filter($out, fn($r) => ($r['variacion'] ?? 0) < -0.5)), 'ia' => (bool) config('services.anthropic.api_key')]];
+        return ['filas' => $out, 'resumen' => ['total' => count($out), 'existentes' => count(array_filter($out, fn($r) => $r['estado'] === 'existente')), 'sugeridos' => count(array_filter($out, fn($r) => $r['estado'] === 'sugerido')), 'nuevos' => count(array_filter($out, fn($r) => $r['estado'] === 'nuevo')), 'sin_precio' => count(array_filter($out, fn($r) => $r['sin_precio'])), 'suben_mucho' => count(array_filter($out, fn($r) => ($r['variacion'] ?? 0) > 30), ), 'bajan' => count(array_filter($out, fn($r) => ($r['variacion'] ?? 0) < -0.5)), 'ia' => (bool) config('services.anthropic.api_key'), 'alertas' => array_count_values(array_filter(array_column($out, 'alerta'))), 'con_alerta' => count(array_filter($out, fn($r) => $r['alerta'])), 'limite_pct' => $limitePct, 'titulos' => $prepd['titulos'], 'por_como' => array_count_values(array_filter(array_column($out, 'como')))]];
     }
 
     // Aplica la importación. $mapeo: [indiceColumna => campo]. Busca por SKU, después por barras, después por descripción + proveedor.
@@ -176,10 +252,13 @@ class ImportacionPreciosService
         $margen = isset($opt['margen']) && $opt['margen'] !== '' ? (float) $opt['margen'] : null;
         $rubroDefault = $opt['rubro_id'] ?? null; $ivaDefault = (float) ($opt['iva'] ?? 21); $usd = ($opt['moneda'] ?? 'ARS') === 'USD';
         $crear = (bool) ($opt['crear'] ?? true); $soloProveedor = (bool) ($opt['solo_proveedor'] ?? false);
+        $soloCosto = (bool) ($opt['solo_costo'] ?? false); $todoONada = (bool) ($opt['todo_o_nada'] ?? false);
+        $prepd = $this->preparar($filas, $mapeo, (array) ($opt['prep'] ?? []), (bool) ($opt['encabezado'] ?? true)); $filas = $prepd['filas']; $rubroTitulo = $prepd['rubro_fila'];
+        $porCodigoProv = ($opt['contact_id'] ?? null) ? \App\Models\ProveedorArticulo::where('contact_id', $opt['contact_id'])->whereNotNull('product_id')->pluck('product_id', 'codigo')->mapWithKeys(fn($v, $k) => [mb_strtolower(trim($k)) => $v]) : collect();
         $imp = ImportacionPrecios::create(['business_id' => $user->business_id, 'contact_id' => $opt['contact_id'] ?? null, 'user_id' => $user->id, 'archivo' => $opt['archivo'] ?? 'lista', 'mapeo' => $mapeo]);
         $leidos = $creados = $act = $err = 0; $detalle = []; $rubros = [];
 
-        DB::transaction(function () use ($filas, $col, $opt, $numS, $margen, $rubroDefault, $ivaDefault, $usd, $crear, $soloProveedor, $user, &$leidos, &$creados, &$act, &$err, &$detalle, &$rubros) {
+        DB::transaction(function () use ($filas, $col, $opt, $numS, $margen, $rubroDefault, $ivaDefault, $usd, $crear, $soloProveedor, $soloCosto, $todoONada, $rubroTitulo, $porCodigoProv, $user, &$leidos, &$creados, &$act, &$err, &$detalle, &$rubros) {
             foreach ($filas as $n => $f) {
                 if ($n === 0 && ($opt['encabezado'] ?? true)) continue;
                 $g = fn($k) => isset($col[$k]) ? trim((string) ($f[$col[$k]] ?? '')) : '';
@@ -193,12 +272,15 @@ class ImportacionPreciosService
                 $p = null; $dec = $opt['decisiones'][$n] ?? $opt['decisiones'][(string) $n] ?? null;
                 if ($dec === 'omitir') { $leidos--; continue; }
                 if ($dec && $dec !== 'nuevo') $p = Product::find((int) $dec);
+                if (! $p && $dec !== 'nuevo' && $sku !== '' && isset($porCodigoProv[mb_strtolower($sku)])) $p = Product::find($porCodigoProv[mb_strtolower($sku)]);
                 if (! $p && $dec !== 'nuevo' && $sku !== '') $p = Product::where('sku', $sku)->first();
                 if (! $p && $dec !== 'nuevo' && $bar !== '') $p = Product::where('barcode', $bar)->first();
                 if (! $p && $dec !== 'nuevo' && $desc !== '') $p = Product::where('name', $desc)->when($soloProveedor && ($opt['contact_id'] ?? null), fn($q) => $q->where('proveedor_id', $opt['contact_id']))->first();
+                if (! $p && $dec !== 'nuevo' && $desc !== '') foreach (preg_split('/[\s,;\/()]+/', $desc) as $t) { $t = trim($t, '.-'); if (strlen($t) >= 5 && preg_match('/\d/', $t) && preg_match('/^[A-Za-z0-9.\-]+$/', $t) && ($p = Product::where(fn($w) => $w->where('sku', $t)->orWhere('barcode', $t))->first())) break; } // 34.3: código de fabricante en la descripción
                 if (! $p) {
                     if (! $crear) { $err++; $detalle[] = ['fila' => $n + 1, 'desc' => $desc ?: $sku, 'error' => 'No existe y no se crean nuevos']; continue; }
                     $rubroId = $opt['rubros_fila'][$n] ?? $opt['rubros_fila'][(string) $n] ?? $rubroDefault;
+                    if (! $rubroId && ($rt = $rubroTitulo[$n] ?? null)) $rubroId = $rubros[$rt] ??= (Rubro::where('nombre', $rt)->value('id') ?? Rubro::create(['business_id' => $user->business_id, 'nombre' => $rt])->id);
                     if (! empty($opt['nombres'][$n] ?? $opt['nombres'][(string) $n] ?? null)) $desc = trim($opt['nombres'][$n] ?? $opt['nombres'][(string) $n]);
                     if (($rn = $g('rubro')) !== '' && ! ($opt['rubros_fila'][$n] ?? null)) {
                         $rubroId = $rubros[$rn] ??= (Rubro::where('nombre', $rn)->value('id') ?? Rubro::create(['business_id' => $user->business_id, 'nombre' => $rn])->id);
@@ -213,16 +295,37 @@ class ImportacionPreciosService
                 $p->moneda = $usd ? 'USD' : ($p->moneda ?: 'ARS');
                 if ($pc !== null) { $p->precio_compra = $pc; $p->descuento_proveedor = $dto; $p->cost = round($pc * (1 - $dto / 100), 2); }
                 if ($costo !== null) { $p->cost = $costo; if ($pc === null) $p->precio_compra = $costo; }
+                if ($soloCosto && $p->exists) { $p->save(); if (($opt['contact_id'] ?? null) && $sku !== '') $this->anotarCodigoProveedor((int) $opt['contact_id'], $sku, $desc, $p, (float) $p->cost); continue; } // sólo el precio de compra: las listas de venta no se tocan
                 if ($margen !== null) { $p->margenes = array_replace($p->margenes ?? [], ['1' => $margen]); }
                 $p->recalcularDesdeCosto();
                 if ($pv !== null) $p->price = $pv;
                 if ((float) $p->price <= 0 && (float) $p->cost > 0) $p->price = round((float) $p->cost * 1.3, 2);
                 $p->precio_actualizado_en = now();
                 $p->save();
+                if (($opt['contact_id'] ?? null) && $sku !== '') $this->anotarCodigoProveedor((int) $opt['contact_id'], $sku, $desc, $p, (float) $p->cost);
             }
+            if ($todoONada && $err > 0) throw ValidationException::withMessages(['archivo' => "No se importó nada: {$err} filas con error (" . collect($detalle)->take(3)->map(fn($d) => "fila {$d['fila']}: {$d['error']}")->implode('; ') . "). Revisalas o destildalas y volvé a importar."]);
         });
+        if (($opt['contact_id'] ?? null) && ! empty($opt['recordar'])) $this->recordarMapeo((int) $opt['contact_id'], $mapeo, (array) ($opt['prep'] ?? []), collect($opt)->only(['encabezado', 'margen', 'iva', 'moneda', 'crear', 'solo_proveedor', 'solo_costo', 'limite_pct'])->all());
         $imp->update(['leidos' => $leidos, 'creados' => $creados, 'actualizados' => $act, 'errores' => $err, 'detalle' => array_slice($detalle, 0, 200)]);
         AuditLog::registrar('editar', $imp, "Importó lista de precios: {$leidos} filas, {$creados} nuevos, {$act} actualizados, {$err} con error");
         return $imp;
+    }
+
+    // 34.3: anotar el código del proveedor para reconocerlo la próxima vez (y el último costo).
+    private function anotarCodigoProveedor(int $contactId, string $codigo, string $desc, Product $p, float $costo): void
+    {
+        \App\Models\ProveedorArticulo::updateOrCreate(['business_id' => $p->business_id, 'contact_id' => $contactId, 'codigo' => $codigo], ['product_id' => $p->id, 'descripcion' => mb_substr($desc ?: $p->name, 0, 150), 'ultimo_costo' => $costo, 'ultima_fecha' => today()]);
+    }
+
+    // 34.2: el mapeo y la preparación quedan guardados por proveedor; la próxima lista se abre ya armada.
+    public function recordarMapeo(int $contactId, array $mapeo, array $prep, array $opt): void
+    {
+        if ($c = \App\Models\Contact::find($contactId)) { $cfg = $c->compras_config ?? []; $cfg['mapeo_precios'] = ['mapeo' => $mapeo, 'prep' => $prep, 'opt' => $opt, 'fecha' => now()->toDateString()]; $c->compras_config = $cfg; $c->save(); }
+    }
+
+    public function mapeoRecordado(?int $contactId): ?array
+    {
+        return $contactId ? (\App\Models\Contact::find($contactId)?->compras_config['mapeo_precios'] ?? null) : null;
     }
 }
