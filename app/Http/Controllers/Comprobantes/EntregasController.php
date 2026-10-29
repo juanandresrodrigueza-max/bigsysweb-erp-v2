@@ -56,15 +56,17 @@ class EntregasController extends Controller
 
     public function verOrden(int $id)
     {
-        $oe = OrdenEntrega::with(['items.comprobante.contact', 'items.comprobante.items', 'user:id,name', 'cobros.cobro'])->findOrFail($id);
+        $oe = OrdenEntrega::with(['items.comprobante.contact', 'items.comprobante.items', 'items.acopio.items', 'items.contact', 'user:id,name', 'cobros.cobro'])->findOrFail($id);
+        $rep = app(\App\Services\Ventas\RepartoService::class);
         $rend = app(\App\Services\Ventas\RendicionRepartoService::class);
         return Inertia::render('Comprobantes/EntregaVer', [
             'orden' => ['id' => $oe->id, 'numero' => $oe->numeroFormateado(), 'fecha' => $oe->fecha->format('d/m/Y'), 'repartidor' => $oe->repartidor, 'vehiculo' => $oe->vehiculo, 'estado' => $oe->estado, 'notas' => $oe->notas, 'usuario' => $oe->user?->name,
-                'items' => $oe->items->map(fn($i) => ['id' => $i->id, 'comprobante_id' => $i->comprobante_id, 'comprobante' => "{$i->comprobante?->nombreTipo()} {$i->comprobante?->numeroFormateado()}", 'cliente' => $i->comprobante?->contact?->name, 'telefono' => $i->comprobante?->contact?->mobile ?: $i->comprobante?->contact?->phone, 'direccion' => $i->direccion, 'estado' => $i->estado, 'observacion' => $i->observacion, 'total' => (float) ($i->comprobante?->total ?? 0), 'contado' => $i->comprobante?->condicion === 'contado' && (float) $i->comprobante->saldo > 0,
+                'items' => $oe->items->map(fn($i) => ['id' => $i->id, 'comprobante_id' => $i->comprobante_id, 'comprobante' => $i->tipo === 'comprobante' ? "{$i->comprobante?->nombreTipo()} {$i->comprobante?->numeroFormateado()}" : ($i->tipo === 'acopio' ? "Retiro de acopio #{$i->acopio_id}" : 'Parada'), 'cliente' => $i->comprobante?->contact?->name ?? $i->contact?->name ?? $i->nombre, 'tipo' => $i->tipo, 'lleva' => $rep->lleva($i), 'seguimiento' => $i->token ? url("/seguimiento/{$i->token}") : null, 'recibio' => $i->recibio, 'motivo' => $i->motivo, 'foto' => (bool) $i->foto_path, 'con_ubicacion' => $i->lat !== null, 'telefono' => $i->comprobante?->contact?->mobile ?: $i->comprobante?->contact?->phone, 'direccion' => $i->direccion, 'estado' => $i->estado, 'observacion' => $i->observacion, 'total' => (float) ($i->comprobante?->total ?? 0), 'contado' => $i->comprobante?->condicion === 'contado' && (float) $i->comprobante->saldo > 0,
                     'detalle' => $i->comprobante?->items->map(fn($x) => rtrim(rtrim(number_format((float) $x->cantidad, 3, ',', '.'), '0'), ',') . " {$x->descripcion}")->implode(' · '),
                     'saldo' => (float) ($i->comprobante?->saldo ?? 0), 'saldo_cliente' => (float) ($i->comprobante?->contact?->balance ?? 0),
                     'cobros' => $oe->cobros->where('orden_entrega_item_id', $i->id)->values()->map(fn($c) => ['id' => $c->id, 'medio' => $c->medio, 'monto' => (float) $c->monto, 'referencia' => $c->referencia, 'datos' => $c->datos, 'recibo' => $c->cobro?->numeroFormateado(), 'cobro_id' => $c->cobro_id])])],
-            'estados' => OrdenEntrega::ESTADOS,
+            'estados' => OrdenEntrega::ESTADOS, 'carga' => $rep->planillaCarga($oe), 'maps' => $rep->maps($oe), 'link_chofer' => $oe->token_chofer ? url("/reparto/{$oe->token_chofer}") : null,
+            'posicion' => $oe->ultima_lat !== null ? ['lat' => $oe->ultima_lat, 'lng' => $oe->ultima_lng, 'hace' => $oe->ultima_pos_en?->diffForHumans()] : null,
             'rendicion' => $oe->rendida_en ? ($oe->rendicion + ['fecha' => $oe->rendida_en->format('d/m/Y H:i')]) : null,
             'esperado' => $rend->esperado($oe), 'medios' => \App\Models\OrdenEntregaCobro::MEDIOS,
             'cajas' => \App\Models\CuentaFondos::where('activa', true)->where('tipo', 'caja')->orderByDesc('es_default')->get(['id', 'nombre']),

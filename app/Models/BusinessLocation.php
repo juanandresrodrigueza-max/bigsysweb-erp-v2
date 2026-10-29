@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class BusinessLocation extends Model
 {
     protected $fillable = ['business_id', 'name', 'short_name', 'address', 'city', 'province', 'postal_code', 'phone', 'email', 'is_active', 'is_default',
-        'cuit', 'razon_social', 'condicion_iva', 'iibb', 'inicio_actividades', 'afip_cert_path', 'afip_key_path', 'afip_produccion'];
+        'cuit', 'razon_social', 'condicion_iva', 'iibb', 'inicio_actividades', 'afip_cert_path', 'afip_key_path', 'afip_produccion', 'lat', 'lng'];
 
     protected $casts = ['is_active' => 'boolean', 'is_default' => 'boolean', 'afip_produccion' => 'boolean', 'inicio_actividades' => 'date'];
 

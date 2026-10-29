@@ -55,6 +55,14 @@ Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaC
 Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu'])->middleware('throttle:publico');
 Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa'])->middleware('throttle:publico');
 Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar'])->middleware('throttle:publico');
+// Fase 37: el chofer y el cliente siguen el viaje sin usuario; el pase entre sucursales en PDF por link.
+Route::get('/reparto/{token}',                       [\App\Http\Controllers\Comprobantes\RepartoController::class, 'chofer'])->middleware('throttle:publico');
+Route::post('/reparto/{token}/salir',                [\App\Http\Controllers\Comprobantes\RepartoController::class, 'salir'])->middleware('throttle:publico');
+Route::post('/reparto/{token}/posicion',             [\App\Http\Controllers\Comprobantes\RepartoController::class, 'posicion'])->middleware('throttle:publico');
+Route::post('/reparto/{token}/parada/{item}/entregue', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'entregue'])->middleware('throttle:publico');
+Route::post('/reparto/{token}/parada/{item}/no',     [\App\Http\Controllers\Comprobantes\RepartoController::class, 'noSePudo'])->middleware('throttle:publico');
+Route::get('/seguimiento/{token}',                   [\App\Http\Controllers\Comprobantes\RepartoController::class, 'seguimiento'])->middleware('throttle:publico');
+Route::get('/pase/{token}',                          [\App\Http\Controllers\Stock\PasesController::class, 'pdf'])->middleware('throttle:publico');
 Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\OrdenesController::class, 'publico'])->middleware('throttle:publico');
 Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder'])->middleware('throttle:publico');
 Route::post('/r/{slug}',                   [\App\Http\Controllers\TiendaPublicaController::class, 'reservarStore'])->middleware('throttle:publico');
@@ -163,6 +171,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/pendientes',              [\App\Http\Controllers\Comprobantes\EntregasController::class, 'pendientes']);
         Route::post('/{id}/parcial',           [\App\Http\Controllers\Comprobantes\EntregasController::class, 'parcial'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
         Route::get('/entregas',                [\App\Http\Controllers\Comprobantes\EntregasController::class, 'ordenes']);
+        Route::get('/entregas/armar',          [\App\Http\Controllers\Comprobantes\RepartoController::class, 'armar']);
+        Route::post('/entregas/armar',         [\App\Http\Controllers\Comprobantes\RepartoController::class, 'crear'])->middleware('permiso:comprobantes,crear');
+        Route::post('/entregas/origen',        [\App\Http\Controllers\Comprobantes\RepartoController::class, 'origen'])->middleware('permiso:comprobantes,editar');
+        Route::post('/entregas/{id}/ordenar',  [\App\Http\Controllers\Comprobantes\RepartoController::class, 'ordenar'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
+        Route::post('/entregas/{id}/reordenar', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'reordenar'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
         Route::post('/entregas',               [\App\Http\Controllers\Comprobantes\EntregasController::class, 'crearOrden'])->middleware('permiso:comprobantes,crear');
         Route::get('/entregas/{id}',           [\App\Http\Controllers\Comprobantes\EntregasController::class, 'verOrden'])->whereNumber('id');
         Route::get('/entregas/{id}/imprimir',  [\App\Http\Controllers\Comprobantes\EntregasController::class, 'imprimirOrden']);
@@ -376,6 +389,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar');
         Route::get('/movimientos',               [\App\Http\Controllers\Stock\StockController::class, 'movimientos']);
         Route::post('/ajustar',                  [\App\Http\Controllers\Stock\StockController::class, 'ajustar'])->middleware('permiso:stock,editar');
+        Route::get('/pases',                     [\App\Http\Controllers\Stock\PasesController::class, 'index']);
+        Route::post('/pases/leer',               [\App\Http\Controllers\Stock\PasesController::class, 'leer'])->middleware('permiso:stock,editar');
+        Route::post('/pases',                    [\App\Http\Controllers\Stock\PasesController::class, 'enviar'])->middleware('permiso:stock,editar');
+        Route::get('/pases/{id}',                [\App\Http\Controllers\Stock\PasesController::class, 'ver'])->whereNumber('id');
+        Route::post('/pases/{id}/recibir',       [\App\Http\Controllers\Stock\PasesController::class, 'recibir'])->middleware('permiso:stock,editar');
+        Route::post('/pases/{id}/devolver',      [\App\Http\Controllers\Stock\PasesController::class, 'devolver'])->middleware('permiso:stock,editar');
         Route::post('/transferir',               [\App\Http\Controllers\Stock\StockController::class, 'transferir'])->middleware('permiso:stock,crear');
         Route::post('/transferencias/{id}/anular', [\App\Http\Controllers\Stock\StockController::class, 'anularTransferencia'])->middleware('permiso:stock,anular');
         Route::get('/inventario',                [\App\Http\Controllers\Stock\StockController::class, 'inventario'])->middleware('permiso:stock,editar');

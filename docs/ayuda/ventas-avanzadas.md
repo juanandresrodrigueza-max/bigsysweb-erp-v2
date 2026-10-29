@@ -82,3 +82,13 @@ En la ficha del cliente, pestaña **Contactos**, cargás a las personas con las 
 ## Documentos adjuntos
 
 En la ficha del cliente, pestaña **Documentos**, subís contratos, constancias de CUIT, fotos, planillas o lo que haga falta (PDF, imágenes, Excel, Word; hasta 10 MB por archivo). Se ven con un clic, se bajan y quedan en la copia de seguridad. Lo mismo en la ficha del **proveedor** y del **artículo** (fichas técnicas, certificados, manuales).
+
+## Armar el viaje del camión (Comprobantes → Entregas → Armar viaje)
+
+Aparece todo lo pendiente de entregar, agrupado por cliente: facturas con entrega pendiente, remitos y **retiros de acopio**. Tildá lo que lleva el camión; si va una parte, cambiá la cantidad de cada artículo. Podés sumar **paradas a mano** (retirar cheques, pasar por el banco). A la derecha, la **planilla de carga**: todo lo que sube al camión, sumado por artículo.
+
+**Recorrido**: guardá una vez la ubicación del depósito (el botón usa tu ubicación). Con **Ordenar por el camino más corto** las paradas se ordenan solas, y las podés mover con las flechas. Los botones de **Google Maps** abren el recorrido de a 4 paradas, que es lo que se maneja bien desde el celular. Cada vez que el chofer entrega, el sistema **aprende** dónde queda el cliente.
+
+**El link del chofer**: mandáselo por WhatsApp. Sin usuario, desde el celular: **Salí**, en cada parada **Entregué** (quién lo recibió y una foto) o **No se pudo** (con el motivo). Mientras tiene la página abierta, manda su ubicación cada 15 segundos. Al entregar, sale el remito por lo que llevó (o el retiro del acopio) y baja el stock. Lo que no se pudo **vuelve a pendientes** para el próximo viaje.
+
+**El link del cliente** (en cada parada, "copiar link del cliente"): el cliente ve si su pedido se está preparando, está en camino o se entregó, cuántas entregas faltan antes de la suya y a cuántos km está el camión.

@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Movimientos de stock">
-    <div class="mb-5"><Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link><h1 class="page-title">Movimientos de stock</h1><p class="page-subtitle">Todo lo que entró y salió, con el comprobante u orden que lo originó.</p></div>
+    <div class="mb-5"><Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link><h1 class="page-title">Movimientos de stock</h1><Link href="/stock/pases" class="text-xs text-violeta font-semibold">Pases entre sucursales (se cuentan al llegar) →</Link><p class="page-subtitle">Todo lo que entró y salió, con el comprobante u orden que lo originó.</p></div>
 
     <div class="card mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
       <input v-model="f.buscar" @keyup.enter="filtrar" class="input lg:col-span-2" placeholder="Artículo…" />

@@ -9,8 +9,8 @@ class TransferenciaStockItem extends Model
 {
     public $timestamps = false;
     protected $table = 'transferencia_stock_items';
-    protected $fillable = ['transferencia_id', 'product_id', 'cantidad'];
-    protected $casts = ['cantidad' => 'decimal:3'];
+    protected $fillable = ['transferencia_id', 'product_id', 'cantidad', 'cantidad_recibida'];
+    protected $casts = ['cantidad' => 'decimal:3', 'cantidad_recibida' => 'decimal:3'];
 
     public function product(): BelongsTo { return $this->belongsTo(Product::class); }
 }

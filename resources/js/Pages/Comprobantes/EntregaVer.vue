@@ -18,15 +18,32 @@
       <div v-for="(l, k) in medios" :key="k" class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ l }}</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(rendicion ? rendicion.esperado[k] : esperado[k]) }}</p><p class="text-[11px] text-marca-muted">{{ rendicion ? 'rendido' : 'a rendir' }}</p></div>
     </div>
 
+    <!-- Fase 37: el viaje: link del chofer, recorrido y planilla de carga -->
+    <div class="grid lg:grid-cols-3 gap-4 mb-4" data-e2e="viaje">
+      <div class="card text-sm lg:col-span-2">
+        <h2 class="font-bold mb-1">Recorrido</h2>
+        <div class="flex flex-wrap gap-2 mb-2">
+          <button v-if="puede('comprobantes','editar') && orden.estado !== 'entregada'" class="btn-secondary !py-1 text-xs" @click="router.post(`/comprobantes/entregas/${orden.id}/ordenar`, {}, { preserveScroll: true })" data-e2e="ordenar">Ordenar por el camino más corto</button>
+          <a v-for="(m, k) in maps" :key="k" :href="m" target="_blank" class="btn-secondary !py-1 text-xs">Google Maps · tramo {{ k + 1 }}</a>
+        </div>
+        <template v-if="link_chofer"><p class="text-xs text-marca-muted">Link del chofer (salí, entregué con nombre y foto, no se pudo, y manda su ubicación):</p>
+          <div class="flex gap-2 items-center"><a :href="link_chofer" target="_blank" class="text-xs text-violeta break-all underline" data-e2e="link-chofer">{{ link_chofer }}</a><button class="btn-ghost !py-0.5 text-xs" @click="copiar(link_chofer)">Copiar</button></div></template>
+        <p v-if="posicion" class="text-xs mt-1">Última posición del camión {{ posicion.hace }} · <a :href="`https://www.google.com/maps?q=${posicion.lat},${posicion.lng}`" target="_blank" class="text-violeta">ver en el mapa</a></p>
+      </div>
+      <div class="card text-sm" data-e2e="carga"><h2 class="font-bold mb-1">Planilla de carga</h2>
+        <div v-for="c in carga" :key="c.descripcion" class="flex justify-between border-t border-marca-borde py-0.5"><span>{{ c.descripcion }} <span class="text-[11px] text-marca-muted">· {{ c.paradas }} parada{{ c.paradas === 1 ? '' : 's' }}</span></span><b class="tabular-nums">{{ c.cantidad }} {{ c.unidad }}</b></div>
+        <p v-if="!carga.length" class="text-xs text-marca-muted">Nada para cargar.</p></div>
+    </div>
+
     <div class="card p-0 overflow-x-auto">
       <table class="table min-w-[860px]">
         <thead><tr><th>#</th><th>Cliente y dirección</th><th>Comprobante</th><th>Mercadería</th><th class="text-right">A cobrar</th><th>Cobrado</th><th>Estado</th></tr></thead>
         <tbody>
           <tr v-for="(i, n) in orden.items" :key="i.id" class="align-top" data-item>
-            <td class="text-marca-muted">{{ n + 1 }}</td>
-            <td><p class="font-semibold">{{ i.cliente }}</p><p class="text-xs text-marca-muted">{{ i.direccion ?? 'sin dirección' }}<span v-if="i.telefono"> · {{ i.telefono }}</span></p></td>
-            <td><Link :href="`/comprobantes/${i.comprobante_id}`" class="hover:text-carmin">{{ i.comprobante }}</Link></td>
-            <td class="text-xs max-w-xs">{{ i.detalle }}</td>
+            <td class="text-marca-muted whitespace-nowrap">{{ n + 1 }}<span v-if="i.estado === 'pendiente' && puede('comprobantes','editar')" class="block"><button class="text-xs" :disabled="n === 0" @click="mover(n, -1)">↑</button><button class="text-xs" :disabled="n === orden.items.length - 1" @click="mover(n, 1)">↓</button></span></td>
+            <td><p class="font-semibold">{{ i.cliente }}</p><p class="text-xs text-marca-muted">{{ i.direccion ?? 'sin dirección' }}<span v-if="i.telefono"> · {{ i.telefono }}</span><span v-if="!i.con_ubicacion" class="text-amber-700"> · sin ubicación</span></p><button v-if="i.seguimiento" class="text-[11px] text-violeta" @click="copiar(i.seguimiento)">copiar link del cliente</button><p v-if="i.recibio" class="text-[11px] text-emerald-700">recibió {{ i.recibio }}</p><p v-if="i.motivo" class="text-[11px] text-carmin">{{ i.motivo }}</p></td>
+            <td><Link v-if="i.comprobante_id" :href="`/comprobantes/${i.comprobante_id}`" class="hover:text-carmin">{{ i.comprobante }}</Link><span v-else>{{ i.comprobante }}</span></td>
+            <td class="text-xs max-w-xs">{{ i.lleva?.length ? i.lleva.map(l => l.cantidad + ' ' + l.descripcion).join(' · ') : i.detalle }}</td>
             <td class="text-right tabular-nums">{{ i.saldo > 0 ? moneda(i.saldo) : '—' }}<p v-if="i.saldo_cliente > i.saldo + 0.01" class="text-[10px] text-marca-muted">debe {{ moneda(i.saldo_cliente, 0) }} en total</p></td>
             <td class="text-xs">
               <p v-for="c in i.cobros" :key="c.id" class="flex items-center gap-1 whitespace-nowrap">{{ medios[c.medio] }} <b class="tabular-nums">{{ moneda(c.monto) }}</b><span v-if="c.datos?.numero" class="text-marca-muted">· ch. {{ c.datos.numero }}</span><span v-if="c.recibo" class="text-emerald-700">· {{ c.recibo }}</span><button v-else-if="!rendicion && puede('comprobantes','editar')" type="button" class="text-marca-muted hover:text-carmin" title="Quitar" @click="router.delete(`/comprobantes/entregas/cobros/${c.id}`, { preserveScroll: true })">✕</button></p>
@@ -121,7 +138,9 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ orden: Object, estados: Object, rendicion: Object, esperado: { type: Object, default: () => ({ efectivo: 0, cheque: 0, transferencia: 0, mercadopago: 0 }) }, medios: Object, cajas: { type: Array, default: () => [] }, bancos: { type: Array, default: () => [] }, categorias: { type: Array, default: () => [] } })
+const props = defineProps({ orden: Object, estados: Object, rendicion: Object, esperado: { type: Object, default: () => ({ efectivo: 0, cheque: 0, transferencia: 0, mercadopago: 0 }) }, medios: Object, cajas: { type: Array, default: () => [] }, bancos: { type: Array, default: () => [] }, categorias: { type: Array, default: () => [] }, carga: { type: Array, default: () => [] }, maps: { type: Array, default: () => [] }, link_chofer: String, posicion: Object })
+async function copiar(t) { try { await navigator.clipboard.writeText(t) } catch { window.prompt('Copiá el link', t) } }
+function mover(n, d) { const ids = props.orden.items.map(i => i.id); [ids[n], ids[n + d]] = [ids[n + d], ids[n]]; router.post(`/comprobantes/entregas/${props.orden.id}/reordenar`, { ids }, { preserveScroll: true }) }
 const { puede } = usePermisos()
 function estado(e) { router.post(`/comprobantes/entregas/${props.orden.id}/estado`, { estado: e }, { preserveScroll: true }) }
 function marcar(i, e, observacion = null) { router.post(`/comprobantes/entregas/items/${i.id}`, { estado: e, observacion }, { preserveScroll: true }) }
