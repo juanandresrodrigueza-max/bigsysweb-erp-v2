@@ -213,6 +213,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cobranzas/{id}/refinanciar', [\App\Http\Controllers\Clientes\CobranzasController::class, 'refinanciar'])->middleware('permiso:clientes,crear');
         Route::get('/vendedores',              [\App\Http\Controllers\Clientes\VendedoresController::class, 'index']);
         Route::post('/vendedores/calle',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'configCalle'])->middleware('permiso:configuracion,editar');
+        Route::post('/vendedores/avisos',      [\App\Http\Controllers\Clientes\VendedoresController::class, 'aviso'])->middleware('permiso:configuracion,editar');
+        Route::post('/vendedores/avisos/{id}/baja', [\App\Http\Controllers\Clientes\VendedoresController::class, 'bajaAviso'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/vendedores/rendiciones/{id}/recibir', [\App\Http\Controllers\Clientes\VendedoresController::class, 'recibirRendicion'])->middleware('permiso:fondos,crear')->whereNumber('id');
         Route::post('/vendedores/{id?}',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'guardar'])->middleware('permiso:clientes,editar');
         Route::post('/{id}/agenda',            [\App\Http\Controllers\Clientes\ClientesController::class, 'agenda'])->middleware('permiso:clientes,editar')->whereNumber('id');
@@ -422,6 +424,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/vendedores/relevamiento/{id}/foto', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'foto'])->middleware('permiso:clientes')->whereNumber('id');
     Route::get('/buscar/global', [\App\Http\Controllers\BuscarController::class, 'global']);
     Route::get('/buscar/{entidad}/{forma}', \App\Http\Controllers\BuscarController::class);
     Route::get('/estadisticas/rentabilidad', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'index'])->middleware('permiso:estadisticas');
@@ -534,6 +538,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::post('/vender',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'vender'])->middleware("permiso:{$perm},crear");
             Route::post('/autorizar',  [\App\Http\Controllers\Comprobantes\VenderController::class, 'autorizar'])->middleware(["permiso:{$perm},crear", 'throttle:login']);
             Route::get('/hoy',         [\App\Http\Controllers\Comprobantes\VenderController::class, 'hoy']);
+            Route::get('/reporte',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'reporte']);
+            Route::get('/avisos',      [\App\Http\Controllers\Comprobantes\VenderController::class, 'avisos']);
+            Route::get('/cliente/{id}/notas', [\App\Http\Controllers\Comprobantes\VenderController::class, 'notas'])->whereNumber('id');
+            Route::post('/cliente/{id}/notas', [\App\Http\Controllers\Comprobantes\VenderController::class, 'anotar'])->whereNumber('id');
+            Route::post('/cliente/{id}/notas/{nota}/listo', [\App\Http\Controllers\Comprobantes\VenderController::class, 'notaLista'])->whereNumber('id')->whereNumber('nota');
+            Route::post('/cliente/{id}/relevar', [\App\Http\Controllers\Comprobantes\VenderController::class, 'relevar'])->whereNumber('id');
             Route::post('/cliente/{id}/cobrar', [\App\Http\Controllers\Comprobantes\VenderController::class, 'cobrar'])->middleware('permiso:clientes,crear')->whereNumber('id');
             Route::post('/cliente/{id}/devolucion', [\App\Http\Controllers\Comprobantes\VenderController::class, 'devolucion'])->middleware("permiso:{$perm},crear")->whereNumber('id');
             Route::post('/rendir',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'rendir'])->middleware('permiso:clientes,crear');

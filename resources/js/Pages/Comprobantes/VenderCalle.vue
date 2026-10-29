@@ -8,8 +8,15 @@
       <span v-if="rechazadas.length" class="badge bg-carmin-light text-carmin">{{ rechazadas.length }} que no entraron</span>
       <span v-if="paquete" class="text-marca-muted">Datos del {{ fecha(paquete.generado) }}</span>
       <span v-if="datosViejos" class="badge bg-amber-50 text-amber-700">Descargaste hace {{ datosViejos }} días: los precios pueden haber cambiado</span>
-      <button class="ml-auto btn-ghost !px-2 text-xs" :class="pantalla === 'hoy' ? 'text-violeta font-bold' : ''" @click="irHoy" data-e2e="ir-hoy">Hoy<span v-if="hoy?.en_mano?.total"> · {{ moneda(hoy.en_mano.total, 0) }} en mano</span></button>
+      <button class="ml-auto btn-ghost !px-2 text-xs" :class="pantalla === 'reporte' ? 'text-violeta font-bold' : ''" @click="irReporte" data-e2e="ir-reporte">Mi reporte</button>
+      <button class="btn-ghost !px-2 text-xs" :class="pantalla === 'hoy' ? 'text-violeta font-bold' : ''" @click="irHoy" data-e2e="ir-hoy">Hoy<span v-if="hoy?.en_mano?.total"> · {{ moneda(hoy.en_mano.total, 0) }} en mano</span></button>
       <button class="btn-ghost !px-2 text-xs" @click="pantalla = pantalla === 'datos' ? 'ruta' : 'datos'">{{ pantalla === 'datos' ? '← Volver' : 'Datos y conexión' }}</button>
+    </div>
+
+    <!-- Avisos del encargado: arriba de todo al abrir. El urgente no se baja. -->
+    <div v-for="a in avisosVisibles" :key="a.id" class="rounded-xl px-3 py-2 mb-2 text-sm flex items-start gap-2" :class="a.urgente ? 'bg-carmin-light text-carmin border border-carmin/30' : 'bg-violeta/10 text-violeta'" :data-e2e="`aviso-${a.id}`">
+      <div class="flex-1"><p class="font-bold">{{ a.titulo }}<span v-if="a.hasta" class="font-normal text-xs opacity-70"> · hasta {{ a.hasta }}</span></p><p v-if="a.texto" class="text-xs">{{ a.texto }}</p></div>
+      <button v-if="!a.urgente" class="text-xs opacity-70" @click="bajarAviso(a)">✕</button>
     </div>
 
     <!-- DATOS -->
@@ -55,6 +62,36 @@
         </div>
       </div>
       <p v-if="!gruposVisibles.length" class="card text-center text-marca-muted">{{ paquete ? 'Ningún cliente coincide.' : 'Descargá los datos en "Datos y conexión" para ver tu ruta.' }}</p>
+    </div>
+
+    <!-- MI REPORTE: lo mío y nada más -->
+    <div v-else-if="pantalla === 'reporte'" class="space-y-3" data-e2e="pantalla-reporte">
+      <div class="flex items-center gap-2"><div class="flex gap-1 bg-marca-fondo rounded-full p-1 text-xs flex-1 overflow-x-auto"><button v-for="(t, k) in (reporte?.periodo?.opciones ?? { hoy: 'Hoy', '7d': '7 días', mes: 'Este mes', mes_pasado: 'Mes pasado' })" :key="k" class="px-3 py-1 rounded-full font-semibold whitespace-nowrap" :class="periodoReporte === k ? 'bg-white shadow' : 'text-marca-muted'" @click="periodoReporte = k; cargarReporte()">{{ t }}</button></div><button class="btn-ghost !px-2 text-xs" @click="pantalla = 'ruta'">← Ruta</button></div>
+      <template v-if="reporte">
+        <div class="card">
+          <p class="label">Hoy, mientras trabajás</p>
+          <div class="grid grid-cols-4 gap-1 text-center"><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.hoy.total, 0) }}</p><p class="text-[10px] text-marca-muted">vendido</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.hoy.comprobantes }}</p><p class="text-[10px] text-marca-muted">comprob.</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.hoy.clientes }}</p><p class="text-[10px] text-marca-muted">clientes</p></div><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.hoy.ticket, 0) }}</p><p class="text-[10px] text-marca-muted">ticket</p></div></div>
+        </div>
+        <div v-if="reporte.objetivo" class="card" data-e2e="objetivo">
+          <div class="flex justify-between items-baseline"><p class="label">Objetivo del mes</p><span class="text-xs font-bold" :class="reporte.objetivo.ritmo === 'adelantado' ? 'text-emerald-700' : 'text-carmin'">{{ reporte.objetivo.ritmo === 'adelantado' ? 'Vas adelantado' : 'Vas atrasado' }} para el día {{ reporte.objetivo.dia }}</span></div>
+          <div class="h-2.5 rounded-full bg-marca-fondo overflow-hidden my-1"><div class="h-full bg-marca-grad" :style="{ width: Math.min(100, reporte.objetivo.pct) + '%' }"></div></div>
+          <p class="text-sm"><b class="tabular-nums">{{ moneda(reporte.objetivo.vendido, 0) }}</b> de {{ moneda(reporte.objetivo.objetivo, 0) }} · {{ reporte.objetivo.pct }}% · faltan {{ moneda(reporte.objetivo.falta, 0) }}</p>
+          <p class="text-[11px] text-marca-muted">Para hoy tendrías que llevar {{ moneda(reporte.objetivo.esperado_hoy, 0) }}: vas {{ moneda(Math.abs(reporte.objetivo.diferencia), 0) }} {{ reporte.objetivo.diferencia >= 0 ? 'arriba' : 'abajo' }}.</p>
+        </div>
+        <div class="card">
+          <p class="label">{{ reporte.periodo.opciones[reporte.periodo.k] }}</p>
+          <div class="grid grid-cols-3 gap-1 text-center text-sm"><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.periodo_resumen.total, 0) }}</p><p class="text-[10px] text-marca-muted">vendido</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.periodo_resumen.comprobantes }}</p><p class="text-[10px] text-marca-muted">comprobantes</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.periodo_resumen.visitas }}</p><p class="text-[10px] text-marca-muted">visitas<span v-if="reporte.periodo_resumen.no_vendi"> · {{ reporte.periodo_resumen.no_vendi }} sin venta</span></p></div></div>
+          <div v-if="reporte.comision" class="mt-2 text-xs rounded-lg bg-marca-fondo px-2 py-1.5" data-e2e="comision"><b>Tu comisión:</b> {{ moneda(reporte.comision.por_ventas + reporte.comision.por_cobros) }} · {{ reporte.comision.venta_pct }}% de ventas = {{ moneda(reporte.comision.por_ventas) }} · {{ reporte.comision.cobro_pct }}% de cobranzas = {{ moneda(reporte.comision.por_cobros) }} ({{ reporte.comision.cobros }} recibos por {{ moneda(reporte.comision.cobrado, 0) }}). <span class="text-marca-muted">La liquidación que vale es la de la empresa; esto es para que sepas cómo venís.</span></div>
+        </div>
+        <div class="card">
+          <p class="label">Tu cartera este mes</p>
+          <p class="text-sm"><b>{{ reporte.mes.compraron }}</b> de {{ reporte.mes.clientes_cartera }} clientes te compraron · <b class="text-carmin">{{ reporte.faltan.length }}</b> todavía no</p>
+          <div v-if="reporte.faltan.length" class="mt-1 flex flex-wrap gap-1"><button v-for="c in reporte.faltan" :key="c.id" class="badge bg-amber-50 text-amber-800" @click="elegirDesdeReporte(c)">{{ c.nombre }}</button></div>
+          <div v-if="reporte.compraron.length" class="mt-2 text-xs divide-y divide-marca-borde"><div v-for="c in reporte.compraron" :key="c.id" class="flex justify-between py-1"><button class="text-left font-medium" @click="elegirDesdeReporte(c)">{{ c.nombre }}</button><span class="tabular-nums">{{ moneda(c.total, 0) }}</span></div></div>
+        </div>
+        <div v-if="reporte.top.length" class="card"><p class="label">Lo que más vendiste</p><div class="text-xs divide-y divide-marca-borde"><div v-for="t in reporte.top" :key="t.product_id" class="flex justify-between py-1"><span class="truncate">{{ t.nombre }} <span class="text-marca-muted">× {{ cantidad(t.cantidad) }}</span></span><span class="tabular-nums">{{ moneda(t.total, 0) }}</span></div></div></div>
+      </template>
+      <p v-else class="card text-center text-xs text-marca-muted">{{ online ? 'Cargando…' : 'Sin señal: el reporte necesita conexión.' }}</p>
     </div>
 
     <!-- HOY: lo hecho, lo cobrado en mano y cerrar el turno -->
@@ -110,7 +147,9 @@
               <button v-if="puede.facturar" class="btn-secondary !py-1" @click="abrirDevolucion" data-e2e="devolucion">Devolución</button>
             </div>
           </div>
-          <p v-if="cli.notas" class="mt-2 text-xs rounded-lg bg-amber-50 text-amber-900 px-2 py-1">{{ cli.notas }}</p>
+          <p v-if="cli.notas" class="mt-2 text-xs rounded-lg bg-marca-fondo text-marca-muted px-2 py-1" title="Observaciones de la ficha (sólo lectura)">{{ cli.notas }}</p>
+          <div v-for="n in ficha?.notas ?? []" :key="n.id" class="mt-1 text-xs rounded-lg bg-amber-50 text-amber-900 px-2 py-1 flex items-start gap-2" :data-e2e="`nota-${n.id}`"><span class="flex-1">{{ n.texto }} <span class="opacity-60">· {{ n.quien }} {{ n.cuando }}</span></span><button class="font-bold" @click="notaLista(n)">Listo</button></div>
+          <div class="mt-1 flex gap-1"><input v-model="notaNueva" class="input !py-1 text-xs flex-1" placeholder="Anotar algo del cliente (aparece la próxima vez)" maxlength="500" data-e2e="nota-texto" @keydown.enter="anotar" /><button class="btn-secondary !py-1 text-xs" :disabled="!notaNueva.trim()" @click="anotar" data-e2e="nota-guardar">Anotar</button><button class="btn-secondary !py-1 text-xs" @click="abrirRelevar" data-e2e="relevar">📷 Relevar</button></div>
           <p v-if="ficha?.visitas?.length" class="mt-1 text-[11px] text-marca-muted">Última visita: {{ ficha.visitas[0].cuando }} · {{ ficha.visitas[0].tipo === 'venta' ? 'vendiste' : ficha.visitas[0].tipo === 'llegue' ? 'llegaste' : ficha.visitas[0].motivo }}</p>
         </div>
 
@@ -171,6 +210,7 @@
     <!-- Resultado -->
     <div v-if="resultado" class="fixed inset-x-3 bottom-3 z-40 rounded-2xl shadow-lg px-4 py-3 text-sm flex flex-wrap items-center gap-3" :class="resultado.offline ? 'bg-amber-50 border border-amber-300 text-amber-900' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'" data-e2e="resultado">
       <span v-if="resultado.offline">Guardado en el teléfono: <b>entra solo cuando vuelva la señal</b>. No lo vuelvas a cargar.</span>
+      <span v-else-if="resultado.relevado">Relevamiento guardado. El encargado lo ve en Estadísticas → Vendedores.</span>
       <span v-else-if="resultado.cobro"><b>Recibo {{ resultado.cobro.numero }}</b> por <b class="tabular-nums">{{ moneda(resultado.cobro.total) }}</b><span v-if="resultado.cobro.a_cuenta > 0"> · {{ moneda(resultado.cobro.a_cuenta) }} a cuenta</span> · saldo {{ moneda(resultado.cobro.saldo) }} <a :href="`/clientes/cobros/${resultado.cobro.cobro_id}/imprimir`" target="_blank" class="font-semibold underline">Recibo</a></span>
       <span v-else-if="resultado.rendicion"><b>Rendición {{ resultado.rendicion.numero }}</b>: efectivo {{ moneda(resultado.rendicion.efectivo) }} · transferencias {{ moneda(resultado.rendicion.transferencias) }} · cheques {{ moneda(resultado.rendicion.cheques) }}. Ahora la recibe el encargado.</span>
       <span v-else><b>{{ resultado.tipo }} {{ resultado.numero }}</b> por <b class="tabular-nums">{{ moneda(resultado.total) }}</b> · {{ resultado.estado === 'emitido' ? 'emitido' : resultado.presupuesto ? 'guardado' : 'pendiente de emitir' }}</span>
@@ -185,6 +225,19 @@
       <div class="grid gap-1.5"><button v-for="(t, k) in motivos" :key="k" class="text-left rounded-lg border px-3 py-2 text-sm" :class="motivo === k ? 'border-violeta bg-violeta/5' : 'border-marca-borde'" @click="motivo = k" :data-e2e="`motivo-${k}`">{{ t }}</button></div>
       <input v-model="notaVisita" class="input mt-2" placeholder="Nota (opcional)" />
       <template #pie><button class="btn-secondary" @click="noVendi = null">Cancelar</button><button class="btn-primary" :disabled="!motivo" @click="visita(noVendi, 'no_vendi'); noVendi = null" data-e2e="guardar-no-vendi">Guardar</button></template>
+    </Modal>
+
+    <!-- Relevar con fotos (necesita señal) -->
+    <Modal :abierto="!!relevar" :titulo="relevar ? `Relevar en ${cli?.nombre}` : ''" @cerrar="relevar = null">
+      <div v-if="relevar" class="space-y-2">
+        <div class="grid grid-cols-2 gap-1"><button v-for="(t, k) in tiposRelevamiento" :key="k" class="rounded-lg border px-2 py-1.5 text-xs text-left" :class="relevar.tipo === k ? 'border-violeta bg-violeta/5' : 'border-marca-borde'" @click="relevar.tipo = k" :data-e2e="`relevar-${k}`">{{ t }}</button></div>
+        <label class="block text-xs"><span class="text-marca-muted">Foto</span><input type="file" accept="image/*" capture="environment" class="block mt-1 text-xs" @change="fotoRelevar" data-e2e="relevar-foto" /></label>
+        <img v-if="relevar.foto" :src="relevar.foto" class="h-28 rounded-lg border border-marca-borde" />
+        <input v-model="relevar.nota" class="input !py-1.5 text-xs" placeholder="Aclaración (la competencia lo tiene a $1.200)" maxlength="300" />
+        <p class="text-[11px] text-marca-muted">La foto se achica en el teléfono antes de subir. Necesita señal: las fotos no esperan en la cola.</p>
+        <p v-if="relevar.error" class="text-carmin text-xs">{{ relevar.error }}</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="relevar = null">Cancelar</button><button class="btn-primary" :disabled="!relevar?.foto || !relevar?.tipo || relevar?.enviando || !online" @click="confirmarRelevar" data-e2e="relevar-confirmar">Guardar</button></template>
     </Modal>
 
     <!-- Cobrar -->
@@ -266,7 +319,7 @@ import Modal from '@/Components/Modal.vue'
 import Firma from '@/Components/Firma.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 
-const props = defineProps({ config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, preciosConIva: Boolean, vendedor: Object })
+const props = defineProps({ config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, tiposRelevamiento: Object, avisos: Array, preciosConIva: Boolean, vendedor: Object })
 const ri = computed(() => props.preciosConIva)
 const xsrf = () => decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
 const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify(body) })
@@ -389,6 +442,39 @@ async function visita(c, tipoV) {
   if (tipoV === 'no_vendi') hoyNoVa.value.push(c.id)
 }
 const noVendi = ref(null), motivo = ref(null), notaVisita = ref('')
+
+// --- Avisos del encargado: los no urgentes se bajan de un toque y la app se acuerda ---
+const avisos = ref(props.avisos ?? leer('vender_avisos', [])), bajados = ref(leer('vender_avisos_bajados', []))
+escribir('vender_avisos', avisos.value)
+const avisosVisibles = computed(() => avisos.value.filter(a => a.urgente || !bajados.value.includes(a.id)))
+function bajarAviso(a) { bajados.value.push(a.id); escribir('vender_avisos_bajados', bajados.value) }
+
+// --- Mi reporte ---
+const reporte = ref(null), periodoReporte = ref('mes')
+async function cargarReporte() { if (!navigator.onLine) return; try { const r = await fetch(`/vender/reporte?periodo=${periodoReporte.value}`, { headers: { Accept: 'application/json' } }); if (r.ok) reporte.value = await r.json() } catch (e) {} }
+function irReporte() { if (pantalla.value === 'cliente' && pedido.value.length) escribir('vender_pendiente_' + cli.value.id, pedido.value); pantalla.value = 'reporte'; cargarReporte() }
+function elegirDesdeReporte(c) { const todos = Object.values(ruta.value?.grupos ?? {}).flat(); const fila = todos.find(x => x.id === c.id) ?? { id: c.id, nombre: c.nombre, lista: 1, descuento: 0, saldo: 0, vencido: 0 }; elegir(fila) }
+
+// --- Notas del cliente: la memoria del vínculo ---
+const notaNueva = ref('')
+async function anotar() {
+  const texto = notaNueva.value.trim(); if (!texto) return
+  const datos = { texto, offline_id: offlineId(), fecha_offline: new Date().toISOString(), _url: `/vender/cliente/${cli.value.id}/notas`, _que: `Nota de ${cli.value.nombre}` }
+  notaNueva.value = ''
+  if (!navigator.onLine) { cola.value.push(datos); guardar(); if (ficha.value) (ficha.value.notas ??= []).unshift({ id: 'local-' + Date.now(), texto, quien: 'vos', cuando: 'ahora' }); return }
+  try { const r = await post(datos._url, datos); const j = await r.json().catch(() => ({})); if (r.ok && ficha.value) { ficha.value.notas = j.notas; escribir('vender_ficha_' + cli.value.id, ficha.value) } } catch (e) { cola.value.push(datos); guardar() }
+}
+async function notaLista(n) { try { const r = await post(`/vender/cliente/${cli.value.id}/notas/${n.id}/listo`, {}); const j = await r.json().catch(() => ({})); if (r.ok) ficha.value.notas = j.notas } catch (e) { error.value = 'Para marcar una nota como lista hace falta señal.' } }
+
+// --- Relevar con fotos ---
+const relevar = ref(null)
+function abrirRelevar() { relevar.value = { tipo: 'gondola', foto: '', nota: '', error: null, enviando: false } }
+function fotoRelevar(e) { const f = e.target.files?.[0]; if (!f) return; const img = new Image(); img.onload = () => { const k = Math.min(1, 1024 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); relevar.value.foto = cv.toDataURL('image/jpeg', 0.75); URL.revokeObjectURL(img.src) }; img.src = URL.createObjectURL(f) }
+async function confirmarRelevar() {
+  const rv = relevar.value; rv.enviando = true; rv.error = null
+  const pos = await ubicacion()
+  try { const r = await post(`/vender/cliente/${cli.value.id}/relevar`, { tipo: rv.tipo, nota: rv.nota || null, foto: rv.foto, ...pos }); const j = await r.json().catch(() => ({})); if (r.ok) { relevar.value = null; resultado.value = { relevado: true }; return } rv.error = j.message ?? Object.values(j.errors ?? {}).flat()[0] ?? 'No se pudo.' } catch (e) { rv.error = 'Sin señal: el relevamiento necesita conexión.' } finally { rv.enviando = false }
+}
 
 // --- Hoy: lo hecho, lo cobrado en mano y rendir ---
 const hoy = ref(leer('vender_hoy', null)), rindiendo = ref(false)

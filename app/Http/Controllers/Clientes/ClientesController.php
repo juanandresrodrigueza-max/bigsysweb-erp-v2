@@ -87,6 +87,8 @@ class ClientesController extends Controller
             'medios' => Cobro::MEDIOS, 'tipos' => TipoCliente::orderBy('nombre')->get(['id', 'nombre']), 'condicionesIva' => Contact::CONDICIONES_IVA, 'paises' => config('arca_paises.paises'), 'cuitPais' => config('arca_paises.cuit_pais'),
             'cuentas' => \App\Models\CuentaFondos::where('activa', true)->orderBy('tipo')->orderBy('nombre')->get(['id', 'tipo', 'nombre', 'saldo', 'moneda']), 'cotizacionUsd' => \App\Models\Cotizacion::valor($request->user()->business_id),
             'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'notasCalle' => app(\App\Services\Ventas\EquipoVentasService::class)->notas($c, true),
+            'relevamientos' => \App\Models\Relevamiento::with('user:id,name')->where('contact_id', $c->id)->orderByDesc('id')->limit(30)->get()->map(fn($r) => ['id' => $r->id, 'cuando' => $r->created_at->format('d/m/Y H:i'), 'quien' => $r->user?->name, 'tipo' => \App\Models\Relevamiento::TIPOS[$r->tipo] ?? $r->tipo, 'nota' => $r->nota]),
         ]);
     }
 

@@ -110,6 +110,7 @@ class VenderService
             'ultimo' => $ultimo ? ['fecha' => $ultimo->fecha->toDateString(), 'numero' => $ultimo->numeroFormateado(), 'items' => $ultimo->items->map(fn($i) => ['product_id' => $i->product_id, 'cantidad' => (float) $i->cantidad])->filter(fn($i) => $i['product_id'])->values()->all()] : null,
             'sugerido' => $hist['sugerido'], 'hace_rato' => $hist['hace_rato'],
             'visitas' => Visita::where('contact_id', $c->id)->orderByDesc('created_at')->limit(5)->get()->map(fn($v) => ['tipo' => $v->tipo, 'motivo' => $v->motivo ? Visita::MOTIVOS[$v->motivo] ?? $v->motivo : null, 'cuando' => $v->created_at->format('d/m H:i'), 'nota' => $v->nota])->all(),
+            'notas' => app(EquipoVentasService::class)->notas($c),
             'pendientes' => Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->limit(20)->get()->map(fn($x) => ['id' => $x->id, 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->toDateString(), 'vence' => $x->fecha_vto?->toDateString(), 'saldo' => (float) $x->saldo, 'vencida' => $x->fecha_vto && $x->fecha_vto->lt(today())])->all(),
         ];
     }
@@ -150,7 +151,9 @@ class VenderService
     // ---- Visitas ----
     public function visita(User $u, Contact $c, array $d): Visita
     {
-        $v = Visita::create(['business_id' => $u->business_id, 'contact_id' => $c->id, 'vendedor_id' => Vendedor::deUsuario($u->id)?->id, 'user_id' => $u->id, 'tipo' => $d['tipo'], 'motivo' => $d['motivo'] ?? null, 'nota' => $d['nota'] ?? null, 'lat' => $d['lat'] ?? null, 'lng' => $d['lng'] ?? null, 'comprobante_id' => $d['comprobante_id'] ?? null, 'created_at' => $d['cuando'] ?? now()]);
+        // La distancia se mide contra lo que el sistema sabía antes de esta visita: la primera vez no hay referencia.
+        $dist = ! empty($d['lat']) && ! empty($d['lng']) && $c->lat && $c->lng ? EquipoVentasService::metros((float) $d['lat'], (float) $d['lng'], (float) $c->lat, (float) $c->lng) : null;
+        $v = Visita::create(['business_id' => $u->business_id, 'contact_id' => $c->id, 'vendedor_id' => Vendedor::deUsuario($u->id)?->id, 'user_id' => $u->id, 'tipo' => $d['tipo'], 'motivo' => $d['motivo'] ?? null, 'nota' => $d['nota'] ?? null, 'lat' => $d['lat'] ?? null, 'lng' => $d['lng'] ?? null, 'comprobante_id' => $d['comprobante_id'] ?? null, 'created_at' => $d['cuando'] ?? now(), 'distancia_m' => $dist]);
         $this->aprenderUbicacion($c, $d['lat'] ?? null, $d['lng'] ?? null);
         return $v;
     }

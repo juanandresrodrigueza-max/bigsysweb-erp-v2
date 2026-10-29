@@ -30,6 +30,14 @@ En **Hoy** el vendedor ve lo cobrado, lo vendido y **Cerrar el turno y rendir**:
 
 **Devolución**: desde la ficha, qué vuelve y el motivo (fallado, vencido, no era lo que pidió, no lo pudo vender, error al cargar, otro). Sale como nota de crédito, vuelve al stock y se resta de la comisión del vendedor. **Confirmación de entrega**: en cada factura o remito, nombre de quien recibe, firma con el dedo y foto; queda en el comprobante como constancia.
 
+## Lo que ve cada uno
+
+**El vendedor**, en *Mi reporte* (hoy, 7 días, este mes, mes pasado): lo vendido, comprobantes, clientes y ticket promedio; su **objetivo del mes** con barra y si va adelantado o atrasado *para el día del mes en que está*; su comisión por ventas y por cobranzas con el mismo criterio que la liquidación; cuántos clientes de su cartera todavía no le compraron (tocás uno y te lleva a venderle) y lo que más vendió. Ve lo suyo y nada más.
+
+**El encargado**, en **Estadísticas → Vendedores**: ranking con ticket y clientes, cómo viene la venta día por día, **cumplimiento de ruta** (asignados, visitados, con venta y quiénes faltan), **dónde estuvieron** (la ubicación se sella sólo al vender, cobrar o tocar Llegué; dice si quedó en el cliente o a cuántos metros) y por qué no se vendió.
+
+**Avisos a los vendedores** (Clientes → Vendedores): les aparecen al abrir Vender, para todos o para uno, con vigencia; el urgente no se puede bajar. **Notas del cliente**: lo que el vendedor anota aparece la próxima vez que abre ese cliente; *Listo* la saca de la vista sin borrarla. **Relevar con fotos**: góndola, precio de la competencia o stock del cliente; la foto se achica en el teléfono y queda en Estadísticas → Vendedores y en la ficha del cliente.
+
 ## Vender en el mostrador
 
 Escaneá o buscá el artículo (F2), ajustá cantidades, **Cobrar** (F9). Elegís el medio (efectivo, tarjeta, transferencia, Mercado Pago) y sale la factura y el ticket. Con efectivo, los botones de billetes calculan el vuelto.

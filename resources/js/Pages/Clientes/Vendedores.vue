@@ -59,6 +59,23 @@
             <button v-if="puede('configuracion','editar')" class="btn-secondary !py-1.5 text-xs" :disabled="calleForm.processing" @click="calleForm.post('/clientes/vendedores/calle', { preserveScroll: true })" data-e2e="guardar-calle">Guardar</button>
           </div>
         </div>
+        <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="avisos">
+          <h2 class="font-bold mb-1">Avisos a los vendedores</h2>
+          <p class="text-xs text-marca-muted mb-2">Les aparece al abrir Vender, arriba de todo: una promo nueva, un precio que cambió. Con vigencia y para todos o para uno. El urgente no se puede bajar de la pantalla hasta que lo des de baja. <Link href="/estadisticas/vendedores" class="text-violeta font-semibold">Ver el equipo →</Link></p>
+          <div v-for="a in avisos" :key="a.id" class="flex items-start gap-2 py-1.5 border-t border-marca-borde first:border-0 text-sm">
+            <div class="flex-1 min-w-0"><p class="font-semibold">{{ a.titulo }}<span v-if="a.urgente" class="badge bg-carmin-light text-carmin ml-1">urgente</span><span v-if="!a.vigente" class="badge bg-marca-fondo text-marca-muted ml-1">fuera de vigencia</span></p><p class="text-xs text-marca-muted">{{ a.vendedor ?? 'Todos' }}<span v-if="a.desde || a.hasta"> · {{ a.desde ?? '…' }} → {{ a.hasta ?? '…' }}</span><span v-if="a.texto"> · {{ a.texto }}</span></p></div>
+            <button v-if="puede('configuracion','editar')" class="text-xs text-marca-muted hover:text-carmin" @click="router.post(`/clientes/vendedores/avisos/${a.id}/baja`, {}, { preserveScroll: true })">Dar de baja</button>
+          </div>
+          <div v-if="puede('configuracion','editar')" class="grid sm:grid-cols-2 gap-2 mt-2 text-sm">
+            <input v-model="aviso.titulo" class="input !py-1.5 sm:col-span-2" placeholder="Título del aviso" data-e2e="aviso-titulo" />
+            <input v-model="aviso.texto" class="input !py-1.5 sm:col-span-2" placeholder="Texto (opcional)" />
+            <select v-model="aviso.vendedor_id" class="input !py-1.5"><option :value="null">Para todos</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select>
+            <label class="flex items-center gap-2 text-xs"><input v-model="aviso.urgente" type="checkbox" class="accent-carmin" /> Urgente (no se puede bajar)</label>
+            <div><label class="label">Desde</label><input v-model="aviso.desde" type="date" class="input !py-1.5" /></div>
+            <div><label class="label">Hasta</label><input v-model="aviso.hasta" type="date" class="input !py-1.5" /></div>
+            <button class="btn-secondary !py-1.5 text-xs" :disabled="!aviso.titulo || aviso.processing" @click="aviso.post('/clientes/vendedores/avisos', { preserveScroll: true, onSuccess: () => aviso.reset() })" data-e2e="aviso-publicar">Publicar aviso</button>
+          </div>
+        </div>
         <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="rendiciones">
           <h2 class="font-bold mb-1">Rendiciones de la calle</h2>
           <p class="text-xs text-marca-muted mb-2">Lo que cada vendedor cobró ya bajó la deuda del cliente, pero la plata está a su nombre ("En mano") hasta que la recibís acá: el efectivo contado entra a la caja, las transferencias al banco y los cheques ya están en cartera.</p>
@@ -116,7 +133,8 @@ import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object, autorizaciones: Object, rendiciones: Object, cajas: Array })
+const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object, autorizaciones: Object, rendiciones: Object, cajas: Array, avisos: Array })
+const aviso = useForm({ titulo: '', texto: '', vendedor_id: null, urgente: false, desde: null, hasta: null })
 const recibo = reactive(Object.fromEntries(props.rendiciones.pendientes.map(r => [r.id, { efectivo_contado: r.efectivo, caja_id: props.cajas.find(c => c.tipo === 'caja')?.id ?? null, banco_id: props.cajas.find(c => c.tipo !== 'caja')?.id ?? null }])))
 function recibir(r) { router.post(`/clientes/vendedores/rendiciones/${r.id}/recibir`, recibo[r.id], { preserveScroll: true }) }
 const { puede } = usePermisos()

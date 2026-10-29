@@ -23,7 +23,8 @@ class VendedoresController extends Controller
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
             'usuarios' => User::where('business_id', $request->user()->business_id)->orderBy('name')->get(['id', 'name']),
             'calle' => app(\App\Services\Ventas\VenderService::class)->config($request->user()->business), 'modos' => \App\Services\Ventas\VenderService::MODOS, 'autorizaciones' => app(\App\Services\Ventas\VenderService::class)->autorizaciones(),
-            'rendiciones' => app(\App\Services\Ventas\CobranzaCalleService::class)->rendiciones(), 'cajas' => \App\Models\CuentaFondos::where('activa', true)->whereNull('vendedor_id')->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
+            'rendiciones' => app(\App\Services\Ventas\CobranzaCalleService::class)->rendiciones(),
+            'avisos' => \App\Models\AvisoVendedor::with('vendedor:id,nombre')->where('activo', true)->orderByDesc('id')->get()->map(fn($a) => ['id' => $a->id, 'titulo' => $a->titulo, 'texto' => $a->texto, 'urgente' => $a->urgente, 'desde' => $a->desde?->toDateString(), 'hasta' => $a->hasta?->toDateString(), 'vendedor' => $a->vendedor?->nombre, 'vigente' => (! $a->desde || $a->desde->lte(today())) && (! $a->hasta || $a->hasta->gte(today()))]), 'cajas' => \App\Models\CuentaFondos::where('activa', true)->whereNull('vendedor_id')->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
         ]);
     }
 
@@ -34,6 +35,21 @@ class VendedoresController extends Controller
         $v->fill($d + ['activo' => $d['activo'] ?? true])->save();
         AuditLog::registrar($id ? 'editar' : 'crear', $v, "Vendedor {$v->nombre}");
         return back()->with('success', $id ? 'Vendedor actualizado.' : "Vendedor {$v->nombre} creado.");
+    }
+
+    // Fase 29.6: avisos a los vendedores. Los crea sólo el panel; el urgente no se puede bajar de la pantalla.
+    public function aviso(Request $request)
+    {
+        $d = $request->validate(['titulo' => 'required|string|max:120', 'texto' => 'nullable|string|max:1000', 'vendedor_id' => 'nullable|exists:vendedores,id', 'urgente' => 'boolean', 'desde' => 'nullable|date', 'hasta' => 'nullable|date|after_or_equal:desde']);
+        $a = \App\Models\AvisoVendedor::create($d + ['business_id' => $request->user()->business_id, 'user_id' => $request->user()->id, 'activo' => true]);
+        AuditLog::registrar('crear', $a, "Aviso a vendedores: {$a->titulo}");
+        return back()->with('success', 'Aviso publicado.');
+    }
+
+    public function bajaAviso(int $id)
+    {
+        $a = \App\Models\AvisoVendedor::findOrFail($id); $a->update(['activo' => false]);
+        return back()->with('success', 'Aviso dado de baja.');
     }
 
     // Fase 29.5: el encargado recibe la plata que rindió el vendedor.
