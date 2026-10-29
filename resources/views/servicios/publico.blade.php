@@ -32,16 +32,25 @@
   @if(in_array($ot->estado, ['presupuestado', 'diagnostico']) && (float) $ot->presupuesto > 0)
   <div class="card">
     <h3>Presupuesto</h3>
-    @if($ot->items->count())<table>@foreach($ot->items as $i)<tr><td>{{ $i->descripcion }} × {{ (float) $i->cantidad }}</td><td class="r">{{ $fmt($i->total) }}</td></tr>@endforeach</table>@endif
-    <p class="big">{{ $fmt($ot->presupuesto) }}</p>
-    <form method="post" action="/ot/{{ $ot->token }}">@csrf
+    <form method="post" action="/ot/{{ $ot->token }}" id="f">@csrf
+    @if($ot->items->count())
+      <input type="hidden" name="por_item" value="1">
+      <p class="muted">Destildá lo que preferís dejar para después: queda anotado para la próxima visita.</p>
+      <table>@foreach($ot->items as $i)<tr><td><label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:#1c1a18;margin:0"><input type="checkbox" name="aprobados[]" value="{{ $i->id }}" data-total="{{ (float) $i->total }}" checked style="width:auto" onchange="sumar()"> {{ $i->descripcion }} × {{ (float) $i->cantidad }}</label></td><td class="r">{{ $fmt($i->total) }}</td></tr>@endforeach</table>
+      <p class="big" id="total">{{ $fmt($ot->items->sum('total')) }}</p>
+    @else
+      <p class="big">{{ $fmt($ot->presupuesto) }}</p>
+    @endif
       <label>Tu nombre (para dejar constancia)</label><input name="nombre" value="{{ $ot->clienteNombre() }}" required>
-      <button class="btn p" name="respuesta" value="aprobar">Aprobar presupuesto y reparar</button>
+      <button class="btn p" name="respuesta" value="aprobar">Aprobar y reparar</button>
       <button class="btn s" name="respuesta" value="rechazar">No, gracias</button>
     </form>
+    <script>function sumar(){let t=0;document.querySelectorAll('input[name="aprobados[]"]:checked').forEach(c=>t+=+c.dataset.total);document.getElementById('total').textContent='$ '+Math.round(t).toLocaleString('es-AR')}</script>
   </div>
   @elseif($ot->estado === 'aprobado' || $ot->estado === 'en_curso')
-  <div class="card ok">Presupuesto aprobado{{ $ot->aprobado_en ? ' el ' . $ot->aprobado_en->format('d/m H:i') : '' }}. Estamos trabajando en tu equipo.</div>
+  <div class="card ok">Presupuesto aprobado{{ $ot->aprobado_en ? ' el ' . $ot->aprobado_en->format('d/m H:i') : '' }}. Estamos trabajando en tu equipo.@if($ot->items->where('pendiente_proxima', true)->count())<br><span style="font-weight:400">Quedó para la próxima: {{ $ot->items->where('pendiente_proxima', true)->pluck('descripcion')->implode(', ') }}.</span>@endif</div>
+  @elseif($ot->estado === 'esperando')
+  <div class="card"><b>En espera:</b> {{ $ot->esperando_motivo }}. Te avisamos apenas sigamos.</div>
   @elseif($ot->estado === 'listo')
   <div class="card ok">¡Tu equipo está listo para retirar! Total: {{ $fmt($ot->presupuesto) }}.</div>
   @elseif($ot->estado === 'entregado')

@@ -37,7 +37,8 @@ class OrdenesService
     public function estado(OrdenTrabajo $ot, string $estado): array
     {
         abort_if(! isset(OrdenTrabajo::ESTADOS[$estado]), 422, 'Estado inválido.');
-        $ot->update(['estado' => $estado] + ($estado === 'aprobado' ? ['aprobado_en' => now()] : []));
+        abort_if($estado === 'esperando', 422, 'Para dejarla esperando decí el motivo.');
+        $ot->update(['estado' => $estado] + ($estado === 'aprobado' ? ['aprobado_en' => now()] : []) + ($ot->estado === 'esperando' ? ['esperando_motivo' => null, 'esperando_desde' => null] : []));
         AuditLog::registrar('editar', $ot, "OT {$ot->numeroFormateado()} → " . OrdenTrabajo::ESTADOS[$estado]);
         // Avisos al cliente: presupuesto listo para aprobar y equipo listo para retirar.
         $aviso = null;
@@ -51,9 +52,11 @@ class OrdenesService
     }
 
     // El cliente aprueba (o rechaza) el presupuesto desde el link público.
-    public function respuestaCliente(OrdenTrabajo $ot, bool $aprueba, ?string $nombre = null): void
+    public function respuestaCliente(OrdenTrabajo $ot, bool $aprueba, ?string $nombre = null, ?array $aprobados = null, ?string $firma = null): void
     {
         abort_if(! in_array($ot->estado, ['presupuestado', 'diagnostico'], true), 422, 'El presupuesto ya fue respondido.');
+        // Fase 36.3: con hoja de trabajo, el cliente aprueba ítem por ítem (lo destildado queda para la próxima visita).
+        if ($aprueba && $ot->items()->exists()) { app(TallerService::class)->aprobarPorItem($ot->load('items'), $aprobados ?? $ot->items->pluck('id')->all(), $nombre, $firma); return; }
         $ot->update($aprueba ? ['estado' => 'aprobado', 'aprobado_en' => now(), 'firma_nombre' => $nombre] : ['estado' => 'cancelado', 'notas' => trim(($ot->notas ?? '') . "\nPresupuesto rechazado por el cliente.")]);
         AuditLog::registrar('editar', $ot, "El cliente " . ($aprueba ? 'aprobó' : 'rechazó') . " el presupuesto de OT {$ot->numeroFormateado()}");
     }
@@ -64,6 +67,7 @@ class OrdenesService
         $precio = (float) ($d['precio_unit'] ?? 0) ?: ($p ? $p->precioLista(1) : 0);
         $it = $ot->items()->create(['product_id' => $p?->id, 'tipo' => $d['tipo'] ?? ($p && $p->tipo === 'servicio' ? 'mano_obra' : 'material'), 'descripcion' => ($d['descripcion'] ?? '') ?: ($p?->name ?? 'Ítem'), 'cantidad' => $d['cantidad'] ?? 1, 'precio_unit' => $precio, 'total' => round((float) ($d['cantidad'] ?? 1) * $precio, 2)]);
         if ((float) $ot->presupuesto <= 0 || ($d['actualizar_presupuesto'] ?? false)) $ot->update(['presupuesto' => $ot->totalItems()]);
+        $it->aviso = app(TallerService::class)->revisarAprobacion($ot);
         return $it;
     }
 
@@ -83,7 +87,7 @@ class OrdenesService
             $contact = $ot->contact ?? Contact::customers()->where('name', 'Consumidor Final')->first();
             abort_if(! $contact, 422, 'Asigná un cliente a la orden.');
             $ri = (Auth::user()->business->condicion_iva ?? '') === 'Responsable Inscripto';
-            $items = $ot->items()->with('product')->get();
+            $items = $ot->items()->with('product')->where(fn($q) => $q->whereNull('aprobado')->orWhere('aprobado', true))->get(); // lo que el cliente dejó para después no se factura
             $lineas = $items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => $ri && $i->product ? round((float) $i->precio_unit / (1 + (float) $i->product->iva / 100), 2) : ($ri ? round((float) $i->precio_unit / 1.21, 2) : (float) $i->precio_unit), 'descuento' => 0, 'alicuota_iva' => $i->product ? (float) $i->product->iva : 21])->all();
             if (! $lineas) $lineas = [['product_id' => null, 'descripcion' => "Reparación {$ot->equipo} · OT {$ot->numeroFormateado()}", 'cantidad' => 1, 'precio_unit' => $ri ? round((float) $ot->presupuesto / 1.21, 2) : (float) $ot->presupuesto, 'descuento' => 0, 'alicuota_iva' => 21]];
             $c = $this->comprobantes->guardarBorrador(['contact_id' => $contact->id, 'tipo' => 'FX', 'fecha' => today()->toDateString(), 'condicion' => $condicion, 'orden_trabajo_id' => $ot->id, 'notas' => "OT {$ot->numeroFormateado()} · {$ot->equipo}" . ($ot->serie ? " · serie {$ot->serie}" : ''), 'items' => $lineas]);
@@ -102,6 +106,6 @@ class OrdenesService
 
     public function resumir(OrdenTrabajo $o): array
     {
-        return ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'cliente' => $o->clienteNombre(), 'telefono' => $o->telefonoCliente(), 'equipo' => $o->equipo, 'marca_modelo' => $o->marca_modelo, 'falla' => $o->falla, 'estado' => $o->estado, 'prioridad' => $o->prioridad, 'tecnico' => $o->tecnico?->name, 'ingreso' => $o->fecha_ingreso->format('d/m'), 'prometida' => $o->fecha_prometida?->format('d/m'), 'atrasada' => $o->fecha_prometida && $o->fecha_prometida->isPast() && ! in_array($o->estado, ['listo', 'entregado', 'cancelado'], true), 'presupuesto' => (float) $o->presupuesto, 'dias' => (int) $o->fecha_ingreso->diffInDays(today())];
+        return ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'cliente' => $o->clienteNombre(), 'telefono' => $o->telefonoCliente(), 'equipo' => $o->equipo, 'marca_modelo' => $o->marca_modelo, 'falla' => $o->falla, 'estado' => $o->estado, 'prioridad' => $o->prioridad, 'tecnico' => $o->tecnico?->name, 'ingreso' => $o->fecha_ingreso->format('d/m'), 'prometida' => $o->fecha_prometida?->format('d/m'), 'atrasada' => $o->fecha_prometida && $o->fecha_prometida->isPast() && ! in_array($o->estado, ['listo', 'entregado', 'cancelado'], true), 'presupuesto' => (float) $o->presupuesto, 'dias' => (int) $o->fecha_ingreso->diffInDays(today()), 'que_sigue' => app(TallerService::class)->queSigue($o)['paso'], 'esperando_motivo' => $o->esperando_motivo];
     }
 }

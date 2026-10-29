@@ -584,8 +584,19 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         $c = \App\Http\Controllers\Servicios\OrdenesController::class;
         Route::get('/', [$c, 'index']);
         Route::post('/', [$c, 'crear'])->middleware('permiso:servicios,crear');
-        Route::get('/{id}', [$c, 'ver']);
-        Route::post('/{id}', [$c, 'actualizar'])->middleware('permiso:servicios,editar');
+        // Fase 36
+        Route::post('/config', [$c, 'config'])->middleware('permiso:servicios,editar');
+        Route::get('/mis-ordenes', [$c, 'misOrdenes']);
+        Route::get('/tecnicos', [$c, 'tecnicos'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/esperar', [$c, 'esperar'])->middleware('permiso:servicios,editar')->whereNumber('id');
+        Route::post('/{id}/items/{item}/reparto', [$c, 'reparto'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/pendientes/{item}', [$c, 'traerPendiente'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/plantilla', [$c, 'guardarPlantilla'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/plantilla/{plantilla}', [$c, 'aplicarPlantilla'])->middleware('permiso:servicios,editar');
+        Route::post('/{id}/fotos', [$c, 'subirFoto'])->middleware('permiso:servicios,editar');
+        Route::get('/{id}/fotos/{foto}', [$c, 'verFoto']);
+        Route::get('/{id}', [$c, 'ver'])->whereNumber('id');
+        Route::post('/{id}', [$c, 'actualizar'])->middleware('permiso:servicios,editar')->whereNumber('id');
         Route::post('/{id}/estado', [$c, 'estado'])->middleware('permiso:servicios,editar');
         Route::post('/{id}/items', [$c, 'item'])->middleware('permiso:servicios,editar');
         Route::post('/{id}/items/{item}/borrar', [$c, 'borrarItem'])->middleware('permiso:servicios,editar');

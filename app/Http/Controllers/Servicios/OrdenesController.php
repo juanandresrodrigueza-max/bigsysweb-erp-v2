@@ -24,16 +24,20 @@ class OrdenesController extends Controller
             'tablero' => $svc->tablero(), 'estados' => OrdenTrabajo::ESTADOS, 'prioridades' => OrdenTrabajo::PRIORIDADES,
             'entregadas' => OrdenTrabajo::with('contact:id,name')->whereIn('estado', ['entregado', 'cancelado'])->orderByDesc('updated_at')->limit(15)->get()->map(fn($o) => $svc->resumir($o)),
             'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'phone']), 'tecnicos' => User::where('business_id', $b)->where('status', 'active')->orderBy('name')->get(['id', 'name']),
-            'kpis' => ['abiertas' => $todas->count(), 'urgentes' => $todas->where('prioridad', 'alta')->count(), 'atrasadas' => $todas->filter(fn($o) => $o->fecha_prometida && $o->fecha_prometida->isPast() && ! in_array($o->estado, ['listo'], true))->count(), 'listas' => $todas->where('estado', 'listo')->count(), 'por_aprobar' => $todas->where('estado', 'presupuestado')->count(), 'facturable' => (float) $todas->where('estado', 'listo')->sum('presupuesto')],
+            'config' => app(\App\Services\Servicios\TallerService::class)->config(), 'rubros' => collect(\App\Services\Servicios\TallerService::RUBROS)->map(fn($r) => $r['nombre']),
+            'kpis' => ['esperando' => $todas->where('estado', 'esperando')->count(), 'abiertas' => $todas->count(), 'urgentes' => $todas->where('prioridad', 'alta')->count(), 'atrasadas' => $todas->filter(fn($o) => $o->fecha_prometida && $o->fecha_prometida->isPast() && ! in_array($o->estado, ['listo'], true))->count(), 'listas' => $todas->where('estado', 'listo')->count(), 'por_aprobar' => $todas->where('estado', 'presupuestado')->count(), 'facturable' => (float) $todas->where('estado', 'listo')->sum('presupuesto')],
         ]);
     }
 
     public function ver(Request $request, int $id, OrdenesService $svc)
     {
-        $o = OrdenTrabajo::with('contact:id,name,phone,email', 'tecnico:id,name', 'items.product:id,name,sku', 'tareas.user:id,name', 'comprobante:id,tipo,punto_venta,numero,total,saldo')->findOrFail($id);
+        $o = OrdenTrabajo::with('contact:id,name,phone,email', 'tecnico:id,name', 'items.product:id,name,sku', 'tareas.user:id,name', 'comprobante:id,tipo,punto_venta,numero,total,saldo', 'fotos')->findOrFail($id);
+        $taller = app(\App\Services\Servicios\TallerService::class);
         return Inertia::render('Servicios/Ver', [
-            'ot' => $svc->resumir($o) + ['contact_id' => $o->contact_id, 'nombre' => $o->nombre, 'serie' => $o->serie, 'diagnostico' => $o->diagnostico, 'tecnico_id' => $o->tecnico_id, 'fecha_ingreso' => $o->fecha_ingreso->toDateString(), 'fecha_prometida' => $o->fecha_prometida?->toDateString(), 'aprobado_en' => $o->aprobado_en?->format('d/m/Y H:i'), 'entregado_en' => $o->entregado_en?->format('d/m/Y H:i'), 'firma' => $o->firma, 'firma_nombre' => $o->firma_nombre, 'notas' => $o->notas, 'url' => $o->urlPublica(), 'comprobante' => $o->comprobante ? ['id' => $o->comprobante->id, 'label' => $o->comprobante->nombreTipo() . ' ' . $o->comprobante->numeroFormateado(), 'saldo' => (float) $o->comprobante->saldo] : null, 'total_items' => $o->totalItems(),
-                'items' => $o->items->map(fn($i) => ['id' => $i->id, 'tipo' => $i->tipo, 'descripcion' => $i->descripcion, 'sku' => $i->product?->sku, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'total' => (float) $i->total]),
+            'config' => $taller->config(), 'que_sigue' => $taller->queSigue($o), 'pendientes' => $taller->pendientesAnteriores($o), 'plantillas' => \App\Models\ServicioPlantilla::orderBy('nombre')->get(['id', 'nombre']),
+            'fotos' => $o->fotos->map(fn($f) => ['id' => $f->id, 'momento' => $f->momento, 'nota' => $f->nota, 'url' => "/servicios/{$o->id}/fotos/{$f->id}"])->groupBy('momento'), 'momentos' => \App\Models\OrdenTrabajoFoto::MOMENTOS,
+            'ot' => $svc->resumir($o) + ['contact_id' => $o->contact_id, 'nombre' => $o->nombre, 'serie' => $o->serie, 'diagnostico' => $o->diagnostico, 'tecnico_id' => $o->tecnico_id, 'fecha_ingreso' => $o->fecha_ingreso->toDateString(), 'fecha_prometida' => $o->fecha_prometida?->toDateString(), 'aprobado_en' => $o->aprobado_en?->format('d/m/Y H:i'), 'entregado_en' => $o->entregado_en?->format('d/m/Y H:i'), 'firma' => $o->firma, 'firma_nombre' => $o->firma_nombre, 'notas' => $o->notas, 'url' => $o->urlPublica(), 'datos_equipo' => $o->datos_equipo ?? [], 'medidor' => $o->medidor !== null ? (float) $o->medidor : null, 'aprobacion' => $o->aprobacion ? collect($o->aprobacion)->except('firma')->all() : null, 'comprobante' => $o->comprobante ? ['id' => $o->comprobante->id, 'label' => $o->comprobante->nombreTipo() . ' ' . $o->comprobante->numeroFormateado(), 'saldo' => (float) $o->comprobante->saldo] : null, 'total_items' => $o->totalItems(),
+                'items' => $o->items->map(fn($i) => ['id' => $i->id, 'tipo' => $i->tipo, 'descripcion' => $i->descripcion, 'sku' => $i->product?->sku, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'total' => (float) $i->total, 'aprobado' => $i->aprobado, 'pendiente_proxima' => $i->pendiente_proxima, 'tecnicos' => $i->tecnicos ?? [], 'de_antes' => (bool) $i->viene_de_item_id]),
                 'tareas' => $o->tareas->map(fn($t) => ['id' => $t->id, 'descripcion' => $t->descripcion, 'hecha' => $t->hecha, 'usuario' => $t->user?->name, 'hecha_en' => $t->hecha_en?->format('d/m H:i')])],
             'estados' => OrdenTrabajo::ESTADOS, 'prioridades' => OrdenTrabajo::PRIORIDADES,
             'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'phone']), 'tecnicos' => User::where('business_id', $request->user()->business_id)->where('status', 'active')->orderBy('name')->get(['id', 'name']),
@@ -43,7 +47,7 @@ class OrdenesController extends Controller
 
     private function reglas(): array
     {
-        return ['contact_id' => 'nullable|integer', 'nombre' => 'nullable|string|max:120', 'telefono' => 'nullable|string|max:40', 'equipo' => 'required|string|max:120', 'marca_modelo' => 'nullable|string|max:120', 'serie' => 'nullable|string|max:80', 'falla' => 'required|string|max:2000', 'diagnostico' => 'nullable|string|max:2000', 'prioridad' => 'nullable|in:baja,normal,alta', 'tecnico_id' => 'nullable|integer', 'fecha_ingreso' => 'nullable|date', 'fecha_prometida' => 'nullable|date', 'presupuesto' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:2000'];
+        return ['contact_id' => 'nullable|integer', 'nombre' => 'nullable|string|max:120', 'telefono' => 'nullable|string|max:40', 'equipo' => 'required|string|max:120', 'marca_modelo' => 'nullable|string|max:120', 'serie' => 'nullable|string|max:80', 'falla' => 'required|string|max:2000', 'diagnostico' => 'nullable|string|max:2000', 'prioridad' => 'nullable|in:baja,normal,alta', 'tecnico_id' => 'nullable|integer', 'fecha_ingreso' => 'nullable|date', 'fecha_prometida' => 'nullable|date', 'presupuesto' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:2000', 'datos_equipo' => 'nullable|array', 'datos_equipo.*' => 'nullable|string|max:120', 'medidor' => 'nullable|numeric|min:0'];
     }
 
     public function crear(Request $request, OrdenesService $svc)
@@ -70,15 +74,16 @@ class OrdenesController extends Controller
     public function item(Request $request, int $id, OrdenesService $svc)
     {
         $d = $request->validate(['product_id' => 'nullable|integer', 'tipo' => 'nullable|in:material,mano_obra', 'descripcion' => 'nullable|string|max:200', 'cantidad' => 'required|numeric|gt:0', 'precio_unit' => 'nullable|numeric|min:0', 'actualizar_presupuesto' => 'boolean']);
-        $svc->item(OrdenTrabajo::findOrFail($id), $d);
-        return back()->with('success', 'Ítem agregado a la hoja de trabajo.');
+        $it = $svc->item(OrdenTrabajo::findOrFail($id), $d);
+        return $it->aviso ? back()->with('error', $it->aviso) : back()->with('success', 'Ítem agregado a la hoja de trabajo.');
     }
 
     public function borrarItem(int $id, int $item)
     {
         $ot = OrdenTrabajo::findOrFail($id); abort_if($ot->comprobante_id, 422, 'La orden ya está facturada.');
         OrdenTrabajoItem::where('orden_trabajo_id', $id)->findOrFail($item)->delete();
-        return back()->with('success', 'Ítem quitado.');
+        $aviso = app(\App\Services\Servicios\TallerService::class)->revisarAprobacion($ot);
+        return $aviso ? back()->with('error', $aviso) : back()->with('success', 'Ítem quitado.');
     }
 
     public function tarea(Request $request, int $id, OrdenesService $svc)
@@ -119,8 +124,77 @@ class OrdenesController extends Controller
     public function responder(Request $request, string $token, OrdenesService $svc)
     {
         $o = OrdenTrabajo::withoutGlobalScopes()->where('token', $token)->firstOrFail();
-        $d = $request->validate(['respuesta' => 'required|in:aprobar,rechazar', 'nombre' => 'nullable|string|max:120']);
-        $svc->respuestaCliente($o, $d['respuesta'] === 'aprobar', $d['nombre'] ?? null);
+        $d = $request->validate(['respuesta' => 'required|in:aprobar,rechazar', 'nombre' => 'nullable|string|max:120', 'aprobados' => 'nullable|array', 'aprobados.*' => 'integer', 'firma' => 'nullable|string|max:200000']);
+        $svc->respuestaCliente($o, $d['respuesta'] === 'aprobar', $d['nombre'] ?? null, $d['respuesta'] === 'aprobar' ? ($d['aprobados'] ?? ($request->boolean('por_item') ? [] : null)) : null, $d['firma'] ?? null);
         return redirect("/ot/{$token}");
+    }
+
+    // ---- Fase 36 ----
+    public function config(Request $request)
+    {
+        $d = $request->validate(['rubro' => 'required|in:' . implode(',', array_keys(\App\Services\Servicios\TallerService::RUBROS)), 'equipo' => 'nullable|string|max:40', 'serie' => 'nullable|string|max:40', 'medidor' => 'nullable|string|max:20', 'tecnico' => 'nullable|string|max:40', 'campos' => 'nullable|array', 'campos.*' => 'nullable|string|max:40', 'pago_tecnico_pct' => 'nullable|numeric|min:0|max:100']);
+        app(\App\Services\Servicios\TallerService::class)->guardarConfig($d);
+        return back()->with('success', 'Listo: las órdenes ya hablan como tu taller.');
+    }
+
+    public function esperar(Request $request, int $id)
+    {
+        $d = $request->validate(['motivo' => 'required|string|max:160']);
+        app(\App\Services\Servicios\TallerService::class)->esperar(OrdenTrabajo::findOrFail($id), $d['motivo']);
+        return back()->with('success', 'Queda esperando: ' . $d['motivo'] . '.');
+    }
+
+    public function reparto(Request $request, int $id, int $item)
+    {
+        $d = $request->validate(['reparto' => 'present|array', 'reparto.*.user_id' => 'nullable|integer', 'reparto.*.pct' => 'nullable|numeric|min:0|max:100']);
+        app(\App\Services\Servicios\TallerService::class)->repartir(OrdenTrabajoItem::where('orden_trabajo_id', $id)->findOrFail($item), $d['reparto']);
+        return back()->with('success', 'Mano de obra repartida.');
+    }
+
+    public function traerPendiente(int $id, int $item)
+    {
+        $ot = OrdenTrabajo::findOrFail($id); $t = app(\App\Services\Servicios\TallerService::class);
+        $t->traerPendiente($ot, $item); $t->revisarAprobacion($ot);
+        return back()->with('success', 'Agregado a esta orden lo que había quedado pendiente.');
+    }
+
+    public function guardarPlantilla(Request $request, int $id)
+    {
+        $d = $request->validate(['nombre' => 'required|string|max:120']);
+        app(\App\Services\Servicios\TallerService::class)->guardarPlantilla(OrdenTrabajo::findOrFail($id), $d['nombre']);
+        return back()->with('success', "Plantilla «{$d['nombre']}» guardada.");
+    }
+
+    public function aplicarPlantilla(int $id, int $plantilla, OrdenesService $svc)
+    {
+        $ot = OrdenTrabajo::findOrFail($id); abort_if($ot->comprobante_id, 422, 'La orden ya está facturada.');
+        $n = app(\App\Services\Servicios\TallerService::class)->aplicarPlantilla($ot, \App\Models\ServicioPlantilla::findOrFail($plantilla), $svc);
+        return back()->with('success', "Agregados {$n} ítems de la plantilla.");
+    }
+
+    public function subirFoto(Request $request, int $id)
+    {
+        $d = $request->validate(['momento' => 'required|in:' . implode(',', array_keys(\App\Models\OrdenTrabajoFoto::MOMENTOS)), 'fotos' => 'required|array|max:12', 'fotos.*' => 'file|max:12288|mimes:jpg,jpeg,png,webp,heic,mp4,mov', 'nota' => 'nullable|string|max:200']);
+        $ot = OrdenTrabajo::findOrFail($id);
+        foreach ($request->file('fotos') as $f) \App\Models\OrdenTrabajoFoto::create(['business_id' => $ot->business_id, 'orden_trabajo_id' => $ot->id, 'user_id' => $request->user()->id, 'momento' => $d['momento'], 'path' => $f->store("servicios/{$ot->business_id}/{$ot->id}"), 'nota' => $d['nota'] ?? null]);
+        return back()->with('success', count($request->file('fotos')) . ' foto(s) guardadas.');
+    }
+
+    public function verFoto(int $id, int $foto)
+    {
+        $f = \App\Models\OrdenTrabajoFoto::where('orden_trabajo_id', $id)->findOrFail($foto);
+        abort_unless(\Illuminate\Support\Facades\Storage::exists($f->path), 404);
+        return \Illuminate\Support\Facades\Storage::response($f->path);
+    }
+
+    public function misOrdenes(Request $request)
+    {
+        return Inertia::render('Servicios/MisOrdenes', ['ordenes' => app(\App\Services\Servicios\TallerService::class)->misOrdenes($request->user()), 'estados' => OrdenTrabajo::ESTADOS, 'config' => app(\App\Services\Servicios\TallerService::class)->config()]);
+    }
+
+    public function tecnicos(Request $request)
+    {
+        $desde = $request->desde ?: today()->startOfMonth()->toDateString(); $hasta = $request->hasta ?: today()->toDateString();
+        return Inertia::render('Servicios/Tecnicos', ['periodo' => compact('desde', 'hasta'), 'pago' => app(\App\Services\Servicios\TallerService::class)->pagoTecnicos($desde, $hasta), 'config' => app(\App\Services\Servicios\TallerService::class)->config()]);
     }
 }
