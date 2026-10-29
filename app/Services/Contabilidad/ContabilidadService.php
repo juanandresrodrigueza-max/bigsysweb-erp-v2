@@ -203,6 +203,7 @@ class ContabilidadService
             'anticipo_sueldo' => 'anticipos_personal',
             'dif_cambio' => $monto >= 0 ? 'dif_cambio' : 'dif_cambio_neg',
             'senia' => 'anticipos_clientes',
+            'devolucion' => 'deudores',
             'ingreso' => 'otros_ingresos',
             'transferencia' => 'transito',
             // El saldo con el que arranca una cuenta es aporte de capital; las diferencias de caja son resultado.
