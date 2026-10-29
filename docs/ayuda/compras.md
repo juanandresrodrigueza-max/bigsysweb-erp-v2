@@ -77,3 +77,12 @@ Es opcional. Sirve para asegurarte de que lo que bajó del camión es lo que dic
 - **Cuando algo no cierra**, al terminar decidís renglón por renglón: entra **lo que contaste**, entra **lo que dice la factura**, o queda **pendiente** (entra lo contado y el resto se reclama). Hay «aplicar a todos».
 - **El reclamo al proveedor** aparece sólo si hubo diferencias, ya escrito con el detalle y con los botones de WhatsApp, mail y copiar. No se manda solo. En Compras → **Reclamos** está la lista; cada uno se cierra solo cuando registrás la nota de crédito del proveedor con esos artículos, o a mano con **Resuelto**.
 - **Si querés que el control sea obligatorio**, en Compras → Reclamos tildá **Exigir el control con la pistola antes de registrar**. Las notas de crédito y las facturas de un remito no lo piden. Si la compra ya estaba registrada cuando la controlás, el stock se corrige en el momento por la diferencia.
+
+## Qué me falta cargar
+
+Una pregunta concreta: **¿hay comprobantes de proveedores que ARCA tiene y tu sistema no?** Cada uno es IVA que no te estás tomando.
+
+- Entrá a **ARCA → Mis Comprobantes → Recibidos**, elegí el período y bajá el CSV. En Compras tocá **Qué me falta cargar** y subilo. El archivo se cruza contra lo cargado y se borra a la media hora.
+- Te contesta cinco cosas: **las que faltan** (ordenadas de la que más IVA tiene a la que menos, con aviso de los proveedores que no tenés), **las cargadas sin el CUIT del proveedor** (por eso el libro de IVA no cruza solo; se arregla poniendo el CUIT en la ficha), **las cargadas por otro importe**, **las cargadas dos veces** (IVA computado de más) y **las que no cierran** (neto + exento + IVA + percepciones no da el total).
+- Tildás las que faltan y **Crear las que faltan**: quedan como borrador para completar los artículos, o registradas directamente si así lo elegís. Los proveedores nuevos se crean por CUIT.
+- Si al leer una factura con la cámara el proveedor tiene **una sola orden de compra abierta**, la comparación con la orden se hace sola. El pedido al proveedor sale por WhatsApp o mail desde la orden (también desde el pedido sugerido).
