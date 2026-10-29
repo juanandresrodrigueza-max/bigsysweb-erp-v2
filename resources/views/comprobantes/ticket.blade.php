@@ -10,7 +10,8 @@
 <title>Ticket {{ $c->numeroFormateado() }}</title>
 <style>
   *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#000;margin:0;padding:12px;font-size:12px;background:#f3f1ec}
-  .t{width:80mm;max-width:100%;margin:0 auto;background:#fff;padding:10px 12px;border:1px dashed #bbb}
+  .t{width:{{ ($ancho ?? 80) == 58 ? '58mm' : '80mm' }};max-width:100%;margin:0 auto;background:#fff;padding:{{ ($ancho ?? 80) == 58 ? '6px 6px' : '10px 12px' }};border:1px dashed #bbb;font-size:{{ ($ancho ?? 80) == 58 ? '11px' : '12px' }}}
+  @@page{margin:0;size:{{ ($ancho ?? 80) == 58 ? '58mm' : '80mm' }} auto}
   .c{text-align:center} .b{font-weight:800} .g{font-size:16px} .s{font-size:10px;color:#444}
   hr{border:0;border-top:1px dashed #999;margin:6px 0}
   table{width:100%;border-collapse:collapse} td{padding:2px 0;vertical-align:top} .r{text-align:right;white-space:nowrap}
@@ -46,7 +47,7 @@
   </table>
   @if(isset($cobro) && $cobro)
     <hr>
-    @foreach($cobro->medios as $m)<div>{{ \App\Models\Cobro::MEDIOS[$m->medio] ?? $m->medio }}@if(($m->datos['cuotas'] ?? 1) > 1) {{ $m->datos['tarjeta'] ?? '' }} {{ $m->datos['cuotas'] }} cuotas@endif: <span style="float:right">{{ $fmt($m->monto) }}</span></div>@endforeach
+    @foreach($cobro->medios as $m)<div>{{ \App\Models\Cobro::MEDIOS[$m->medio] ?? $m->medio }}@if(($m->datos['cuotas'] ?? 1) > 1) {{ $m->datos['tarjeta'] ?? '' }} {{ $m->datos['cuotas'] }} cuotas @endif: <span style="float:right">{{ $fmt($m->monto) }}</span></div>@endforeach
     @if(($vuelto ?? 0) > 0)<div class="b">Vuelto: <span style="float:right">{{ $fmt($vuelto) }}</span></div>@endif
   @endif
   <hr>

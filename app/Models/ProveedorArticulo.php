@@ -14,5 +14,8 @@ class ProveedorArticulo extends Model
     protected $fillable = ['business_id', 'contact_id', 'codigo', 'descripcion', 'product_id', 'unidades_bulto', 'ultimo_costo', 'ultima_fecha'];
     protected $casts = ['ultima_fecha' => 'date', 'ultimo_costo' => 'float'];
 
+    public function contact(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(Contact::class); }
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(Product::class); }
+
     public static function normalizar(string $t): string { return AliasArticulo::normalizar(preg_replace('/\s*\(b:\s*\d+\)\s*/i', ' ', $t)); }
 }

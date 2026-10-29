@@ -143,7 +143,8 @@ class PosController extends Controller
     {
         $c = Comprobante::ventas()->with(['items', 'contact', 'business', 'location', 'user', 'imputaciones.cobro.medios'])->findOrFail($id);
         $cobro = $c->imputaciones->first()?->cobro;
-        return view('comprobantes.ticket', ['c' => $c, 'b' => $c->emisor(), 'cobro' => $cobro, 'vuelto' => (float) $request->query('vuelto', 0)]);
+        $ancho = (int) ($request->query('ancho') ?: ((int) ($request->user()->business->pos['ancho'] ?? 42) <= 32 ? 58 : 80));
+        return view('comprobantes.ticket', ['c' => $c, 'b' => $c->emisor(), 'cobro' => $cobro, 'vuelto' => (float) $request->query('vuelto', 0), 'ancho' => $ancho === 58 ? 58 : 80]);
     }
     public function svc(): PosService { return app(PosService::class); }
 }
