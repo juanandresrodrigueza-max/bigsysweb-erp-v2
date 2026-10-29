@@ -32,7 +32,7 @@ import Modal from '@/Components/Modal.vue'
 import VenderMostrador from './VenderMostrador.vue'
 import VenderCalle from './VenderCalle.vue'
 
-const props = defineProps({ modo: String, modos: Object, vendedor: Object, encargado: Boolean, config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, tiposRelevamiento: Object, avisos: Array, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: Object, planesCuotas: Array, mp: Object })
+const props = defineProps({ modo: String, modos: Object, vendedor: Object, encargado: Boolean, config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, tiposRelevamiento: Object, avisos: Array, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: Object, planesCuotas: Array, mp: Object, frecuentes: Array })
 const selector = ref(false)
 const franja = { calle: 'bg-gradient-to-r from-sky-700 to-sky-600', mostrador: 'bg-gradient-to-r from-emerald-700 to-emerald-600', caja: 'bg-gradient-to-r from-slate-800 to-slate-700' }
 const ayuda = { calle: 'Arranca en tus clientes: la ruta del día, su cuenta y su lista. Anda sin señal y registra dónde estuviste.', mostrador: 'Arranca buscando productos. Consumidor final, cobrás en el momento y sale el ticket.', caja: 'El mismo mostrador con la pantalla ancha de una caja: ticket a la izquierda y el total grande.' }

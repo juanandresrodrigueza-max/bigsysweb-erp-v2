@@ -6,6 +6,9 @@
         <span class="badge" :class="online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-carmin'"><Icono nombre="wifi" clase="w-3.5 h-3.5 inline" /> {{ online ? 'Con conexión' : 'Sin conexión: las ventas se guardan acá' }}</span>
         <button v-if="cola.length" class="badge bg-amber-50 text-amber-700" :disabled="!online || sincronizando" @click="sincronizar">{{ sincronizando ? 'Sincronizando…' : `${cola.length} venta${cola.length > 1 ? 's' : ''} por sincronizar` }}</button>
         <button v-if="posConfig.impresora === 'serial' && tieneSerial" class="badge" :class="impresoraOk ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'" @click="conectarImpresora"><Icono nombre="printer" clase="w-3.5 h-3.5 inline" /> {{ impresoraOk ? 'Impresora conectada' : 'Conectar impresora' }}</button>
+        <!-- Fase 32.1: hasta 3 ventas en espera ("el del gorro") y las últimas ventas para reimprimir, anular o devolver -->
+        <button v-for="(e, k) in espera" :key="k" class="badge bg-amber-50 text-amber-800 border border-amber-200" :data-e2e="`espera-${k}`" @click="retomar(k)">⏸ {{ e.nombre }} · {{ moneda(e.total, 0) }}</button>
+        <button class="badge bg-gris-light text-marca-texto" data-e2e="ultimas" @click="abrirUltimas">Últimas ventas</button>
         <button v-if="ultimaVenta?.comprobante_id" class="badge bg-lavanda-light text-violeta" @click="imprimirTicket(ultimaVenta.comprobante_id)"><Icono nombre="printer" clase="w-3.5 h-3.5 inline" /> Imprimir último ticket</button>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-sm">
@@ -30,6 +33,7 @@
           <input ref="buscador" v-model="q" @keydown.enter.prevent="enterBuscar" class="input !pl-10 !py-3 text-base" placeholder="Código de barras, nombre o SKU… (Enter agrega el primero)" autofocus />
         </div>
         <div class="flex gap-1.5 overflow-x-auto pb-1">
+          <button v-if="frecuentes.length" @click="rubroSel = 'frec'" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border" :class="rubroSel === 'frec' ? 'bg-marca-texto text-white border-marca-texto' : 'bg-white border-marca-borde text-marca-muted'" data-e2e="chip-frecuentes">Frecuentes</button>
           <button @click="rubroSel = null" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border" :class="rubroSel === null ? 'bg-marca-texto text-white border-marca-texto' : 'bg-white border-marca-borde text-marca-muted'">Favoritos</button>
           <button v-for="r in rubros.filter(x => !x.parent_id)" :key="r.id" @click="rubroSel = r.id" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border" :class="rubroSel === r.id ? 'text-white border-transparent' : 'bg-white border-marca-borde text-marca-muted'" :style="rubroSel === r.id ? { background: r.color || '#4f3089' } : {}">{{ r.nombre }}</button>
         </div>
@@ -61,7 +65,7 @@
           <p v-if="!ticket.length" class="text-center text-marca-muted text-sm py-16">Ticket vacío. Escaneá o tocá un artículo.</p>
         </div>
         <div class="px-4 py-3 border-t border-marca-borde space-y-2">
-          <div class="flex items-center justify-between text-sm"><span class="text-marca-muted">{{ ticket.reduce((a, i) => a + i.cantidad, 0) }} ítems</span><button v-if="ticket.length" @click="ticket = []" class="text-xs text-carmin">Vaciar</button></div>
+          <div class="flex items-center justify-between text-sm"><span class="text-marca-muted">{{ ticket.reduce((a, i) => a + i.cantidad, 0) }} ítems</span><span class="flex gap-3"><button v-if="ticket.length && espera.length < 3" @click="dejarEnEspera" class="text-xs text-amber-700 font-semibold" data-e2e="dejar-espera">Dejar en espera</button><button v-if="ticket.length" @click="ticket = []" class="text-xs text-carmin">Vaciar</button></span></div>
           <div class="flex items-baseline justify-between"><span class="font-bold">TOTAL</span><span class="font-black tabular-nums" :class="caja ? 'text-5xl' : 'text-3xl'" data-e2e="total">{{ moneda(totalFinal) }}</span></div>
           <p v-if="letra === 'A'" class="text-[11px] text-marca-muted text-right">neto {{ moneda(total) }} + IVA</p>
           <button class="btn-primary w-full !py-3 text-base" :disabled="!ticket.length" @click="abrirCobro">Cobrar <span class="opacity-70 text-xs ml-1">F9</span></button>
@@ -70,8 +74,8 @@
     </div>
 
     <Modal :abierto="cobroAbierto" :titulo="`Cobrar ${moneda(aCobrar)}`" @cerrar="cobroAbierto = false">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <button v-for="m in [['efectivo','Efectivo'],['tarjeta','Tarjeta'],['transferencia','Transfer.'],['mercadopago','MercadoPago']]" :key="m[0]" @click="soloMedio(m[0])" class="py-2 rounded-xl border text-sm font-semibold" :class="medios.length === 1 && medios[0].medio === m[0] ? 'bg-carmin text-white border-carmin' : 'bg-white border-marca-borde'">{{ m[1] }}</button>
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
+        <button v-for="m in [['efectivo','Efectivo'],['tarjeta','Tarjeta'],['transferencia','Transfer.'],['mercadopago','MercadoPago'],['cheque','Cheque']]" :key="m[0]" @click="soloMedio(m[0])" class="py-2 rounded-xl border text-sm font-semibold" :class="medios.length === 1 && medios[0].medio === m[0] ? 'bg-carmin text-white border-carmin' : 'bg-white border-marca-borde'">{{ m[1] }}</button>
       </div>
       <div v-for="(m, i) in medios" :key="i" class="mb-2">
         <div class="grid grid-cols-[1fr_130px_28px] gap-2">
@@ -83,6 +87,12 @@
           <select v-model="m.datos.tarjeta" class="input !py-1 text-xs" @change="m.datos.cuotas = 1; aplicarCuotas(m)"><option v-for="t in planesCuotas" :key="t.nombre" :value="t.nombre">{{ t.nombre }}</option></select>
           <select v-model.number="m.datos.cuotas" class="input !py-1 text-xs" @change="aplicarCuotas(m)"><option v-for="pl in planesDe(m.datos.tarjeta)" :key="pl.cuotas" :value="pl.cuotas">{{ pl.cuotas }} cuota{{ pl.cuotas > 1 ? 's' : '' }}{{ pl.recargo ? ` · ${pl.recargo > 0 ? '+' : ''}${pl.recargo}%` : ' · sin recargo' }}</option></select>
           <p v-if="recargoDe(m)" class="col-span-2 text-[11px] text-marca-muted">{{ m.datos.cuotas }} cuotas de <b class="tabular-nums">{{ moneda(m.monto / m.datos.cuotas) }}</b> · recargo {{ recargoDe(m) }}% incluido en el importe (entra como ítem de la factura).</p>
+        </div>
+        <div v-if="m.medio === 'cheque'" class="grid grid-cols-2 gap-1.5 mt-1" data-e2e="cheque-datos">
+          <input v-model="m.datos.numero" class="input !py-1 text-xs" placeholder="Número del cheque" /><select v-model="m.datos.banco" class="input !py-1 text-xs"><option value="">Banco</option><option v-for="b in bancos" :key="b" :value="b">{{ b }}</option></select>
+          <input v-model="m.datos.fecha_pago" type="date" class="input !py-1 text-xs" /><input v-model="m.datos.emisor" class="input !py-1 text-xs" placeholder="Quién lo firma" />
+          <label class="text-xs flex items-center gap-1"><input v-model="m.datos.echeq" type="checkbox" class="accent-carmin" /> e-cheq</label>
+          <button type="button" class="text-xs text-violeta font-semibold text-right" @click="medios.push({ medio: 'cheque', monto: Math.max(0, aCobrar - pagado), datos: { numero: '', banco: '', fecha_pago: '', emisor: '', echeq: false } })">+ otro cheque</button>
         </div>
         <div v-if="m.medio === 'mercadopago' && (mp.qr || mp.point)" class="mt-1 rounded-xl border border-marca-borde p-2 text-xs">
           <div v-if="!mpCobro" class="flex flex-wrap gap-1.5 items-center"><span class="text-marca-muted">Cobrar {{ moneda(m.monto) }} con:</span><button v-if="mp.qr" type="button" class="btn-secondary !py-1 text-xs" @click="mpIniciar('qr', m)">QR de mostrador</button><button v-if="mp.point" type="button" class="btn-secondary !py-1 text-xs" @click="mpIniciar('point', m)">Point (lector)</button></div>
@@ -100,6 +110,9 @@
         <div class="flex justify-between"><span>Pagado</span><b class="tabular-nums">{{ moneda(pagado) }}</b></div>
         <div class="flex justify-between text-lg" :class="pagado >= aCobrar + recargoTotal - 0.005 ? 'text-emerald-700' : 'text-carmin'"><span>{{ pagado >= aCobrar + recargoTotal - 0.005 ? 'Vuelto' : 'Falta' }}</span><b class="tabular-nums">{{ moneda(Math.abs(pagado - aCobrar - recargoTotal)) }}</b></div>
       </div>
+      <div v-if="contactId === consumidorFinalId" class="grid grid-cols-2 gap-2 mt-3" data-e2e="dni">
+        <input v-model="receptor.documento" class="input !py-1.5 text-sm" placeholder="DNI del cliente (opcional)" inputmode="numeric" /><input v-model="receptor.nombre" class="input !py-1.5 text-sm" placeholder="Nombre (opcional)" />
+      </div>
       <label v-if="pagado < aCobrar + recargoTotal - 0.005 && contactId !== consumidorFinalId" class="flex items-center gap-2 text-sm mt-3"><input v-model="aCuenta" type="checkbox" class="accent-carmin" /> Lo que falta queda en cuenta corriente del cliente</label>
       <p v-if="error" class="text-carmin text-xs mt-2">{{ error }}</p>
       <template #pie>
@@ -107,23 +120,52 @@
         <button class="btn-primary !px-6" :disabled="enviando || (pagado < aCobrar + recargoTotal - 0.005 && !aCuenta)" @click="cobrar">{{ enviando ? 'Cobrando…' : 'Confirmar y emitir' }}</button>
       </template>
     </Modal>
+
+    <Modal :abierto="ultimasAbierto" titulo="Últimas ventas de esta caja" @cerrar="ultimasAbierto = false" ancho="max-w-2xl">
+      <p v-if="!ultimas.length" class="text-sm text-marca-muted text-center py-6">Todavía no vendiste nada hoy.</p>
+      <div v-for="u in ultimas" :key="u.id" class="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-marca-borde text-sm" :data-e2e="`ultima-${u.id}`">
+        <div><p class="font-semibold">{{ u.hora }} · {{ u.numero }} <span class="text-marca-muted font-normal">· {{ u.cliente }}</span> <span v-if="u.estado === 'anulado'" class="badge bg-gris-light text-marca-muted">anulada</span><span v-else-if="u.devuelto > 0" class="badge bg-amber-50 text-amber-800">devuelto {{ moneda(u.devuelto) }}</span></p><p class="text-xs text-marca-muted">{{ u.items.length }} renglón{{ u.items.length === 1 ? "" : "es" }} · {{ u.medios.map(m => mediosLabels[m] ?? m).join(' + ') }}</p></div>
+        <div class="flex items-center gap-2"><b class="tabular-nums">{{ moneda(u.total) }}</b>
+          <button class="btn-secondary !py-1 text-xs" @click="imprimirTicket(u.id)">Reimprimir</button>
+          <template v-if="u.estado === 'emitido' && u.devuelto < u.total - 0.005"><button class="btn-secondary !py-1 text-xs" @click="abrirDevolucion(u)">Devolución</button><button v-if="puede?.anular && u.id === ultimas[0]?.id && !u.devuelto" class="btn-ghost !py-1 text-xs text-carmin" :data-e2e="`anular-${u.id}`" @click="anularVenta(u)">Anular</button></template>
+        </div>
+      </div>
+      <p v-if="msjUltimas" class="text-sm mt-3 rounded-xl px-3 py-2" :class="msjUltimas.error ? 'bg-carmin-light text-carmin' : 'bg-emerald-50 text-emerald-800'" data-e2e="msj-ultimas">{{ msjUltimas.texto }}</p>
+      <p class="text-[11px] text-marca-muted mt-3">Anular es para la última venta de hoy: si ya tiene CAE sale la nota de crédito sola y la plata vuelve por donde entró. Para lo demás, devolución.</p>
+    </Modal>
+
+    <Modal :abierto="!!devol" :titulo="devol ? `Devolución sobre ${devol.venta.numero}` : ''" @cerrar="devol = null">
+      <template v-if="devol">
+        <p class="text-sm text-marca-muted mb-2">Marcá qué vuelve y por dónde devolvés la plata. Sale la nota de crédito y la caja queda bien.</p>
+        <div v-for="it in devol.items" :key="it.id" class="flex items-center justify-between gap-2 py-1.5 border-t border-marca-borde text-sm">
+          <label class="flex items-center gap-2 flex-1 min-w-0"><input type="checkbox" class="accent-carmin" :checked="it.cantidad > 0" @change="it.cantidad = $event.target.checked ? it.max : 0" /><span class="truncate">{{ it.descripcion }}</span></label>
+          <input v-model.number="it.cantidad" type="number" step="any" min="0" :max="it.max" class="input !py-1 w-20 text-right" /><span class="text-xs text-marca-muted w-14">de {{ cantidad(it.max) }}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <select v-model="devol.medio" class="input !py-1.5 text-sm"><option v-for="k in mediosDevolucion" :key="k" :value="k">{{ k === 'tarjeta' ? 'Tarjeta (se anula el cupón, no sale plata)' : 'Devolver por ' + mediosLabels[k].toLowerCase() }}</option></select>
+          <input v-model="devol.motivo" class="input !py-1.5 text-sm" placeholder="Motivo (opcional)" />
+        </div>
+        <p v-if="devol.error" class="text-carmin text-xs mt-2">{{ devol.error }}</p>
+      </template>
+      <template #pie><button class="btn-secondary" @click="devol = null">Cancelar</button><button class="btn-primary" data-e2e="confirmar-devolucion" :disabled="devol?.enviando || !devol?.items.some(i => i.cantidad > 0)" @click="confirmarDevolucion">Hacer la nota de crédito</button></template>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 import QRCode from 'qrcode'
 
-const props = defineProps({ modo: String, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) }, planesCuotas: { type: Array, default: () => [] }, mp: { type: Object, default: () => ({ qr: false, point: false }) } })
+const props = defineProps({ puede: { type: Object, default: () => ({}) }, frecuentes: { type: Array, default: () => [] }, bancos: { type: Array, default: () => [] }, modo: String, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: { type: Object, default: () => ({}) }, planesCuotas: { type: Array, default: () => [] }, mp: { type: Object, default: () => ({ qr: false, point: false }) } })
 const page = usePage()
 const caja = computed(() => props.modo === 'caja')
 const base = () => `/${props.vertical === 'vender' ? 'vender' : props.vertical}`
-const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mercadopago: 'MercadoPago', billetera: 'Billetera' }
-const q = ref(''), rubroSel = ref(null), buscador = ref(null)
+const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', mercadopago: 'MercadoPago', billetera: 'Billetera', cheque: 'Cheque' }
+const q = ref(''), rubroSel = ref(props.frecuentes.length && !props.productos.some(p => p.favorito) ? 'frec' : null), buscador = ref(null)
 const ticket = ref([]), contactId = ref(props.consumidorFinalId)
 const cliente = computed(() => props.clientes.find(c => c.id === contactId.value))
 const letra = computed(() => cliente.value?.condicion_iva === 'Responsable Inscripto' && props.empresaLetra === 'B' ? 'A' : props.empresaLetra)
@@ -136,6 +178,7 @@ function sumarRemotos(filas) { const ids = new Set(catalogo.value.map(x => x.id)
 watch(q, t => { if (!props.catalogoParcial || t.trim().length < 2) { remotos.value = []; return } clearTimeout(timerRemoto); timerRemoto = setTimeout(async () => { try { const r = await fetch(`${base()}/buscar?q=${encodeURIComponent(t.trim())}`, { headers: { Accept: 'application/json' } }); if (r.ok) sumarRemotos(await r.json()) } catch (e) {} }, 200) })
 const visibles = computed(() => {
   if (q.value.trim()) { const t = norm(q.value); return catalogo.value.filter(p => norm(p.name).includes(t) || norm(p.sku).includes(t) || (p.barcode && p.barcode.includes(q.value.trim()))).slice(0, 60) }
+  if (rubroSel.value === 'frec') return props.frecuentes.map(id => catalogo.value.find(p => p.id === id)).filter(Boolean)
   if (rubroSel.value) return catalogo.value.filter(p => p.rubro_id === rubroSel.value || props.rubros.find(r => r.id === p.rubro_id)?.parent_id === rubroSel.value)
   const fav = catalogo.value.filter(p => p.favorito); return fav.length ? fav : catalogo.value.slice(0, 24)
 })
@@ -177,7 +220,8 @@ const cobroAbierto = ref(false), medios = ref([]), aCuenta = ref(false), enviand
 const pagado = computed(() => medios.value.reduce((a, m) => a + (Number(m.monto) || 0), 0))
 const aCobrar = computed(() => totalFinal.value)
 const billetes = computed(() => { const t = aCobrar.value; const base = [1000, 2000, 5000, 10000, 20000, 50000]; const r = [Math.ceil(t / 1000) * 1000, Math.ceil(t / 5000) * 5000, Math.ceil(t / 10000) * 10000, ...base.filter(b => b > t)]; return [...new Set(r.filter(b => b >= t))].sort((a, b) => a - b).slice(0, 5) })
-const nuevoMedio = (medio, monto) => ({ medio, monto, datos: { tarjeta: props.planesCuotas[0]?.nombre ?? null, cuotas: 1 } })
+const nuevoMedio = (medio, monto) => ({ medio, monto, datos: medio === 'cheque' ? { numero: '', banco: '', fecha_pago: '', emisor: '', echeq: false } : { tarjeta: props.planesCuotas[0]?.nombre ?? null, cuotas: 1 } })
+const receptor = reactive({ documento: '', nombre: '' })
 function abrirCobro() { if (!ticket.value.length) return; medios.value = [nuevoMedio('efectivo', aCobrar.value)]; aCuenta.value = false; error.value = null; mpCobro.value = null; cobroAbierto.value = true; nextTick(() => { montoInputs.value?.[0]?.select?.() }) }
 function soloMedio(m) { medios.value = [nuevoMedio(m, aCobrar.value)]; mpCobro.value = null; nextTick(() => montoInputs.value?.[0]?.select?.()) }
 // --- Tarjeta en cuotas: el importe del medio pasa a incluir el recargo del plan; el servidor lo agrega como ítem ---
@@ -241,7 +285,7 @@ async function sincronizar() {
 function cobrar() {
   if (enviando.value) return
   enviando.value = true; error.value = null
-  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' ? m.datos : null })) }
+  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' || m.medio === 'cheque' ? m.datos : null })), receptor: contactId.value === props.consumidorFinalId && (receptor.documento || receptor.nombre) ? { documento: receptor.documento || null, nombre: receptor.nombre || null } : null }
   if (!navigator.onLine) {
     cola.value.push({ ...datos, offline_id: 'off-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), fecha_offline: new Date().toISOString() }); guardarCola()
     ultimaVenta.value = { numero: 'SIN CONEXIÓN', total: totalFinal.value, vuelto: Math.max(0, pagado.value - aCobrar.value), offline: true }
@@ -249,10 +293,37 @@ function cobrar() {
   }
   router.post(`${base()}/vender`, datos, {
     preserveScroll: true,
-    onSuccess: () => { ultimaVenta.value = page.props.flash?.pos ?? null; ticket.value = []; cobroAbierto.value = false; contactId.value = props.consumidorFinalId; nextTick(() => buscador.value?.focus()); if (ultimaVenta.value?.comprobante_id) imprimirAuto(ultimaVenta.value.comprobante_id) },
+    onSuccess: () => { ultimaVenta.value = page.props.flash?.pos ?? null; ticket.value = []; cobroAbierto.value = false; receptor.documento = ''; receptor.nombre = ''; contactId.value = props.consumidorFinalId; nextTick(() => buscador.value?.focus()); if (ultimaVenta.value?.comprobante_id) imprimirAuto(ultimaVenta.value.comprobante_id) },
     onError: e => { error.value = Object.values(e)[0] },
     onFinish: () => (enviando.value = false),
   })
+}
+// --- Fase 32.1 · Caja fluida: ventas en espera (quedan en este navegador), últimas ventas, anular la última y devolución ---
+const claveEspera = `pos_espera_${props.vertical}`
+const espera = ref([]); try { espera.value = JSON.parse(localStorage.getItem(claveEspera) || '[]') } catch (e) {}
+const guardarEspera = () => { try { localStorage.setItem(claveEspera, JSON.stringify(espera.value)) } catch (e) {} }
+function dejarEnEspera() {
+  const nombre = window.prompt('¿Cómo lo llamamos? (por ejemplo: el del gorro)', `Venta ${espera.value.length + 1}`); if (nombre === null) return
+  espera.value.push({ nombre: nombre || `Venta ${espera.value.length + 1}`, total: totalFinal.value, contactId: contactId.value, ticket: JSON.parse(JSON.stringify(ticket.value)), hora: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) }); guardarEspera()
+  ticket.value = []; contactId.value = props.consumidorFinalId; nextTick(() => buscador.value?.focus())
+}
+function retomar(k) {
+  const e = espera.value[k]
+  if (ticket.value.length) { if (!window.confirm('Tenés una venta armada. ¿La dejamos en espera y retomamos la otra?')) return; espera.value.push({ nombre: `Venta ${espera.value.length + 1}`, total: totalFinal.value, contactId: contactId.value, ticket: JSON.parse(JSON.stringify(ticket.value)) }) }
+  ticket.value = e.ticket; contactId.value = e.contactId ?? props.consumidorFinalId; espera.value.splice(k, 1); guardarEspera(); nextTick(() => buscador.value?.focus())
+}
+const ultimasAbierto = ref(false), ultimas = ref([]), msjUltimas = ref(null), devol = ref(null)
+async function cargarUltimas() { try { const r = await fetch(`${base()}/ultimas`, { headers: { Accept: 'application/json' } }); ultimas.value = await r.json() } catch (e) { ultimas.value = [] } }
+function abrirUltimas() { msjUltimas.value = null; ultimasAbierto.value = true; cargarUltimas() }
+async function anularVenta(u) {
+  const motivo = window.prompt(`¿Por qué se anula la venta ${u.numero}?`); if (motivo === null) return
+  try { const r = await fetch(`${base()}/venta/${u.id}/anular`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ motivo: motivo || 'anulada en caja' }) }); const j = await r.json(); msjUltimas.value = r.ok ? { texto: j.mensaje } : { error: true, texto: j.message ?? 'No se pudo anular.' }; if (r.ok && ultimaVenta.value?.comprobante_id === u.id) ultimaVenta.value = null; cargarUltimas() } catch (e) { msjUltimas.value = { error: true, texto: 'No se pudo anular.' } }
+}
+const mediosDevolucion = ['efectivo', 'transferencia', 'mercadopago', 'billetera', 'tarjeta']
+function abrirDevolucion(u) { devol.value = { venta: u, medio: mediosDevolucion.includes(u.medios[0]) ? u.medios[0] : 'efectivo', motivo: '', error: null, enviando: false, items: u.items.map(i => ({ id: i.id, descripcion: i.descripcion, max: i.cantidad, cantidad: 0 })) } }
+async function confirmarDevolucion() {
+  const d = devol.value; d.enviando = true; d.error = null
+  try { const r = await fetch(`${base()}/venta/${d.venta.id}/devolver`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify({ items: d.items.filter(i => i.cantidad > 0).map(i => ({ item_id: i.id, cantidad: i.cantidad })), medio: d.medio, motivo: d.motivo || null }) }); const j = await r.json(); if (!r.ok) { d.error = j.message ?? Object.values(j.errors ?? {})[0]?.[0] ?? 'No se pudo.'; d.enviando = false; return } msjUltimas.value = { texto: j.mensaje }; devol.value = null; cargarUltimas() } catch (e) { d.error = 'No se pudo.'; d.enviando = false }
 }
 // --- Impresora térmica directa (WebSerial) ---
 let puerto = null

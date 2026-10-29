@@ -33,7 +33,7 @@ class VenderController extends Controller
             'vendedor' => $v ? ['id' => $v->id, 'nombre' => $v->nombre, 'modo_default' => $v->modo_default] : null,
             'encargado' => $u->puede('clientes', 'editar'),
             'config' => $this->vender->config($u->business),
-            'puede' => ['facturar' => $u->puede('comprobantes', 'crear'), 'precios' => $u->puede('comprobantes', 'editar'), 'cobrar' => $u->puede('clientes', 'crear')],
+            'puede' => ['anular' => $u->puede(str_contains($request->path(), 'retail') ? 'retail' : (str_contains($request->path(), 'minimarket') ? 'minimarket' : 'comprobantes'), 'anular'), 'facturar' => $u->puede('comprobantes', 'crear'), 'precios' => $u->puede('comprobantes', 'editar'), 'cobrar' => $u->puede('clientes', 'crear')],
             'motivos' => Visita::MOTIVOS, 'motivosDevolucion' => CobranzaCalleService::MOTIVOS_DEVOLUCION, 'bancos' => \App\Support\Bancos::LISTA, 'tiposRelevamiento' => \App\Models\Relevamiento::TIPOS, 'avisos' => $this->equipo->avisosPara($v),
         ]);
     }
@@ -156,6 +156,8 @@ class VenderController extends Controller
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|exists:products,id', 'items.*.serie' => 'nullable|string|max:2000', 'items.*.descripcion' => 'nullable|string|max:150', 'items.*.cantidad' => 'required|numeric|min:0.001', 'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.autorizado' => 'nullable|string|max:80',
             'medios' => 'nullable|array', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array', 'medios.*.datos.tarjeta' => 'nullable|string|max:60', 'medios.*.datos.cuotas' => 'nullable|integer|min:1|max:60',
             'lat' => 'nullable|numeric', 'lng' => 'nullable|numeric', 'offline_id' => 'nullable|string|max:64', 'fecha_offline' => 'nullable|date',
+            'receptor' => 'nullable|array', 'receptor.nombre' => 'nullable|string|max:150', 'receptor.documento' => ['nullable', 'string', 'max:20', function ($a, $v, $fail) { $d = preg_replace('/\D/', '', (string) $v); if ($d !== '' && ! in_array(strlen($d), [7, 8, 11], true)) $fail('El documento tiene que ser un DNI (7 u 8 números) o un CUIT (11).'); }],
+            'medios.*.datos.numero' => 'nullable|string|max:40', 'medios.*.datos.banco' => 'nullable|string|max:80', 'medios.*.datos.fecha_pago' => 'nullable|date', 'medios.*.datos.emisor' => 'nullable|string|max:120', 'medios.*.datos.cuit' => 'nullable|string|max:20', 'medios.*.datos.echeq' => 'nullable|boolean',
         ]);
         if (! empty($d['offline_id']) && ($ya = Comprobante::ventas()->where('offline_id', $d['offline_id'])->first())) {
             return response()->json(['ok' => true, 'repetida' => true, 'comprobante_id' => $ya->id, 'numero' => $ya->estado === 'emitido' ? $ya->numeroFormateado() : "#{$ya->id}", 'total' => (float) $ya->total]);
@@ -167,5 +169,23 @@ class VenderController extends Controller
         $out = ['ok' => true, 'comprobante_id' => $c->id, 'tipo' => $c->nombreTipo(), 'estado' => $c->estado, 'numero' => $c->estado === 'emitido' ? $c->numeroFormateado() : "#{$c->id}", 'total' => (float) $c->total, 'vuelto' => $r['vuelto'], 'presupuesto' => $r['presupuesto'], 'aviso' => $r['aviso'] ?? null];
         if ($request->wantsJson()) return response()->json($out);
         return back()->with('success', "{$c->nombreTipo()} {$out['numero']} · " . number_format((float) $c->total, 2, ',', '.') . ($r['vuelto'] > 0 ? ' · vuelto $ ' . number_format($r['vuelto'], 2, ',', '.') : ''))->with('pos', $out);
+    }
+
+    // ---- Fase 32.1 · Caja fluida ----
+    public function ultimas(Request $request) { return response()->json($this->pos->svc()->ultimas($request->user())); }
+
+    public function anularVenta(Request $request, int $id)
+    {
+        $d = $request->validate(['motivo' => 'required|string|max:200']);
+        $r = $this->pos->svc()->anularVenta(Comprobante::ventas()->with(['items', 'imputaciones.cobro.medios'])->findOrFail($id), $request->user(), $d['motivo']);
+        $c = $r['comprobante'];
+        return response()->json(['ok' => true, 'modo' => $r['modo'], 'comprobante_id' => $c->id, 'numero' => $c->numeroFormateado(), 'mensaje' => $r['modo'] === 'nc' ? "Ya tenía CAE: salió la {$c->nombreTipo()} {$c->numeroFormateado()} y la plata volvió por donde entró." : 'Venta anulada y cobro devuelto.']);
+    }
+
+    public function devolver(Request $request, int $id)
+    {
+        $d = $request->validate(['items' => 'required|array|min:1', 'items.*.item_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|min:0', 'medio' => 'required|in:efectivo,transferencia,mercadopago,billetera,tarjeta', 'cuenta_fondos_id' => 'nullable|integer', 'motivo' => 'nullable|string|max:200']);
+        $nc = $this->pos->svc()->devolver(Comprobante::ventas()->with(['items'])->findOrFail($id), $d['items'], $request->user(), $d['medio'], $d['cuenta_fondos_id'] ?? null, $d['motivo'] ?? null);
+        return response()->json(['ok' => true, 'comprobante_id' => $nc->id, 'numero' => $nc->numeroFormateado(), 'total' => (float) $nc->total, 'mensaje' => "{$nc->nombreTipo()} {$nc->numeroFormateado()} por $ " . number_format((float) $nc->total, 2, ',', '.') . ' · la plata vuelve por ' . Cobro::MEDIOS[$d['medio']] . '.']);
     }
 }

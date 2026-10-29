@@ -44,6 +44,7 @@ class PosController extends Controller
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color', 'parent_id']),
             'clientes' => Contact::customers()->where('is_active', true)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$pos->consumidorFinal()->id])->orderBy('name')->limit(300)->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit']),
             'consumidorFinalId' => $pos->consumidorFinal()->id,
+            'frecuentes' => $pos->frecuentes($user->business_id),
             'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
             'caja' => $caja ? ['id' => $caja->id, 'nombre' => $caja->nombre, 'saldo' => (float) $caja->saldo, 'turno' => $caja->turnoAbierto ? ['id' => $caja->turnoAbierto->id, 'desde' => $caja->turnoAbierto->apertura->format('H:i'), 'usuario' => $caja->turnoAbierto->user?->name] : null] : null,
             'hoy' => ['ventas' => (float) (clone $hoy)->sum('total'), 'tickets' => (clone $hoy)->count(), 'ultimos' => (clone $hoy)->latest('id')->limit(8)->get()->map(fn($c) => ['id' => $c->id, 'numero' => $c->numeroFormateado(), 'total' => (float) $c->total, 'hora' => $c->emitido_en?->format('H:i'), 'cliente' => $c->contact?->name])],
@@ -144,4 +145,5 @@ class PosController extends Controller
         $cobro = $c->imputaciones->first()?->cobro;
         return view('comprobantes.ticket', ['c' => $c, 'b' => $c->emisor(), 'cobro' => $cobro, 'vuelto' => (float) $request->query('vuelto', 0)]);
     }
+    public function svc(): PosService { return app(PosService::class); }
 }

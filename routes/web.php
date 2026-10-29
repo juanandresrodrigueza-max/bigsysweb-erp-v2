@@ -595,6 +595,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::post('/rendir',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'rendir'])->middleware('permiso:clientes,crear');
             Route::post('/comprobante/{id}/entrega', [\App\Http\Controllers\Comprobantes\VenderController::class, 'entrega'])->middleware("permiso:{$perm},crear")->whereNumber('id');
             Route::get('/comprobante/{id}/entrega/foto', [\App\Http\Controllers\Comprobantes\VenderController::class, 'fotoEntrega'])->whereNumber('id');
+            // Fase 32.1: últimas ventas de la caja, anular la última, devolución con la plata de vuelta
+            Route::get('/ultimas',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'ultimas']);
+            Route::post('/venta/{id}/anular',   [\App\Http\Controllers\Comprobantes\VenderController::class, 'anularVenta'])->middleware("permiso:{$perm},anular")->whereNumber('id');
+            Route::post('/venta/{id}/devolver', [\App\Http\Controllers\Comprobantes\VenderController::class, 'devolver'])->middleware("permiso:{$perm},crear")->whereNumber('id');
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
             Route::get('/ticket/{id}/escpos', [\App\Http\Controllers\Pos\PosController::class, 'escpos']);
             Route::post('/mp/iniciar', [\App\Http\Controllers\Pos\PosController::class, 'mpIniciar'])->middleware("permiso:{$perm},crear");

@@ -67,3 +67,11 @@ Al cerrar la caja se cuenta la plata por medio de pago y, para los artículos ma
 ## Sin conexión
 
 Si se corta internet, el POS sigue vendiendo: las ventas quedan guardadas en el navegador y se suben solas cuando vuelve la conexión. Mientras tanto el ticket sale como "sin conexión".
+
+## La caja fluida
+
+- **Ventas en espera.** Con la venta armada, tocá **Dejar en espera** y ponele un nombre («el del gorro»). Atendés a otro y la retomás de un toque desde la franja de arriba. Hasta tres a la vez; quedan guardadas en esa computadora aunque cierres el navegador.
+- **Frecuentes.** La pestaña **Frecuentes** trae lo más vendido en la caja en los últimos 30 días, en botones grandes: para el pan, el cigarrillo suelto o la fruta, lo que no tiene código de barras.
+- **Cobrar con cheques.** En el cobro elegí **Cheque**, cargá número, banco, fecha de pago y quién lo firma; «+ otro cheque» para varios, y se mezcla con efectivo. Quedan en cartera en Fondos.
+- **DNI del consumidor final.** Al cobrar a Consumidor Final podés poner el DNI y el nombre: salen en la factura sin crear un cliente.
+- **Últimas ventas.** El botón de arriba lista las ventas de hoy de esta caja: **Reimprimir** el ticket, **Devolución** (marcás qué vuelve y por dónde devolvés la plata: sale la nota de crédito y la caja queda bien; con tarjeta no sale plata, se anula el cupón) y **Anular** la última venta (si todavía no tiene CAE se anula y el cobro vuelve; si ya tiene CAE, sale la nota de crédito sola por el total y la plata vuelve por donde entró). Anular pide el permiso de anular del módulo.
