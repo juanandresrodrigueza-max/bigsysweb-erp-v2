@@ -55,3 +55,19 @@ Los **abonos** (Comprobantes → Abonos) generan la factura de cada cuota solos,
 
 - **El arqueo no cierra**: revisá los retiros y los cobros en efectivo del turno; el detalle está en el cierre.
 - **Transferencia que no aparece en el banco**: puede haberse cargado en otra cuenta; buscala por importe en Fondos → Movimientos.
+
+## Conciliar tarjetas y billeteras (Fondos → Conciliar)
+
+El cupón entra al fondo de la tarjeta cuando cobrás, pero cuando la procesadora acredita nadie registra la liquidación. Acá subís el archivo que te manda la procesadora y el sistema lo cruza contra tus cupones.
+
+**Qué es cada fondo** (a la derecha): marcá qué fondos se concilian, qué procesadora liquida en cada uno (Fiserv, Naranja X, GOcuotas, Mercado Pago, NAVE…), en qué banco deposita y lo pactado (comisión % y plazo en días). Se sugiere por el nombre del fondo.
+
+**Subir**: el Excel o CSV tal como viene. Se reconoce de quién es, se busca el encabezado aunque haya títulos arriba, y se compara con el total del archivo cuando lo trae ("Leí todo"). Si la procesadora cambia el formato, te avisa qué columna falta y cuál es nueva. Payway, Getnet y MODO esperan un archivo real para armar el lector.
+
+**El resultado**, en cuatro grupos:
+- **Listo para tildar**: cada operación con su cupón (por importe y fecha a ±3 días; si hay varios iguales, decide el número de cupón). Los cupones ya liquidados aparecen como "ya tildado" y no se cuentan dos veces.
+- **Todavía no te pagaron**: cupones del período que no vinieron en el archivo.
+- **Comisiones e impuestos**: por cada acreditación, con todas las letras: "salen $X del fondo tarjeta, entran $Y al banco, y $Z son comisión, IVA y retenciones". Si cargaste lo pactado, te dice cuántas vinieron con comisión de más y cuánto, y cuántas se pagaron tarde.
+- **A revisar**: lo que el sistema no se animó a decidir, con los candidatos. Nunca asigna a la fuerza: elegís con un clic o marcás "no es de este sistema". Se puede volver atrás.
+
+**Asentar**: la previa muestra cada liquidación en formato contable (banco, comisiones, IVA crédito, retenciones contra cupones a cobrar) con debe = haber. "Ver qué escribiría" corre todo sin grabar y es obligatorio. "Asentar" registra las liquidaciones en una sola operación (todo o nada): los cupones pasan a liquidados y el neto entra al banco. "Deshacer" las anula y los cupones vuelven a cartera.

@@ -20,6 +20,7 @@ class CuponTarjeta extends Model
     public const TARJETAS = ['Visa', 'Mastercard', 'American Express', 'Cabal', 'Naranja', 'Maestro', 'Visa Débito', 'Mastercard Débito', 'Otra'];
 
     public function cobro(): BelongsTo { return $this->belongsTo(Cobro::class); }
+    public function medio(): BelongsTo { return $this->belongsTo(CobroMedio::class, 'cobro_medio_id'); }
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }
     public function liquidacion(): BelongsTo { return $this->belongsTo(LiquidacionTarjeta::class, 'liquidacion_tarjeta_id'); }
     public function scopeEnCartera(Builder $q): Builder { return $q->where('estado', 'cartera'); }
