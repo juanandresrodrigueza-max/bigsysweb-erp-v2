@@ -158,6 +158,30 @@ class TiendaOnlineController extends Controller
         return response()->json($prods->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'foto' => $p->imagen, 'por' => stripos($p->name, $q) === false && $p->description && stripos($p->description, $tk[array_key_first($tk)] ?? $q) !== false ? '…' . mb_substr($p->description, max(0, stripos($p->description, $tk[array_key_first($tk)] ?? $q) - 20), 60) . '…' : null]));
     }
 
+    // ---- Fase 30.5: cargos de MercadoLibre, por mes y para el contador ----
+    public function cargos(Request $request, int $canal, \App\Services\Canales\VentasTiendaService $ventas)
+    {
+        $c = Canal::findOrFail($canal); $mes = $request->query('mes') ?: today()->format('Y-m');
+        if ($request->boolean('csv')) return response($ventas->csvContador($c, $mes), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=cargos-ml-{$mes}.csv"]);
+        return response()->json($ventas->resumenMes($c, $mes));
+    }
+
+    public function compraCargos(Request $request, int $canal, \App\Services\Canales\VentasTiendaService $ventas)
+    {
+        $d = $request->validate(['mes' => 'required|date_format:Y-m']);
+        $compra = $ventas->compraCargos(Canal::findOrFail($canal), $d['mes']);
+        return response()->json(['ok' => true, 'compra_id' => $compra->id]);
+    }
+
+    // ---- Fase 30.6: Empretienda por planilla ----
+    public function empretienda(Request $request, \App\Services\Canales\ExportacionPedidosService $svc)
+    {
+        $d = $request->validate(['rubro' => 'nullable|integer', 'colchon' => 'nullable|integer|min:0', 'lista' => 'nullable|integer|min:1|max:6', 'fotos' => 'boolean']);
+        if ($request->boolean('fotos')) { $r = $svc->zipFotos($request->user()->business, $d['rubro'] ?? null); return response($r['zip'], 200, ['Content-Type' => 'application/zip', 'Content-Disposition' => 'attachment; filename=fotos-empretienda.zip']); }
+        $r = $svc->empretienda($request->user()->business, $d['rubro'] ?? null, (int) ($d['colchon'] ?? 0), (int) ($d['lista'] ?? 1));
+        return response($r['xlsx'], 200, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition' => 'attachment; filename=empretienda-' . today()->toDateString() . '.xlsx', 'X-Cantidad' => $r['cantidad']]);
+    }
+
     public function pausar(Request $request, int $id)
     {
         $p = Publicacion::findOrFail($id);

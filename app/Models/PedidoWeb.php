@@ -13,8 +13,8 @@ class PedidoWeb extends Model
     use BelongsToBusiness;
 
     protected $table = 'pedidos_web';
-    protected $fillable = ['business_id', 'business_location_id', 'numero', 'canal', 'contact_id', 'cliente', 'items', 'subtotal', 'envio', 'descuento', 'total', 'entrega', 'pago', 'estado', 'comprobante_id', 'comanda_id', 'external_id', 'token', 'texto_original', 'notas', 'envio_datos', 'confirmado_en', 'entregado_en'];
-    protected $casts = ['cliente' => 'array', 'items' => 'array', 'envio_datos' => 'array', 'subtotal' => 'decimal:2', 'envio' => 'decimal:2', 'descuento' => 'decimal:2', 'total' => 'decimal:2', 'confirmado_en' => 'datetime', 'entregado_en' => 'datetime'];
+    protected $fillable = ['business_id', 'business_location_id', 'numero', 'canal', 'contact_id', 'cliente', 'items', 'subtotal', 'envio', 'descuento', 'total', 'entrega', 'pago', 'estado', 'comprobante_id', 'comanda_id', 'external_id', 'token', 'texto_original', 'notas', 'envio_datos', 'confirmado_en', 'entregado_en', 'cargos', 'avisos', 'factura_subida_at', 'factura_enviada_at', 'devolucion', 'tracking'];
+    protected $casts = ['cliente' => 'array', 'items' => 'array', 'envio_datos' => 'array', 'cargos' => 'array', 'avisos' => 'array', 'factura_subida_at' => 'datetime', 'factura_enviada_at' => 'datetime', 'subtotal' => 'decimal:2', 'envio' => 'decimal:2', 'descuento' => 'decimal:2', 'total' => 'decimal:2', 'confirmado_en' => 'datetime', 'entregado_en' => 'datetime'];
 
     public const CANALES = ['tienda' => 'Tienda online', 'portal' => 'Portal del cliente', 'whatsapp' => 'WhatsApp', 'mercadolibre' => 'MercadoLibre', 'woocommerce' => 'WooCommerce', 'tiendanube' => 'Tienda Nube', 'shopify' => 'Shopify', 'pedidosya' => 'PedidosYa', 'rappi' => 'Rappi', 'menu_qr' => 'Menú QR'];
     public const ESTADOS = ['nuevo' => 'Nuevo', 'confirmado' => 'Confirmado', 'preparando' => 'Preparando', 'enviado' => 'En camino', 'entregado' => 'Entregado', 'cancelado' => 'Cancelado'];

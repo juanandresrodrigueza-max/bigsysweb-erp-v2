@@ -90,6 +90,11 @@
           </div>
           <p v-for="c in canalesDe(t.k)" :key="'w' + c.id" class="text-[11px] text-marca-muted mt-1">Avisos de venta: <code class="select-all break-all">{{ c.url_entrada }}</code><span v-if="c.avisos"> (creados solos en la tienda)</span></p>
         </div>
+        <div v-if="datosPersonales.length" class="mt-3 rounded-xl border border-amber-300 bg-amber-50/40 p-3 text-sm" data-e2e="datos-personales">
+          <p class="font-semibold">Pedidos de datos personales (Tienda Nube)</p>
+          <p class="text-xs text-marca-muted mb-2">Si pidió que le borren los datos, el sistema ya lo hizo (el comprobante queda: la ley fiscal obliga a conservarlo). Si pidió verlos, lo contestás vos: buscá sus compras en Pedidos, armale el detalle, mandáselo y marcá "Ya le contesté".</p>
+          <div v-for="d in datosPersonales" :key="d.id" class="flex flex-wrap items-center justify-between gap-2 py-1 border-t border-amber-200 text-xs"><span><b>{{ d.tipo === 'borrar' ? 'Borrar' : 'Ver' }}</b> · {{ d.cliente?.email ?? d.cliente?.id ?? 'comprador' }} · {{ d.pedidos?.length ?? 0 }} compra/s · {{ d.cuando }}<span v-if="d.estado === 'hecho'" class="text-emerald-700"> · hecho {{ d.hecho }}</span></span><button v-if="d.estado !== 'hecho'" class="btn-secondary !py-1 text-xs" @click="router.post(`/configuracion/tienda/datos-personales/${d.id}/contestado`, {}, { preserveScroll: true })">Ya le contesté</button></div>
+        </div>
         <details class="mt-3 text-sm"><summary class="cursor-pointer font-semibold">Delivery: PedidosYa y Rappi</summary>
           <div v-for="c in canales.filter(x => ['pedidosya','rappi'].includes(x.tipo))" :key="c.id" class="border-t border-marca-borde/60 py-2"><p class="font-medium">{{ c.nombre }} <span class="badge bg-lavanda-light text-violeta ml-1">{{ c.tipo_label }}</span></p><p class="text-[11px] text-marca-muted">Webhook de entrada: <code class="select-all break-all">{{ c.url_entrada }}</code></p><div class="flex gap-1 mt-1"><button class="btn-ghost !px-2 text-xs" @click="abrirCanal(c)">Editar</button><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.delete(`/configuracion/tienda/canales/${c.id}`, { preserveScroll: true })">Quitar</button></div></div>
           <button class="btn-secondary !py-1 text-xs mt-2" @click="abrirCanal()">Conectar delivery</button>
@@ -184,7 +189,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
-const props = defineProps({ config: Object, urlTienda: String, urlMenu: String, urlReservas: String, rubros: Array, enTienda: Number, totalArticulos: Number, fidelizacion: Object, canales: Array, tiposCanal: Object, whatsapp: Object, oauth: Object, clientes: Array })
+const props = defineProps({ config: Object, urlTienda: String, urlMenu: String, urlReservas: String, rubros: Array, enTienda: Number, totalArticulos: Number, fidelizacion: Object, canales: Array, tiposCanal: Object, whatsapp: Object, oauth: Object, clientes: Array, datosPersonales: { type: Array, default: () => [] } })
 // Fase 30: tiendas con un botón, claves probadas antes de guardar y ajustes por tienda.
 const plataformas = [{ k: 'mercadolibre', label: 'MercadoLibre' }, { k: 'tiendanube', label: 'Tienda Nube' }, { k: 'woocommerce', label: 'WooCommerce' }, { k: 'shopify', label: 'Shopify' }, { k: 'empretienda', label: 'Empretienda' }]
 const canalesDe = k => props.canales.filter(c => c.tipo === k)

@@ -18,6 +18,7 @@
     <div class="flex flex-wrap gap-2 mb-4">
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1"><Link v-for="e in [['', 'Activos'], ['nuevo', 'Nuevos'], ['confirmado', 'Confirmados'], ['preparando', 'Preparando'], ['enviado', 'En camino'], ['entregado', 'Entregados'], ['cancelado', 'Cancelados']]" :key="e[0]" :href="`/comprobantes/pedidos?estado=${e[0]}${filtros.canal ? '&canal=' + filtros.canal : ''}`" class="px-3 py-1 rounded-full text-xs font-semibold" :class="(filtros.estado ?? '') === e[0] ? 'bg-carmin text-white' : 'text-marca-muted'">{{ e[1] }}</Link></div>
       <select :value="filtros.canal ?? ''" class="input w-auto !py-1 text-xs" @change="router.get('/comprobantes/pedidos', { estado: filtros.estado, canal: $event.target.value || undefined })"><option value="">Todos los canales</option><option v-for="(l, k) in canales" :key="k" :value="k">{{ l }}</option></select>
+      <button class="btn-secondary !py-1 text-xs" @click="abrirExportar" data-e2e="exportar">Exportar a CSV / Excel</button>
     </div>
 
     <div class="grid lg:grid-cols-3 gap-4">
@@ -45,22 +46,39 @@
           <span v-if="sel.comprobante"> · <Link :href="`/comprobantes/${sel.comprobante_id}`" class="underline text-violeta">{{ sel.comprobante }}</Link> <span class="badge ml-1" :class="sel.cobrado ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ sel.cobrado ? 'cobrado' : 'sin cobrar' }}</span></span>
           <span v-if="sel.link_pago"> · <a :href="sel.link_pago" target="_blank" class="underline">link de pago</a></span>
         </div>
+        <div v-if="sel.avisos?.length" class="mb-3 space-y-1" data-e2e="avisos"><p v-for="(a, i) in sel.avisos" :key="i" class="text-xs rounded-lg bg-amber-50 text-amber-900 px-2 py-1">{{ a }}</p></div>
+        <div v-if="sel.listo && !sel.listo.ok" class="mb-3 space-y-1" data-e2e="no-listo"><p v-for="(m, i) in sel.listo.motivos" :key="i" class="text-xs rounded-lg bg-carmin-light text-carmin px-2 py-1">{{ m }}</p></div>
+        <div v-if="sel.devolucion === 'pendiente'" class="mb-3 text-xs rounded-lg bg-carmin-light text-carmin px-2 py-1 flex flex-wrap items-center gap-2" data-e2e="devolucion"><span><b>Devolución:</b> la tienda canceló la venta y hay que volver el stock.</span><button class="btn-primary !py-1 text-xs" @click="router.post(`/comprobantes/pedidos/${sel.id}/devolver`, {}, { preserveScroll: true })">Devolver al stock</button><button class="btn-ghost !py-1 text-xs" @click="router.post(`/comprobantes/pedidos/${sel.id}/devolucion-resuelta`, {}, { preserveScroll: true })">Ya lo resolví</button></div>
+        <details v-if="sel.cargos" class="mb-3 text-xs" data-e2e="cargos"><summary class="cursor-pointer font-semibold">Resumen de cargos de MercadoLibre · recibís {{ moneda(sel.cargos.recibe) }} · te deja <span :class="sel.cargos.deja < 0 ? 'text-carmin' : 'text-emerald-700'">{{ moneda(sel.cargos.deja) }}</span></summary>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 mt-2 bg-marca-fondo rounded-lg p-2">
+            <span>Precio</span><b class="text-right tabular-nums">{{ moneda(sel.cargos.precio) }}</b><span>Cobrado</span><b class="text-right tabular-nums">{{ moneda(sel.cargos.cobrado) }}</b>
+            <span>Cargo por vender</span><b class="text-right tabular-nums">−{{ moneda(sel.cargos.cargo_venta) }}</b><span>Cuotas</span><b class="text-right tabular-nums">−{{ moneda(sel.cargos.cuotas) }}</b>
+            <span>Envío a tu cargo</span><b class="text-right tabular-nums">−{{ moneda(sel.cargos.envio) }}</b><span>Retenciones (a cuenta)</span><b class="text-right tabular-nums">−{{ moneda(sel.cargos.retenciones) }}</b>
+            <span>Lo que recibís</span><b class="text-right tabular-nums">{{ moneda(sel.cargos.recibe) }}</b><span>Se libera</span><b class="text-right">{{ sel.cargos.libera ?? '—' }}</b>
+            <span>Costo (sistema)</span><b class="text-right tabular-nums">{{ moneda(sel.cargos.costo) }}</b><span>Te deja</span><b class="text-right tabular-nums" :class="sel.cargos.deja < 0 ? 'text-carmin' : ''">{{ moneda(sel.cargos.deja) }}</b>
+          </div>
+          <p class="text-marca-muted mt-1">Sale del pago en Mercado Pago. La venta se factura por el precio entero; los cargos son una compra a MERCADO LIBRE S.R.L. (Stock → Tienda online → Cargos); las retenciones son pagos a cuenta, no gasto.</p>
+        </details>
         <details v-if="sel.texto" class="text-xs text-marca-muted mb-3"><summary class="cursor-pointer">Mensaje original</summary><pre class="whitespace-pre-wrap bg-marca-fondo rounded-lg p-2 mt-1">{{ sel.texto }}</pre></details>
         <div class="flex flex-wrap gap-2">
           <template v-if="sel.estado === 'nuevo'">
-            <button class="btn-primary" @click="confirmar(sel, 'FX')">Confirmar y facturar</button>
-            <button class="btn-secondary" @click="confirmar(sel, 'PRE')">Confirmar como presupuesto</button>
+            <button class="btn-primary" :disabled="sel.listo && !sel.listo.ok" :title="sel.listo && !sel.listo.ok ? sel.listo.motivos.join(' ') : ''" @click="confirmar(sel, 'FX')" data-e2e="confirmar">{{ sel.factura_por === 'tienda' ? 'Confirmar (remito: factura MercadoLibre)' : 'Confirmar y facturar' }}</button>
+            <button v-if="!sel.es_tienda" class="btn-secondary" @click="confirmar(sel, 'PRE')">Confirmar como presupuesto</button>
             <button class="btn-ghost text-carmin" @click="estado(sel, 'cancelado')">Cancelar</button>
           </template>
           <template v-else-if="sel.estado !== 'entregado' && sel.estado !== 'cancelado'">
             <button v-if="sel.estado === 'confirmado'" class="btn-primary" @click="estado(sel, 'preparando')">Preparando</button>
-            <button v-if="['confirmado', 'preparando'].includes(sel.estado)" class="btn-secondary" @click="estado(sel, 'enviado')">{{ sel.entrega === 'envio' ? 'Salió el envío' : 'Listo para retirar' }}</button>
+            <button v-if="['confirmado', 'preparando'].includes(sel.estado)" class="btn-secondary" @click="enviado(sel)" data-e2e="enviado">{{ sel.entrega === 'envio' ? 'Marcar como enviado' : 'Listo para retirar' }}</button>
             <button class="btn-secondary" @click="estado(sel, 'entregado')">Entregado</button>
             <button class="btn-ghost text-carmin" @click="estado(sel, 'cancelado')">Cancelar</button>
           </template>
           <template v-if="sel.envio_datos?.shipment_id">
             <a :href="`/comprobantes/pedidos/${sel.id}/etiqueta`" target="_blank" class="btn-secondary text-xs">Etiqueta Mercado Envíos</a>
             <button class="btn-ghost text-xs" @click="router.post(`/comprobantes/pedidos/${sel.id}/envio`, {}, { preserveScroll: true })">Estado del envío{{ sel.envio_datos.estado ? ` · ${sel.envio_datos.estado}` : '' }}{{ sel.envio_datos.tracking ? ` · ${sel.envio_datos.tracking}` : '' }}</button>
+          </template>
+          <template v-if="sel.canal === 'mercadolibre' && sel.comprobante_id && sel.estado !== 'nuevo'">
+            <button v-if="sel.factura_por === 'erp'" class="btn-secondary text-xs" @click="router.post(`/comprobantes/pedidos/${sel.id}/factura-ml`, {}, { preserveScroll: true })" data-e2e="subir-factura">{{ sel.factura_subida ? `Factura cargada en ML (${sel.factura_subida}) · volver a subir` : 'Subir la factura a MercadoLibre' }}</button>
+            <button class="btn-secondary text-xs" @click="router.post(`/comprobantes/pedidos/${sel.id}/mandar-factura`, {}, { preserveScroll: true })" data-e2e="mandar-factura">{{ sel.factura_enviada ? `Enviada al comprador (${sel.factura_enviada}) · reenviar` : 'Enviar la factura al comprador' }}</button>
           </template>
           <button v-if="sel.cliente.telefono" class="btn-ghost text-xs" @click="respAbierto = true">Avisar por WhatsApp</button>
           <a :href="sel.url_publica" target="_blank" class="btn-ghost text-xs">Ver como el cliente</a>
@@ -90,6 +108,18 @@
         <button v-else class="btn-primary" :disabled="cw.processing || !cw.items.length" @click="cw.post('/comprobantes/pedidos/whatsapp', { onSuccess: () => { waAbierto = false; interp = null } })">Crear pedido</button>
       </template>
     </Modal>
+    <Modal :abierto="exp.abierto" titulo="Exportar pedidos a CSV / Excel" @cerrar="exp.abierto = false">
+      <div class="space-y-3 text-sm">
+        <div class="grid grid-cols-2 gap-2"><div><label class="label">Desde</label><input v-model="exp.desde" type="date" class="input" @change="contarExportar" /></div><div><label class="label">Hasta</label><input v-model="exp.hasta" type="date" class="input" @change="contarExportar" /></div></div>
+        <div class="grid grid-cols-2 gap-2"><div><label class="label">Qué entra</label><select v-model="exp.plataforma" class="input" @change="contarExportar"><option value="">Todas las plataformas</option><option v-for="(l, k) in canales" :key="k" :value="k">{{ l }}</option><option value="otros">Otros (API, conectores sin nombre)</option></select></div><div><label class="label">Estado</label><select v-model="exp.estado" class="input" @change="contarExportar"><option value="">Todos</option><option v-for="(l, k) in estados" :key="k" :value="k">{{ l }}</option></select></div></div>
+        <p class="text-xs text-marca-muted">No entran las ventas del mostrador ni de la app de vendedores: eso no es un pedido de tienda. El día es el argentino.</p>
+        <p class="rounded-lg bg-marca-fondo px-3 py-2" data-e2e="exportar-cuenta"><template v-if="exp.cantidad === null">Contando…</template><template v-else-if="exp.cantidad === 0">No hay pedidos en ese período: no se baja un archivo vacío.</template><template v-else>Van a salir <b>{{ exp.cantidad }}</b> pedidos que suman <b>{{ moneda(exp.total) }}</b>.</template></p>
+        <div class="flex flex-wrap gap-3"><label class="flex items-center gap-1"><input v-model="exp.formato" type="radio" value="csv" class="accent-carmin" /> CSV</label><label class="flex items-center gap-1"><input v-model="exp.formato" type="radio" value="xlsx" class="accent-carmin" /> Excel (.xlsx)</label><label class="flex items-center gap-1"><input v-model="exp.renglones" type="checkbox" class="accent-carmin" /> También los renglones (un segundo archivo / otra hoja)</label><label v-if="exp.formato === 'csv'" class="flex items-center gap-1"><input v-model="exp.excel_es" type="checkbox" class="accent-carmin" /> Para Excel en español (punto y coma)</label></div>
+        <p class="text-xs text-marca-muted">Fechas AAAA-MM-DD e importes con punto decimal, sin signo pesos: cualquier CRM los importa. MercadoLibre no entrega mail ni teléfono del comprador: esas columnas van vacías.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="exp.abierto = false">Cerrar</button><button v-if="exp.formato === 'csv' && exp.renglones" class="btn-secondary" :disabled="!exp.cantidad" @click="bajarExportar(true)">Bajar renglones</button><button class="btn-primary" :disabled="!exp.cantidad" @click="bajarExportar()" data-e2e="exportar-bajar">Descargar</button></template>
+    </Modal>
+
     <Modal :abierto="respAbierto" titulo="Avisar por WhatsApp" @cerrar="respAbierto = false">
       <textarea v-model="resp.texto" rows="4" class="input"></textarea>
       <template #pie><button class="btn-secondary" @click="respAbierto = false">Cancelar</button><button class="btn-primary" :disabled="resp.processing || !resp.texto" @click="resp.post(`/comprobantes/pedidos/${sel.id}/responder`, { preserveScroll: true, onSuccess: () => (respAbierto = false) })">Enviar</button></template>
@@ -98,7 +128,14 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+// Fase 30.6: exportar pedidos por período, para un CRM o una planilla.
+const exp = reactive({ abierto: false, desde: '', hasta: '', plataforma: '', estado: '', formato: 'csv', renglones: false, excel_es: localStorage.getItem('pedidos_excel_es') === '1', cantidad: null, total: 0 })
+function abrirExportar() { const h = new Date(); exp.desde = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-01`; exp.hasta = h.toISOString().slice(0, 10); exp.abierto = true; contarExportar() }
+async function contarExportar() { try { const r = await fetch(`/comprobantes/pedidos/exportar?contar=1&${paramsExportar()}`, { headers: { Accept: 'application/json' } }); const j = await r.json(); exp.cantidad = j.cantidad; exp.total = j.total } catch (e) { exp.cantidad = null } }
+function paramsExportar() { return new URLSearchParams({ desde: exp.desde, hasta: exp.hasta, plataforma: exp.plataforma, estado: exp.estado, formato: exp.formato, renglones: exp.renglones ? 1 : 0, excel_es: exp.excel_es ? 1 : 0 }).toString() }
+function bajarExportar(soloRenglones = false) { localStorage.setItem('pedidos_excel_es', exp.excel_es ? '1' : '0'); window.open(`/comprobantes/pedidos/exportar?${paramsExportar()}${soloRenglones ? '&solo_renglones=1' : ''}`, '_blank') }
+function enviado(p) { const t = p.entrega === 'envio' ? window.prompt('Número de seguimiento (opcional). La tienda le avisa al comprador.', p.tracking ?? '') : null; if (t === null && p.entrega === 'envio') return; router.post(`/comprobantes/pedidos/${p.id}/estado`, { estado: 'enviado', tracking: t || null }, { preserveScroll: true }) }
+import { ref, reactive, watch, computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'

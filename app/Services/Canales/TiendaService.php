@@ -107,7 +107,7 @@ class TiendaService
         return DB::transaction(function () use ($p, $opt) {
             abort_if($p->estado !== 'nuevo', 422, 'El pedido ya fue procesado.');
             $b = $p->business;
-            $contact = $p->contact ?? Contact::create(['business_id' => $b->id, 'type' => 'customer', 'name' => $p->cliente['nombre'] ?: 'Cliente web', 'email' => $p->cliente['email'] ?? null, 'phone' => $p->cliente['telefono'] ?? null, 'address' => $p->cliente['direccion'] ?? null, 'condicion_iva' => 'Consumidor Final', 'is_active' => true, 'lista_precios' => (int) $this->config($b)['lista_precios'], 'credit_limit' => 0]);
+            $contact = ! empty($opt['contact_id']) ? Contact::withoutGlobalScopes()->where('business_id', $b->id)->findOrFail($opt['contact_id']) : ($p->contact ?? Contact::create(['business_id' => $b->id, 'type' => 'customer', 'name' => $p->cliente['nombre'] ?: 'Cliente web', 'email' => $p->cliente['email'] ?? null, 'phone' => $p->cliente['telefono'] ?? null, 'address' => $p->cliente['direccion'] ?? null, 'condicion_iva' => 'Consumidor Final', 'is_active' => true, 'lista_precios' => (int) $this->config($b)['lista_precios'], 'credit_limit' => 0]));
             $p->contact_id = $contact->id;
             $cfg = $this->config($b);
             $ri = ($b->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
@@ -118,7 +118,7 @@ class TiendaService
             })->all();
             if ((float) $p->envio > 0) $items[] = ['descripcion' => 'Envío a domicilio', 'cantidad' => 1, 'precio_unit' => $ri ? round((float) $p->envio / 1.21, 4) : (float) $p->envio, 'descuento' => 0, 'alicuota_iva' => 21];
             $tipo = $opt['tipo'] ?? 'FX';
-            $c = $this->comprobantes->guardarBorrador(['contact_id' => $contact->id, 'tipo' => $tipo, 'fecha' => today()->toDateString(), 'condicion' => in_array($p->pago, ['pagado_externo', 'efectivo'], true) ? 'contado' : 'cta_cte', 'notas' => "Pedido {$p->numeroFormateado()} por " . (PedidoWeb::CANALES[$p->canal] ?? $p->canal) . ($p->cliente['direccion'] ? ' · Entrega: ' . $p->cliente['direccion'] : '') . ($p->cliente['notas'] ? ' · ' . $p->cliente['notas'] : ''), 'entrega_pendiente' => $p->entrega === 'envio' && ($opt['entrega_pendiente'] ?? false), 'items' => $items]);
+            $c = $this->comprobantes->guardarBorrador(['receptor_datos' => $opt['receptor_datos'] ?? null, 'contact_id' => $contact->id, 'tipo' => $tipo, 'fecha' => today()->toDateString(), 'condicion' => in_array($p->pago, ['pagado_externo', 'efectivo'], true) || $tipo === 'REM' ? 'contado' : 'cta_cte', 'notas' => ($opt['notas'] ?? '') . "Pedido {$p->numeroFormateado()} por " . (PedidoWeb::CANALES[$p->canal] ?? $p->canal) . ($p->cliente['direccion'] ? ' · Entrega: ' . $p->cliente['direccion'] : '') . ($p->cliente['notas'] ? ' · ' . $p->cliente['notas'] : ''), 'entrega_pendiente' => $p->entrega === 'envio' && ($opt['entrega_pendiente'] ?? false), 'items' => $items]);
             if ($opt['emitir'] ?? true) $c = $this->comprobantes->emitir($c);
             if ($p->pago === 'link' && $c->estado === 'emitido' && $c->esFactura()) { try { $this->links->crear($c); } catch (\Throwable $e) {} }
             $p->forceFill(['comprobante_id' => $c->id, 'estado' => 'confirmado', 'confirmado_en' => now()])->save();

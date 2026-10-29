@@ -24,6 +24,8 @@ class CanalesWebhookController extends Controller
         $evento = (string) ($request->header('X-Shopify-Topic') ?: $request->header('X-WC-Webhook-Topic') ?: ($raw['event'] ?? ''));
         // La tienda desinstaló la app: se borran las claves y los avisos; lo publicado y los pedidos quedan.
         if (in_array($evento, ['app/uninstalled'], true)) { $this->cx->desconectar($c); return response()->json(['ok' => true, 'desconectado' => true]); }
+        // Tienda Nube: pedidos de datos personales (ley de datos). Borrar lo hace el sistema; ver lo contesta el dueño.
+        if ($tipo === 'tiendanube' && in_array($evento, ['customers/redact', 'store/redact', 'customers/data_request'], true)) return response()->json($this->datosPersonales($c, $evento, $raw));
         // Tienda Nube avisa con el id del pedido: hay que ir a buscarlo.
         if ($tipo === 'tiendanube' && isset($raw['id']) && ! isset($raw['products'])) {
             if (! in_array($evento, ['order/created', 'order/paid', 'order/updated', ''], true)) return response()->json(['ok' => true, 'ignorado' => $evento]);
@@ -56,6 +58,23 @@ class CanalesWebhookController extends Controller
         }
         $c->forceFill(['ultimo_sync_en' => now(), 'pedidos_importados' => $c->pedidos_importados + $n])->save();
         return ['ok' => true, 'pedidos' => $n, 'numeros' => $ids];
+    }
+
+    private function datosPersonales(Canal $c, string $evento, array $raw): array
+    {
+        $cliente = $raw['customer'] ?? []; $ordenes = array_map('strval', $raw['orders_to_redact'] ?? ($raw['orders_requested'] ?? []));
+        if ($evento === 'store/redact') { $this->cx->desconectar($c); \App\Models\Publicacion::withoutGlobalScopes()->where('canal_id', $c->id)->delete(); return ['ok' => true, 'borrado' => 'tienda']; }
+        $reg = \App\Models\PedidoDatosPersonales::create(['business_id' => $c->business_id, 'canal_id' => $c->id, 'tipo' => $evento === 'customers/redact' ? 'borrar' : 'ver', 'cliente' => ['id' => $cliente['id'] ?? null, 'email' => $cliente['email'] ?? null, 'nombre' => $evento === 'customers/redact' ? null : ($cliente['name'] ?? null)], 'pedidos' => $ordenes, 'estado' => 'pendiente', 'created_at' => now()]);
+        if ($evento === 'customers/redact') {
+            // Se borran los datos personales de esas compras; el comprobante, los renglones y el importe quedan (la ley fiscal obliga a conservarlos).
+            $q = \App\Models\PedidoWeb::withoutGlobalScopes()->where('business_id', $c->business_id)->where('canal', 'tiendanube')->when($ordenes, fn($x) => $x->whereIn('external_id', $ordenes), fn($x) => $x->where('cliente->email', $cliente['email'] ?? '—'));
+            foreach ($q->get() as $pw) $pw->forceFill(['cliente' => ['nombre' => 'Comprador (datos borrados a su pedido)', 'telefono' => null, 'email' => null, 'direccion' => null, 'cuit' => null, 'condicion_iva' => $pw->cliente['condicion_iva'] ?? null]])->save();
+            $reg->forceFill(['estado' => 'hecho', 'hecho_at' => now()])->save();
+            \App\Models\AuditLog::registrar('editar', $reg, 'Datos personales borrados a pedido del comprador (Tienda Nube): ' . count($ordenes) . ' compras');
+        } else {
+            \App\Models\Alerta::emitir(['business_id' => $c->business_id, 'modulo' => 'configuracion', 'tipo' => 'datos_personales', 'severidad' => 'warning', 'titulo' => 'Un comprador de Tienda Nube pidió ver sus datos: armale el detalle y marcá "Ya le contesté"', 'url' => "/configuracion/tienda?datos={$reg->id}#canales"]);
+        }
+        return ['ok' => true, 'registro' => $reg->id];
     }
 
     // MercadoLibre manda todas las notificaciones a la URL de la aplicación: se busca el canal por el user_id del vendedor.
