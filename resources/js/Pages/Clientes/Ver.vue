@@ -138,6 +138,14 @@
       <div><p class="label">Email</p>{{ cliente.email ?? '—' }}</div><div><p class="label">Teléfono</p>{{ cliente.phone ?? cliente.mobile ?? '—' }}</div>
       <div class="sm:col-span-2"><p class="label">Dirección</p>{{ [cliente.address, cliente.city, cliente.province, cliente.postal_code].filter(Boolean).join(', ') || '—' }}</div>
       <div class="sm:col-span-2"><p class="label">Notas</p><span class="whitespace-pre-line">{{ cliente.notes ?? '—' }}</span></div>
+      <div v-if="notasCalle.length || relevamientos.length" class="sm:col-span-2 border-t border-marca-borde pt-3 grid sm:grid-cols-2 gap-4" data-e2e="calle">
+        <div><p class="label">Notas del vendedor</p><p class="text-xs text-marca-muted mb-1">Lo que anota en la visita. Las listas ya no se le muestran, pero quedan.</p>
+          <div v-for="n in notasCalle" :key="n.id" class="text-sm py-1 border-t border-marca-borde first:border-0" :class="n.listo ? 'text-marca-muted line-through' : ''">{{ n.texto }} <span class="text-[11px] text-marca-muted no-underline">· {{ n.quien }} · {{ n.cuando }}</span></div>
+          <p v-if="!notasCalle.length" class="text-xs text-marca-muted">Ninguna.</p></div>
+        <div><p class="label">Relevamiento con fotos</p>
+          <div class="grid grid-cols-3 gap-2 mt-1"><a v-for="r in relevamientos" :key="r.id" :href="`/estadisticas/vendedores/relevamiento/${r.id}/foto`" target="_blank" class="block rounded-lg overflow-hidden border border-marca-borde" :title="`${r.tipo} · ${r.quien} · ${r.cuando}${r.nota ? ' · ' + r.nota : ''}`"><img :src="`/estadisticas/vendedores/relevamiento/${r.id}/foto`" class="w-full h-20 object-cover bg-marca-fondo" loading="lazy" /><p class="text-[10px] px-1 py-0.5 truncate">{{ r.tipo }} · {{ r.cuando.slice(0, 5) }}</p></a></div>
+          <p v-if="!relevamientos.length" class="text-xs text-marca-muted">Nada relevado.</p></div>
+      </div>
       <div class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="agenda-visitas">
         <p class="label">Agenda de visitas del vendedor</p>
         <p class="text-xs text-marca-muted mb-2">Qué día pasa el vendedor. Si no cargás nada, la ruta se arma sola con el ritmo de compra del cliente.</p>
@@ -269,7 +277,7 @@ import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util
 
 const dias = [{ k: 'lun', t: 'Lun' }, { k: 'mar', t: 'Mar' }, { k: 'mie', t: 'Mié' }, { k: 'jue', t: 'Jue' }, { k: 'vie', t: 'Vie' }, { k: 'sab', t: 'Sáb' }, { k: 'dom', t: 'Dom' }]
 const agendaOpciones = { dia: 'Todo el día', man: 'A la mañana', tar: 'A la tarde', '1er': '1ª semana', '2do': '2ª semana', '3er': '3ª semana', ult: 'Última semana' }
-const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
+const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : (m.medio === 'retencion' ? { impuesto: 'iibb', jurisdiccion: '', certificado: '' } : {})) }
 const envio = ref(null)

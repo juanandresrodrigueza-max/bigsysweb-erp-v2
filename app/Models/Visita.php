@@ -12,7 +12,7 @@ class Visita extends Model
     use BelongsToBusiness;
 
     public $timestamps = false;
-    protected $fillable = ['business_id', 'contact_id', 'vendedor_id', 'user_id', 'tipo', 'motivo', 'nota', 'lat', 'lng', 'comprobante_id', 'created_at'];
+    protected $fillable = ['business_id', 'contact_id', 'vendedor_id', 'user_id', 'tipo', 'motivo', 'nota', 'lat', 'lng', 'comprobante_id', 'created_at', 'distancia_m'];
     protected $casts = ['created_at' => 'datetime', 'lat' => 'float', 'lng' => 'float'];
 
     public const MOTIVOS = ['cerrado' => 'Estaba cerrado', 'sin_encargado' => 'No estaba el encargado', 'tiene_mercaderia' => 'Todavía tiene mercadería', 'no_quiso' => 'No quiso comprar', 'no_pudo_pagar' => 'No pudo pagar', 'otro' => 'Otro'];

@@ -10,6 +10,7 @@ use App\Models\Contact;
 use App\Models\Vendedor;
 use App\Models\Visita;
 use App\Services\Ventas\CobranzaCalleService;
+use App\Services\Ventas\EquipoVentasService;
 use App\Services\Ventas\VenderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,7 +19,7 @@ use Inertia\Inertia;
 // /retail y /minimarket siguen entrando acá, en modo caja.
 class VenderController extends Controller
 {
-    public function __construct(private VenderService $vender, private PosController $pos, private CobranzaCalleService $calle) {}
+    public function __construct(private VenderService $vender, private PosController $pos, private CobranzaCalleService $calle, private EquipoVentasService $equipo) {}
 
     public function index(Request $request)
     {
@@ -33,7 +34,7 @@ class VenderController extends Controller
             'encargado' => $u->puede('clientes', 'editar'),
             'config' => $this->vender->config($u->business),
             'puede' => ['facturar' => $u->puede('comprobantes', 'crear'), 'precios' => $u->puede('comprobantes', 'editar'), 'cobrar' => $u->puede('clientes', 'crear')],
-            'motivos' => Visita::MOTIVOS, 'motivosDevolucion' => CobranzaCalleService::MOTIVOS_DEVOLUCION, 'bancos' => \App\Support\Bancos::LISTA,
+            'motivos' => Visita::MOTIVOS, 'motivosDevolucion' => CobranzaCalleService::MOTIVOS_DEVOLUCION, 'bancos' => \App\Support\Bancos::LISTA, 'tiposRelevamiento' => \App\Models\Relevamiento::TIPOS, 'avisos' => $this->equipo->avisosPara($v),
         ]);
     }
 
@@ -70,6 +71,36 @@ class VenderController extends Controller
         $d = $request->validate(['contact_id' => 'required|exists:contacts,id', 'pct' => 'required|numeric|min:0|max:100', 'email' => 'required|email', 'password' => 'required|string']);
         $a = $this->vender->autorizar($request->user(), Contact::customers()->findOrFail($d['contact_id']), (float) $d['pct'], $d['email'], $d['password']);
         return response()->json(['ok' => true, 'token' => $a->token, 'pct' => $a->pct, 'encargado' => $a->encargado->name, 'vence' => $a->vence_at->toIso8601String()]);
+    }
+
+    // ---- Fase 29.6: mi reporte, avisos, notas del cliente y relevamiento ----
+    public function reporte(Request $request) { return response()->json($this->equipo->reporteVendedor($request->user(), $request->query('periodo'))); }
+
+    public function avisos(Request $request) { return response()->json($this->equipo->avisosPara(Vendedor::deUsuario($request->user()->id))); }
+
+    public function notas(int $id) { return response()->json($this->equipo->notas(Contact::customers()->findOrFail($id))); }
+
+    public function anotar(Request $request, int $id)
+    {
+        $d = $request->validate(['texto' => 'required|string|max:500', 'offline_id' => 'nullable|string|max:64']);
+        $c = Contact::customers()->findOrFail($id);
+        if (! empty($d['offline_id']) && \App\Models\NotaCliente::where('contact_id', $c->id)->where('texto', 'like', "%[{$d['offline_id']}]%")->exists()) return response()->json(['ok' => true, 'repetida' => true]);
+        $n = $this->equipo->anotar($request->user(), $c, $d['texto'] . (! empty($d['offline_id']) ? " [{$d['offline_id']}]" : ''));
+        return response()->json(['ok' => true, 'id' => $n->id, 'notas' => $this->equipo->notas($c)]);
+    }
+
+    public function notaLista(Request $request, int $id, int $nota)
+    {
+        $c = Contact::customers()->findOrFail($id);
+        \App\Models\NotaCliente::where('contact_id', $c->id)->findOrFail($nota)->forceFill(['listo_at' => now(), 'listo_por' => $request->user()->id])->save();
+        return response()->json(['ok' => true, 'notas' => $this->equipo->notas($c)]);
+    }
+
+    public function relevar(Request $request, int $id)
+    {
+        $d = $request->validate(['tipo' => 'required|in:' . implode(',', array_keys(\App\Models\Relevamiento::TIPOS)), 'nota' => 'nullable|string|max:300', 'foto' => 'required|string|max:4500000', 'lat' => 'nullable|numeric', 'lng' => 'nullable|numeric']);
+        $r = $this->equipo->relevar($request->user(), Contact::customers()->findOrFail($id), $d);
+        return response()->json(['ok' => true, 'id' => $r->id]);
     }
 
     // ---- Fase 29.5: cobrar, rendir, devolver y confirmar la entrega ----
