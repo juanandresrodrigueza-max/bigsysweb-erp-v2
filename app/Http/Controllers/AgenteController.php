@@ -21,6 +21,7 @@ class AgenteController extends Controller
             'historial.*.rol'   => 'required_with:historial|in:user,assistant',
             'historial.*.texto' => 'required_with:historial|string|max:4000',
             'pantalla'  => 'nullable|string|max:200',
+            'imagen'    => 'nullable|string|max:7500000', // Fase 40.3: una foto con la pregunta (data URL)
         ]);
 
         $user     = $request->user();
@@ -29,6 +30,7 @@ class AgenteController extends Controller
         $acciones = app(\App\Services\IA\AccionesService::class);
         $cat      = app(\App\Mcp\Catalogo::class);
 
+        if (! $apiKey && ! empty($data['imagen'])) return response()->json(['respuesta' => 'Para mirar fotos hace falta la clave de IA de la empresa (Configuración → Conexiones IA).', 'modo' => 'local']);
         if (! $apiKey) {
             // Sin IA: se entienden las frases más comunes (cobros, gastos, recordatorios, presupuestos, saldos, stock, ventas).
             if ($i = $acciones->interpretarLocal($data['mensaje'])) {
@@ -41,7 +43,7 @@ class AgenteController extends Controller
 
         $mensajes = collect($data['historial'] ?? [])
             ->map(fn($m) => ['role' => $m['rol'], 'content' => $m['texto']])
-            ->push(['role' => 'user', 'content' => $data['mensaje']])
+            ->push(['role' => 'user', 'content' => ! empty($data['imagen']) && ($img = \App\Services\IA\VozFotoService::bloqueImagen($data['imagen'])) ? [$img, ['type' => 'text', 'text' => $data['mensaje']]] : $data['mensaje']])
             ->values()->all();
 
         try {
@@ -84,6 +86,15 @@ class AgenteController extends Controller
             Log::error('Agente IA: error', ['e' => $e->getMessage()]);
             return response()->json(['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
         }
+    }
+
+    // Fase 40.3: un audio grabado se transcribe (OpenAI o Gemini) y vuelve como texto; el panel lo manda como pregunta por voz.
+    public function audio(Request $request)
+    {
+        $request->validate(['audio' => 'required|file|max:12288']);
+        $f = $request->file('audio');
+        $texto = app(\App\Services\IA\VozFotoService::class)->transcribir($request->user()->business()->first(), $f->getRealPath(), $f->getMimeType() ?: 'audio/webm');
+        return response()->json(['texto' => $texto]);
     }
 
     // El usuario confirmó una propuesta: se ejecuta con sus permisos (vueltos a chequear) y queda auditado. Mismo catálogo que MCP.

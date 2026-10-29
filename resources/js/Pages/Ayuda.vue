@@ -19,12 +19,13 @@
           <Link v-for="g in guias" :key="g" :href="`/ayuda/guia/${g}`" class="block px-3 py-1.5 rounded-xl text-sm hover:bg-marca-fondo" :class="articulo?.slug === 'guia-' + g ? 'bg-lavanda-light text-violeta font-semibold' : ''">{{ { arca: 'ARCA y factura electrónica', asistente: 'Asistente con IA', atajos: 'Atajos de teclado', 'mercado-argentino': 'Percepciones, COT, cuotas, Mercado Pago', seguridad: 'Seguridad', api: 'API para desarrolladores' }[g] ?? g }}</Link>
           <a href="/api/docs" target="_blank" class="block px-3 py-1.5 rounded-xl text-sm hover:bg-marca-fondo">Referencia de la API ↗</a>
         </div>
-        <a href="/ayuda/manual" target="_blank" class="card block text-sm hover:border-carmin/50"><p class="font-bold">Manual completo</p><p class="text-xs text-marca-muted">Todas las guías en una página, para imprimir o guardar en PDF.</p></a>
+        <div class="card text-sm"><a href="/ayuda/manual" target="_blank" class="block hover:text-carmin"><p class="font-bold">Manual completo</p><p class="text-xs text-marca-muted">Todas las guías en una página, para imprimir o guardar en PDF.</p></a><a href="/ayuda/manual?descargar=1" class="block text-xs text-violeta font-semibold mt-2" data-e2e="manual-descargar">⬇ Bajar el manual para leer sin internet</a></div>
         <div class="card text-sm">
           <p class="font-bold mb-1">¿No lo encontrás?</p>
           <p class="text-marca-muted text-xs mb-2">Abrí un ticket y te respondemos ahí y por mail.</p>
           <Link href="/soporte" class="btn-primary w-full !py-1.5 text-xs">Escribir a soporte</Link>
-          <p v-if="soporte?.whatsapp" class="text-xs text-marca-muted mt-2">WhatsApp: <b class="select-all">{{ soporte.whatsapp }}</b></p>
+          <a v-if="soporte?.whatsapp" :href="whatsapp" target="_blank" class="btn-secondary w-full !py-1.5 text-xs mt-2" data-e2e="soporte-wa">WhatsApp a soporte (con el contexto)</a>
+          <p v-if="soporte?.whatsapp" class="text-xs text-marca-muted mt-1">{{ soporte.whatsapp }}</p>
           <button class="btn-ghost w-full !py-1 text-xs mt-1" @click="router.post('/ayuda/tour-reiniciar', {}, { preserveScroll: true })">Volver a ver el tour</button>
         </div>
       </div>
@@ -34,7 +35,12 @@
           <p class="text-[11px] font-bold uppercase tracking-widest text-violeta mb-2">✦ Respuesta a “{{ respuesta.q }}”</p>
           <p v-if="respuesta.respuesta" class="text-sm whitespace-pre-line">{{ respuesta.respuesta }}</p>
           <p v-else class="text-sm text-marca-muted">{{ respuesta.ia ? 'No pude armar una respuesta; mirá las secciones de abajo o escribile a soporte.' : 'Sin clave de IA se busca por palabra; estas son las secciones que coinciden.' }}</p>
+          <div v-if="respuesta.id" class="mt-3 flex items-center gap-2 text-xs text-marca-muted"><span v-if="respuesta.voto === undefined">¿Te sirvió?</span><span v-else>¡Gracias! {{ respuesta.voto ? '' : 'Lo vamos a mejorar.' }}</span><template v-if="respuesta.voto === undefined"><button class="btn-ghost !py-0.5 !px-2" @click="votar(true)" data-e2e="voto-si">👍</button><button class="btn-ghost !py-0.5 !px-2" @click="votar(false)" data-e2e="voto-no">👎</button></template></div>
           <div v-if="respuesta.fuentes?.length" class="mt-3 flex flex-wrap gap-1.5"><Link v-for="f in respuesta.fuentes" :key="f.url" :href="f.url" class="badge bg-marca-fondo text-marca-muted hover:text-carmin" @click="irSeccion(f.slug, f)">{{ f.titulo }} › {{ f.seccion }}</Link></div>
+        </div>
+        <div v-if="sin_respuesta?.length && !articulo && !q" class="card mb-4" data-e2e="sin-respuesta">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Lo que tu gente preguntó y no encontró</p>
+          <p v-for="(p, i) in sin_respuesta" :key="i" class="text-sm py-1 border-t border-marca-borde/60 first:border-0">{{ p.pregunta }} <span class="text-xs text-marca-muted">· {{ p.cuando }}{{ p.no_sirvio ? ' · dijo que no le sirvió' : '' }}</span></p>
         </div>
         <div v-if="q" class="card mb-4">
           <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Secciones que hablan de “{{ q }}”</p>
@@ -57,10 +63,11 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
-const props = defineProps({ articulos: Array, articulo: Object, q: String, resultados: Array, soporte: Object, guias: { type: Array, default: () => [] }, indice: { type: Array, default: () => [] }, ia: Boolean })
+const props = defineProps({ articulos: Array, articulo: Object, q: String, resultados: Array, soporte: Object, guias: { type: Array, default: () => [] }, indice: { type: Array, default: () => [] }, ia: Boolean, sin_respuesta: { type: Array, default: () => [] } })
 const buscar = ref(props.q ?? ''), cuerpo = ref(null)
 function irA(t) { const h = [...(cuerpo.value?.querySelectorAll('h2') ?? [])].find(x => x.textContent.trim() === t); h?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 // Llegar a una sección: si el artículo ya está abierto, se hace scroll; si no, Inertia navega y al montar se lee el #ancla.
@@ -72,9 +79,20 @@ watch(() => props.articulo?.slug, () => { if (location.hash) scrollAncla(locatio
 const preguntando = ref(false), respuesta = ref(null)
 async function preguntar() {
   preguntando.value = true
-  try { const r = await fetch('/ayuda/preguntar', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '') }, body: JSON.stringify({ q: buscar.value }) }); respuesta.value = { q: buscar.value, ...(await r.json()) } }
+  // Fase 40.4: se manda lo que ya se preguntó, para poder repreguntar ("¿y si es en cuotas?").
+  const historial = conversacion.slice(-6)
+  try { const { data } = await window.axios.post('/ayuda/preguntar', { q: buscar.value, historial }); respuesta.value = { q: buscar.value, ...data }; conversacion.push({ rol: 'user', texto: buscar.value }); if (data.respuesta) conversacion.push({ rol: 'assistant', texto: data.respuesta.slice(0, 1900) }) }
   catch (e) { respuesta.value = { q: buscar.value, respuesta: null, fuentes: [], ia: true } } finally { preguntando.value = false }
 }
+const conversacion = []
+async function votar(util) { const id = respuesta.value.id; respuesta.value = { ...respuesta.value, voto: util }; await window.axios.post(`/ayuda/preguntas/${id}/voto`, { util }).catch(() => {}) }
+// El WhatsApp a soporte ya escrito: quién, de qué empresa, en qué pantalla y qué preguntó.
+const page = usePage()
+const whatsapp = computed(() => {
+  const n = String(props.soporte?.whatsapp ?? '').replace(/\D/g, '')
+  const t = `Hola, soy ${page.props.auth?.user?.name ?? ''} de ${page.props.empresa?.nombre ?? ''}. Estoy en la ayuda${props.articulo ? ` (${props.articulo.titulo})` : ''}.` + (respuesta.value?.q ? ` Pregunté: "${respuesta.value.q}".` : '') + ' Necesito una mano con: '
+  return `https://wa.me/${n}?text=${encodeURIComponent(t)}`
+})
 </script>
 
 <style>

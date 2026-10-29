@@ -21,7 +21,7 @@ class ConexionesController extends Controller
         $ids = $dueno ? null : [$u->id];
         return Inertia::render('Mcp/Conexiones', [
             'url' => url('/mcp'), 'esDueno' => $dueno, 'conTabs' => $u->puede('configuracion'),
-            'ia' => ['cargada' => \App\Support\Ia::tiene($u->business), 'mascara' => \App\Support\Ia::mascara($u->business), 'modelo' => $u->business?->ia_settings['modelo'] ?? \App\Support\Ia::MODELO_DEFAULT, 'modelos' => \App\Support\Ia::MODELOS, 'puedeEditar' => $dueno || $u->puede('configuracion', 'editar')], 'modos' => McpConexion::MODOS, 'tokenNuevo' => session('tokenNuevo'),
+            'ia' => ['cargada' => \App\Support\Ia::tiene($u->business), 'mascara' => \App\Support\Ia::mascara($u->business), 'modelo' => $u->business?->ia_settings['modelo'] ?? \App\Support\Ia::MODELO_DEFAULT, 'modelos' => \App\Support\Ia::MODELOS, 'puedeEditar' => $dueno || $u->puede('configuracion', 'editar'), 'audio' => $u->business ? app(\App\Services\IA\VozFotoService::class)->config($u->business) : null, 'proveedoresAudio' => \App\Services\IA\VozFotoService::PROVEEDORES], 'modos' => McpConexion::MODOS, 'tokenNuevo' => session('tokenNuevo'),
             'conexiones' => $con->map(fn($c) => ['id' => $c->id, 'nombre' => $c->nombre, 'usuario' => $c->user?->name, 'propia' => $c->user_id === $u->id, 'modo' => $c->modo, 'tipo' => $c->client_id ? 'OAuth' : 'Token personal', 'ultimo_uso' => $c->ultimo_uso?->diffForHumans(), 'usos' => $c->usos, 'creada' => $c->created_at->format('d/m/Y')]),
             'llamadas' => IaLlamada::with('user:id,name')->when($ids, fn($q) => $q->whereIn('user_id', $ids))->orderByDesc('id')->limit(40)->get()->map(fn($l) => ['id' => $l->id, 'cuando' => $l->created_at?->format('d/m H:i'), 'usuario' => $l->user?->name, 'origen' => $l->origen, 'herramienta' => $l->herramienta, 'tipo' => $l->tipo, 'ok' => $l->ok, 'error' => $l->error, 'ms' => $l->ms]),
             'propuestas' => IaPropuesta::with('user:id,name')->when($ids, fn($q) => $q->whereIn('user_id', $ids))->orderByDesc('created_at')->limit(30)->get()->map(fn($p) => ['id' => $p->id, 'cuando' => $p->created_at?->format('d/m H:i'), 'usuario' => $p->user?->name, 'titulo' => $p->titulo, 'estado' => $p->estado === 'pendiente' && $p->expira_en->isPast() ? 'vencida' : $p->estado, 'origen' => $p->origen]),
@@ -77,6 +77,16 @@ class ConexionesController extends Controller
         $u->business->forceFill(['ia_settings' => $s])->save();
         AuditLog::registrar('editar', $u->business, 'Clave de IA de la empresa ' . (! empty($d['api_key']) ? 'cargada' : 'actualizada') . ' (' . $d['modelo'] . ')');
         return back()->with('ok', 'Listo: la IA de tu empresa quedó activa.');
+    }
+
+    // Fase 40.3: el proveedor que transcribe los audios (OpenAI o Gemini).
+    public function guardarAudio(Request $r)
+    {
+        $u = $this->editorIa($r);
+        $d = $r->validate(['proveedor' => 'required|in:' . implode(',', array_keys(\App\Services\IA\VozFotoService::PROVEEDORES)), 'clave' => 'nullable|string|max:300']);
+        app(\App\Services\IA\VozFotoService::class)->guardar($u->business, $d['proveedor'], $d['clave'] ?? null);
+        AuditLog::registrar('editar', $u->business, 'Audios de Bigcito con ' . \App\Services\IA\VozFotoService::PROVEEDORES[$d['proveedor']]);
+        return back()->with('ok', 'Listo: Bigcito ya entiende audios.');
     }
 
     public function quitarIa(Request $r)

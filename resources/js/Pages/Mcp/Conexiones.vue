@@ -24,6 +24,16 @@
       </div>
     </div>
 
+    <div v-if="ia.audio && ia.puedeEditar" class="card mb-4" data-e2e="audio-card">
+      <div class="flex flex-wrap items-center justify-between gap-2"><p class="font-bold">Audios para Bigcito</p><span class="badge" :class="ia.audio.cargada ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light'">{{ ia.audio.cargada ? (ia.proveedoresAudio[ia.audio.proveedor] ?? '') + ' · ' + ia.audio.mascara : 'Sin configurar' }}</span></div>
+      <p class="text-xs text-marca-muted mt-1">Para los celulares que no dictan: Bigcito graba el audio y lo pasa a texto con OpenAI o Gemini (la clave de Claude no transcribe audio).</p>
+      <form class="grid sm:grid-cols-[12rem_1fr_auto] gap-2 items-end mt-2" @submit.prevent="audio.post('/conexiones-ia/audio', { preserveScroll: true, onSuccess: () => audio.reset('clave') })">
+        <div><label class="label">Servicio</label><select v-model="audio.proveedor" class="input"><option v-for="(n, k) in ia.proveedoresAudio" :key="k" :value="k">{{ n }}</option></select></div>
+        <div><label class="label">Clave</label><input v-model="audio.clave" type="password" autocomplete="off" class="input font-mono" :placeholder="ia.audio.cargada ? 'Dejala vacía para mantenerla' : 'sk-… o AIza…'" /></div>
+        <button class="btn-primary" :disabled="audio.processing">Guardar</button>
+      </form>
+    </div>
+
     <div class="grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-4">
       <div class="card">
         <h2 class="font-bold mb-1">Conectá Claude, ChatGPT u otra IA a tu ERP</h2>
@@ -102,6 +112,7 @@ import ConfigTabs from '@/Components/ConfigTabs.vue'
 const props = defineProps({ ia: Object, url: String, esDueno: Boolean, conTabs: Boolean, modos: Object, tokenNuevo: String, conexiones: Array, llamadas: Array, propuestas: Array, herramientas: Array })
 const nuevo = useForm({ nombre: '', modo: 'lectura' })
 const clave = useForm({ api_key: '', modelo: props.ia.modelo })
+const audio = useForm({ proveedor: props.ia.audio?.proveedor ?? 'openai', clave: '' })
 const claseEstado = { pendiente: 'bg-amber-50 text-amber-700', ejecutada: 'bg-emerald-50 text-emerald-700', cancelada: 'bg-gris-light', vencida: 'bg-gris-light', error: 'bg-carmin-light text-carmin' }
 function copiar(t) { navigator.clipboard?.writeText(t).catch(() => {}) }
 </script>

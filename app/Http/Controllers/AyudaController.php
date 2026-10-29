@@ -21,15 +21,20 @@ class AyudaController extends Controller
             'articulos' => $this->ayuda->lista(), 'articulo' => $articulo, 'q' => $q,
             'resultados' => $q !== '' ? $this->ayuda->buscar($q) : [], 'indice' => $this->ayuda->indice(), 'ia' => (bool) config('services.anthropic.api_key'),
             'soporte' => ['whatsapp' => \App\Models\SistemaConfig::get('soporte_whatsapp'), 'email' => \App\Models\SistemaConfig::get('soporte_email')],
+            // Fase 40.4: lo que preguntaron y el manual no respondió (o no sirvió), para el dueño.
+            'sin_respuesta' => $request->user()->esDueno() || $request->user()->is_superadmin ? \App\Models\AyudaPregunta::where('business_id', $request->user()->business_id)->where(fn($q) => $q->where('sin_respuesta', true)->orWhere('util', false))->latest('id')->limit(40)->get()->map(fn($p) => ['pregunta' => $p->pregunta, 'cuando' => $p->created_at->format('d/m'), 'no_sirvio' => $p->util === false])->values() : [],
             'guias' => collect(['arca', 'asistente', 'atajos', 'mercado-argentino', 'seguridad', 'api'])->filter(fn($g) => file_exists(base_path("docs/{$g}.md")))->values(),
         ]);
     }
 
     // Manual completo en una página imprimible: todos los artículos, en orden, con índice.
-    public function manual()
+    public function manual(Request $request)
     {
         $arts = array_map(fn($a) => $this->ayuda->articulo($a['slug']), $this->ayuda->lista());
-        return view('ayuda.manual', ['articulos' => $arts, 'indice' => $this->ayuda->indice()]);
+        $html = view('ayuda.manual', ['articulos' => $arts, 'indice' => $this->ayuda->indice()])->render();
+        // Fase 40.4: el manual entero en un archivo, para leerlo sin internet.
+        if ($request->boolean('descargar')) return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8', 'Content-Disposition' => 'attachment; filename=manual-bigsysweb.html']);
+        return response($html);
     }
 
     // Ayuda de la pantalla actual, para el panel lateral.
@@ -47,8 +52,16 @@ class AyudaController extends Controller
 
     public function preguntar(Request $request)
     {
-        $d = $request->validate(['q' => 'required|string|min:3|max:300']);
-        return response()->json($this->ayuda->preguntar($d['q']));
+        $d = $request->validate(['q' => 'required|string|min:2|max:300', 'historial' => 'nullable|array|max:10', 'historial.*.rol' => 'required_with:historial|in:user,assistant', 'historial.*.texto' => 'required_with:historial|string|max:2000']);
+        return response()->json($this->ayuda->preguntar($d['q'], $d['historial'] ?? []));
+    }
+
+    // ¿Te sirvió? 👍 / 👎
+    public function voto(Request $request, int $id)
+    {
+        $d = $request->validate(['util' => 'required|boolean']);
+        \App\Models\AyudaPregunta::where('user_id', $request->user()->id)->findOrFail($id)->update(['util' => $d['util']]);
+        return response()->json(['ok' => true]);
     }
 
     // Guías técnicas de docs/ (ARCA, asistente, atajos…) renderizadas.

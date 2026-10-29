@@ -159,6 +159,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/ayuda/contexto',        [\App\Http\Controllers\AyudaController::class, 'contexto']);
     Route::get('/ayuda/buscar',          [\App\Http\Controllers\AyudaController::class, 'buscar']);
     Route::post('/ayuda/preguntar',      [\App\Http\Controllers\AyudaController::class, 'preguntar'])->middleware('throttle:30,1');
+    Route::post('/ayuda/preguntas/{id}/voto', [\App\Http\Controllers\AyudaController::class, 'voto'])->whereNumber('id');
     Route::post('/ayuda/tour-visto',     [\App\Http\Controllers\AyudaController::class, 'tourVisto']);
     Route::post('/ayuda/tour-reiniciar', [\App\Http\Controllers\AyudaController::class, 'tourReiniciar']);
     Route::get('/ayuda/guia/{nombre}',   [\App\Http\Controllers\AyudaController::class, 'guia']);
@@ -170,6 +171,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/alertas/{id}/resolver',   [AlertasController::class, 'resolver'])->name('alertas.resolver');
 
     Route::post('/agente/chat', [AgenteController::class, 'chat'])->name('agente.chat');
+    Route::post('/agente/audio', [AgenteController::class, 'audio'])->middleware('throttle:20,1');
     Route::post('/agente/ejecutar', [AgenteController::class, 'ejecutar'])->middleware('throttle:60,1');
     Route::get('/dueno', [\App\Http\Controllers\DuenoController::class, 'index'])->middleware('permiso:dashboard');
 
@@ -733,6 +735,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     // Fase 28: cada usuario conecta su IA (Claude, ChatGPT…) por MCP con sus propios permisos.
     Route::get('/conexiones-ia',                 [\App\Http\Controllers\Mcp\ConexionesController::class, 'index']);
     Route::post('/conexiones-ia/clave',          [\App\Http\Controllers\Mcp\ConexionesController::class, 'guardarIa'])->middleware('throttle:10,1');
+    Route::post('/conexiones-ia/audio',          [\App\Http\Controllers\Mcp\ConexionesController::class, 'guardarAudio'])->middleware('throttle:10,1');
     Route::delete('/conexiones-ia/clave',        [\App\Http\Controllers\Mcp\ConexionesController::class, 'quitarIa']);
     Route::post('/conexiones-ia/token',          [\App\Http\Controllers\Mcp\ConexionesController::class, 'crearToken']);
     Route::post('/conexiones-ia/{id}/modo',      [\App\Http\Controllers\Mcp\ConexionesController::class, 'modo'])->whereNumber('id');

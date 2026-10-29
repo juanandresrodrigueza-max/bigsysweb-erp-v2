@@ -104,16 +104,27 @@ class AyudaService
     }
 
     // Pregunta en lenguaje natural: con clave de IA responde usando las secciones que más coinciden como contexto y cita las fuentes.
-    public function preguntar(string $q): array
+    public function preguntar(string $q, array $historial = []): array
     {
-        $fuentes = $this->buscar($q, 6);
+        $r = $this->responder($q, $historial);
+        // Fase 40.4: queda guardada, para el ¿te sirvió? y para ver lo que el manual no tiene.
+        $u = auth()->user();
+        $p = \App\Models\AyudaPregunta::create(['business_id' => $u?->business_id, 'user_id' => $u?->id, 'pregunta' => mb_substr($q, 0, 300), 'respuesta' => $r['respuesta'], 'fuentes' => array_slice($r['fuentes'], 0, 6), 'sin_respuesta' => ! $r['fuentes'] || ($r['ia'] && ! $r['respuesta'])]);
+        return $r + ['id' => $p->id];
+    }
+
+    private function responder(string $q, array $historial): array
+    {
+        // Seguir la charla: si la pregunta es corta ("¿y para anularla?"), se busca también con la anterior.
+        $anterior = collect($historial)->where('rol', 'user')->last()['texto'] ?? '';
+        $fuentes = $this->buscar($q, 6) ?: ($anterior ? $this->buscar($anterior . ' ' . $q, 6) : []);
         $key = config('services.anthropic.api_key');
         if (! $key || ! $fuentes) return ['respuesta' => null, 'fuentes' => $fuentes, 'ia' => (bool) $key];
         $contexto = collect($fuentes)->map(function ($f) { $sec = collect($this->secciones($this->articulos()[$f['slug']]['texto']))->firstWhere('ancla', $f['ancla']); return "### {$f['titulo']} › {$f['seccion']}\n" . ($sec['texto'] ?? ''); })->implode("\n\n");
         try {
             $r = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => $key, 'anthropic-version' => '2023-06-01'])->timeout(25)->post('https://api.anthropic.com/v1/messages', ['model' => config('services.anthropic.model'), 'max_tokens' => 500,
                 'system' => 'Sos la ayuda de BigSysWeb, un ERP para PyMEs argentinas. Respondé la pregunta del usuario SOLO con la información de las guías que te paso, en español rioplatense, corto y con pasos concretos (dónde hacer clic). Si las guías no lo cubren, decilo y sugerí escribir a soporte. No inventes pantallas ni botones.',
-                'messages' => [['role' => 'user', 'content' => "Guías:\n\n{$contexto}\n\nPregunta: {$q}"]]]);
+                'messages' => array_merge(collect($historial)->take(-6)->map(fn($m) => ['role' => $m['rol'] === 'user' ? 'user' : 'assistant', 'content' => (string) $m['texto']])->values()->all(), [['role' => 'user', 'content' => "Guías:\n\n{$contexto}\n\nPregunta: {$q}"]])]);
             $texto = $r->successful() ? trim((string) ($r->json('content.0.text') ?? '')) : null;
         } catch (\Throwable $e) { $texto = null; }
         return ['respuesta' => $texto ?: null, 'fuentes' => $fuentes, 'ia' => true];
