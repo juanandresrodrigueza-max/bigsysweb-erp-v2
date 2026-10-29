@@ -56,13 +56,19 @@ class ComprasController extends Controller
     public function store(Request $request, ?int $id = null)
     {
         $data = $request->validate([
-            'contact_id' => 'required|integer|exists:contacts,id', 'tipo' => 'required|in:FA,FB,FC,FE,NCA,NCB,NCC,NDA,NDB,NDC', 'numero_proveedor' => 'nullable|string|max:20', 'cae_proveedor' => 'nullable|string|max:20',
+            'contact_id' => 'required|integer|exists:contacts,id', 'tipo' => 'required|in:FA,FB,FC,FE,NCA,NCB,NCC,NDA,NDB,NDC,REM', 'solo_stock' => 'boolean', 'solo_contable' => 'boolean', 'remito_id' => 'nullable|integer', 'items.*.actualiza_costo' => 'nullable|boolean', 'items.*.codigo' => 'nullable|string|max:60', 'items.*.bulto' => 'nullable|integer', 'borrador_id' => 'nullable|integer', 'numero_proveedor' => 'nullable|string|max:20', 'cae_proveedor' => 'nullable|string|max:20',
             'fecha' => 'required|date', 'fecha_vto' => 'nullable|date', 'dias_vto' => 'nullable|integer|min:0|max:365', 'condicion' => 'nullable|in:contado,cta_cte', 'moneda' => 'nullable|in:ARS,USD', 'cotizacion' => 'nullable|numeric|min:0', 'origen_carga' => 'nullable|in:manual,ocr,afip_csv', 'origen_id' => 'nullable|integer', 'orden_compra_id' => 'nullable|integer|exists:ordenes_compra,id', 'notas' => 'nullable|string|max:2000',
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:255', 'items.*.cantidad' => 'required|numeric|gt:0', 'items.*.unidad' => 'nullable|string|max:10',
             'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.alicuota_iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27', 'items.*.lote' => 'nullable|string|max:40', 'items.*.vencimiento' => 'nullable|date', 'items.*.serie' => 'nullable|string|max:500',
             'impuestos' => 'nullable|array', 'impuestos.*.tipo' => 'required_with:impuestos|string|max:30', 'impuestos.*.monto' => 'required_with:impuestos|numeric|min:0',
         ]);
+        // Remito del proveedor sin precios: entra sólo al stock, como tipo REM. La factura de ese remito: sólo contable.
+        if ($data['tipo'] === 'REM') { $data['solo_stock'] = true; $data['condicion'] = 'contado'; }
+        if (! empty($data['remito_id'])) { $data['solo_contable'] = true; Comprobante::compras()->where('solo_stock', true)->findOrFail($data['remito_id']); }
         $c = $this->service->guardarBorrador($data, $id ? Comprobante::compras()->findOrFail($id) : null);
+        // Lo que confirmaste queda aprendido para la próxima factura de ese proveedor; la "a medio cargar" se borra.
+        app(\App\Services\Compras\LecturaCompraService::class)->aprender($c->contact, $data['items'], $data['fecha']);
+        if (! empty($data['borrador_id'])) \App\Models\CompraBorrador::whereKey($data['borrador_id'])->delete();
         if ($request->boolean('registrar')) {
             $c = $this->service->registrar($c);
             return redirect("/proveedores/compras/{$c->id}")->with('success', "Compra {$c->nombreTipo()} {$c->numeroFormateado()} registrada.");
@@ -110,15 +116,70 @@ class ComprasController extends Controller
         return redirect("/proveedores/compras/{$nc->id}/editar")->with('success', 'Borrador de nota de crédito creado: cargá el número del proveedor y registralo.');
     }
 
-    public function ocr(Request $request, CompraOCRService $ocr)
+    public function ocr(Request $request, CompraOCRService $ocr, \App\Services\Compras\LecturaCompraService $lectura)
     {
-        $request->validate(['archivo' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:12288']);
+        $request->validate(['archivo' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:12288', 'qr' => 'nullable|string|max:2000']);
         $f = $request->file('archivo');
         $res = $ocr->leer(base64_encode(file_get_contents($f->getRealPath())), $f->getMimeType());
+        // Fase 31: el QR de ARCA da la cabecera exacta; después se entiende la lectura (proveedor, bultos, descuentos, pie).
+        $qr = $lectura->qrAfip($request->input('qr'));
+        if ($qr && ! $res['ok']) $res = ['ok' => true, 'datos' => ['proveedor' => ['cuit' => $qr['cuit']], 'items' => [], 'percepciones' => [], 'observaciones' => 'La IA no pudo leer los renglones; la cabecera salió del QR.'], 'proveedor_id' => null, 'proveedor_nuevo' => false];
+        if ($res['ok']) {
+            $prov = $res['proveedor_id'] ? \App\Models\Contact::find($res['proveedor_id']) : null;
+            $res['datos'] = $lectura->entender($res['datos'], $prov, $qr);
+            $res['proveedor_id'] = $res['datos']['proveedor_id'] ?? $res['proveedor_id'];
+            $res['proveedor_nuevo'] = ! $res['proveedor_id'] && ! empty($res['datos']['proveedor']['nombre'] ?? $res['datos']['proveedor']['cuit'] ?? null);
+        }
         $path = $f->store("adjuntos/{$request->user()->business_id}", 'local');
         ComprobanteAdjunto::create(['business_id' => $request->user()->business_id, 'user_id' => $request->user()->id, 'tipo' => str_contains($f->getMimeType(), 'pdf') ? 'pdf' : 'imagen', 'archivo' => $path, 'items_detectados' => $res['datos'] ?? null, 'confianza' => $res['datos']['confianza'] ?? null]);
         return response()->json($res);
     }
+
+    // ---- Fase 31: revisar antes de mandar, el pie que se pregunta una vez, comparar con la orden, facturas a medio cargar ----
+    public function revisar(Request $request, \App\Services\Compras\LecturaCompraService $lectura)
+    {
+        $d = $request->validate(['items' => 'required|array', 'total' => 'nullable|numeric', 'impuestos' => 'nullable|array']);
+        return response()->json($lectura->revisar($d['items'], isset($d['total']) ? (float) $d['total'] : null, $d['impuestos'] ?? []));
+    }
+
+    public function reglaPie(Request $request, \App\Services\Compras\LecturaCompraService $lectura)
+    {
+        $d = $request->validate(['contact_id' => 'nullable|integer', 'cuit' => 'nullable|string|max:20', 'concepto' => 'required|string|max:150', 'tratamiento' => 'required|in:' . implode(',', array_keys(\App\Models\ProveedorRegla::TRATAMIENTOS))]);
+        $cuit = $d['cuit'] ?? \App\Models\Contact::find($d['contact_id'] ?? 0)?->cuit;
+        $lectura->reglaPie($cuit, $d['concepto'], $d['tratamiento']);
+        return response()->json(['ok' => true]);
+    }
+
+    public function compararOc(Request $request, \App\Services\Compras\LecturaCompraService $lectura)
+    {
+        $d = $request->validate(['orden_compra_id' => 'required|integer', 'items' => 'required|array', 'tolerancia' => 'nullable|numeric|min:0|max:50']);
+        $oc = \App\Models\OrdenCompra::with('items')->findOrFail($d['orden_compra_id']);
+        return response()->json($lectura->compararOc($d['items'], $oc, (float) ($d['tolerancia'] ?? \App\Models\Contact::find($oc->contact_id)?->compras_config['tolerancia_oc'] ?? 2)));
+    }
+
+    // Lo abierto del proveedor: órdenes para comparar y remitos sin facturar.
+    public function abiertos(int $contactId)
+    {
+        return response()->json([
+            'ordenes' => \App\Models\OrdenCompra::where('contact_id', $contactId)->whereIn('estado', ['enviada', 'parcial', 'borrador', 'abierta'])->orderByDesc('id')->limit(20)->get()->filter(fn($o) => $o->abierta())->values()->map(fn($o) => ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'fecha' => $o->fecha?->format('d/m/Y'), 'total' => (float) $o->total]),
+            'remitos' => Comprobante::compras()->where('contact_id', $contactId)->where('solo_stock', true)->where('estado', 'emitido')->where(fn($q) => $q->whereNull('notas')->orWhere('notas', 'not like', '%Facturado por%'))->orderByDesc('id')->limit(20)->get()->map(fn($r) => ['id' => $r->id, 'numero' => $r->numero_proveedor ?: "#{$r->id}", 'fecha' => $r->fecha->format('d/m/Y'), 'items' => $r->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad])]),
+        ]);
+    }
+
+    public function borradores(Request $request)
+    {
+        return response()->json(\App\Models\CompraBorrador::orderByDesc('updated_at')->limit(30)->get()->map(fn($b) => ['id' => $b->id, 'proveedor' => $b->proveedor, 'numero' => $b->numero, 'total' => $b->total, 'cuando' => $b->updated_at->diffForHumans(), 'adjuntos' => count($b->adjuntos ?? [])]));
+    }
+
+    public function guardarBorradorLectura(Request $request, \App\Services\Compras\LecturaCompraService $lectura, ?int $id = null)
+    {
+        $d = $request->validate(['datos' => 'required|array']);
+        $b = $lectura->guardarBorrador($request->user()->id, $request->user()->business_id, $d['datos'], $id);
+        return response()->json(['ok' => true, 'id' => $b->id]);
+    }
+
+    public function borrador(int $id) { $b = \App\Models\CompraBorrador::findOrFail($id); return response()->json(['id' => $b->id, 'datos' => $b->datos, 'adjuntos' => $b->adjuntos]); }
+    public function borrarBorrador(int $id) { \App\Models\CompraBorrador::findOrFail($id)->delete(); return response()->json(['ok' => true]); }
 
     public function importarAfip(Request $request, AfipCsvImportService $import)
     {

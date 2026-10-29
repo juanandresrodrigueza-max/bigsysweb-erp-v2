@@ -47,3 +47,18 @@ En la ficha del proveedor, pestaña **Contactos**: vendedor, cobranzas, depósit
 
 - **Factura del proveedor con CUIT distinto al cargado**: corregí el CUIT en la ficha; el cruce con ARCA usa el CUIT.
 - **Pagué sin retener y correspondía**: anulá el pago y cargalo de nuevo con la retención; el certificado se emite en ese momento.
+
+## Leer mejor la factura y entender al proveedor
+
+Si la foto la sacás desde el **celular**, el sistema lee el **QR de ARCA** de la factura: CUIT, tipo, punto de venta, número, fecha, total y CAE salen **exactos** (cartel verde "Los datos de la factura salieron del código QR", y te dice si corrigió algo). Los renglones siempre salen de la foto: ésos se revisan igual. Con el CUIT exacto el proveedor se reconoce aunque el nombre se haya leído mal.
+
+Después de leer, la factura se **entiende** como la entiende el que la carga a mano:
+- **Lo aprendido del proveedor manda**: su código y su descripción apuntan a tu artículo desde la segunda factura (se aprende al registrar).
+- **Bultos a unidades**: si la ficha dice cuántas trae el bulto (campo *Unidades por bulto*), si el nombre lo dice entre paréntesis —*AZUCAR X1KG (10)*, prendiendo *El número entre paréntesis es el bulto* en la ficha del proveedor— o si el precio del renglón es como N veces el costo, la cantidad se multiplica y el precio se divide, y te lo avisa.
+- **Bonificación en mercadería**: el mismo artículo en $0 entra sin cargo y no baja el costo.
+- **Renglones negativos** son descuentos: se reparten entre los renglones que nombran (o entre todos). La **bonificación del pie** se aplica a todos.
+- **Conceptos raros del pie** ("Gastos administrativos", "Perc. IIBB CABA"): se pregunta **una vez por proveedor** qué es (percepción, descuento, flete o nada) y queda aprendido para ese CUIT en todos los negocios.
+
+**Revisar antes de mandar** muestra cada renglón con el costo del sistema contra el de la factura, el % que cambia (en rojo si es más del 15 %), el margen que queda con el precio de venta y un tilde por renglón para decidir qué costo se escribe. Y controla que cierre: si los renglones no suman el total de la factura, hay repetidos o un costo queda arriba del precio, lo dice y no deja registrar hasta arreglarlo.
+
+**Remito y factura**: tildá *Es un remito sin precios* y entra **sólo al stock** (sin cuenta ni asiento). Cuando llega la factura, elegís *¿Es la factura de un remito que ya entró?* y entra **sólo a contabilidad y a la cuenta**, sin mover el stock otra vez, y recién ahí se escribe el costo. **Comparar con orden de compra** cruza la factura contra lo pedido con una tolerancia de precio (2 % por defecto, se cambia en la ficha del proveedor) y arma el reclamo para copiar. **Dejarla para después** guarda la factura a medio cargar (la lectura, lo que corregiste) y aparece arriba en Compras para retomarla desde cualquier computadora sin volver a leerla.

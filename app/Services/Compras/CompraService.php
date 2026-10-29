@@ -43,6 +43,7 @@ class CompraService
             $dias = (int) ($data['dias_vto'] ?? $proveedor->dias_pago ?? 0);
             $c->fill([
                 'contact_id' => $proveedor->id, 'tipo' => $data['tipo'], 'numero_proveedor' => $numero ?: null, 'cae_proveedor' => $data['cae_proveedor'] ?? null,
+                'solo_stock' => (bool) ($data['solo_stock'] ?? ($c->exists ? $c->solo_stock : false)), 'solo_contable' => (bool) ($data['solo_contable'] ?? ($c->exists ? $c->solo_contable : false)), 'remito_id' => $data['remito_id'] ?? $c->remito_id,
                 'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id, 'orden_compra_id' => $data['orden_compra_id'] ?? $c->orden_compra_id,
                 'fecha' => $data['fecha'], 'fecha_vto' => isset($data['fecha_vto']) && $data['fecha_vto'] ? $data['fecha_vto'] : \Carbon\Carbon::parse($data['fecha'])->addDays($dias),
                 'condicion' => $data['condicion'] ?? 'cta_cte', 'notas' => $data['notas'] ?? null,
@@ -58,7 +59,7 @@ class CompraService
                 // Compra en dólares: los precios vienen en USD y se guardan en pesos a la cotización de la factura.
                 if ($moneda !== 'ARS') $it['precio_unit'] = round((float) $it['precio_unit'] * $cot, 2);
                 $calc = ComprobanteItem::calcular((float) $it['cantidad'], (float) $it['precio_unit'], (float) ($it['descuento'] ?? 0), $al);
-                $c->items()->create(['product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'), 'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'lote' => $it['lote'] ?? null, 'vencimiento' => $it['vencimiento'] ?? null, 'serie' => $it['serie'] ?? null, ...$calc]);
+                $c->items()->create(['product_id' => $product?->id, 'descripcion' => ($it['descripcion'] ?? null) ?: ($product?->name ?? 'Ítem'), 'cantidad' => $it['cantidad'], 'unidad' => $it['unidad'] ?? $product?->unit, 'precio_unit' => $it['precio_unit'], 'descuento' => $it['descuento'] ?? 0, 'alicuota_iva' => $al, 'orden' => $i, 'lote' => $it['lote'] ?? null, 'vencimiento' => $it['vencimiento'] ?? null, 'serie' => $it['serie'] ?? null, 'actualiza_costo' => (bool) ($it['actualiza_costo'] ?? true), ...$calc]);
             }
 
             $c->impuestos()->delete();
@@ -89,7 +90,8 @@ class CompraService
             $c->forceFill(['estado' => 'emitido', 'emitido_en' => now(), 'saldo' => $c->def()['cc'] > 0 ? $c->total : 0])->save();
 
             $signo = $c->def()['cc'];
-            if ($signo !== 0) {
+            // Remito del proveedor sin precios: sólo stock. La factura de ese remito: sólo contabilidad y cuenta.
+            if ($signo !== 0 && ! $c->solo_stock) {
                 CuentaCorriente::create([
                     'business_id' => $c->business_id, 'contact_id' => $c->contact_id, 'comprobante_id' => $c->id, 'fecha' => $c->fecha,
                     'fecha_vto' => $signo > 0 ? $c->fecha_vto : null, 'tipo' => $c->def()['grupo'], 'concepto' => "{$c->nombreTipo()} {$c->numeroFormateado()} (compra)",
@@ -102,13 +104,13 @@ class CompraService
                 CuentaCorriente::recalcularSaldo($c->contact_id);
             }
 
-            if ($c->def()['stock']) {
+            if ($c->def()['stock'] && ! $c->solo_contable) {
                 $sentido = $c->esNotaCredito() ? -1 : 1; // compra entra, NC de compra devuelve
                 $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
                 foreach ($c->items as $it) {
                     if (! $it->product_id || ! ($p = Product::find($it->product_id))) continue;
                     $costo = (float) $it->precio_unit * (1 - (float) $it->descuento / 100);
-                    if ($sentido > 0) {
+                    if ($sentido > 0 && ! $c->solo_stock && $it->actualiza_costo) {
                         $p->precio_compra = (float) $it->precio_unit;
                         $p->descuento_proveedor = (float) $it->descuento;
                         $p->cost = $costo;
@@ -123,7 +125,12 @@ class CompraService
             if ($c->orden_compra_id) app(\App\Services\Compras\OrdenCompraService::class)->marcarRecibido($c);
             AuditLog::registrar('crear', $c, "Registró compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->contact?->name}");
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'compra.registrada', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
-            app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
+            if (! $c->solo_stock) app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
+            // La factura del remito: el costo se escribe recién ahora (el remito no traía precios) y el remito queda facturado.
+            if ($c->solo_contable && $c->remito_id) {
+                foreach ($c->items as $it) { if ($it->product_id && $it->actualiza_costo && ($p = Product::find($it->product_id))) { $p->precio_compra = (float) $it->precio_unit; $p->descuento_proveedor = (float) $it->descuento; $p->cost = (float) $it->precio_unit * (1 - (float) $it->descuento / 100); $p->recalcularDesdeCosto(); $p->save(); } }
+                Comprobante::whereKey($c->remito_id)->update(['notas' => \Illuminate\Support\Facades\DB::raw("COALESCE(notas, '') || ' · Facturado por {$c->nombreTipo()} {$c->numeroFormateado()}'")]);
+            }
             return $c->fresh();
         });
     }
