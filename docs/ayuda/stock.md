@@ -166,3 +166,9 @@ Si elegís el proveedor, al terminar queda **recordado** el mapeo y la preparaci
 **La pantalla que salva**: antes de importar, lo raro viene en rojo y destildado: sube o baja más del límite que pongas (50 % por defecto), precio de venta bajo el costo, cero o texto en vez de número, repetido en el archivo, o no encontrado cuando no se crean nuevos. Vos lo revisás y lo tildás sólo si está bien. Con la revisión hecha, se importa **todo o nada**: si una fila tildada falla, no se importa ninguna.
 
 Parámetros: **Sólo el precio de compra** (actualiza el costo y no toca los precios de venta), **Crear los artículos que no existan** (destildado: sólo actualiza), y el margen para la lista 1.
+
+## Pases entre sucursales (Stock → Movimientos → Pases)
+
+El pase se cuenta dos veces. **Armar**: elegí de dónde sale y a dónde va, y escaneá lo que va (`3*código` suma tres; las etiquetas de balanza traen el peso). **Enviar**: sale el stock del origen y el pase queda **en viaje** (no está en ninguna de las dos sucursales). **Recibir**: la otra sucursal cuenta lo que llegó y entra eso. Si llegó distinto, queda **con diferencias**, a la vista de las dos; lo que faltó y no va a aparecer se puede devolver al stock del origen.
+
+Cada pase tiene su **PDF de control** y un link para mandarlo por WhatsApp a quien lo recibe. La transferencia directa (de un depósito a otro en el momento) sigue estando.

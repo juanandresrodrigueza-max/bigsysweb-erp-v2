@@ -13,8 +13,8 @@ class TransferenciaStock extends Model
     use BelongsToBusiness;
 
     protected $table = 'transferencias_stock';
-    protected $fillable = ['business_id', 'business_location_id', 'numero', 'fecha', 'origen_id', 'destino_id', 'user_id', 'estado', 'notas'];
-    protected $casts = ['fecha' => 'date'];
+    protected $fillable = ['business_id', 'business_location_id', 'numero', 'fecha', 'origen_id', 'destino_id', 'user_id', 'estado', 'notas', 'enviada_en', 'recibida_en', 'recibida_por', 'token'];
+    protected $casts = ['fecha' => 'date', 'enviada_en' => 'datetime', 'recibida_en' => 'datetime'];
 
     public function origen(): BelongsTo { return $this->belongsTo(Deposito::class, 'origen_id'); }
     public function destino(): BelongsTo { return $this->belongsTo(Deposito::class, 'destino_id'); }

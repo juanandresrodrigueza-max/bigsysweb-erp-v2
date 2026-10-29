@@ -14,8 +14,8 @@ class OrdenEntrega extends Model
     use BelongsToBusiness;
 
     protected $table = 'ordenes_entrega';
-    protected $fillable = ['business_id', 'business_location_id', 'user_id', 'numero', 'fecha', 'repartidor', 'vehiculo', 'estado', 'notas', 'entregada_en', 'rendida_en', 'rendida_por', 'cuenta_fondos_id', 'rendicion'];
-    protected $casts = ['fecha' => 'date', 'entregada_en' => 'datetime', 'rendida_en' => 'datetime', 'rendicion' => 'array'];
+    protected $fillable = ['business_id', 'business_location_id', 'user_id', 'numero', 'fecha', 'repartidor', 'vehiculo', 'estado', 'notas', 'entregada_en', 'rendida_en', 'rendida_por', 'cuenta_fondos_id', 'rendicion', 'token_chofer', 'salida_en', 'ultima_lat', 'ultima_lng', 'ultima_pos_en', 'origen_lat', 'origen_lng'];
+    protected $casts = ['fecha' => 'date', 'entregada_en' => 'datetime', 'rendida_en' => 'datetime', 'rendicion' => 'array', 'salida_en' => 'datetime', 'ultima_pos_en' => 'datetime', 'ultima_lat' => 'float', 'ultima_lng' => 'float', 'origen_lat' => 'float', 'origen_lng' => 'float'];
 
     public const ESTADOS = ['pendiente' => 'Pendiente', 'en_curso' => 'En reparto', 'entregada' => 'Entregada', 'cancelada' => 'Cancelada'];
 

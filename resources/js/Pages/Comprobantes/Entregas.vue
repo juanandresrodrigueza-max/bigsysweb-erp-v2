@@ -6,7 +6,7 @@
         <h1 class="page-title">Hojas de reparto</h1>
         <p class="page-subtitle">Agrupá las entregas del día por repartidor, imprimí la hoja y marcá cada entrega al volver.</p>
       </div>
-      <button v-if="puede('comprobantes','crear')" @click="nuevaAbierta = true" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva hoja</button>
+      <div class="flex gap-2"><button v-if="puede('comprobantes','crear')" @click="nuevaAbierta = true" class="btn-secondary">Hoja rápida</button><Link v-if="puede('comprobantes','crear')" href="/comprobantes/entregas/armar" class="btn-primary" data-e2e="armar"><Icono nombre="plus" clase="w-4 h-4" /> Armar viaje</Link></div>
     </div>
 
     <div class="card mb-4 flex gap-2 items-center">
