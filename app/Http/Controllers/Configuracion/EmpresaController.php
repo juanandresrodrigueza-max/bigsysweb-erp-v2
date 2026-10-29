@@ -15,9 +15,11 @@ class EmpresaController extends Controller
         $sub = $b->activeSubscription;
 
         return Inertia::render('Configuracion/Empresa', [
-            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'balanza_digitos_plu' => 5, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'verticalesExtra' => (array) ($request->user()->business->verticales_extra ?? []), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
+            'avisos' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($request->user()->business), 'pos' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'balanza_digitos_plu' => 5, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42, 'cartelera_segundos' => 8], $request->user()->business->pos ?? []), 'resumenTexto' => session('resumen_texto'), 'verticalesExtra' => (array) ($request->user()->business->verticales_extra ?? []), 'whatsappApi' => ! empty($request->user()->business->whatsapp_settings['token']),
             'tarjetas' => app(\App\Services\Pos\CuotasService::class)->planes($b),
-            'mercadopago' => ['access_token' => ! empty($b->mercadopago_settings['access_token']) ? '••••' . substr((string) $b->mercadopago_settings['access_token'], -4) : '', 'user_id' => $b->mercadopago_settings['user_id'] ?? '', 'pos_external_id' => $b->mercadopago_settings['pos_external_id'] ?? '', 'point_device_id' => $b->mercadopago_settings['point_device_id'] ?? '', 'tiene_token' => ! empty($b->mercadopago_settings['access_token'])],
+            'mercadopago' => ['access_token' => ! empty($b->mercadopago_settings['access_token']) ? '••••' . substr((string) $b->mercadopago_settings['access_token'], -4) : '', 'user_id' => $b->mercadopago_settings['user_id'] ?? '', 'pos_external_id' => $b->mercadopago_settings['pos_external_id'] ?? '', 'point_device_id' => $b->mercadopago_settings['point_device_id'] ?? '', 'tiene_token' => ! empty($b->mercadopago_settings['access_token']),
+                'oauth' => (bool) ($b->mercadopago_settings['oauth'] ?? false), 'nickname' => $b->mercadopago_settings['nickname'] ?? null, 'point_modo' => $b->mercadopago_settings['point_modo'] ?? null, 'boton' => \App\Services\MercadoPago\MercadoPagoCobrosService::appConfigurada()],
+            'cartelera' => collect($b->pos['cartelera'] ?? [])->map(fn($c) => ['id' => $c['id'], 'tipo' => $c['tipo'], 'nombre' => $c['nombre'] ?? '', 'url' => "/configuracion/empresa/cartelera/{$c['id']}"])->values(),
             'empresa' => [
                 'name' => $b->name, 'razon_social' => $b->razon_social, 'cuit' => $b->cuit, 'email' => $b->email,
                 'phone' => $b->phone, 'condicion_iva' => $b->condicion_iva ?? 'Responsable Inscripto',
@@ -158,9 +160,65 @@ class EmpresaController extends Controller
 
     public function guardarPos(Request $request)
     {
-        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'balanza_digitos_plu' => 'nullable|integer|min:4|max:6', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna', 'ancho' => 'required|integer|in:32,42,48']);
+        $d = $request->validate(['balanza_prefijo' => 'nullable|string|max:3', 'balanza_modo' => 'required|in:peso,importe', 'balanza_decimales' => 'required|integer|min:0|max:3', 'balanza_digitos_plu' => 'nullable|integer|min:4|max:6', 'cartelera_segundos' => 'nullable|integer|min:3|max:120', 'imprimir_auto' => 'boolean', 'impresora' => 'required|in:navegador,serial,ninguna', 'ancho' => 'required|integer|in:32,42,48']);
         $b = $request->user()->business;
         $b->update(['pos' => array_replace($b->pos ?? [], $d)]);
         return back()->with('success', 'Punto de venta configurado.');
+    }
+
+    // ---- Fase 32.3 · Mercado Pago en el local: cajas QR, terminales Point en modo PDV, desconectar ----
+    public function mpCajas(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        try { return response()->json($mp->cajasQr($request->user()->business)); } catch (\Throwable $e) { return response()->json(['error' => $e->getMessage()], 422); }
+    }
+
+    public function mpTerminales(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        try { return response()->json($mp->terminales($request->user()->business)); } catch (\Throwable $e) { return response()->json(['error' => $e->getMessage()], 422); }
+    }
+
+    public function mpElegirTerminal(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        $d = $request->validate(['device_id' => 'required|string|max:80']);
+        try { $mp->elegirTerminal($request->user()->business, $d['device_id']); } catch (\Throwable $e) { return back()->with('error', $e->getMessage()); }
+        return back()->with('success', 'Terminal elegida y en modo PDV: desde ahora sólo cobra lo que le manda la caja.');
+    }
+
+    public function mpDesconectar(Request $request, \App\Services\MercadoPago\MercadoPagoCobrosService $mp)
+    {
+        $mp->desconectar($request->user()->business);
+        AuditLog::registrar('editar', $request->user()->business, 'Desconectó Mercado Pago');
+        return back()->with('success', 'Mercado Pago desconectado.');
+    }
+
+    // ---- Fase 32.2 · Cartelera de la pantalla del cliente: imágenes (hasta 20 juntas) y videos ----
+    public function subirCartelera(Request $request)
+    {
+        $request->validate(['archivos' => 'required|array|min:1|max:20', 'archivos.*' => 'file|mimes:jpg,jpeg,png,webp,gif,mp4,webm|max:40960'], ['archivos.*.max' => 'Cada archivo puede pesar hasta 40 MB.', 'archivos.*.mimes' => 'Imágenes JPG, PNG, WEBP o GIF, y videos MP4 o WEBM.']);
+        $b = $request->user()->business; $pos = $b->pos ?? []; $lista = $pos['cartelera'] ?? [];
+        foreach ($request->file('archivos') as $f) {
+            $tipo = str_starts_with($f->getMimeType(), 'video') ? 'video' : 'imagen';
+            $path = $f->store("cartelera/{$b->id}", 'local');
+            $lista[] = ['id' => \Illuminate\Support\Str::random(10), 'tipo' => $tipo, 'archivo' => $path, 'nombre' => $f->getClientOriginalName(), 'mime' => $f->getMimeType()];
+        }
+        $pos['cartelera'] = array_values($lista);
+        $b->update(['pos' => $pos]);
+        return back()->with('success', count($request->file('archivos')) . ' archivo(s) en la cartelera.');
+    }
+
+    public function borrarCartelera(Request $request, string $id)
+    {
+        $b = $request->user()->business; $pos = $b->pos ?? [];
+        $lista = collect($pos['cartelera'] ?? []);
+        $item = $lista->firstWhere('id', $id);
+        if ($item) { \Illuminate\Support\Facades\Storage::disk('local')->delete($item['archivo']); $pos['cartelera'] = $lista->reject(fn($c) => $c['id'] === $id)->values()->all(); $b->update(['pos' => $pos]); }
+        return back()->with('success', 'Sacado de la cartelera.');
+    }
+
+    public function verCartelera(Request $request, string $id)
+    {
+        $item = collect($request->user()->business->pos['cartelera'] ?? [])->firstWhere('id', $id);
+        abort_unless($item && \Illuminate\Support\Facades\Storage::disk('local')->exists($item['archivo']), 404);
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($item['archivo'], null, ['Content-Type' => $item['mime'] ?? 'application/octet-stream', 'Cache-Control' => 'private, max-age=86400']);
     }
 }

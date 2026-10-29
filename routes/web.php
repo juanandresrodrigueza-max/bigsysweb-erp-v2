@@ -597,6 +597,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::get('/comprobante/{id}/entrega/foto', [\App\Http\Controllers\Comprobantes\VenderController::class, 'fotoEntrega'])->whereNumber('id');
             // Fase 32.1: últimas ventas de la caja, anular la última, devolución con la plata de vuelta
             Route::get('/ultimas',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'ultimas']);
+            Route::get('/pantalla-cliente', [\App\Http\Controllers\Comprobantes\VenderController::class, 'pantallaCliente']);
+            Route::get('/cartelera/{id}',   [EmpresaController::class, 'verCartelera']);
             Route::post('/venta/{id}/anular',   [\App\Http\Controllers\Comprobantes\VenderController::class, 'anularVenta'])->middleware("permiso:{$perm},anular")->whereNumber('id');
             Route::post('/venta/{id}/devolver', [\App\Http\Controllers\Comprobantes\VenderController::class, 'devolver'])->middleware("permiso:{$perm},crear")->whereNumber('id');
             Route::get('/ticket/{id}', [\App\Http\Controllers\Pos\PosController::class, 'ticket']);
@@ -649,6 +651,13 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/empresa/muestra', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'muestra']);
         Route::post('/empresa/tarjetas',   [EmpresaController::class, 'guardarTarjetas'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/mercadopago', [EmpresaController::class, 'guardarMercadoPago'])->middleware('permiso:configuracion,editar');
+        Route::get('/empresa/mercadopago/cajas',      [EmpresaController::class, 'mpCajas'])->middleware('permiso:configuracion,editar');
+        Route::get('/empresa/mercadopago/terminales', [EmpresaController::class, 'mpTerminales'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/mercadopago/terminal',  [EmpresaController::class, 'mpElegirTerminal'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/mercadopago/desconectar', [EmpresaController::class, 'mpDesconectar'])->middleware('permiso:configuracion,editar');
+        Route::post('/empresa/cartelera',             [EmpresaController::class, 'subirCartelera'])->middleware('permiso:configuracion,editar');
+        Route::delete('/empresa/cartelera/{id}',      [EmpresaController::class, 'borrarCartelera'])->middleware('permiso:configuracion,editar');
+        Route::get('/empresa/cartelera/{id}',         [EmpresaController::class, 'verCartelera']);
 
         Route::get('/sucursales',            [SucursalesController::class, 'index'])->name('sucursales');
         Route::post('/sucursales/{id}/certificados', [SucursalesController::class, 'certificados'])->middleware('permiso:configuracion,editar');

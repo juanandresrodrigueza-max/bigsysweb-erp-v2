@@ -17,6 +17,8 @@ class ConexionesController extends Controller
     // Manda al usuario a autorizar en la tienda.
     public function ir(Request $request, string $tipo)
     {
+        // Fase 32.3: Mercado Pago (cobros en el local) también se conecta con un botón; guarda en la empresa, no en un canal.
+        if ($tipo === 'mercadopago') return redirect()->away(app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->urlOauth($request->user()->business));
         abort_unless(isset(Canal::TIPOS[$tipo]) && ! empty(Canal::TIPOS[$tipo]['oauth']), 404);
         $url = $this->cx->urlAutorizar($tipo, $request->user()->business, $request->only('url'));
         if ($tipo === 'woocommerce') { parse_str(parse_url($url, PHP_URL_QUERY), $q); $this->cx->recordarUrlWoo($q['user_id'], $request->input('url')); }
@@ -26,6 +28,11 @@ class ConexionesController extends Controller
     // La tienda trae al usuario de vuelta con el código (o las claves ya mandadas).
     public function volver(Request $request, string $tipo)
     {
+        if ($tipo === 'mercadopago') {
+            try { $b = $this->cx->empresaDelEstado($request->query('state'), 'mercadopago'); $s = app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->volverOauth($b, (string) $request->query('code')); }
+            catch (\Illuminate\Validation\ValidationException $e) { return redirect('/configuracion#mercadopago')->with('error', collect($e->errors())->flatten()->first()); }
+            return redirect('/configuracion#mercadopago')->with('success', 'Mercado Pago conectado' . (! empty($s['nickname']) ? " como {$s['nickname']}" : '') . '. El token se renueva solo.');
+        }
         try { $c = $this->cx->volver($tipo, $request); }
         catch (\Illuminate\Validation\ValidationException $e) { return redirect('/configuracion/tienda#canales')->with('error', collect($e->errors())->flatten()->first()); }
         return redirect('/configuracion/tienda#canales')->with('success', "{$c->nombre} conectada." . ($c->ultimo_error ? ' ' . $c->ultimo_error : ''));

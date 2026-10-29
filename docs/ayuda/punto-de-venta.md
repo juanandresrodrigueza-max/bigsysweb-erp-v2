@@ -75,3 +75,18 @@ Si se corta internet, el POS sigue vendiendo: las ventas quedan guardadas en el 
 - **Cobrar con cheques.** En el cobro elegí **Cheque**, cargá número, banco, fecha de pago y quién lo firma; «+ otro cheque» para varios, y se mezcla con efectivo. Quedan en cartera en Fondos.
 - **DNI del consumidor final.** Al cobrar a Consumidor Final podés poner el DNI y el nombre: salen en la factura sin crear un cliente.
 - **Últimas ventas.** El botón de arriba lista las ventas de hoy de esta caja: **Reimprimir** el ticket, **Devolución** (marcás qué vuelve y por dónde devolvés la plata: sale la nota de crédito y la caja queda bien; con tarjeta no sale plata, se anula el cupón) y **Anular** la última venta (si todavía no tiene CAE se anula y el cobro vuelve; si ya tiene CAE, sale la nota de crédito sola por el total y la plata vuelve por donde entró). Anular pide el permiso de anular del módulo.
+
+## La pantalla del cliente
+
+Si tenés un segundo monitor mirando al cliente, en la caja (Vender → En la caja) tocá **Pantalla del cliente**: se abre en otra ventana y la arrastrás a ese monitor. Ahí se ve el **total en grande**, el último producto que pasaste con su precio y la oferta si tiene, el **vuelto** mientras escribís con cuánto paga, el «gracias» al terminar, y la **cartelera** del negocio. No hay nada que tocar: se actualiza sola con lo que vas pasando.
+
+La cartelera se carga en **Configuración → Cartelería y promociones**: hasta 20 imágenes juntas (conviene vertical, 1080 × 1600) y videos de a uno; se turnan cada 8 segundos (se cambia en Punto de venta).
+
+## Mercado Pago en el local: QR de la caja y terminal Point
+
+En **Configuración → Mercado Pago**:
+- **Conectar con Mercado Pago**: un botón te lleva a Mercado Pago, autorizás y volvés conectado. El token se renueva solo. (Si el botón no aparece, el panel de BigSys todavía no tiene cargada la aplicación: avisale a soporte. Mientras tanto se puede pegar el access token a mano.)
+- **Caja QR**: «buscar cajas» trae las cajas de tu cuenta (Tu negocio → Sucursales y cajas); si hay una sola, queda elegida. Al cobrar con QR el cliente escanea **el cartel de siempre** y en su Mercado Pago le aparece el importe exacto; la factura sale sola cuando se acredita, al fondo de Mercado Pago, con el número de pago.
+- **Point**: «buscar terminales» muestra las Point de la cuenta; «Usar ésta» la deja en **modo PDV** (desde ahí el aparato sólo cobra lo que le manda la caja). El botón de tarjeta de la caja le manda el importe; la factura sale aprobada la tarjeta, como **tarjeta** al fondo de débito o de crédito según lo que informe la Point (si tenés fondos de tarjeta con «débito» o «crédito» en el nombre, elige solo), con el número de pago y las cuotas anotadas en el cupón.
+
+El posnet de SiPago queda para cuando tengamos su documentación técnica.
