@@ -41,7 +41,15 @@ class General
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',
                 'parametros' => ['pregunta' => ['type' => 'string', 'description' => 'Qué se quiere hacer, en palabras del usuario.']], 'requeridos' => ['pregunta'],
-                'ejecutar' => fn(User $u, array $a) => ['resultados' => collect(app(\App\Services\Producto\AyudaService::class)->buscar((string) $a['pregunta'], 5))->map(fn($r) => ['guia' => $r['titulo'], 'seccion' => $r['seccion'], 'texto' => $r['fragmento'], 'url' => Busca::url($r['url'])])->all()]],
+                // Las 3 secciones más cercanas van enteras (pasos completos); el resto, el fragmento. Si no hay nada, lo dice: Bigcito no inventa pantallas.
+                'ejecutar' => function (User $u, array $a) {
+                    $ay = app(\App\Services\Producto\AyudaService::class); $res = $ay->buscar((string) $a['pregunta'], 5);
+                    if (! $res) return ['resultados' => [], 'nota' => 'Las guías no hablan de esto. No inventes pasos: decile que escriba a soporte (Ayuda → Escribir a soporte).'];
+                    return ['resultados' => collect($res)->values()->map(function ($r, $i) use ($ay) {
+                        $txt = $i < 3 ? (collect($ay->secciones($ay->articulos()[$r['slug']]['texto'] ?? ''))->firstWhere('ancla', $r['ancla'])['texto'] ?? $r['fragmento']) : $r['fragmento'];
+                        return ['guia' => $r['titulo'], 'seccion' => $r['seccion'], 'texto' => mb_substr($txt, 0, 2500), 'url' => Busca::url($r['url'])];
+                    })->all()];
+                }],
         ];
     }
 }

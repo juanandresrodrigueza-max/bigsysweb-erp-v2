@@ -68,6 +68,17 @@ class BigcitoFotoAudioAyudaTest extends ErpTestCase
         $this->assertSame(1, $r['sin_identificar']);
     }
 
+    public function test_bigcito_lee_la_seccion_entera_del_manual(): void
+    {
+        $r = $this->mcp('ayuda_sistema', ['pregunta' => 'conciliar tarjetas liquidación']);
+        $this->assertNotEmpty($r['resultados']);
+        $this->assertGreaterThan(300, mb_strlen($r['resultados'][0]['texto'])); // la sección completa, no el fragmento
+        $this->assertArrayHasKey('nota', $this->mcp('ayuda_sistema', ['pregunta' => 'zzqxw inexistente']));
+        $this->assertNotNull(app(\App\Services\Producto\AyudaService::class)->paraRuta('/avisos-celular'));
+        $this->assertNotNull(app(\App\Services\Producto\AyudaService::class)->paraRuta('/mejoras'));
+        $this->assertNotNull(app(\App\Services\Producto\AyudaService::class)->paraRuta('/conjuntos'));
+    }
+
     public function test_bigcito_tiene_el_whatsapp_de_soporte(): void
     {
         \App\Models\SistemaConfig::set('soporte_whatsapp', '+54 9 351 555-0000');

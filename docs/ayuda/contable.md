@@ -1,7 +1,7 @@
 ---
 titulo: Contabilidad y el contador
 modulo: contable
-rutas: /contable, /contador
+rutas: /contable, /contador, /conjuntos
 orden: 7
 resumen: Asientos automáticos, libros de IVA, retenciones, SIFERE, exportación al sistema del contador y acceso para el estudio.
 ---
