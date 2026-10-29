@@ -3,6 +3,7 @@
 namespace App\Services\Ventas;
 
 use App\Models\AuditLog;
+use App\Models\AutorizacionDescuento;
 use App\Models\Business;
 use App\Models\Comprobante;
 use App\Models\ComprobanteItem;
@@ -28,7 +29,7 @@ class VenderService
     public const AGENDA = ['dia' => 'Todo el día', 'man' => 'A la mañana', 'tar' => 'A la tarde', '1er' => '1ª semana', '2do' => '2ª semana', '3er' => '3ª semana', 'ult' => 'Última semana'];
     public const DEFAULT = ['calle_comprobante' => 'PRE', 'calle_emite' => false, 'mostrador_emite' => true, 'tope_descuento' => 0, 'dias_mora' => 0, 'avisar_datos_dias' => 7, 'calle_cobra' => true];
 
-    public function __construct(private ComprobanteService $comprobantes, private PosService $pos, private CondicionesClienteService $condiciones) {}
+    public function __construct(private ComprobanteService $comprobantes, private PosService $pos, private CondicionesClienteService $condiciones, private DescuentosListaService $descuentosLista) {}
 
     // Se lee de la base y no de la relación cacheada: el encargado puede cambiarla mientras el vendedor está en la calle.
     public function config(?Business $b): array { return array_replace(self::DEFAULT, ($b ? Business::whereKey($b->id)->value('ventas_config') : null) ?? []); }
@@ -181,16 +182,24 @@ class VenderService
             $items = collect($d['items'])->filter(fn($i) => (float) $i['cantidad'] > 0)->values();
             if ($items->isEmpty()) throw ValidationException::withMessages(['items' => 'El pedido está vacío.']);
             $cond = $this->condiciones->paraCliente($contact);
-            $lineas = $items->map(function ($i) use ($contact, $cond, $cfg, $u) {
+            $reglasLista = $this->descuentosLista->paraLista((int) ($contact->lista_precios ?: 1));
+            $autorizadas = [];
+            $lineas = $items->map(function ($i) use ($u, $contact, $cond, $cfg, $reglasLista, &$autorizadas) {
                 $p = ! empty($i['product_id']) ? Product::find($i['product_id']) : null;
                 // El precio lo pone el servidor con las condiciones del cliente; uno distinto sólo si el usuario puede modificar precios.
                 $pc = $p ? $this->condiciones->para($contact, $p, $cond) : null;
                 $precio = $pc ? $pc['precio'] : (float) $i['precio_unit'];
                 if ($p && abs((float) $i['precio_unit'] - $precio) > 0.005) { abort_unless($u->puede('comprobantes', 'editar'), 403, 'No tenés permiso para cambiar precios.'); $precio = (float) $i['precio_unit']; }
-                $desc = (float) ($i['descuento'] ?? ($pc['descuento'] ?? 0));
-                if ($pc && $desc > ($pc['descuento'] ?? 0) + 0.005) {
+                // Lo que el sistema descuenta solo (pactado, promo por cantidad, descuento de la lista) no es del vendedor: no pide permiso ni cuenta para el tope.
+                $auto = $p ? $this->descuentoAutomatico($contact, $p, (float) $i['cantidad'], $pc, $reglasLista) : 0.0;
+                $desc = isset($i['descuento']) && $i['descuento'] !== null && $i['descuento'] !== '' ? (float) $i['descuento'] : $auto;
+                if ($desc > $auto + 0.005) {
                     abort_unless($u->puede('comprobantes', 'editar'), 403, 'No tenés permiso para hacer descuentos.');
-                    if ((float) $cfg['tope_descuento'] > 0 && $desc > (float) $cfg['tope_descuento'] && empty($i['autorizado'])) throw ValidationException::withMessages(['descuento' => "Más de {$cfg['tope_descuento']}% de descuento necesita la autorización del encargado."]);
+                    if ((float) $cfg['tope_descuento'] > 0 && $desc > (float) $cfg['tope_descuento']) {
+                        $a = $this->autorizacionVigente($i['autorizado'] ?? null, $u, $contact, $desc);
+                        if (! $a) throw ValidationException::withMessages(['descuento' => "Más de {$cfg['tope_descuento']}% de descuento necesita el OK del encargado."]);
+                        $autorizadas[$a->id] = $a;
+                    }
                 }
                 return ['product_id' => $p?->id, 'descripcion' => $i['descripcion'] ?? $p?->name, 'cantidad' => $i['cantidad'], 'precio_unit' => $precio, 'descuento' => $desc, 'alicuota_iva' => $p?->iva ?? ($i['alicuota_iva'] ?? 21), 'serie' => $i['serie'] ?? null];
             })->all();
@@ -202,10 +211,56 @@ class VenderService
             $emitida = false;
             if ($tipo !== 'PRE' && $cfg['calle_emite']) { $c = $this->comprobantes->emitir($c); $emitida = true; }
             if ($aviso && ! empty($d['forzar'])) AuditLog::registrar('venta_forzada', $c, "{$u->name} vendió igual a {$contact->name}: {$aviso}");
+            // La autorización se usa y se quema: queda atada a este comprobante.
+            foreach ($autorizadas as $a) { $a->forceFill(['usada_at' => now(), 'comprobante_id' => $c->id])->save(); AuditLog::registrar('descuento_autorizado', $c, "{$a->encargado?->name} autorizó {$a->pct}% a {$u->name} para {$contact->name}"); }
             $this->visita($u, $contact, ['tipo' => 'venta', 'lat' => $d['lat'] ?? null, 'lng' => $d['lng'] ?? null, 'comprobante_id' => $c->id, 'cuando' => ! empty($d['fecha_offline']) ? Carbon::parse($d['fecha_offline']) : now()]);
             AuditLog::registrar('venta_calle', $c, "{$c->nombreTipo()} " . ($emitida ? $c->numeroFormateado() : "#{$c->id} (" . ($tipo === 'PRE' ? 'presupuesto' : 'pendiente de emitir') . ')') . " a {$contact->name} desde la calle");
             return ['comprobante' => $c->fresh(), 'cobro' => null, 'vuelto' => 0, 'presupuesto' => $tipo === 'PRE', 'emitida' => $emitida, 'aviso' => $aviso];
         });
+    }
+
+    // El descuento que pone el sistema solo para este cliente, artículo y cantidad: el mayor entre lo pactado (o su lista y descuento
+    // general), la promo por cantidad del artículo y el descuento especial de la lista. Nunca se suman.
+    public function descuentoAutomatico(Contact $c, Product $p, float $cantidad, ?array $pc = null, ?array $reglasLista = null): float
+    {
+        $pc ??= $this->condiciones->para($c, $p);
+        $auto = (float) ($pc['descuento'] ?? 0);
+        // Un precio pactado es final: la promo no lo toca.
+        if (($pc['origen'] ?? 'lista') === 'pactado' && isset($pc['precio']) && abs($pc['precio'] - $p->precioLista((int) ($c->lista_precios ?: 1))) > 0.005) return $auto;
+        $auto = max($auto, $p->descuentoPorCantidad($cantidad));
+        $dl = $this->descuentosLista->mejor((int) ($c->lista_precios ?: 1), $p, $cantidad, $reglasLista);
+        if ($dl && $dl['descuento'] !== null) $auto = max($auto, (float) $dl['descuento']);
+        return $auto;
+    }
+
+    // ---- Autorización del encargado para pasar el tope de descuento ----
+    // El encargado pone su usuario y clave en el teléfono del vendedor. No puede autorizarse a sí mismo; vale 15 minutos y una sola venta.
+    public function autorizar(User $vendedor, Contact $c, float $pct, string $email, string $password): AutorizacionDescuento
+    {
+        $enc = User::where('business_id', $vendedor->business_id)->where('email', $email)->where('status', 'active')->first();
+        if (! $enc || ! \Illuminate\Support\Facades\Hash::check($password, $enc->password)) throw ValidationException::withMessages(['password' => 'Usuario o clave incorrectos.']);
+        if ($enc->id === $vendedor->id) throw ValidationException::withMessages(['email' => 'No podés autorizarte a vos mismo: tiene que ser otra persona.']);
+        if (! $enc->puede('comprobantes', 'anular')) throw ValidationException::withMessages(['email' => "{$enc->name} no puede autorizar descuentos."]);
+        $a = AutorizacionDescuento::create(['business_id' => $vendedor->business_id, 'user_id' => $vendedor->id, 'autorizado_por' => $enc->id, 'contact_id' => $c->id, 'pct' => round($pct, 2), 'token' => \Illuminate\Support\Str::random(40), 'vence_at' => now()->addMinutes(AutorizacionDescuento::MINUTOS), 'created_at' => now()]);
+        AuditLog::registrar('autorizar_descuento', $a, "{$enc->name} autorizó hasta {$a->pct}% a {$vendedor->name} para {$c->name}");
+        return $a;
+    }
+
+    public function autorizacionVigente(?string $token, User $vendedor, Contact $c, float $pct): ?AutorizacionDescuento
+    {
+        if (! $token) return null;
+        $a = AutorizacionDescuento::where('token', $token)->where('user_id', $vendedor->id)->where('contact_id', $c->id)->first();
+        return $a && $a->vigente() && $a->pct + 0.005 >= $pct ? $a : null;
+    }
+
+    // Para el encargado: los descuentos por encima del tope de los últimos 30 días y cuántas autorizaciones se pidieron y no se usaron.
+    public function autorizaciones(int $dias = 30): array
+    {
+        $lista = AutorizacionDescuento::with('vendedor:id,name', 'encargado:id,name', 'contact:id,name', 'comprobante:id,tipo,numero,punto_venta,total,estado')->where('created_at', '>=', now()->subDays($dias))->orderByDesc('created_at')->limit(200)->get();
+        return [
+            'items' => $lista->map(fn($a) => ['id' => $a->id, 'cuando' => $a->created_at->format('d/m H:i'), 'vendedor' => $a->vendedor?->name, 'encargado' => $a->encargado?->name, 'cliente' => $a->contact?->name, 'pct' => $a->pct, 'usada' => (bool) $a->usada_at, 'comprobante' => $a->comprobante ? ['id' => $a->comprobante->id, 'numero' => $a->comprobante->estado === 'emitido' ? $a->comprobante->numeroFormateado() : "#{$a->comprobante->id}", 'total' => (float) $a->comprobante->total] : null])->all(),
+            'pedidas' => $lista->count(), 'usadas' => $lista->whereNotNull('usada_at')->count(),
+        ];
     }
 
     // Texto del aviso si con este pedido el cliente se pasa del límite o tiene deuda vencida más allá de la tolerancia; null si está bien.

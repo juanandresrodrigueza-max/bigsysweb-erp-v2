@@ -22,7 +22,7 @@ class VendedoresController extends Controller
             'liquidacion' => $comisiones->liquidar($desde, $hasta),
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
             'usuarios' => User::where('business_id', $request->user()->business_id)->orderBy('name')->get(['id', 'name']),
-            'calle' => app(\App\Services\Ventas\VenderService::class)->config($request->user()->business), 'modos' => \App\Services\Ventas\VenderService::MODOS,
+            'calle' => app(\App\Services\Ventas\VenderService::class)->config($request->user()->business), 'modos' => \App\Services\Ventas\VenderService::MODOS, 'autorizaciones' => app(\App\Services\Ventas\VenderService::class)->autorizaciones(),
         ]);
     }
 

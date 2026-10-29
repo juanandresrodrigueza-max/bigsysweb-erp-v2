@@ -59,6 +59,14 @@
             <button v-if="puede('configuracion','editar')" class="btn-secondary !py-1.5 text-xs" :disabled="calleForm.processing" @click="calleForm.post('/clientes/vendedores/calle', { preserveScroll: true })" data-e2e="guardar-calle">Guardar</button>
           </div>
         </div>
+        <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="autorizaciones">
+          <h2 class="font-bold mb-1">Descuentos por encima del tope <span class="text-marca-muted font-normal text-sm">· últimos 30 días</span></h2>
+          <p class="text-xs text-marca-muted mb-2">Quién lo pidió, de cuánto, a qué cliente y quién lo autorizó. Autoriza quien puede anular comprobantes, nunca uno mismo; el OK vale 15 minutos y una sola venta.</p>
+          <p class="text-sm mb-2"><b>{{ autorizaciones.pedidas }}</b> pedidas · <b>{{ autorizaciones.usadas }}</b> usadas<span v-if="autorizaciones.pedidas - autorizaciones.usadas" class="text-amber-700"> · {{ autorizaciones.pedidas - autorizaciones.usadas }} sin usar</span></p>
+          <div v-if="autorizaciones.items.length" class="overflow-x-auto"><table class="table text-xs"><thead><tr><th>Cuándo</th><th>Vendedor</th><th>Cliente</th><th class="text-right">%</th><th>Autorizó</th><th>Venta</th></tr></thead>
+            <tbody><tr v-for="a in autorizaciones.items" :key="a.id"><td class="tabular-nums">{{ a.cuando }}</td><td>{{ a.vendedor }}</td><td>{{ a.cliente }}</td><td class="text-right tabular-nums">{{ a.pct }}%</td><td>{{ a.encargado }}</td><td><Link v-if="a.comprobante" :href="`/comprobantes/${a.comprobante.id}`" class="text-violeta font-semibold">{{ a.comprobante.numero }} · {{ moneda(a.comprobante.total) }}</Link><span v-else class="text-marca-muted">sin usar</span></td></tr></tbody></table></div>
+          <p v-else class="text-xs text-marca-muted">Ninguna todavía.</p>
+        </div>
       </div>
     </div>
 
@@ -89,7 +97,7 @@ import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object })
+const props = defineProps({ vendedores: Array, liquidacion: Array, periodo: Object, usuarios: Array, calle: Object, modos: Object, autorizaciones: Object })
 const { puede } = usePermisos()
 const abierto = ref(null), modal = ref(false)
 const vacio = () => ({ id: null, nombre: '', email: '', telefono: '', user_id: null, comision_venta: 0, comision_cobro: 0, activo: true, modo_default: 'mostrador', objetivo_mensual: null })
