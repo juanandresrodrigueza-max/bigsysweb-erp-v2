@@ -12,6 +12,7 @@
     </div>
 
     <!-- KPIs -->
+    <EstadisticasTabs activa="rentabilidad" />
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       <StatCard label="Ventas netas" :valor="kpis.ventas" />
       <StatCard :label="`Margen bruto ${pct(kpis.margen_bruto_pct)}`" :valor="kpis.margen_bruto" :alerta="kpis.margen_bruto < 0" />
@@ -160,6 +161,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import StatCard from '@/Components/StatCard.vue'
 import Modal from '@/Components/Modal.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'

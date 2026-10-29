@@ -4,6 +4,7 @@
       <div><h1 class="page-title">✦ Analista del negocio</h1><p class="page-subtitle">Mira los números por vos y te cuenta qué pasa, en palabras. Cada lunes a las 8 llega este informe a los dueños.</p></div>
       <div class="flex gap-2"><Link href="/estadisticas" class="btn-secondary">Estadísticas</Link><Link href="/stock/informes?tipo=faltantes&estacional=1" class="btn-secondary">Compra sugerida completa</Link></div>
     </div>
+    <EstadisticasTabs activa="analista" />
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Críticos</p><p class="text-xl font-extrabold tabular-nums" :class="resumen.criticas ? 'text-carmin' : ''">{{ resumen.criticas }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Avisos</p><p class="text-xl font-extrabold tabular-nums" :class="resumen.avisos ? 'text-amber-600' : ''">{{ resumen.avisos }}</p></div>
@@ -49,6 +50,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ hallazgos: Array, informe: Object, ia: Boolean, resumen: Object, compra: Object })
 const peso = { critica: 0, aviso: 1, info: 2, ok: 3 }

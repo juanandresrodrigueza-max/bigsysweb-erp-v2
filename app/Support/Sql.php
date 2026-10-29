@@ -32,6 +32,16 @@ class Sql
         };
     }
 
+    // Día de la semana (0 = domingo … 6 = sábado) de una columna fecha o datetime, como entero.
+    public static function diaSemana(string $col): string
+    {
+        return match (self::driver()) {
+            'pgsql' => "CAST(EXTRACT(DOW FROM {$col}) AS INTEGER)",
+            'mysql', 'mariadb' => "(DAYOFWEEK({$col}) - 1)",
+            default => "CAST(strftime('%w', {$col}) AS INTEGER)",
+        };
+    }
+
     // Fecha (sin hora) de una columna datetime.
     public static function fecha(string $col): string
     {

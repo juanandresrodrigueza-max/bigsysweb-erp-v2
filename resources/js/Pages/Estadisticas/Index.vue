@@ -5,10 +5,30 @@
       <div class="flex flex-wrap items-center gap-2">
         <select :value="sucursalId ?? ''" @change="$inertia.get('/estadisticas', { ...periodo, sucursal: $event.target.value || undefined }, { preserveState: true, replace: true })" class="input w-auto !py-1 text-xs"><option value="">Todas las sucursales</option><option v-for="s in listaSucursales" :key="s.id" :value="s.id">{{ s.name }}</option></select>
         <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="{ sucursal: sucursalId }" />
-        <Link href="/estadisticas/rentabilidad" class="btn-secondary !py-1 text-xs">Rentabilidad</Link>
-        <Link href="/estadisticas/vendedores" class="btn-secondary !py-1 text-xs" data-e2e="ir-equipo">Vendedores</Link>
-        <Link href="/estadisticas/analista" class="btn-violeta !py-1 text-xs">✦ Analista IA</Link>
         <a :href="`/estadisticas?desde=${periodo.desde}&hasta=${periodo.hasta}${sucursalId ? '&sucursal=' + sucursalId : ''}&export=1`" class="btn-secondary !py-1 text-xs">Exportar CSV</a>
+      </div>
+    </div>
+
+    <EstadisticasTabs activa="resumen" />
+
+    <!-- Fase 33.1: hoy hasta esta hora, y cómo va el mes -->
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card" data-e2e="hoy">
+        <div class="flex items-center justify-between"><h2 class="font-bold">Hoy, hasta las {{ hoy.hora }}</h2><span class="text-marca-muted cursor-help text-sm" :title="hoy.como">ⓘ</span></div>
+        <p class="text-3xl font-black tabular-nums mt-1">{{ moneda(hoy.ventas, 0) }} <span class="text-sm font-normal text-marca-muted">{{ hoy.facturas }} facturas{{ hoy.ultimo ? ' · la última a las ' + hoy.ultimo : '' }}</span></p>
+        <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ hoy.dia }} pasado a esta hora</p><p class="font-bold tabular-nums">{{ moneda(hoy.semana_pasada, 0) }} <span v-if="hoy.var_semana !== null" :class="hoy.var_semana >= 0 ? 'text-emerald-600' : 'text-carmin'">{{ hoy.var_semana >= 0 ? '+' : '' }}{{ hoy.var_semana }}%</span></p></div>
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Promedio de los últimos 4</p><p class="font-bold tabular-nums">{{ moneda(hoy.promedio4, 0) }} <span v-if="hoy.var_promedio !== null" :class="hoy.var_promedio >= 0 ? 'text-emerald-600' : 'text-carmin'">{{ hoy.var_promedio >= 0 ? '+' : '' }}{{ hoy.var_promedio }}%</span></p></div>
+        </div>
+      </div>
+      <div class="card" data-e2e="proyeccion">
+        <div class="flex items-center justify-between"><h2 class="font-bold">Cómo va {{ proyeccion.mes }}</h2><span class="text-marca-muted cursor-help text-sm" :title="proyeccion.como">ⓘ</span></div>
+        <p class="text-3xl font-black tabular-nums mt-1">{{ proyeccion.proyeccion === null ? 'Todavía no se puede saber' : moneda(proyeccion.proyeccion, 0) }} <span class="text-sm font-normal text-marca-muted">{{ proyeccion.proyeccion === null ? '' : 'proyectado al cierre · faltan ' + proyeccion.faltan_dias + ' días' }}</span></p>
+        <div class="grid grid-cols-3 gap-3 mt-3 text-sm">
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Hasta ayer</p><p class="font-bold tabular-nums">{{ moneda(proyeccion.hasta_ayer, 0) }}</p></div>
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Mes pasado</p><p class="font-bold tabular-nums">{{ moneda(proyeccion.mes_pasado, 0) }} <span v-if="proyeccion.var_mes_pasado !== null" :class="proyeccion.var_mes_pasado >= 0 ? 'text-emerald-600' : 'text-carmin'">{{ proyeccion.var_mes_pasado >= 0 ? '+' : '' }}{{ proyeccion.var_mes_pasado }}%</span></p></div>
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Mismo mes del año pasado</p><p class="font-bold tabular-nums">{{ moneda(proyeccion.anio_pasado, 0) }} <span v-if="proyeccion.var_anio_pasado !== null" :class="proyeccion.var_anio_pasado >= 0 ? 'text-emerald-600' : 'text-carmin'">{{ proyeccion.var_anio_pasado >= 0 ? '+' : '' }}{{ proyeccion.var_anio_pasado }}%</span></p></div>
+        </div>
       </div>
     </div>
 
@@ -33,11 +53,11 @@
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-      <StatCard label="Ventas" :valor="kpis.ventas" :tendencia="kpis.ventas_var" />
-      <StatCard label="Comprobantes" :valor="kpis.comprobantes" formato="entero" :tendencia="kpis.comprobantes_var" />
-      <StatCard label="Ticket promedio" :valor="kpis.ticket" />
-      <div class="card flex flex-col gap-1"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Margen bruto</p><p class="text-xl font-extrabold tabular-nums" :class="kpis.margen !== null && kpis.margen < 0 ? 'text-carmin' : ''">{{ kpis.margen === null ? '—' : kpis.margen + '%' }}</p><p class="text-xs text-marca-muted tabular-nums">{{ moneda(kpis.margen_monto, 0) }} sobre costo</p></div>
-      <StatCard label="Clientes que compraron" :valor="kpis.clientes" formato="entero" />
+      <StatCard label="Ventas" :valor="kpis.ventas" :tendencia="kpis.ventas_var" :anio="comparaciones.ventas.var_anio" :como="como.ventas" />
+      <StatCard label="Comprobantes" :valor="kpis.comprobantes" formato="entero" :tendencia="kpis.comprobantes_var" :anio="comparaciones.comprobantes.var_anio" :como="como.comprobantes" />
+      <StatCard label="Ticket promedio" :valor="kpis.ticket" :tendencia="comparaciones.ticket.var" :anio="comparaciones.ticket.var_anio" :como="como.ticket" />
+      <div class="card flex flex-col gap-1"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Margen bruto <span class="normal-case tracking-normal font-normal text-marca-muted/70 cursor-help" :title="como.margen">ⓘ</span></p><p class="text-xl font-extrabold tabular-nums" :class="kpis.margen !== null && kpis.margen < 0 ? 'text-carmin' : ''">{{ kpis.margen === null ? '—' : kpis.margen + '%' }}</p><p class="text-xs text-marca-muted tabular-nums">{{ moneda(kpis.margen_monto, 0) }} sobre costo</p></div>
+      <StatCard label="Clientes que compraron" :valor="kpis.clientes" formato="entero" :tendencia="comparaciones.clientes.var" :anio="comparaciones.clientes.var_anio" :como="como.clientes" />
     </div>
 
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
@@ -80,8 +100,9 @@ import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
+import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda, cantidad } from '@/util/formato'
-const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, kpis: Object, serie: Array, porSucursal: Array, clientes: Array, articulos: Array, rubros: Array, vendedores: Array, cobros: Array, proveedores: Array, horas: Array, comparativo: Object })
+const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, kpis: Object, serie: Array, porSucursal: Array, clientes: Array, articulos: Array, rubros: Array, vendedores: Array, cobros: Array, proveedores: Array, horas: Array, comparativo: Object, comparaciones: Object, como: Object, hoy: Object, proyeccion: Object })
 const pesosHoy = ref(false)
 const maxComp = computed(() => Math.max(1, ...props.comparativo.mensual.flatMap(m => [m.actual, m.anterior, m.actual_hoy ?? 0])))
 const maxSerie = computed(() => Math.max(1, ...props.serie.map(s => s.monto)))
