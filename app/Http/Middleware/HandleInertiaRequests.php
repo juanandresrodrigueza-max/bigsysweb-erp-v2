@@ -52,6 +52,7 @@ class HandleInertiaRequests extends Middleware
             'impersonando' => fn() => $request->session()->has('impersonando_desde') ? ['empresa' => $user?->business?->name] : null,
             'mensajeGlobal' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('mensaje_global') : null,
             'onboarding' => fn() => $user?->business && ! $user->business->onboarding_completado_en && $user->esDueno() ? (function () use ($user) { $p = \App\Http\Controllers\OnboardingController::pasos($user->business); return ['hechos' => count(array_filter($p, fn($x) => $x['hecho'])), 'total' => count($p)]; })() : null,
+            'soporteWhatsapp' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('soporte_whatsapp') : null,
             'novedades' => fn() => $user?->business_id ? app(\App\Services\Avisos\CelularService::class)->sinLeer($user) : 0,
             'alertas' => fn() => $user?->business_id ? [
                 'sin_leer' => Alerta::visiblesPara($user)->noLeidasPor($user->id)->count(),

@@ -11,6 +11,7 @@
             </div>
           </div>
           <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
+          <a v-if="whatsappSoporte" :href="whatsappSoporte" target="_blank" class="p-1 rounded hover:bg-white/15 text-xs" title="Hablar con una persona de soporte por WhatsApp (con lo que venías preguntando)" data-e2e="bigcito-soporte">🙋</a>
           <button @click="abierto = false" class="p-1 rounded hover:bg-white/15"><Icono nombre="x" clase="w-4 h-4" /></button></div>
         </div>
 
@@ -83,6 +84,13 @@ function decir(t) {
   const v = window.speechSynthesis.getVoices().find(x => x.lang?.startsWith('es')); if (v) u.voice = v
   window.speechSynthesis.cancel(); window.speechSynthesis.speak(u)
 }
+// Fase 40.4: si Bigcito no alcanza, el WhatsApp a soporte sale ya escrito: quién, de qué empresa, en qué pantalla y qué preguntó.
+const whatsappSoporte = computed(() => {
+  const n = String(page.props.soporteWhatsapp ?? '').replace(/\D/g, ''); if (!n) return null
+  const ultima = [...mensajes.value].reverse().find(m => m.rol === 'user')?.texto
+  const t = `Hola, soy ${page.props.auth?.user?.name ?? ''} de ${page.props.empresa?.nombre ?? ''}. Estoy en la pantalla ${page.component}.` + (ultima ? ` Le pregunté a Bigcito: "${ultima.slice(0, 200)}".` : '') + ' Necesito una mano con: '
+  return `https://wa.me/${n}?text=${encodeURIComponent(t)}`
+})
 const pendiente = () => [...mensajes.value].reverse().find(m => m.propuesta && !m.propuesta.estado)
 
 const cargando = ref(false)
