@@ -37,7 +37,10 @@
           <div><label class="label">Email</label><input v-model="form.email" type="email" class="input" /><p v-if="form.errors.email" class="text-carmin text-xs mt-1">{{ form.errors.email }}</p></div>
           <div><label class="label">{{ form.id ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</label><input v-model="form.password" type="password" class="input" autocomplete="new-password" /><p v-if="form.errors.password" class="text-carmin text-xs mt-1">{{ form.errors.password }}</p></div>
           <div><label class="label">Estado</label><select v-model="form.status" class="input" :disabled="esDueno"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
-          <div class="sm:col-span-2"><label class="label">Rol general</label>
+          <!-- Fase 39.1: perfiles listos que tildan todo de una -->
+          <div v-if="!esDueno" class="sm:col-span-2" data-e2e="perfiles"><label class="label">Perfil</label>
+            <div class="grid sm:grid-cols-3 gap-2"><button v-for="p in perfiles.filter(p => p.role_id)" :key="p.slug" type="button" class="text-left rounded-xl border p-2 text-xs" :class="form.role_id === p.role_id ? 'border-carmin bg-carmin-light/40' : 'border-marca-borde hover:border-marca-texto'" @click="form.role_id = p.role_id" :data-perfil="p.slug"><b class="block text-sm">{{ p.nombre }}</b>{{ p.descripcion }}</button></div></div>
+          <div class="sm:col-span-2"><label class="label">Rol general <span class="normal-case font-normal text-marca-muted">(o uno armado a mano)</span></label>
             <select v-model="form.role_id" class="input" :disabled="esDueno"><option v-for="r in roles" :key="r.id" :value="r.id">{{ r.nombre }}</option></select>
             <p v-if="form.errors.role_id" class="text-carmin text-xs mt-1">{{ form.errors.role_id }}</p>
           </div>
@@ -61,6 +64,15 @@
             </div>
           </div>
         </div>
+        <!-- Fase 39.2: a qué otras empresas entra -->
+        <div v-if="form.id && !esDueno && otrasEmpresas.length" data-e2e="otras-empresas">
+          <label class="label">Otras empresas a las que entra</label>
+          <div v-for="e in otrasEmpresas" :key="e.id" class="flex items-center gap-3 p-2 rounded-xl border border-marca-borde mb-1">
+            <label class="flex items-center gap-2 text-sm flex-1"><input type="checkbox" class="accent-carmin" :checked="!!emp[e.id]" @change="emp[e.id] = $event.target.checked ? 'solo_mirar' : null" /> {{ e.nombre }}</label>
+            <select v-if="emp[e.id]" v-model="emp[e.id]" class="input w-48 !py-1 text-xs"><option v-for="p in perfiles" :key="p.slug" :value="p.slug">{{ p.nombre }}</option></select>
+          </div>
+          <button type="button" class="btn-secondary !py-1 text-xs" @click="guardarEmpresas">Guardar empresas</button>
+        </div>
       </form>
       <template #pie>
         <button class="btn-secondary" @click="modal = false">Cancelar</button>
@@ -71,14 +83,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { ref, computed, reactive } from 'vue'
+import { useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 
-const props = defineProps({ usuarios: Array, roles: Array, listaSucursales: Array, limite: Object })
+const props = defineProps({ usuarios: Array, roles: Array, listaSucursales: Array, limite: Object, perfiles: { type: Array, default: () => [] }, otrasEmpresas: { type: Array, default: () => [] } })
+const emp = reactive({})
+function guardarEmpresas() { router.post(`/configuracion/usuarios/${form.id}/empresas`, { empresas: Object.entries(emp).filter(([, v]) => v).map(([id, perfil]) => ({ business_id: Number(id), perfil })) }, { preserveScroll: true }) }
 const modal = ref(false)
 const esDueno = ref(false)
 const vacio = { id: null, name: '', email: '', password: '', status: 'active', role_id: null, sucursales: [], ve_costos: false, ve_proveedores: false }
@@ -89,6 +103,7 @@ function abrir(u) {
   form.clearErrors()
   esDueno.value = !!u?.es_dueno
   Object.assign(form, u ? { ...vacio, id: u.id, name: u.name, email: u.email, status: u.status, ve_costos: !!u.ve_costos, ve_proveedores: !!u.ve_proveedores, role_id: u.role_id ?? props.roles[0]?.id, sucursales: u.sucursales.map(s => ({ id: s.id, role_id: s.role_id })) } : { ...vacio, role_id: props.roles.find(r => r.slug === 'vendedor')?.id ?? props.roles[0]?.id })
+  Object.keys(emp).forEach(k => delete emp[k]); (u?.empresas ?? []).forEach(e => (emp[e.business_id] = e.perfil ?? 'solo_mirar'))
   modal.value = true
 }
 const tiene = id => form.sucursales.some(s => s.id === id)

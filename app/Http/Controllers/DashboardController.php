@@ -54,12 +54,16 @@ class DashboardController extends Controller
             ['key' => 'stock',   'label' => 'Bajo mínimo',     'valor' => $sinStock,    'formato' => 'entero', 'url' => '/stock', 'alerta' => $sinStock > 0],
         ];
 
-        $serie = $ventas($desde, $hasta)
+        // Fase 39.1: el Inicio muestra sólo lo que la persona tiene habilitado.
+        $modKpi = ['ventas' => 'comprobantes', 'ticket' => 'comprobantes', 'cobrar' => 'clientes', 'vencido' => 'clientes', 'pagar' => 'proveedores', 'fondos' => 'fondos', 'stock' => 'stock'];
+        $kpis = array_values(array_filter($kpis, fn($k) => $user->puede($modKpi[$k['key']] ?? 'dashboard')));
+        $veVentas = $user->puede('comprobantes');
+        $serie = ! $veVentas ? collect() : $ventas($desde, $hasta)
             ->select('fecha as dia', DB::raw("SUM({$signo}) as monto"))
             ->groupBy('fecha')->orderBy('fecha')->get()
             ->map(fn($r) => ['fecha' => (string) $r->dia, 'label' => Carbon::parse($r->dia)->format('d/m'), 'monto' => (float) $r->monto]);
 
-        $ultimas = Comprobante::ventas()->emitidos()->deSucursal($sucursal)->with('contact:id,name')->orderByDesc('emitido_en')->limit(8)->get()
+        $ultimas = ! $veVentas ? collect() : Comprobante::ventas()->emitidos()->deSucursal($sucursal)->with('contact:id,name')->orderByDesc('emitido_en')->limit(8)->get()
             ->map(fn($c) => ['id' => $c->id, 'tipo' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'cliente' => $c->contact?->name ?? 'Consumidor final', 'total' => (float) $c->total, 'estado_cobro' => $c->estadoCobro(), 'fecha' => $c->fecha->format('d/m')]);
 
         $destacadas = Alerta::visiblesPara($user)->activas()->orderByRaw("CASE severidad WHEN 'critica' THEN 0 WHEN 'aviso' THEN 1 ELSE 2 END")->latest()->limit(6)->get()

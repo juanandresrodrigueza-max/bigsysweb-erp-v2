@@ -39,6 +39,17 @@ return [
             'descripcion' => 'Todo salvo plan, suscripción y borrar la empresa.',
             'permisos' => ['*' => ['ver', 'crear', 'editar', 'anular', 'exportar'], 'configuracion' => ['ver', 'editar']],
         ],
+        // Fase 39.1: perfiles listos que tildan todo de una.
+        'admin_ventas' => [
+            'nombre' => 'Administrador de ventas',
+            'descripcion' => 'Ventas, clientes y cobranzas completas, estadísticas de ventas; mira stock y caja.',
+            'permisos' => ['dashboard' => ['ver'], 'comprobantes' => ['ver', 'crear', 'editar', 'anular', 'exportar'], 'clientes' => ['ver', 'crear', 'editar', 'anular', 'exportar'], 'estadisticas' => ['ver', 'exportar'], 'stock' => ['ver'], 'fondos' => ['ver', 'crear'], 'alertas' => ['ver']],
+        ],
+        'solo_mirar' => [
+            'nombre' => 'Sólo mirar',
+            'descripcion' => 'Ve todo y no puede cambiar nada (socios, auditores).',
+            'permisos' => ['*' => ['ver']],
+        ],
         'contador' => [
             'nombre' => 'Contador',
             'descripcion' => 'Contable, fondos y estadísticas; comprobantes solo lectura.',
