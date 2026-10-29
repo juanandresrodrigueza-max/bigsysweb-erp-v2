@@ -59,3 +59,16 @@ Consejos que cruzan los datos:
 - **"¿Cómo va el día?"**: ventas hasta ahora contra la semana pasada, lo cobrado, los gastos y lo que hay que mirar.
 - **"¿Cómo cierra el mes?" / "¿cuánto voy a vender los próximos meses?"**: la proyección con el método explicado; con un año de ventas tiene en cuenta la estacionalidad.
 - **"¿Cuánto me deben por antigüedad?"**: por vencer, hasta 30, 60, 90 y más de 90 días.
+
+## Fotos y audios para Bigcito
+
+- **📷 Foto**: tocá la cámara, sacá o elegí una foto (una factura, un remito, un producto, una pantalla con error) y escribí qué querés saber. Necesita la clave de IA de la empresa.
+- **Audio**: en los celulares donde el micrófono no dicta, Bigcito graba el audio y lo pasa a texto. Para eso cargá una clave de **OpenAI** o de **Gemini** en Configuración → Conexiones IA → *Audios para Bigcito* (la clave de Claude no transcribe audio).
+- **Comprobantes sin cliente**: preguntale "¿hay ventas a consumidor final que sean de un cliente?". Busca por el DNI o CUIT del receptor, por el nombre igual y, con IA, por nombres escritos distinto. Si le decís "vinculalos", te muestra la lista y, cuando confirmás, pasa cada venta a la cuenta de su cliente. El comprobante fiscal no cambia.
+
+## La ayuda que aprende
+
+- En el **Centro de ayuda** podés repreguntar ("¿y si es en cuotas?"): la ayuda se acuerda de lo que preguntaste antes.
+- Cada respuesta tiene **👍 / 👎**. El dueño ve, en el inicio de la ayuda, *lo que su gente preguntó y no encontró*, para saber qué explicar o qué pedirle a soporte.
+- **Bajar el manual para leer sin internet** descarga todas las guías en un solo archivo.
+- **WhatsApp a soporte (con el contexto)** abre el chat con el mensaje ya escrito: quién sos, de qué empresa, en qué guía estabas y qué preguntaste.
