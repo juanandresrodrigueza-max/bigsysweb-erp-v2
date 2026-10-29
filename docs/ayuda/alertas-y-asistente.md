@@ -45,3 +45,17 @@ Lo que le podés pedir, además de ventas, cobros, stock y gastos:
 - **Varias empresas**: "¿cómo están mis empresas?", con el semáforo y los vencimientos.
 
 Lo mismo funciona desde Claude o ChatGPT conectados por MCP (Configuración → Conexiones IA): son las mismas herramientas y las acciones también se confirman.
+
+## Respuestas que sirven y consejos
+
+Bigcito siempre te dice **el período** que usó y, si hizo una cuenta, **cómo la hizo**. Cuando la respuesta es una lista, abajo aparece **Bajar la lista a Excel**; cuando ayuda, un **gráfico de barras**. Y al final te sugiere 2 o 3 preguntas para seguir: tocalas y las pregunta.
+
+Consejos que cruzan los datos:
+
+- **"¿Qué repongo?"**: lo que está bajo el mínimo o no llega a cubrir los próximos días.
+- **"¿A quién le cobro primero?"**: en orden por lo vencido, lo viejo que es y si hace mucho que no le avisaste, con el teléfono.
+- **"¿Qué precio reviso?"**: lo que se vende bajo el costo o el margen mínimo, y lo que hace mucho que no tocás.
+- **"¿Quién dejó de comprarme?"**: los que compraban seguido y hace 60 días que no.
+- **"¿Cómo va el día?"**: ventas hasta ahora contra la semana pasada, lo cobrado, los gastos y lo que hay que mirar.
+- **"¿Cómo cierra el mes?" / "¿cuánto voy a vender los próximos meses?"**: la proyección con el método explicado; con un año de ventas tiene en cuenta la estacionalidad.
+- **"¿Cuánto me deben por antigüedad?"**: por vencer, hasta 30, 60, 90 y más de 90 días.
