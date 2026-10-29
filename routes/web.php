@@ -306,7 +306,21 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     });
 
     // Stock
+    // Fase 30: conectar una tienda con un botón (la vuelta de la autorización llega acá).
+    Route::get('/conectar/{tipo}',        [\App\Http\Controllers\Configuracion\ConexionesController::class, 'ir'])->middleware('permiso:configuracion,editar');
+    Route::get('/conectar/{tipo}/volver', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'volver']);
+
     Route::prefix('stock')->middleware('permiso:stock')->group(function () {
+        // Fase 30.2: Stock → Tienda online (publicar, emparejar, cargos).
+        Route::get('/tienda-online',                       [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'index']);
+        Route::get('/tienda-online/{canal}/catalogo',      [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'catalogo'])->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/revisar',      [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'revisar'])->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/publicar',     [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'publicar'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/rubro/{rubro}', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'rubro'])->middleware('permiso:stock,editar')->whereNumber('canal')->whereNumber('rubro');
+        Route::get('/tienda-online/{canal}/categorias',    [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'categorias'])->whereNumber('canal');
+        Route::get('/tienda-online/{canal}/atributos/{categoria}', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'atributos'])->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/sincronizar',  [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'sincronizar'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::post('/tienda-online/publicaciones/{id}/pausar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'pausar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::get('/',                          [\App\Http\Controllers\Stock\StockController::class, 'index']);
         Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar');
         Route::get('/movimientos',               [\App\Http\Controllers\Stock\StockController::class, 'movimientos']);
@@ -646,6 +660,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/tienda/whatsapp',      [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarWhatsapp'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/canales/{id?}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarCanal'])->middleware('permiso:configuracion,editar');
         Route::delete('/tienda/canales/{id}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'borrarCanal'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/conectar-claves', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'conectarConClaves'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/canales/{id}/probar', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'probar'])->middleware('permiso:configuracion,editar')->whereNumber('id');
+        Route::post('/tienda/canales/{id}/desconectar', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'desconectar'])->middleware('permiso:configuracion,editar')->whereNumber('id');
+        Route::post('/tienda/canales/{id}/config', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'configurar'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/tienda/canales/{id}/sincronizar', [\App\Http\Controllers\Configuracion\TiendaController::class, 'sincronizar'])->middleware('permiso:configuracion,editar');
         Route::get('/impuestos',             [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'index'])->name('impuestos');
         Route::post('/impuestos',            [\App\Http\Controllers\Configuracion\ImpuestosController::class, 'guardar'])->middleware('permiso:configuracion,editar');

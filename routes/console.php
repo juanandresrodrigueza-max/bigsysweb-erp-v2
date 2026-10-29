@@ -14,6 +14,8 @@ Schedule::command('cobranzas:recordar')->dailyAt('09:30');
 Schedule::command('backups:diario')->dailyAt('03:00');
 Schedule::command('analista:semanal')->weeklyOn(1, '08:00');
 Schedule::command('avisos:dueno')->everyFifteenMinutes();
+Schedule::command('canales:sincronizar')->everyFiveMinutes()->withoutOverlapping();            // precio y stock hacia las tiendas
+Schedule::command('canales:sincronizar --pedidos')->everyTenMinutes()->withoutOverlapping();  // y las ventas que no llegaron por aviso
 // Contabiliza lo que haya quedado sin asiento (red de seguridad; normalmente se genera al instante).
 Schedule::call(function () {
     foreach (\App\Models\Business::where('is_active', true)->pluck('id') as $id) {

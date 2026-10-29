@@ -28,3 +28,19 @@ Cuántos pesos por punto, cuánto vale cada punto y el canje mínimo. El cliente
 
 - **No entran pedidos**: en Tienda y canales se ve el último sincronizado y el último error del canal. Suele ser credencial vencida.
 - **El stock no se actualiza en el canal**: activá "sincronizar stock" en el canal y verificá el SKU.
+
+## Conectar una tienda con un botón
+
+En **Configuración → Tienda y canales → Marketplaces**, cada tienda tiene su tarjeta. **MercadoLibre** y **Tienda Nube**: tocás *Conectar*, entrás con tu usuario, autorizás y volvés conectado; no se copia ninguna clave (si el botón dice que falta configurar la aplicación, es un dato del sistema que carga BigSys una sola vez). **WooCommerce**: escribís la dirección de tu tienda (en HTTPS) y tu WordPress te pide aprobar el acceso; o pegás una clave de lectura/escritura. **Shopify**: una app a medida en tu administrador, con la dirección `.myshopify.com`, el token y la clave secreta (obligatoria: con ella se verifica cada aviso de venta). Antes de guardar claves, el sistema prueba que sirvan.
+
+Al conectar se crean solos los **avisos de venta** en la tienda. Si un aviso se pierde, cada 10 minutos el sistema le pregunta a la tienda qué ventas pagas hubo. *Desconectar* saca los avisos y borra las claves; lo publicado y los ajustes quedan.
+
+**Ajustes de cada tienda**: la cuenta (cliente) a la que van las ventas, el **colchón** de stock que te guardás, la **lista de precios** de la tienda (con IVA), un recargo sólo para esa tienda, desde qué fecha entran las ventas, si entran solas, si se pausa la publicación al quedar sin stock, qué partes del producto le manda el ERP (precio, stock, nombre, descripción, foto, categoría) y, en MercadoLibre, **quién factura** (la factura de ML → la venta entra como remito; la del ERP → entra como factura y apagás la automática en ML).
+
+## Publicar desde el catálogo (Stock → Tienda online)
+
+Elegís la tienda, un rubro (o buscás productos en todos), tildás y tocás **Revisar y publicar**: cada producto con su precio, cuánto se va a ofrecer y de qué rubro es, con una ✕ para sacar lo que no quieras. La lista de precios se decide en tres lugares, del más general al más fino: la de la tienda, la del rubro en esa tienda y la del artículo al revisar; queda guardada con la publicación. **Sin precio en esa lista no se publica** (lo ves marcado). Lo que ya estaba en la tienda con el mismo código se **actualiza** en vez de duplicarse.
+
+En **MercadoLibre** cada rubro necesita su **categoría**: ML la propone a partir del producto más vendido del rubro, o escribís qué vendés con tus palabras. La categoría dice qué datos exige (marca, modelo…) y Mercado Envíos pide medidas y peso: se cargan **una vez por rubro**. Si ML rechaza algo, el panel lo dice en castellano con el paso a seguir ("esa categoría no admite Mercado Envíos" casi nunca es tu cuenta: probá con otro rubro). En WooCommerce, Tienda Nube y Shopify la categoría se crea sola con el nombre del rubro, o unís el rubro a una que la web ya tiene.
+
+**Se mantiene solo**: cada 5 minutos (y al instante al mover stock) se compara precio y stock con lo publicado y se corrige lo que cambió. Un artículo sin stock se pausa y vuelve cuando entra mercadería. En *Lo publicado* ves cada una con su estado, la lista con la que sale y el último error si lo hubo.

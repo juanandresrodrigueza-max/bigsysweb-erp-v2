@@ -116,6 +116,8 @@ Route::middleware(['auth:sanctum', 'token.api'])->group(function () {
 });
 
 // Entrada de pedidos: marketplaces / delivery (por token de canal) y WhatsApp Cloud API (por empresa).
+Route::post('canales/woocommerce/claves',     [\App\Http\Controllers\Api\CanalesWebhookController::class, 'clavesWoo'])->middleware('throttle:webhooks');
+Route::post('canales/mercadolibre/notificaciones', [\App\Http\Controllers\Api\CanalesWebhookController::class, 'mercadolibre'])->middleware('throttle:webhooks');
 Route::post('canales/{tipo}/{token}',        [\App\Http\Controllers\Api\CanalesWebhookController::class, 'entrada']);
 Route::get('whatsapp/entrante/{business}',   [\App\Http\Controllers\Api\WhatsappController::class, 'verificar']);
 Route::post('whatsapp/entrante/{business}',  [\App\Http\Controllers\Api\WhatsappController::class, 'entrante']);
