@@ -60,6 +60,44 @@
       </div>
     </div>
 
+    <!-- Fase 35.3: los tres cajones del contador y el puente de saldos -->
+    <div v-if="cajones" class="grid lg:grid-cols-3 gap-4 mt-4" data-e2e="cajones">
+      <div class="card lg:col-span-2">
+        <h2 class="font-bold mb-1">Está en el banco y no en el sistema</h2>
+        <p class="text-xs text-marca-muted mb-2">La lista para cargar, por concepto. Las acreditaciones de tarjetas van aparte: en el sistema son cupones, se concilian en Fondos → Conciliar.</p>
+        <p v-if="cajones.aviso_centralizadora" class="rounded-lg bg-amber-50 text-amber-800 text-xs px-3 py-1.5 mb-2">{{ cajones.aviso_centralizadora }}</p>
+        <details v-for="g in cajones.solo_banco.grupos" :key="g.clase" class="border-t border-marca-borde py-1.5 text-sm" :data-grupo="g.clase">
+          <summary class="flex items-center justify-between gap-2 cursor-pointer"><span><b>{{ g.nombre }}</b> <span class="text-xs text-marca-muted">· {{ g.cantidad }}</span></span>
+            <span class="flex items-center gap-2"><b class="tabular-nums" :class="g.monto < 0 ? 'text-carmin' : 'text-emerald-700'">{{ moneda(g.monto) }}</b>
+              <button v-if="g.es_gasto && puede('contable','crear')" class="btn-primary !py-0.5 !px-2 text-xs" @click.prevent="router.post('/contable/conciliacion/registrar-grupo', { cuenta: cuentaId, clase: g.clase }, { preserveScroll: true })" :data-registrar="g.clase">Registrar todos</button>
+              <Link v-else-if="g.clase === 'tarjeta'" href="/fondos/conciliar" class="text-xs text-violeta font-semibold">Conciliar tarjetas →</Link></span></summary>
+          <div v-for="it in g.items" :key="it.id" class="flex justify-between gap-2 text-xs py-0.5 pl-3">
+            <span>{{ it.fecha }} · {{ it.descripcion }}<span v-if="it.aprendido" class="text-violeta"> · aprendido</span></span>
+            <span class="flex items-center gap-2"><span class="tabular-nums">{{ moneda(it.monto) }}</span>
+              <select v-if="puede('contable','crear')" class="input !py-0 !text-[11px] !w-auto" :value="g.clase" @change="router.post(`/contable/conciliacion/${it.id}/clasificar`, { clase: $event.target.value }, { preserveScroll: true })"><option v-for="(l, k) in clases" :key="k" :value="k">{{ l }}</option></select></span>
+          </div>
+        </details>
+        <p v-if="!cajones.solo_banco.grupos.length" class="text-sm text-emerald-700">Nada: todo lo del banco está en el sistema.</p>
+      </div>
+      <div class="space-y-4">
+        <div class="card text-sm" data-e2e="puente">
+          <h2 class="font-bold mb-1">El puente</h2>
+          <div class="flex justify-between"><span>En los dos (conciliado)</span><b class="tabular-nums">{{ cajones.en_los_dos.cantidad }}</b></div>
+          <div class="flex justify-between"><span>Saldo del libro</span><b class="tabular-nums">{{ moneda(cajones.puente.libro) }}</b></div>
+          <div class="flex justify-between"><span>+ falta registrar</span><b class="tabular-nums">{{ moneda(cajones.puente.falta_registrar) }}</b></div>
+          <div class="flex justify-between"><span>− en la calle</span><b class="tabular-nums">{{ moneda(cajones.puente.en_la_calle) }}</b></div>
+          <div class="flex justify-between border-t border-marca-borde mt-1 pt-1"><span>Extracto</span><b class="tabular-nums">{{ cajones.puente.extracto !== null ? moneda(cajones.puente.extracto) : '—' }}</b></div>
+          <p class="text-xs mt-1" :class="cajones.puente.diferencia !== null && Math.abs(cajones.puente.diferencia) >= 0.01 ? 'text-carmin font-semibold' : 'text-emerald-700'">{{ cajones.puente.texto }}</p>
+          <p v-if="cajones.cadena?.controlable" class="text-xs mt-1" :class="cajones.cadena.cierra ? 'text-emerald-700' : 'text-carmin'">{{ cajones.cadena.cierra ? 'La cadena de saldos del extracto cierra renglón por renglón.' : `La cadena de saldos no cierra en ${cajones.cadena.cantidad_rotos} renglones.` }}</p>
+        </div>
+        <div class="card text-sm">
+          <h2 class="font-bold mb-1">En el sistema, todavía no en el banco</h2>
+          <p class="text-xs text-marca-muted mb-1">Es normal: el cheque que emitiste y nadie cobró.</p>
+          <div v-for="m in cajones.solo_sistema.items.slice(0, 12)" :key="m.id" class="flex justify-between text-xs py-0.5"><span>{{ m.fecha }} · {{ m.concepto }} <span class="text-marca-muted">({{ m.dias }} días)</span></span><span class="tabular-nums">{{ moneda(m.monto) }}</span></div>
+        </div>
+      </div>
+    </div>
+
     <Modal :abierto="impAbierto" titulo="Importar extracto bancario" @cerrar="impAbierto = false">
       <p class="text-sm text-marca-muted mb-3">Subí el extracto tal como lo baja el home banking: <b>PDF</b>, <b>Excel</b>, <b>CSV</b> o texto, de cualquier banco. El sistema detecta solo el formato, lee fecha, concepto, importe y saldo, y concilia automáticamente lo que coincide.</p>
       <select v-model="imp.cuenta_fondos_id" class="input mb-3"><option v-for="b in bancos" :key="b.id" :value="b.id">{{ b.nombre }}</option></select>
@@ -94,7 +132,7 @@ import ContableTabs from '@/Components/ContableTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ bancos: Array, cuentaId: Number, estado: String, items: Array, sinConciliar: Array, resumen: Object, categorias: Array })
+const props = defineProps({ bancos: Array, cuentaId: Number, estado: String, items: Array, sinConciliar: Array, resumen: Object, categorias: Array, cajones: Object, clases: Object })
 const { puede } = usePermisos()
 const impAbierto = ref(false), vincular = ref(null), registrar = ref(null)
 const imp = useForm({ cuenta_fondos_id: props.cuentaId, archivo: null })

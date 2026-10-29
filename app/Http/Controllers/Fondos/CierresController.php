@@ -68,4 +68,11 @@ class CierresController extends Controller
         AuditLog::registrar('crear', $t, "Retiro de caja $ " . number_format((float) $d['monto'], 2, ',', '.') . " de {$t->cuenta->nombre}");
         return back()->with('success', 'Retiro registrado. La caja quedó con menos efectivo para rendir.');
     }
+
+    // Fase 35.5: subir la planilla de caja de Excel y controlarla contra lo cargado, día por día. No graba nada.
+    public function planilla(Request $request, \App\Services\Fondos\PlanillaCajaService $svc)
+    {
+        $d = $request->validate(['cuenta_fondos_id' => 'required|integer', 'archivo' => 'required|file|max:10240|mimes:csv,txt,xlsx']);
+        return response()->json($svc->controlar(CuentaFondos::where('tipo', 'caja')->findOrFail($d['cuenta_fondos_id']), $request->file('archivo')->getRealPath(), $request->file('archivo')->getClientOriginalName()));
+    }
 }

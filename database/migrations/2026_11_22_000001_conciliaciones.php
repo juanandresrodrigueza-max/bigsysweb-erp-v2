@@ -14,6 +14,7 @@ return new class extends Migration
             $t->json('conciliacion_config')->nullable()->after('concilia'); // procesadoras [], comision_pactada, plazo_pactado, banco_id, terminales {}
         });
         if (! Schema::hasColumn('businesses', 'conciliacion')) Schema::table('businesses', fn(Blueprint $t) => $t->json('conciliacion')->nullable()); // formatos aprendidos por procesadora, códigos de concepto del banco
+        if (! Schema::hasColumn('extractos_bancarios', 'cadena')) Schema::table('extractos_bancarios', fn(Blueprint $t) => $t->json('cadena')->nullable());
         if (! Schema::hasTable('conciliaciones')) Schema::create('conciliaciones', function (Blueprint $t) {
             $t->id();
             $t->foreignId('business_id')->constrained()->cascadeOnDelete();

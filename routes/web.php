@@ -245,6 +245,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cobros/{id}/anular',     [CobrosController::class, 'anular'])->middleware('permiso:clientes,anular');
         Route::post('/cobros/{id}/aplicar',    [CobrosController::class, 'aplicar'])->middleware('permiso:clientes,crear');
         Route::get('/cobros/{id}/imprimir',    [CobrosController::class, 'imprimir']);
+        Route::get('/acopios',                 [AcopiosController::class, 'index']);
         Route::post('/acopios/{id}/retiros',   [AcopiosController::class, 'retirar'])->middleware('permiso:clientes,crear');
     });
 
@@ -318,6 +319,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/turnos/{id}/cerrar',     [FondosController::class, 'cerrarTurno'])->middleware('permiso:fondos,crear');
         Route::get('/turnos/{id}/rendicion',   [FondosController::class, 'rendicion']);
         Route::get('/cierres',                 [\App\Http\Controllers\Fondos\CierresController::class, 'index']);
+        Route::post('/cierres/planilla',       [\App\Http\Controllers\Fondos\CierresController::class, 'planilla'])->middleware('permiso:fondos,ver');
         Route::post('/turnos/{id}/arqueo',     [\App\Http\Controllers\Fondos\CierresController::class, 'arqueo'])->middleware('permiso:fondos,crear');
         Route::post('/turnos/{id}/retiro',     [\App\Http\Controllers\Fondos\CierresController::class, 'retiro'])->middleware('permiso:fondos,crear');
         Route::get('/valores',                 [\App\Http\Controllers\Fondos\ValoresController::class, 'index']);
@@ -481,6 +483,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/conciliacion/{id}/desvincular', [\App\Http\Controllers\Contable\ConciliacionController::class, 'desvincular'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/ignorar',  [\App\Http\Controllers\Contable\ConciliacionController::class, 'ignorar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/registrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/{id}/clasificar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'clasificar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/registrar-grupo', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrarGrupo'])->middleware('permiso:contable,crear');
         Route::get('/fiscal',                      [\App\Http\Controllers\Contable\FiscalController::class, 'index']);
         Route::get('/fiscal/exportar',             [\App\Http\Controllers\Contable\FiscalController::class, 'exportar'])->middleware('permiso:contable,exportar');
         Route::get('/fiscal/libro-digital',        [\App\Http\Controllers\Contable\FiscalController::class, 'libroDigital'])->middleware('permiso:contable,exportar');

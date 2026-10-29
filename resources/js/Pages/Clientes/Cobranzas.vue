@@ -7,6 +7,7 @@
         <p class="page-subtitle">Quién debe, hace cuánto, y los avisos que salen solos por mail o WhatsApp.</p>
       </div>
       <div class="flex gap-2">
+        <Link href="/clientes/acopios" class="btn-secondary" data-ir-acopios>Acopios</Link>
         <button v-if="puede('clientes','crear')" @click="router.post('/clientes/cobranzas/correr', {}, { preserveScroll: true })" class="btn-secondary" :title="config.activo ? '' : 'Activá los avisos automáticos primero'">Enviar avisos de hoy</button>
         <button v-if="puede('clientes','editar')" @click="cfgAbierta = true" class="btn-violeta"><Icono nombre="settings" clase="w-4 h-4" /> Avisos automáticos {{ config.activo ? 'ON' : 'OFF' }}</button>
       </div>

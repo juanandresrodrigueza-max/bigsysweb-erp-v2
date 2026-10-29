@@ -19,4 +19,10 @@ class AcopiosController extends Controller
         $retiro = $service->retirar($acopio, $data);
         return back()->with('success', 'Retiro registrado. Remito ' . $retiro->remito?->numeroFormateado() . ' generado.');
     }
+
+    // Fase 35.6: lo que cada cliente tiene para retirar, separado de lo que debe; el stock comprometido y los avisos.
+    public function index(\App\Services\Comprobantes\AcopiosInformeService $svc)
+    {
+        return \Inertia\Inertia::render('Clientes/Acopios', $svc->informe());
+    }
 }
