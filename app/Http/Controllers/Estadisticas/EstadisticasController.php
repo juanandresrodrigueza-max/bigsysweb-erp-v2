@@ -129,4 +129,24 @@ class EstadisticasController extends Controller
             'ajustes' => $sc->ajustesAbajo($b, (int) ($request->dias ?: 30)), 'aumentos' => $sc->aumentoProveedores($b), 'barato' => $sc->masBarato($b),
         ]);
     }
+
+    // Fase 33.5 · Plata: qué entra y cuándo, cartera por semana, cobranza por cobrador, IVA del mes.
+    public function plata(Request $request, \App\Services\Estadisticas\PlataService $pl)
+    {
+        $b = $request->user()->business;
+        $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
+        $hasta = $request->hasta ? Carbon::parse($request->hasta) : now()->endOfMonth();
+        $mes = $request->mes ? Carbon::parse($request->mes . '-01') : now();
+        return Inertia::render('Estadisticas/Plata', [
+            'periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'mes' => $mes->format('Y-m'),
+            'entra' => $pl->queEntra($b), 'cartera' => $pl->carteraPorSemana($b), 'cobradores' => $pl->cobranzaPorCobrador($b, $desde, $hasta), 'iva' => $pl->ivaDelMes($b, $mes),
+        ]);
+    }
+
+    // Fase 33.6 · Qué hacer: hallazgos de la semana y control de usuarios.
+    public function queHacer(Request $request, \App\Services\Estadisticas\QueHacerService $qh)
+    {
+        $b = $request->user()->business;
+        return Inertia::render('Estadisticas/QueHacer', ['hallazgos' => $qh->hallazgos($b), 'control' => $qh->controlUsuarios($b, (int) ($request->dias ?: 30))]);
+    }
 }
