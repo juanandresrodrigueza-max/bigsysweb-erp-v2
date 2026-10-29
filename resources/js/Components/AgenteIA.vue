@@ -6,11 +6,12 @@
           <div class="flex items-center gap-2">
             <span class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center"><Icono nombre="sparkles" clase="w-4 h-4" /></span>
             <div>
-              <p class="text-sm font-bold leading-tight">Asistente BigSys</p>
+              <p class="text-sm font-bold leading-tight">Bigcito</p>
               <p class="text-[11px] text-white/80 leading-tight">{{ modo === 'ia' ? 'Con IA · conoce tu negocio' : 'Modo básico' }}</p>
             </div>
           </div>
-          <button @click="abierto = false" class="p-1 rounded hover:bg-white/15"><Icono nombre="x" clase="w-4 h-4" /></button>
+          <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
+          <button @click="abierto = false" class="p-1 rounded hover:bg-white/15"><Icono nombre="x" clase="w-4 h-4" /></button></div>
         </div>
 
         <div ref="scroll" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-marca-fondo">
@@ -60,7 +61,20 @@ const abierto = ref(false)
 const texto = ref('')
 // Dictado: el texto final reemplaza lo dictado y se manda solo.
 let baseDictado = ''
-const dictado = useDictado((t, final) => { texto.value = (baseDictado ? baseDictado + ' ' : '') + t; if (final) { baseDictado = ''; enviar() } })
+const dictado = useDictado((t, final) => { texto.value = (baseDictado ? baseDictado + ' ' : '') + t; if (final) { baseDictado = ''; enviar(undefined, true) } })
+
+// Bigcito habla: si le hablaste, te contesta en voz alta (y te pregunta antes de hacer algo). "Sí" o "dale" confirma, "no" cancela.
+const vozSoportada = typeof window !== 'undefined' && 'speechSynthesis' in window
+const habla = ref((() => { try { return localStorage.getItem('bigcito_voz') !== '0' } catch { return true } })())
+function alternarVoz() { habla.value = !habla.value; try { localStorage.setItem('bigcito_voz', habla.value ? '1' : '0') } catch {} if (!habla.value) window.speechSynthesis?.cancel() }
+function decir(t) {
+  if (!vozSoportada || !habla.value || !t) return
+  const limpio = t.replace(/https?:\/\/\S+/g, '').replace(/[*_#`]/g, '').replace(/\$\s?([\d.]+),(\d{2})/g, '$1 pesos con $2').slice(0, 600)
+  const u = new SpeechSynthesisUtterance(limpio); u.lang = 'es-AR'; u.rate = 1.05
+  const v = window.speechSynthesis.getVoices().find(x => x.lang?.startsWith('es')); if (v) u.voice = v
+  window.speechSynthesis.cancel(); window.speechSynthesis.speak(u)
+}
+const pendiente = () => [...mensajes.value].reverse().find(m => m.propuesta && !m.propuesta.estado)
 
 const cargando = ref(false)
 const modo = ref('ia')
@@ -77,6 +91,7 @@ async function confirmar(m) {
     const { data } = await window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id })
     m.propuesta.estado = 'hecho'
     mensajes.value.push({ rol: 'assistant', texto: data.texto ?? 'Listo.', url: data.url ?? null })
+    if (porVozUltimo) decir(data.texto ?? 'Listo.')
   } catch (e) {
     mensajes.value.push({ rol: 'assistant', texto: e.response?.data?.message ?? 'No se pudo hacer. ' + (e.response?.status === 403 ? 'No tenés permiso para esta acción.' : 'Probá de nuevo.') })
   } finally { ejecutando.value = false; await bajar() }
@@ -84,9 +99,15 @@ async function confirmar(m) {
 
 function cancelar(m) { m.propuesta.estado = 'cancelado'; window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id, cancelar: true }).catch(() => {}) }
 
-async function enviar(pre) {
+let porVozUltimo = false
+async function enviar(pre, porVoz = false) {
   const msg = (pre ?? texto.value).trim()
   if (!msg || cargando.value) return
+  porVozUltimo = porVoz
+  // Confirmar o cancelar hablando lo que Bigcito propuso.
+  const p = pendiente()
+  if (p && porVoz && /^(s[ií]|dale|confirm|hacelo|hacé(lo)?|de una|ok|okey|listo|adelante)\b/i.test(msg)) { texto.value = ''; mensajes.value.push({ rol: 'user', texto: msg }); return confirmar(p) }
+  if (p && porVoz && /^(no|cancel|dej[aá]|par[aá])\b/i.test(msg)) { texto.value = ''; mensajes.value.push({ rol: 'user', texto: msg }); cancelar(p); mensajes.value.push({ rol: 'assistant', texto: 'Listo, no lo hago.' }); decir('Listo, no lo hago.'); return }
   texto.value = ''
   const historial = mensajes.value.slice(-10).map(m => ({ rol: m.rol, texto: m.texto + (m.propuesta ? ` [propuesta: ${m.propuesta.titulo} → ${m.propuesta.estado ?? 'sin confirmar'}]` : '') }))
   mensajes.value.push({ rol: 'user', texto: msg })
@@ -96,6 +117,7 @@ async function enviar(pre) {
     const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component })
     modo.value = data.modo ?? 'ia'
     mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', propuesta: data.propuesta ?? null })
+    if (porVoz) decir((data.respuesta ?? '') + (data.propuesta ? ` ${data.propuesta.titulo}. ¿Lo hago? Decime sí o no.` : ''))
   } catch (e) {
     const st = e.response?.status
     mensajes.value.push({ rol: 'assistant', texto: st === 419 ? 'Tu sesión expiró. Recargá la página y volvé a intentar.' : `No pude conectarme${st ? ` (HTTP ${st})` : ''}. Probá de nuevo en unos segundos.` })

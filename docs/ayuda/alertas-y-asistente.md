@@ -29,3 +29,19 @@ Respeta los permisos: un vendedor no puede registrar gastos ni por chat.
 ## Soporte
 
 **Soporte** (menú) abre un ticket con el equipo de BigSys: se responde ahí y por mail, y la respuesta aparece como alerta.
+
+## Hablarle a Bigcito
+
+Tocá el micrófono y hablá: Bigcito entiende, busca y **te contesta en voz alta** (el parlante de arriba lo silencia). Cuando le pedís que haga algo, te dice qué va a hacer y pregunta "¿Lo hago?": respondé **"sí"** o **"dale"** y lo hace, o **"no"** y lo deja. Nada se graba sin que confirmes.
+
+Lo que le podés pedir, además de ventas, cobros, stock y gastos:
+
+- **Precios y datos en masa**: "subime 10% el rubro bebidas", "poneles ubicación góndola 3 a todos los de Ayudín", "deshacé el último cambio masivo".
+- **Pases entre sucursales**: "¿qué pases están en viaje?", "llegó el pase 12, está todo".
+- **Conciliaciones**: "¿cómo están las tarjetas?", "cargá los impuestos del banco".
+- **Reparto y acopios**: "¿qué hay para entregar?", "armá el viaje de Obra Norte y Ferretería Sur con Carlos", "¿por dónde va el camión?", "¿qué le queda por retirar a Constructora Sur?".
+- **Taller**: "¿qué sigue en el taller?", "la 15 queda esperando el repuesto", "¿a quién le toca el service?", "¿cuánto le pago a cada mecánico este mes?".
+- **Sueldos**: "¿quién falta firmar el recibo?", "mandá los recibos a los que faltan".
+- **Varias empresas**: "¿cómo están mis empresas?", con el semáforo y los vencimientos.
+
+Lo mismo funciona desde Claude o ChatGPT conectados por MCP (Configuración → Conexiones IA): son las mismas herramientas y las acciones también se confirman.
