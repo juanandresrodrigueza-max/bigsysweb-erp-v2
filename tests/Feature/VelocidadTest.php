@@ -59,6 +59,6 @@ class VelocidadTest extends ErpTestCase
         $vendido = Product::where('sku', 'P650')->first(); $vendido->update(['stock' => 100]);
         $this->factura(\App\Models\Contact::where('name', 'Consumidor Final')->first(), [['product_id' => $vendido->id, 'cantidad' => 2, 'precio_unit' => 2]]);
         $this->empresa->update(['verticales_extra' => ['retail']]);
-        $this->get('/retail')->assertOk()->assertInertia(fn($p) => $p->component('Pos/Index', false)->where('catalogoParcial', true)->where('productos', fn($lista) => count($lista) <= 400 && collect($lista)->contains('sku', 'P650') && collect($lista)->first()['favorito'] === true));
+        $this->get('/retail')->assertOk()->assertInertia(fn($p) => $p->component('Comprobantes/Vender', false)->where('catalogoParcial', true)->where('productos', fn($lista) => count($lista) <= 400 && collect($lista)->contains('sku', 'P650') && collect($lista)->first()['favorito'] === true));
     }
 }

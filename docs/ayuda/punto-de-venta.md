@@ -1,12 +1,22 @@
 ---
-titulo: Punto de venta (mostrador)
-modulo: retail
-rutas: /retail, /minimarket
+titulo: Vender (calle, mostrador y caja)
+modulo: comprobantes
+rutas: /vender, /retail, /minimarket
 orden: 6
-resumen: Vender rápido con lector de barras, balanza, ticket, cuotas, Mercado Pago y sin conexión.
+resumen: Una sola pantalla para vender: en la calle con la ruta del día, en el mostrador o en la caja. Sin conexión, con ticket, cuotas y Mercado Pago.
 ---
 
-## Vender
+## Dónde vendés hoy
+
+**Comprobantes → Vender** abre en el modo del vendedor (se configura en **Clientes → Vendedores**) y se cambia con un toque en la franja de arriba:
+
+- **En la calle**: arranca en tus clientes. La ruta del día los agrupa en *Agendados para hoy*, *Les toca comprar*, *Dejaron de comprar*, *Compran casi todos los días* y *Sin historial*. Al abrir uno ves su cuenta, sus condiciones (lista, descuentos pactados), lo que suele llevar, lo que hace rato no lleva y un pedido sugerido. Marcás productos, ajustás cantidades y lo mandás como **presupuesto, factura o remito** (lo decide el encargado en Clientes → Vendedores → *Cómo se vende en la calle*). Anda sin señal: descargás el paquete con wifi, vendés y se manda solo cuando vuelve la conexión. Cada venta y cada visita (*Llegué*, *No vendí* con motivo) queda registrada con la ubicación.
+- **En el local**: arranca buscando productos, consumidor final, cobrás y sale el ticket.
+- **En la caja**: el mismo mostrador con pantalla ancha (ticket a la izquierda, total grande). /retail y /minimarket entran acá.
+
+Los precios en la calle los pone el sistema con las condiciones del cliente; cambiar un precio o hacer más descuento pide el permiso de editar comprobantes, y pasarse del tope de descuento pide la autorización del encargado. Si el cliente se pasa del límite de crédito o tiene deuda vencida, avisa y podés vender igual: queda registrado quién y por qué.
+
+## Vender en el mostrador
 
 Escaneá o buscá el artículo (F2), ajustá cantidades, **Cobrar** (F9). Elegís el medio (efectivo, tarjeta, transferencia, Mercado Pago) y sale la factura y el ticket. Con efectivo, los botones de billetes calculan el vuelto.
 

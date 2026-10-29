@@ -132,7 +132,7 @@ class MercadoArgentinoTest extends ErpTestCase
         $this->assertSame('APP_USR-secreto', $this->empresa->fresh()->mercadopago_settings['access_token']);
         $this->assertFalse(app(MercadoPagoCobrosService::class)->pointConfigurado($this->empresa->fresh()));
         $this->get('/configuracion')->assertInertia(fn($pg) => $pg->component('Configuracion/Empresa', false)->where('mercadopago.tiene_token', true)->where('mercadopago.access_token', '••••reto')->where('tarjetas.0.nombre', 'Naranja'));
-        $this->get('/retail')->assertInertia(fn($pg) => $pg->component('Pos/Index', false)->where('planesCuotas.0.nombre', 'Naranja')->where('mp.qr', true));
+        $this->get('/retail')->assertInertia(fn($pg) => $pg->component('Comprobantes/Vender', false)->where('planesCuotas.0.nombre', 'Naranja')->where('mp.qr', true));
     }
 
     public function test_cobro_con_qr_de_mercadopago_desde_el_pos(): void

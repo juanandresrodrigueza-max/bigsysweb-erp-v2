@@ -18,10 +18,11 @@ class PosController extends Controller
 {
     public const LIMITE_POS = 400;
 
-    public function index(Request $request, PosService $pos)
+    // Lo que necesita la pantalla de venta: catálogo chico, clientes, cuentas, caja y turno, lo de hoy, cuotas y Mercado Pago.
+    public function datos(Request $request): array
     {
-        $user = $request->user();
-        $vertical = str_contains($request->path(), 'minimarket') ? 'minimarket' : 'retail';
+        $user = $request->user(); $pos = app(PosService::class);
+        $vertical = str_contains($request->path(), 'minimarket') ? 'minimarket' : (str_contains($request->path(), 'retail') ? 'retail' : 'vender');
         $ri = ($user->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
         $caja = CuentaFondos::where('activa', true)->where('tipo', 'caja')->where('business_location_id', $user->current_location_id)->orderByDesc('es_default')->first() ?? CuentaFondos::where('activa', true)->where('tipo', 'caja')->first();
         $hoy = Comprobante::ventas()->emitidos()->facturas()->where('condicion', 'contado')->where('fecha', today()->toDateString())->where('user_id', $user->id);
@@ -37,7 +38,7 @@ class PosController extends Controller
             })
             ->orderByDesc('favorito_pos')->orderBy('name')->limit(self::LIMITE_POS)->get()->map(fn($p) => $this->fila($p, $ri))->values();
 
-        return Inertia::render('Pos/Index', [
+        return [
             'vertical' => $vertical,
             'productos' => $productos, 'catalogoParcial' => $parcial,
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color', 'parent_id']),
@@ -50,7 +51,7 @@ class PosController extends Controller
             'planesCuotas' => app(\App\Services\Pos\CuotasService::class)->planes($user->business),
             'mp' => ['qr' => app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->qrConfigurado($user->business), 'point' => app(\App\Services\MercadoPago\MercadoPagoCobrosService::class)->pointConfigurado($user->business)],
             'posConfig' => array_replace(['balanza_prefijo' => '2', 'balanza_modo' => 'peso', 'balanza_decimales' => 3, 'balanza_digitos_plu' => 5, 'imprimir_auto' => false, 'impresora' => 'navegador', 'ancho' => 42], $user->business->pos ?? []),
-        ]);
+        ];
     }
 
     // Búsqueda en el servidor para catálogos grandes (nombre, código o barras).
