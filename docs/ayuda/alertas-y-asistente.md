@@ -72,3 +72,19 @@ Consejos que cruzan los datos:
 - Cada respuesta tiene **👍 / 👎**. El dueño ve, en el inicio de la ayuda, *lo que su gente preguntó y no encontró*, para saber qué explicar o qué pedirle a soporte.
 - **Bajar el manual para leer sin internet** descarga todas las guías en un solo archivo.
 - **WhatsApp a soporte (con el contexto)** abre el chat con el mensaje ya escrito: quién sos, de qué empresa, en qué guía estabas y qué preguntaste.
+
+## Avisos al celular
+
+En **Avisos al celular** (desde la ✨ de novedades, arriba a la derecha) tocá **Activar en este dispositivo** y aceptá el permiso del navegador. Desde ahí te llegan, aunque no tengas el sistema abierto:
+
+- las **alertas críticas** (además del WhatsApp, si lo tenías);
+- el **parte de la mañana**: cómo cerró ayer y qué vence hoy para pagar y cobrar, a la hora que elijas (al celular y/o por WhatsApp). Lo configura el dueño;
+- las **novedades de BigSys** que se manden también al celular.
+
+En iPhone, primero agregá BigSysWeb a la pantalla de inicio (Compartir → Agregar a inicio) y abrilo desde ahí. Podés quitar un dispositivo cuando quieras.
+
+## Novedades y mejoras
+
+- La **✨** muestra lo nuevo del sistema. Cada novedad se marca leída o se pospone **7 o 30 días**.
+- **Mejoras** lista los módulos que tu plan no tiene y qué hace cada uno. Con **Me interesa** le avisás a BigSys para que te escriba (lo pide el dueño o un administrador).
+- A Bigcito: “mandame el parte a las 7 y media”, “¿qué hay de nuevo en BigSys?”, “¿qué módulos no tengo?”, “me interesa Sueldos”.

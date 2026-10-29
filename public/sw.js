@@ -2,7 +2,7 @@
 // - Assets compilados (/build): cache primero.
 // - Páginas del POS (/retail, /minimarket): red primero; si no hay red, la última copia guardada.
 // - Todo lo demás: red; si falla, página "sin conexión".
-const VERSION = 'bigsys-v2'
+const VERSION = 'bigsys-v3'
 const OFFLINE_PAGES = ['/retail', '/minimarket']
 
 self.addEventListener('install', e => { self.skipWaiting() })
@@ -24,4 +24,15 @@ self.addEventListener('fetch', e => {
       return (await c.match(url.pathname)) || new Response('<!doctype html><meta charset="utf-8"><title>Sin conexión</title><body style="font-family:sans-serif;padding:40px;text-align:center"><h1>Sin conexión</h1><p>El punto de venta funciona sin internet si lo abriste al menos una vez con conexión. Volvé a intentar.</p><p><a href="/retail">Ir al punto de venta</a></p></body>', { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 200 })
     }))
   }
+})
+
+// Fase 40.5: avisos al celular (web push). Al tocar el aviso se abre (o se enfoca) la pantalla que corresponde.
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {} } catch { d = { texto: e.data?.text() } }
+  e.waitUntil(self.registration.showNotification(d.titulo || 'BigSysWeb', { body: d.texto || '', icon: '/favicon.svg', badge: '/favicon.svg', data: { url: d.url || '/dashboard' }, lang: 'es-AR' }))
+})
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const url = e.notification.data?.url || '/dashboard'
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => { const c = cs.find(x => new URL(x.url).origin === location.origin); if (c) { c.focus(); return c.navigate(url) } return self.clients.openWindow(url) }))
 })

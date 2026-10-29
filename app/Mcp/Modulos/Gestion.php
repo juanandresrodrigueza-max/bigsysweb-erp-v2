@@ -195,6 +195,44 @@ class Gestion
                 'confirmar' => function (User $u, array $d) { $r = app(\App\Services\Sueldos\RecibosFirmaService::class)->enviarLiquidacion(Liquidacion::findOrFail($d['id']), $u->business()->first(), (bool) $d['faltan']); return ['texto' => count($r) . ' recibos enviados.' . (collect($r)->where('sin_contacto', true)->count() ? ' Sin mail ni teléfono: ' . collect($r)->where('sin_contacto', true)->pluck('empleado')->implode(', ') . '.' : '')]; }],
 
             // ---- Fase 39: varias empresas ----
+            // Fase 40.5: avisos al celular, novedades, parte de la mañana y mejoras.
+            ['nombre' => 'novedades_bigsys', 'titulo' => 'Novedades de BigSys', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Lo nuevo que trae el sistema (la campanita de novedades), sin las que la persona pospuso.',
+                'ejecutar' => fn(User $u, array $a) => ['novedades' => app(\App\Services\Avisos\CelularService::class)->novedades($u)]],
+            ['nombre' => 'posponer_novedad', 'titulo' => 'Posponer o marcar leída una novedad', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'accion',
+                'descripcion' => 'Marca una novedad como leída o la esconde por 7 o 30 días.',
+                'parametros' => ['id' => ['type' => 'integer'], 'dias' => ['type' => 'integer', 'enum' => [0, 7, 30], 'description' => '0 = marcar leída.']], 'requeridos' => ['id'],
+                'proponer' => function (User $u, array $a) { $n = \App\Models\Novedad::find((int) $a['id']); if (! $n) return ['error' => 'No encontré esa novedad.']; $d = in_array((int) ($a['dias'] ?? 0), [7, 30], true) ? (int) $a['dias'] : 0; return ['titulo' => ($d ? "Posponer {$d} días" : 'Marcar leída') . ": {$n->titulo}", 'datos' => ['id' => $n->id, 'dias' => $d]]; },
+                'confirmar' => function (User $u, array $d) { app(\App\Services\Avisos\CelularService::class)->marcar($u, $d['id'], $d['dias'] ?: null); return ['texto' => $d['dias'] ? "Listo, te la vuelvo a mostrar en {$d['dias']} días." : 'Listo, marcada como leída.']; }],
+            ['nombre' => 'parte_de_la_manana', 'titulo' => 'Parte de la mañana', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Cómo cerró ayer (ventas, cobros, caja y banco, vencido) y qué vence hoy para pagar y cobrar. También dice a qué hora llega solo al celular.',
+                'ejecutar' => function (User $u, array $a) { $s = app(\App\Services\Avisos\CelularService::class); $b = $u->business()->first(); return ['parte' => $s->parte($b)['texto'], 'configuracion' => collect($s->configManana($b))->except('ultimo')->all()]; }],
+            ['nombre' => 'configurar_parte_manana', 'titulo' => 'Configurar el parte de la mañana', 'modulo' => 'configuracion', 'permiso' => 'editar', 'tipo' => 'accion',
+                'descripcion' => 'Prende o apaga el parte de la mañana y elige la hora y por dónde llega (aviso al celular y/o WhatsApp). Sólo el dueño.',
+                'parametros' => ['activo' => ['type' => 'boolean'], 'hora' => ['type' => 'string', 'description' => 'HH:MM, ej. 07:30'], 'push' => ['type' => 'boolean'], 'whatsapp' => ['type' => 'boolean']],
+                'proponer' => function (User $u, array $a) {
+                    if (! $u->esDueno()) return ['error' => 'El parte de la mañana lo configura el dueño.'];
+                    if (isset($a['hora']) && ! preg_match('/^\d{2}:\d{2}$/', $a['hora'])) return ['error' => 'La hora va como HH:MM, por ejemplo 07:30.'];
+                    $c = array_replace(app(\App\Services\Avisos\CelularService::class)->configManana($u->business()->first()), ['activo' => true], array_intersect_key($a, array_flip(['activo', 'hora', 'push', 'whatsapp'])));
+                    return ['titulo' => $c['activo'] ? "Parte de la mañana a las {$c['hora']}" : 'Apagar el parte de la mañana', 'detalle' => 'Por ' . implode(' y ', array_filter([$c['push'] ? 'aviso al celular' : null, $c['whatsapp'] ? 'WhatsApp' : null])) ?: 'ningún canal', 'datos' => $c];
+                },
+                'confirmar' => function (User $u, array $d) { $c = app(\App\Services\Avisos\CelularService::class)->guardarManana($u->business()->first(), $d); return ['texto' => $c['activo'] ? "Listo: todos los días a las {$c['hora']} te llega el parte." : 'Listo, apagado.']; }],
+            ['nombre' => 'probar_aviso_celular', 'titulo' => 'Mandar un aviso de prueba al celular', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'accion',
+                'descripcion' => 'Manda un aviso de prueba a los dispositivos donde la persona activó los avisos.',
+                'proponer' => fn(User $u, array $a) => \App\Models\PushSuscripcion::where('user_id', $u->id)->exists() ? ['titulo' => 'Mandar un aviso de prueba', 'datos' => []] : ['error' => 'Todavía no activaste los avisos en ningún dispositivo: entrá a Avisos al celular y tocá "Activar en este dispositivo".', 'url' => Busca::url('/avisos-celular')],
+                'confirmar' => fn(User $u, array $d) => ['texto' => 'Mandado a ' . app(\App\Services\Avisos\CelularService::class)->enviar($u, 'Hola desde Bigcito', 'Así te van a llegar los avisos.', '/avisos-celular') . ' dispositivo/s.']],
+            ['nombre' => 'mejoras_disponibles', 'titulo' => 'Módulos que no tengo', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Los módulos del sistema que la empresa no tiene contratados, qué hace cada uno y si ya pidió información.',
+                'ejecutar' => fn(User $u, array $a) => ['mejoras' => app(\App\Services\Avisos\CelularService::class)->mejoras($u->business()->first()), 'url' => Busca::url('/mejoras')]],
+            ['nombre' => 'me_interesa_modulo', 'titulo' => 'Pedir información de un módulo', 'modulo' => 'configuracion', 'permiso' => 'editar', 'tipo' => 'accion',
+                'descripcion' => 'Avisa a BigSys que a la empresa le interesa un módulo que no tiene, para que la contacten.',
+                'parametros' => ['modulo' => ['type' => 'string', 'description' => 'Clave o nombre del módulo, ej. sueldos, Contable.'], 'comentario' => ['type' => 'string']], 'requeridos' => ['modulo'],
+                'proponer' => function (User $u, array $a) {
+                    $m = collect(app(\App\Services\Avisos\CelularService::class)->mejoras($u->business()->first()))->first(fn($x) => $x['modulo'] === mb_strtolower($a['modulo']) || mb_strtolower($x['nombre']) === mb_strtolower($a['modulo']));
+                    if (! $m) return ['error' => 'Ese módulo no existe o ya lo tenés.'];
+                    return ['titulo' => "Avisar a BigSys que te interesa {$m['nombre']}", 'detalle' => $a['comentario'] ?? null, 'datos' => ['modulo' => $m['modulo'], 'comentario' => $a['comentario'] ?? null]];
+                },
+                'confirmar' => function (User $u, array $d) { app(\App\Services\Avisos\CelularService::class)->meInteresa($u, $d['modulo'], $d['comentario']); return ['texto' => 'Listo, BigSys te va a escribir para contarte cómo sumarlo.']; }],
             ['nombre' => 'estado_mis_empresas', 'titulo' => 'Cómo están mis empresas', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Para quien maneja varias empresas o es estudio contable: el semáforo de qué falta en cada una y los próximos vencimientos de IVA.',
                 'parametros' => ['mes' => ['type' => 'string', 'description' => 'AAAA-MM; por defecto el mes pasado.']],

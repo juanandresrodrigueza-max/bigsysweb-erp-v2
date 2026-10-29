@@ -41,14 +41,14 @@
 
     <!-- Contenido -->
     <div class="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
-      <header class="h-16 bg-white border-b border-marca-borde flex items-center px-4 md:px-6 gap-3 sticky top-0 z-30">
+      <header class="h-16 bg-white border-b border-marca-borde flex items-center px-3 md:px-6 gap-1.5 sm:gap-3 sticky top-0 z-30">
         <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
 
         <!-- Selector de sucursal -->
-        <div class="relative" ref="selRef" data-tour="sucursal">
-          <button @click="selAbierto = !selAbierto" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde hover:border-carmin/50 text-sm">
+        <div class="relative min-w-0" ref="selRef" data-tour="sucursal">
+          <button @click="selAbierto = !selAbierto" class="flex items-center gap-2 max-w-full min-w-0 px-3 py-1.5 rounded-full border border-marca-borde hover:border-carmin/50 text-sm">
             <Icono nombre="pin" clase="w-4 h-4 text-carmin" />
-            <span class="font-semibold max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span><span v-if="sucursales?.consolidado" class="badge bg-violeta-light text-violeta !py-0 text-[10px]">consolidado</span>
+            <span class="font-semibold max-w-[90px] sm:max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span><span v-if="sucursales?.consolidado" class="badge bg-violeta-light text-violeta !py-0 text-[10px]">consolidado</span>
             <Icono v-if="(sucursales?.lista?.length ?? 0) > 1" nombre="chevron" clase="w-4 h-4 text-marca-muted" />
           </button>
           <div v-if="selAbierto && sucursales?.lista?.length > 1" class="absolute left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
@@ -91,7 +91,8 @@
         <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
 
         <Link v-if="empresa?.plan" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
-        <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-carmin/50 hover:text-carmin font-black" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
+        <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 shrink-0 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-carmin/50 hover:text-carmin font-black" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
+        <CampanaNovedades :cantidad="$page.props.novedades ?? 0" />
         <span data-tour="alertas"><CampanaAlertas :alertas="alertas" /></span>
       </header>
       <Paleta ref="paleta" :nav="nav" />
@@ -159,6 +160,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import Logo from '@/Components/Logo.vue'
 import CampanaAlertas from '@/Components/CampanaAlertas.vue'
+import CampanaNovedades from '@/Components/CampanaNovedades.vue'
 import AgenteIA from '@/Components/AgenteIA.vue'
 import Paleta from '@/Components/Paleta.vue'
 import AyudaPanel from '@/Components/AyudaPanel.vue'

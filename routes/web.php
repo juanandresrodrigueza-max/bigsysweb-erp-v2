@@ -93,6 +93,7 @@ Route::get('/integraciones/crm/entrar', [\App\Http\Controllers\Integraciones\Crm
 
 // Panel superadmin (BigSys): empresas, planes, cobros, usuarios, sistema.
 Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
+    Route::post('/novedades',                         [\App\Http\Controllers\AvisosCelularController::class, 'publicar']);
     Route::get('/',                                   [\App\Http\Controllers\Superadmin\PanelController::class, 'index']);
     Route::get('/empresas',                           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'index']);
     Route::post('/empresas',                          [\App\Http\Controllers\Superadmin\EmpresasController::class, 'store']);
@@ -154,6 +155,16 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/conjuntos/{id?}', [\App\Http\Controllers\ConjuntosController::class, 'guardar'])->whereNumber('id');
     Route::post('/conjuntos/{id}/borrar', [\App\Http\Controllers\ConjuntosController::class, 'borrar'])->whereNumber('id');
     // Centro de ayuda y tour
+    // Fase 40.5: avisos al celular, novedades, parte de la mañana y mejoras
+    Route::get('/avisos-celular',                [\App\Http\Controllers\AvisosCelularController::class, 'index']);
+    Route::post('/avisos-celular/suscribir',     [\App\Http\Controllers\AvisosCelularController::class, 'suscribir'])->middleware('throttle:20,1');
+    Route::post('/avisos-celular/desuscribir',   [\App\Http\Controllers\AvisosCelularController::class, 'desuscribir']);
+    Route::post('/avisos-celular/probar',        [\App\Http\Controllers\AvisosCelularController::class, 'probar'])->middleware('throttle:6,1');
+    Route::post('/avisos-celular/manana',        [\App\Http\Controllers\AvisosCelularController::class, 'manana']);
+    Route::get('/novedades',                     [\App\Http\Controllers\AvisosCelularController::class, 'novedades']);
+    Route::post('/novedades/{id}',               [\App\Http\Controllers\AvisosCelularController::class, 'marcar'])->whereNumber('id');
+    Route::get('/mejoras',                       [\App\Http\Controllers\AvisosCelularController::class, 'mejoras']);
+    Route::post('/mejoras',                      [\App\Http\Controllers\AvisosCelularController::class, 'meInteresa'])->middleware('throttle:10,1');
     Route::get('/ayuda',                 [\App\Http\Controllers\AyudaController::class, 'index']);
     Route::get('/ayuda/manual',          [\App\Http\Controllers\AyudaController::class, 'manual']);
     Route::get('/ayuda/contexto',        [\App\Http\Controllers\AyudaController::class, 'contexto']);

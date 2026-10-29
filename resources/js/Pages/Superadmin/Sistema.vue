@@ -80,6 +80,24 @@
         <div class="sm:col-span-3 flex justify-end"><button class="btn-primary" :disabled="mt.processing">{{ mt.activo ? 'Guardar y activar' : 'Guardar' }}</button></div>
       </form>
     </div>
+    <div class="grid lg:grid-cols-2 gap-4 mt-4">
+      <div class="card" data-e2e="publicar-novedad">
+        <p class="font-bold mb-2">Publicar una novedad (campanita)</p>
+        <form class="space-y-2" @submit.prevent="nov.post('/admin/novedades', { preserveScroll: true, onSuccess: () => nov.reset() })">
+          <input v-model="nov.titulo" class="input" placeholder="Título" />
+          <textarea v-model="nov.texto" rows="3" class="input" placeholder="Qué trae y para qué sirve"></textarea>
+          <div class="grid grid-cols-2 gap-2"><input v-model="nov.url" class="input" placeholder="Enlace (ej. /mejoras)" /><input v-model="nov.modulo" class="input" placeholder="Sólo a quien tiene el módulo (opcional)" /></div>
+          <label class="flex items-center gap-2 text-sm"><input type="checkbox" v-model="nov.push" /> Mandarla también al celular</label>
+          <button class="btn-primary" :disabled="nov.processing || !nov.titulo || !nov.texto">Publicar</button>
+        </form>
+        <p v-for="n in novedades" :key="n.id" class="text-xs text-marca-muted mt-1">{{ n.fecha }} · {{ n.titulo }}{{ n.modulo ? ' · ' + n.modulo : '' }}</p>
+      </div>
+      <div class="card">
+        <p class="font-bold mb-2">“Me interesa” de las empresas</p>
+        <p v-if="!intereses.length" class="text-sm text-marca-muted">Nadie pidió información todavía.</p>
+        <p v-for="(i, k) in intereses" :key="k" class="text-sm py-1 border-t border-marca-borde/60 first:border-0"><b>{{ i.empresa }}</b> quiere {{ i.modulo }} <span class="text-xs text-marca-muted">· {{ i.fecha }}</span><span v-if="i.comentario" class="block text-xs text-marca-muted">“{{ i.comentario }}”</span></p>
+      </div>
+    </div>
   </AdminLayout>
 </template>
 
@@ -87,7 +105,8 @@
 import { ref } from 'vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
-const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object })
+const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
 const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls' })
