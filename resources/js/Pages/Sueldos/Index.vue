@@ -29,6 +29,9 @@
               <button v-if="enCurso.estado === 'borrador'" class="btn-primary !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/confirmar`, {}, { preserveScroll: true })">Confirmar y contabilizar</button>
               <button v-if="enCurso.estado === 'confirmada'" class="btn-ghost !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/reabrir`, {}, { preserveScroll: true })">Reabrir</button>
               <button v-if="enCurso.estado === 'confirmada'" class="btn-primary !py-1 text-xs" @click="pagarAbierto = true">Pagar</button>
+              <button v-if="enCurso.estado !== 'borrador'" class="btn-violeta !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/enviar`, {}, { preserveScroll: true })" data-e2e="enviar-recibos">Enviar para firmar</button>
+              <button v-if="enCurso.estado !== 'borrador' && enCurso.items.some(i => i.firma && !['firmado', 'disconforme'].includes(i.firma))" class="btn-ghost !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/enviar`, { faltan: 1 }, { preserveScroll: true })">Reenviar a los que faltan</button>
+              <Link href="/sueldos/recibos" class="btn-ghost !py-1 text-xs">Firmas y recibos externos</Link>
               <Link v-if="enCurso.asiento_id" :href="`/contable/asientos?id=${enCurso.asiento_id}`" class="btn-ghost !py-1 text-xs">Asiento</Link>
             </div>
           </div>
@@ -37,7 +40,7 @@
             <tbody>
               <tr v-for="i in enCurso.items" :key="i.id" class="cursor-pointer hover:bg-gris-light/40" @click="detalle = i">
                 <td><span class="font-medium">{{ i.empleado }}</span><span class="text-xs text-marca-muted"> · leg. {{ i.legajo }}</span></td><td class="text-right tabular-nums">{{ i.dias }}</td><td class="text-right tabular-nums">{{ moneda(i.bruto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(i.no_rem, 0) }}</td><td class="text-right tabular-nums text-carmin">{{ moneda(i.deducciones + i.anticipos, 0) }}</td><td class="text-right tabular-nums font-bold">{{ moneda(i.neto, 0) }}</td><td class="text-right tabular-nums text-marca-muted">{{ moneda(i.contribuciones, 0) }}</td>
-                <td class="text-right"><a :href="`/sueldos/${enCurso.id}/recibo/${i.id}`" target="_blank" class="text-xs text-violeta font-semibold" @click.stop>Recibo</a></td>
+                <td class="text-right whitespace-nowrap"><span v-if="i.firma" class="badge !text-[10px] mr-1" :class="{ firmado: 'bg-emerald-50 text-emerald-700', disconforme: 'bg-carmin-light text-carmin', visto: 'bg-amber-50 text-amber-700', enviado: 'bg-gris-light text-marca-muted' }[i.firma]">{{ { firmado: 'firmado', disconforme: 'firmó disconforme', visto: 'lo vio', enviado: 'enviado' }[i.firma] }}</span><a :href="`/sueldos/${enCurso.id}/recibo/${i.id}`" target="_blank" class="text-xs text-violeta font-semibold" @click.stop>Recibo</a></td>
               </tr>
             </tbody>
             <tfoot><tr class="font-bold bg-gris-light/50"><td>Totales</td><td></td><td class="text-right tabular-nums">{{ moneda(enCurso.bruto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.no_rem, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.deducciones, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.neto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.contribuciones, 0) }}</td><td></td></tr></tfoot>
