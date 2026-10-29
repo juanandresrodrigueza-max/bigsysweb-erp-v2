@@ -1,7 +1,7 @@
 ---
 titulo: Alertas, asistente y avisos al dueño
 modulo: alertas
-rutas: /alertas, /dueno, /soporte
+rutas: /alertas, /dueno, /soporte, /avisos-celular, /mejoras, /novedades
 orden: 10
 resumen: Qué avisa el sistema y por dónde, cómo usar el asistente para consultar y hacer cosas, y qué recibe el dueño en el celular.
 ---
