@@ -20,6 +20,10 @@
       <input v-model="f.desde" @change="filtrar" type="date" class="input" /><input v-model="f.hasta" @change="filtrar" type="date" class="input" />
     </div>
 
+    <div v-if="borradores.length" class="card mb-4 text-sm" data-e2e="a-medio-cargar">
+      <h2 class="font-bold mb-1">Facturas a medio cargar</h2>
+      <div v-for="b in borradores" :key="b.id" class="flex flex-wrap items-center justify-between gap-2 py-1 border-t border-marca-borde first:border-0 text-xs"><span><b>{{ b.proveedor ?? 'Sin proveedor' }}</b><span v-if="b.numero"> · {{ b.numero }}</span><span v-if="b.total"> · {{ moneda(b.total) }}</span> · {{ b.cuando }}</span><span class="flex gap-1"><Link :href="`/proveedores/compras/nueva?borrador=${b.id}`" class="btn-primary !py-1 text-xs">Retomar</Link><button class="btn-ghost !py-1 text-xs text-carmin" @click="borrarBorrador(b)">Descartar</button></span></div>
+    </div>
     <div class="grid grid-cols-3 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Comprobantes</p><p class="text-xl font-extrabold tabular-nums">{{ entero(resumen.cantidad) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Total registrado</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(resumen.total, 0) }}</p></div>
@@ -57,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -71,5 +75,10 @@ const { puede } = usePermisos()
 const f = reactive({ estado: props.filtros.estado ?? '', contact_id: props.filtros.contact_id ?? '', desde: props.filtros.desde ?? '', hasta: props.filtros.hasta ?? '', buscar: props.filtros.buscar ?? '' })
 function filtrar() { router.get('/proveedores/compras', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
 const importarAbierto = ref(false)
+// Fase 31: las que se dejaron para después.
+const borradores = ref([])
+async function cargarBorradores() { try { const { data } = await window.axios.get('/proveedores/compras/borradores'); borradores.value = data } catch (e) {} }
+async function borrarBorrador(b) { if (!confirm('¿Descartar esta factura a medio cargar?')) return; await window.axios.delete(`/proveedores/compras/borradores/${b.id}`); cargarBorradores() }
+onMounted(cargarBorradores)
 const imp = useForm({ archivo: null, registrar: false })
 </script>

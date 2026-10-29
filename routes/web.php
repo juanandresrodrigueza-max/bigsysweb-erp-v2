@@ -262,6 +262,14 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras',                 [ComprasController::class, 'store'])->middleware('permiso:proveedores,crear');
         Route::post('/compras/ocr',             [ComprasController::class, 'ocr'])->middleware('permiso:proveedores,crear');
         Route::post('/compras/importar-afip',   [ComprasController::class, 'importarAfip'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras/revisar',         [ComprasController::class, 'revisar']);
+        Route::post('/compras/regla-pie',       [ComprasController::class, 'reglaPie'])->middleware('permiso:proveedores,crear');
+        Route::post('/compras/comparar-oc',     [ComprasController::class, 'compararOc']);
+        Route::get('/compras/abiertos/{contactId}', [ComprasController::class, 'abiertos'])->whereNumber('contactId');
+        Route::get('/compras/borradores',       [ComprasController::class, 'borradores']);
+        Route::post('/compras/borradores/{id?}', [ComprasController::class, 'guardarBorradorLectura'])->middleware('permiso:proveedores,crear')->whereNumber('id');
+        Route::get('/compras/borradores/{id}',  [ComprasController::class, 'borrador'])->whereNumber('id');
+        Route::delete('/compras/borradores/{id}', [ComprasController::class, 'borrarBorrador'])->middleware('permiso:proveedores,crear')->whereNumber('id');
         Route::get('/compras/{id}',             [ComprasController::class, 'show'])->whereNumber('id');
         Route::get('/compras/{id}/editar',      [ComprasController::class, 'edit'])->middleware('permiso:proveedores,editar');
         Route::post('/compras/{id}',            [ComprasController::class, 'store'])->middleware('permiso:proveedores,editar');
