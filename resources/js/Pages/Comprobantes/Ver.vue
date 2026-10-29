@@ -69,6 +69,12 @@
           </div>
         </div>
 
+        <div v-if="c.entrega" class="card text-sm" data-e2e="entrega">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-1">Entregado · recibió {{ c.entrega.nombre }}</p>
+          <p class="text-xs text-marca-muted">{{ c.entrega.cuando }}<span v-if="c.entrega.por"> · entregó {{ c.entrega.por }}</span></p>
+          <div class="flex flex-wrap items-center gap-3 mt-2"><img v-if="c.entrega.firma" :src="c.entrega.firma" class="h-16 border border-marca-borde rounded-lg bg-white" alt="Firma" /><a v-if="c.entrega.foto" :href="`/vender/comprobante/${c.id}/entrega/foto`" target="_blank" class="text-violeta font-semibold text-xs">Ver foto de la entrega</a></div>
+        </div>
+        <div v-if="c.motivo_devolucion" class="card text-sm"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-1">Devolución desde la calle</p>{{ c.motivo_devolucion }}</div>
         <div v-if="c.respuesta_cliente" class="card text-sm"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-1">Comentario del cliente</p>"{{ c.respuesta_cliente }}"</div>
         <div v-if="c.entrega_pendiente || c.tipo === 'REM'" class="card text-sm">
           <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">{{ c.tipo === 'REM' ? 'Facturación de este remito' : 'Entregas de esta factura' }}</p>

@@ -8,7 +8,8 @@
       <span v-if="rechazadas.length" class="badge bg-carmin-light text-carmin">{{ rechazadas.length }} que no entraron</span>
       <span v-if="paquete" class="text-marca-muted">Datos del {{ fecha(paquete.generado) }}</span>
       <span v-if="datosViejos" class="badge bg-amber-50 text-amber-700">Descargaste hace {{ datosViejos }} días: los precios pueden haber cambiado</span>
-      <button class="ml-auto btn-ghost !px-2 text-xs" @click="pantalla = pantalla === 'datos' ? 'ruta' : 'datos'">{{ pantalla === 'datos' ? '← Volver' : 'Datos y conexión' }}</button>
+      <button class="ml-auto btn-ghost !px-2 text-xs" :class="pantalla === 'hoy' ? 'text-violeta font-bold' : ''" @click="irHoy" data-e2e="ir-hoy">Hoy<span v-if="hoy?.en_mano?.total"> · {{ moneda(hoy.en_mano.total, 0) }} en mano</span></button>
+      <button class="btn-ghost !px-2 text-xs" @click="pantalla = pantalla === 'datos' ? 'ruta' : 'datos'">{{ pantalla === 'datos' ? '← Volver' : 'Datos y conexión' }}</button>
     </div>
 
     <!-- DATOS -->
@@ -56,6 +57,40 @@
       <p v-if="!gruposVisibles.length" class="card text-center text-marca-muted">{{ paquete ? 'Ningún cliente coincide.' : 'Descargá los datos en "Datos y conexión" para ver tu ruta.' }}</p>
     </div>
 
+    <!-- HOY: lo hecho, lo cobrado en mano y cerrar el turno -->
+    <div v-else-if="pantalla === 'hoy'" class="space-y-3" data-e2e="pantalla-hoy">
+      <div class="card">
+        <div class="flex items-center justify-between"><h2 class="font-bold">Lo que tenés en mano</h2><button class="btn-ghost !px-2 text-xs" @click="pantalla = 'ruta'">← Ruta</button></div>
+        <p class="text-xs text-marca-muted mb-2">Lo que cobraste ya bajó la deuda del cliente, pero la plata queda a tu nombre hasta que rendís y el encargado la recibe.</p>
+        <div v-if="hoy" class="grid grid-cols-3 gap-2 text-center">
+          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">Efectivo</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.efectivo, 0) }}</p></div>
+          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">Transf.</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.transferencias, 0) }}</p></div>
+          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">Cheques</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.cheques, 0) }}</p></div>
+        </div>
+        <button v-if="hoy?.en_mano?.total" class="btn-primary w-full mt-3 !py-3" :disabled="!online || rindiendo" @click="rendir" data-e2e="rendir">{{ rindiendo ? 'Rindiendo…' : 'Cerrar el turno y rendir' }}</button>
+        <p v-if="hoy?.ultima_rendicion" class="text-[11px] text-marca-muted mt-2">Última rendición {{ hoy.ultima_rendicion.numero }} · {{ hoy.ultima_rendicion.cuando }} · {{ moneda(hoy.ultima_rendicion.total) }} · {{ hoy.ultima_rendicion.estado === 'recibida' ? 'recibida' : 'esperando que la reciban' }}</p>
+        <p v-if="!online" class="text-[11px] text-amber-700 mt-1">Sin señal: lo de hoy se ve como estaba la última vez con conexión.</p>
+      </div>
+      <div class="card p-0">
+        <p class="px-4 py-2 font-bold border-b border-marca-borde">Cobros de hoy <span class="text-marca-muted font-normal text-sm">· {{ hoy?.cobros?.length ?? 0 }}</span></p>
+        <div v-for="co in hoy?.cobros ?? []" :key="co.id" class="px-4 py-2 border-b border-marca-borde/60 text-sm flex items-center gap-2">
+          <div class="flex-1 min-w-0"><p class="font-semibold truncate">{{ co.cliente }}</p><p class="text-xs text-marca-muted">{{ co.numero }} · {{ co.hora }} · {{ co.medios }}<span v-if="co.firmado"> · firmado</span></p></div>
+          <span class="font-bold tabular-nums">{{ moneda(co.total) }}</span>
+          <a :href="`/clientes/cobros/${co.id}/imprimir`" target="_blank" class="text-violeta text-xs font-semibold">Recibo</a>
+        </div>
+        <p v-if="!hoy?.cobros?.length" class="px-4 py-4 text-center text-xs text-marca-muted">Nada cobrado todavía.</p>
+      </div>
+      <div class="card p-0">
+        <p class="px-4 py-2 font-bold border-b border-marca-borde">Hecho hoy <span class="text-marca-muted font-normal text-sm">· {{ hoy?.ventas?.length ?? 0 }}</span></p>
+        <div v-for="vt in hoy?.ventas ?? []" :key="vt.id" class="px-4 py-2 border-b border-marca-borde/60 text-sm flex items-center gap-2" :data-e2e="`hecho-${vt.id}`">
+          <div class="flex-1 min-w-0"><p class="font-semibold truncate">{{ vt.cliente }}</p><p class="text-xs text-marca-muted">{{ vt.tipo }} {{ vt.numero }} · {{ vt.estado === 'emitido' ? 'emitido' : 'pendiente' }}<span v-if="vt.entregado" class="text-emerald-700"> · ✓ entregado · recibió {{ vt.entregado.nombre }} {{ vt.entregado.hora }}</span></p></div>
+          <span class="font-bold tabular-nums" :class="vt.es_nc ? 'text-carmin' : ''">{{ vt.es_nc ? '−' : '' }}{{ moneda(vt.total) }}</span>
+          <button v-if="vt.entregable && !vt.entregado" class="btn-secondary !py-1 text-xs" @click="abrirEntrega(vt)" :data-e2e="`entregar-${vt.id}`">Confirmar entrega</button>
+        </div>
+        <p v-if="!hoy?.ventas?.length" class="px-4 py-4 text-center text-xs text-marca-muted">Nada vendido todavía.</p>
+      </div>
+    </div>
+
     <!-- CLIENTE Y PEDIDO -->
     <div v-else class="grid lg:grid-cols-[1fr_22rem] gap-4">
       <div class="space-y-3 min-w-0">
@@ -71,6 +106,8 @@
               <a v-if="cli.telefono" :href="`tel:${cli.telefono}`" class="btn-secondary !py-1">Llamar</a>
               <a v-if="cli.lat || cli.direccion" :href="cli.lat ? `https://www.google.com/maps?q=${cli.lat},${cli.lng}` : `https://www.google.com/maps/search/${encodeURIComponent(cli.direccion)}`" target="_blank" class="btn-secondary !py-1">Cómo llegar</a>
               <button class="btn-secondary !py-1" @click="noVendi = cli">No vendí</button>
+              <button v-if="puede.cobrar" class="btn-primary !py-1 !bg-emerald-700 !border-emerald-700" @click="abrirCobro" data-e2e="cobrar">Cobrar</button>
+              <button v-if="puede.facturar" class="btn-secondary !py-1" @click="abrirDevolucion" data-e2e="devolucion">Devolución</button>
             </div>
           </div>
           <p v-if="cli.notas" class="mt-2 text-xs rounded-lg bg-amber-50 text-amber-900 px-2 py-1">{{ cli.notas }}</p>
@@ -134,8 +171,11 @@
     <!-- Resultado -->
     <div v-if="resultado" class="fixed inset-x-3 bottom-3 z-40 rounded-2xl shadow-lg px-4 py-3 text-sm flex flex-wrap items-center gap-3" :class="resultado.offline ? 'bg-amber-50 border border-amber-300 text-amber-900' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'" data-e2e="resultado">
       <span v-if="resultado.offline">Guardado en el teléfono: <b>entra solo cuando vuelva la señal</b>. No lo vuelvas a cargar.</span>
+      <span v-else-if="resultado.cobro"><b>Recibo {{ resultado.cobro.numero }}</b> por <b class="tabular-nums">{{ moneda(resultado.cobro.total) }}</b><span v-if="resultado.cobro.a_cuenta > 0"> · {{ moneda(resultado.cobro.a_cuenta) }} a cuenta</span> · saldo {{ moneda(resultado.cobro.saldo) }} <a :href="`/clientes/cobros/${resultado.cobro.cobro_id}/imprimir`" target="_blank" class="font-semibold underline">Recibo</a></span>
+      <span v-else-if="resultado.rendicion"><b>Rendición {{ resultado.rendicion.numero }}</b>: efectivo {{ moneda(resultado.rendicion.efectivo) }} · transferencias {{ moneda(resultado.rendicion.transferencias) }} · cheques {{ moneda(resultado.rendicion.cheques) }}. Ahora la recibe el encargado.</span>
       <span v-else><b>{{ resultado.tipo }} {{ resultado.numero }}</b> por <b class="tabular-nums">{{ moneda(resultado.total) }}</b> · {{ resultado.estado === 'emitido' ? 'emitido' : resultado.presupuesto ? 'guardado' : 'pendiente de emitir' }}</span>
       <Link v-if="resultado.comprobante_id" :href="`/comprobantes/${resultado.comprobante_id}`" class="font-semibold text-xs">Ver</Link>
+      <button v-if="resultado.comprobante_id && !resultado.presupuesto && !resultado.es_nc && !resultado.entregado" class="font-semibold text-xs underline" @click="abrirEntrega({ id: resultado.comprobante_id, tipo: resultado.tipo, numero: resultado.numero })" data-e2e="entregar-ahora">Confirmar entrega</button>
       <button @click="resultado = null" class="ml-auto text-xs">✕</button>
     </div>
 
@@ -145,6 +185,57 @@
       <div class="grid gap-1.5"><button v-for="(t, k) in motivos" :key="k" class="text-left rounded-lg border px-3 py-2 text-sm" :class="motivo === k ? 'border-violeta bg-violeta/5' : 'border-marca-borde'" @click="motivo = k" :data-e2e="`motivo-${k}`">{{ t }}</button></div>
       <input v-model="notaVisita" class="input mt-2" placeholder="Nota (opcional)" />
       <template #pie><button class="btn-secondary" @click="noVendi = null">Cancelar</button><button class="btn-primary" :disabled="!motivo" @click="visita(noVendi, 'no_vendi'); noVendi = null" data-e2e="guardar-no-vendi">Guardar</button></template>
+    </Modal>
+
+    <!-- Cobrar -->
+    <Modal :abierto="!!cobro" :titulo="cobro ? `Cobrar a ${cli?.nombre}` : ''" @cerrar="cobro = null">
+      <p class="text-xs text-marca-muted mb-2">Saldo {{ moneda(cli?.saldo ?? 0) }}. Lo cobrado baja la deuda ahora; la plata queda a tu nombre hasta que rendís. Se imputa a las facturas más viejas.</p>
+      <div v-if="cobro" class="space-y-2">
+        <div v-for="(m, i) in cobro.medios" :key="i" class="rounded-xl border border-marca-borde p-2 space-y-1.5">
+          <div class="flex gap-1.5"><select v-model="m.medio" class="input !py-1.5 flex-1"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="cheque">Cheque</option></select><input v-model.number="m.monto" type="number" step="any" min="0" class="input !py-1.5 w-32 text-right tabular-nums" placeholder="Importe" :data-e2e="`cobro-monto-${i}`" /><button v-if="cobro.medios.length > 1" class="text-marca-muted" @click="cobro.medios.splice(i, 1)">✕</button></div>
+          <input v-if="m.medio === 'transferencia'" v-model="m.referencia" class="input !py-1.5 text-xs" placeholder="Referencia (opcional)" />
+          <div v-if="m.medio === 'cheque'" class="grid grid-cols-2 gap-1.5">
+            <input v-model="m.datos.numero" class="input !py-1.5 text-xs" placeholder="Número" /><select v-model="m.datos.banco" class="input !py-1.5 text-xs"><option value="">Banco</option><option v-for="b in bancos" :key="b" :value="b">{{ b }}</option></select>
+            <input v-model="m.datos.fecha_pago" type="date" class="input !py-1.5 text-xs" /><input v-model="m.datos.titular" class="input !py-1.5 text-xs" placeholder="Titular" />
+            <label class="col-span-2 text-xs flex items-center gap-1"><input v-model="m.datos.echeq" type="checkbox" class="accent-carmin" /> Es un e-cheq</label>
+          </div>
+        </div>
+        <button class="text-xs text-violeta font-semibold" @click="cobro.medios.push(medioVacio())">+ otro medio</button>
+        <div class="flex justify-between font-bold"><span>Total</span><span class="tabular-nums" data-e2e="cobro-total">{{ moneda(totalCobro) }}</span></div>
+        <input v-model="cobro.firma_nombre" class="input !py-1.5 text-xs" placeholder="Nombre de quien firma (opcional)" />
+        <Firma v-model="cobro.firma" />
+        <p v-if="cobro.error" class="text-carmin text-xs">{{ cobro.error }}</p>
+        <label v-if="cobro.chequeRepetido" class="text-xs flex items-center gap-1 text-amber-800"><input v-model="cobro.forzar_cheque" type="checkbox" class="accent-carmin" /> Es otro cheque, cargarlo igual</label>
+      </div>
+      <template #pie><button class="btn-secondary" @click="cobro = null">Cancelar</button><button class="btn-primary" :disabled="totalCobro <= 0 || cobro?.enviando" @click="confirmarCobro" data-e2e="cobro-confirmar">Cobrar {{ moneda(totalCobro) }}</button></template>
+    </Modal>
+
+    <!-- Devolución -->
+    <Modal :abierto="!!devolucion" :titulo="devolucion ? `Devolución de ${cli?.nombre}` : ''" @cerrar="devolucion = null">
+      <p class="text-xs text-marca-muted mb-2">Sale como nota de crédito. Las cantidades van en positivo: el signo lo pone el comprobante.</p>
+      <div v-if="devolucion" class="space-y-2">
+        <input v-model="devolucion.q" class="input !py-1.5" placeholder="Buscar producto" />
+        <div class="max-h-40 overflow-y-auto divide-y divide-marca-borde border border-marca-borde rounded-xl">
+          <div v-for="p in listaDevolucion" :key="p.id" class="flex items-center gap-2 px-2 py-1.5 text-sm"><span class="flex-1 truncate">{{ p.name }}</span><input v-model.number="devolucion.cant[p.id]" type="number" step="any" min="0" class="input !py-1 w-16 text-center" placeholder="0" :data-e2e="`dev-${p.id}`" /></div>
+        </div>
+        <div class="grid gap-1"><button v-for="(t, k) in motivosDevolucion" :key="k" class="text-left rounded-lg border px-3 py-1.5 text-sm" :class="devolucion.motivo === k ? 'border-violeta bg-violeta/5' : 'border-marca-borde'" @click="devolucion.motivo = k" :data-e2e="`dev-motivo-${k}`">{{ t }}</button></div>
+        <input v-model="devolucion.nota" class="input !py-1.5 text-xs" placeholder="Nota (opcional)" />
+        <p v-if="devolucion.error" class="text-carmin text-xs">{{ devolucion.error }}</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="devolucion = null">Cancelar</button><button class="btn-primary" :disabled="!devolucion?.motivo || !itemsDevolucion.length || devolucion?.enviando" @click="confirmarDevolucion" data-e2e="dev-confirmar">Cargar devolución</button></template>
+    </Modal>
+
+    <!-- Confirmación de entrega -->
+    <Modal :abierto="!!entrega" :titulo="entrega ? `Entrega de ${entrega.tipo} ${entrega.numero}` : ''" @cerrar="entrega = null">
+      <div v-if="entrega" class="space-y-2">
+        <input v-model="entrega.nombre" class="input" placeholder="Nombre y apellido de quien recibe" data-e2e="entrega-nombre" />
+        <Firma v-model="entrega.firma" />
+        <label class="block text-xs"><span class="text-marca-muted">Foto de la mercadería o del remito firmado (opcional)</span><input type="file" accept="image/*" capture="environment" class="block mt-1 text-xs" @change="fotoEntrega" /></label>
+        <img v-if="entrega.foto" :src="entrega.foto" class="h-24 rounded-lg border border-marca-borde" />
+        <p class="text-[11px] text-marca-muted">Con la firma o con la foto alcanza. Queda como constancia de que el cliente recibió la mercadería.</p>
+        <p v-if="entrega.error" class="text-carmin text-xs">{{ entrega.error }}</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="entrega = null">Después</button><button class="btn-primary" :disabled="!entrega?.nombre || entrega?.enviando" @click="confirmarEntrega" data-e2e="entrega-confirmar">Confirmar entrega</button></template>
     </Modal>
 
     <!-- OK del encargado: pone su usuario y clave en este teléfono -->
@@ -172,9 +263,10 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } 
 import { Link } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
+import Firma from '@/Components/Firma.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'
 
-const props = defineProps({ config: Object, puede: Object, motivos: Object, preciosConIva: Boolean, vendedor: Object })
+const props = defineProps({ config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, preciosConIva: Boolean, vendedor: Object })
 const ri = computed(() => props.preciosConIva)
 const xsrf = () => decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
 const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify(body) })
@@ -297,6 +389,71 @@ async function visita(c, tipoV) {
   if (tipoV === 'no_vendi') hoyNoVa.value.push(c.id)
 }
 const noVendi = ref(null), motivo = ref(null), notaVisita = ref('')
+
+// --- Hoy: lo hecho, lo cobrado en mano y rendir ---
+const hoy = ref(leer('vender_hoy', null)), rindiendo = ref(false)
+async function cargarHoy() { if (!navigator.onLine) return; try { const r = await fetch('/vender/hoy', { headers: { Accept: 'application/json' } }); if (r.ok) { hoy.value = await r.json(); escribir('vender_hoy', hoy.value) } } catch (e) {} }
+function irHoy() { if (pantalla.value === 'cliente' && pedido.value.length) escribir('vender_pendiente_' + cli.value.id, pedido.value); pantalla.value = 'hoy'; cargarHoy() }
+async function rendir() {
+  if (!confirm('¿Cerrás el turno y rendís todo lo cobrado? Después lo recibe el encargado.')) return
+  rindiendo.value = true
+  try { const r = await post('/vender/rendir', {}); const j = await r.json().catch(() => ({})); if (r.ok) { resultado.value = { rendicion: j }; await cargarHoy() } else error.value = Object.values(j.errors ?? {}).flat()[0] ?? j.message } catch (e) {} finally { rindiendo.value = false }
+}
+
+// --- Cobrar: recibo real (baja la deuda) con la plata a nombre del vendedor hasta rendir ---
+const cobro = ref(null)
+const medioVacio = () => ({ medio: 'efectivo', monto: null, referencia: '', datos: { numero: '', banco: '', fecha_pago: hoyISO(), titular: '', echeq: false } })
+function abrirCobro() { cobro.value = { medios: [medioVacio()], firma: '', firma_nombre: '', forzar_cheque: false, chequeRepetido: false, error: null, enviando: false } }
+const totalCobro = computed(() => Math.round((cobro.value?.medios ?? []).reduce((a, m) => a + (Number(m.monto) || 0), 0) * 100) / 100)
+async function confirmarCobro() {
+  const c = cobro.value; c.enviando = true; c.error = null
+  const pos = await ubicacion()
+  const datos = { medios: c.medios.filter(m => Number(m.monto) > 0).map(m => ({ medio: m.medio, monto: Number(m.monto), referencia: m.referencia || null, datos: m.medio === 'cheque' ? m.datos : null })), firma: c.firma || null, firma_nombre: c.firma_nombre || null, forzar_cheque: c.forzar_cheque, ...pos, offline_id: offlineId(), fecha_offline: new Date().toISOString(), _url: `/vender/cliente/${cli.value.id}/cobrar`, _que: `Cobro a ${cli.value.nombre} por ${moneda(totalCobro.value)}` }
+  if (!navigator.onLine) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; cli.value.saldo -= totalCobro.value; cobro.value = null; return }
+  try {
+    const r = await post(datos._url, datos); const j = await r.json().catch(() => ({}))
+    if (r.ok) { resultado.value = { cobro: j }; cli.value.saldo = j.saldo; cobro.value = null; cargarHoy(); return }
+    if (r.status === 422 && j.errors?.cheque_repetido) { c.chequeRepetido = true; c.error = j.errors.cheque_repetido[0]; c.enviando = false; return }
+    c.error = j.message ?? Object.values(j.errors ?? {}).flat()[0] ?? 'No se pudo.'; c.enviando = false
+  } catch (e) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; cobro.value = null }
+}
+
+// --- Devolución: nota de crédito con motivo ---
+const devolucion = ref(null)
+function abrirDevolucion() { devolucion.value = { q: '', cant: {}, motivo: null, nota: '', error: null, enviando: false } }
+const listaDevolucion = computed(() => { if (!devolucion.value) return []; const t = norm(devolucion.value.q); if (t) return productos.value.filter(p => norm(p.name).includes(t) || norm(p.sku).includes(t)).slice(0, 30); const ids = (ficha.value?.suele_llevar ?? []).map(h => h.product_id); const base = ids.map(id => porId.value[id]).filter(Boolean); return base.length ? base : productos.value.slice(0, 30) })
+const itemsDevolucion = computed(() => Object.entries(devolucion.value?.cant ?? {}).filter(([, c]) => Number(c) > 0).map(([id, c]) => ({ product_id: Number(id), cantidad: Number(c) })))
+async function confirmarDevolucion() {
+  const d = devolucion.value; d.enviando = true; d.error = null
+  const pos = await ubicacion()
+  const datos = { items: itemsDevolucion.value, motivo: d.motivo, nota: d.nota || null, ...pos, offline_id: offlineId(), fecha_offline: new Date().toISOString(), _url: `/vender/cliente/${cli.value.id}/devolucion`, _que: `Devolución de ${cli.value.nombre}` }
+  if (!navigator.onLine) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; devolucion.value = null; return }
+  try {
+    const r = await post(datos._url, datos); const j = await r.json().catch(() => ({}))
+    if (r.ok) { resultado.value = { ...j, es_nc: true }; devolucion.value = null; cargarHoy(); return }
+    d.error = j.message ?? Object.values(j.errors ?? {}).flat()[0] ?? 'No se pudo.'; d.enviando = false
+  } catch (e) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; devolucion.value = null }
+}
+
+// --- Confirmación de entrega: nombre (obligatorio), firma y foto ---
+const entrega = ref(null)
+function abrirEntrega(v) { entrega.value = { id: v.id, tipo: v.tipo, numero: v.numero, nombre: '', firma: '', foto: '', error: null, enviando: false } }
+function fotoEntrega(e) {
+  const f = e.target.files?.[0]; if (!f) return
+  // Se achica en el teléfono para que viaje liviana (y sin señal).
+  const img = new Image(); img.onload = () => { const k = Math.min(1, 1280 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); entrega.value.foto = cv.toDataURL('image/jpeg', 0.8); URL.revokeObjectURL(img.src) }
+  img.src = URL.createObjectURL(f)
+}
+async function confirmarEntrega() {
+  const en = entrega.value; en.enviando = true; en.error = null
+  const datos = { nombre: en.nombre, firma: en.firma || null, foto: en.foto || null, cuando: new Date().toISOString(), offline_id: offlineId(), fecha_offline: new Date().toISOString(), _url: `/vender/comprobante/${en.id}/entrega`, _que: `Entrega de ${en.tipo} ${en.numero} (recibió ${en.nombre})` }
+  if (!navigator.onLine) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; entrega.value = null; return }
+  try {
+    const r = await post(datos._url, datos); const j = await r.json().catch(() => ({}))
+    if (r.ok) { if (resultado.value?.comprobante_id === en.id) resultado.value.entregado = true; entrega.value = null; cargarHoy(); return }
+    en.error = j.message ?? Object.values(j.errors ?? {}).flat()[0] ?? 'No se pudo.'; en.enviando = false
+  } catch (e) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; entrega.value = null }
+}
 async function confirmar(vendoIgual = false) {
   if (enviando.value || !pedido.value.length) return
   // Más del tope: con señal, primero el OK del encargado; sin señal, queda en la cola y lo pide al mandar.
@@ -316,6 +473,6 @@ async function confirmar(vendoIgual = false) {
   } catch (e) { cola.value.push(datos); guardar(); resultado.value = { offline: true }; limpiar() }
 }
 const onOnline = () => { online.value = true; sincronizar(); descargar() }, onOffline = () => (online.value = false)
-onMounted(() => { window.addEventListener('online', onOnline); window.addEventListener('offline', onOffline); sincronizar(); if (navigator.onLine) descargar() })
+onMounted(() => { window.addEventListener('online', onOnline); window.addEventListener('offline', onOffline); sincronizar(); if (navigator.onLine) { descargar(); cargarHoy() } })
 onBeforeUnmount(() => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline) })
 </script>

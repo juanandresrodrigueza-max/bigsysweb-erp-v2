@@ -23,6 +23,7 @@ class VendedoresController extends Controller
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
             'usuarios' => User::where('business_id', $request->user()->business_id)->orderBy('name')->get(['id', 'name']),
             'calle' => app(\App\Services\Ventas\VenderService::class)->config($request->user()->business), 'modos' => \App\Services\Ventas\VenderService::MODOS, 'autorizaciones' => app(\App\Services\Ventas\VenderService::class)->autorizaciones(),
+            'rendiciones' => app(\App\Services\Ventas\CobranzaCalleService::class)->rendiciones(), 'cajas' => \App\Models\CuentaFondos::where('activa', true)->whereNull('vendedor_id')->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
         ]);
     }
 
@@ -33,6 +34,14 @@ class VendedoresController extends Controller
         $v->fill($d + ['activo' => $d['activo'] ?? true])->save();
         AuditLog::registrar($id ? 'editar' : 'crear', $v, "Vendedor {$v->nombre}");
         return back()->with('success', $id ? 'Vendedor actualizado.' : "Vendedor {$v->nombre} creado.");
+    }
+
+    // Fase 29.5: el encargado recibe la plata que rindió el vendedor.
+    public function recibirRendicion(Request $request, int $id)
+    {
+        $d = $request->validate(['caja_id' => 'nullable|integer', 'banco_id' => 'nullable|integer', 'efectivo_contado' => 'nullable|numeric|min:0']);
+        $r = app(\App\Services\Ventas\CobranzaCalleService::class)->recibir(\App\Models\RendicionCalle::findOrFail($id), $request->user(), $d);
+        return back()->with('success', "Rendición {$r->numeroFormateado()} recibida" . (abs((float) $r->diferencia) >= 0.01 ? ' con ' . ($r->diferencia < 0 ? 'faltante' : 'sobrante') . ' de $ ' . number_format(abs($r->diferencia), 2, ',', '.') : '') . '.');
     }
 
     // Fase 29: cómo se vende en la calle (con qué comprobante arranca, si se emite, tope de descuento, mora tolerada).
