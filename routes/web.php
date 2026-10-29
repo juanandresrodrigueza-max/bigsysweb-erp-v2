@@ -484,6 +484,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/ventas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'ventas'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/vendedores/relevamiento/{id}/foto', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'foto'])->middleware('permiso:clientes')->whereNumber('id');

@@ -9,6 +9,8 @@
       </div>
     </div>
 
+    <EstadisticasTabs activa="vendedores" />
+
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
       <div class="card lg:col-span-2" data-e2e="ranking">
         <h2 class="font-bold mb-2">Ranking <span class="text-marca-muted font-normal text-sm">· {{ periodo.desde }} a {{ periodo.hasta }}</span></h2>
@@ -67,6 +69,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ periodo: Object, ranking: Array, por_dia: Array, motivos: Object, donde: Array, relevamientos: Array })
 const maxDia = computed(() => Math.max(1, ...props.por_dia.map(d => Math.abs(d.monto))))

@@ -78,7 +78,18 @@ class EstadisticasController extends Controller
             return response("\xEF\xBB\xBF" . $csv, 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename=estadisticas_{$desde->toDateString()}_{$hasta->toDateString()}.csv"]);
         }
 
+        // Fase 33.1: cada tarjeta contra el período anterior y el mismo del año pasado, con cómo se calcula; hoy hasta esta hora y cómo va el mes.
+        $tab = app(\App\Services\Estadisticas\TableroService::class);
+        $compVentas = $tab->comparar(fn($d, $h) => (float) $ventas(Carbon::parse($d), Carbon::parse($h))->selectRaw("COALESCE(SUM(({$signo}) * total),0) s")->value('s'), $desde, $hasta);
+        $compComp = $tab->comparar(fn($d, $h) => $ventas(Carbon::parse($d), Carbon::parse($h))->whereIn('tipo', ['FA', 'FB', 'FC', 'FE'])->count(), $desde, $hasta);
+        $compClientes = $tab->comparar(fn($d, $h) => $ventas(Carbon::parse($d), Carbon::parse($h))->distinct('contact_id')->count('contact_id'), $desde, $hasta);
+        $ticketDe = fn($c) => ['valor' => $c['comprobantes'] ? round($c['ventas'] / $c['comprobantes'], 2) : 0];
+        $compTicket = ['var' => \App\Services\Estadisticas\TableroService::pct($cant ? $total / $cant : 0, $compComp['anterior'] ? $compVentas['anterior'] / $compComp['anterior'] : 0), 'var_anio' => \App\Services\Estadisticas\TableroService::pct($cant ? $total / $cant : 0, $compComp['anio'] ? $compVentas['anio'] / $compComp['anio'] : 0)];
+
         return Inertia::render('Estadisticas/Index', [
+            'comparaciones' => ['ventas' => $compVentas, 'comprobantes' => $compComp, 'clientes' => $compClientes, 'ticket' => $compTicket],
+            'como' => \App\Services\Estadisticas\TableroService::COMO,
+            'hoy' => $tab->hoy($sucursal), 'proyeccion' => $tab->proyeccionMes($sucursal),
             'comparativo' => $comparativo,
             'periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'sucursalId' => $sucursal,
             'listaSucursales' => $request->user()->business->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -92,6 +103,20 @@ class EstadisticasController extends Controller
             'cobros' => CobroMedio::join('cobros', 'cobros.id', '=', 'cobro_medios.cobro_id')->where('cobros.estado', '!=', 'anulado')->whereBetween('cobros.fecha', [$desde->toDateString(), $hasta->toDateString()])->when($sucursal, fn($q) => $q->where('cobros.business_location_id', $sucursal))->selectRaw('cobro_medios.medio, SUM(cobro_medios.monto) as monto, COUNT(*) as n')->groupBy('cobro_medios.medio')->orderByDesc('monto')->get()->map(fn($r) => ['medio' => Cobro::MEDIOS[$r->medio] ?? $r->medio, 'monto' => (float) $r->monto, 'n' => $r->n]),
             'proveedores' => $top(Comprobante::compras()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'NCA', 'NCB', 'NCC'])->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])->join('contacts', 'contacts.id', '=', 'comprobantes.contact_id')->selectRaw("contacts.id, contacts.name as nombre, SUM(({$signo}) * total) as monto, COUNT(*) as n")->groupBy('contacts.id', 'contacts.name')->orderByDesc('monto')),
             'horas' => $ventas($desde, $hasta)->whereNotNull('emitido_en')->selectRaw("" . \App\Support\Sql::hora('emitido_en') . " as h, COUNT(*) as n")->groupBy('h')->orderBy('h')->get(),
+        ]);
+    }
+
+    // Fase 33.2 · Ventas: matriz ABC, cuándo vende el negocio, puntos de venta contra el año anterior, lo que se frenó de golpe y los vendedores.
+    public function ventas(Request $request, \App\Services\Estadisticas\TableroService $tab)
+    {
+        $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
+        $hasta = $request->hasta ? Carbon::parse($request->hasta) : now()->endOfMonth();
+        $sucursal = $request->sucursal ? (int) $request->sucursal : null;
+        return Inertia::render('Estadisticas/Ventas', [
+            'periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'sucursalId' => $sucursal,
+            'listaSucursales' => $request->user()->business->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'abc' => $tab->abc($desde, $hasta, $sucursal), 'cuando' => $tab->cuandoVende($desde, $hasta, $sucursal), 'puntos' => $tab->porPuntoVenta($desde, $hasta, $sucursal),
+            'frenados' => $tab->frenados($sucursal), 'vendedores' => $tab->vendedores($desde, $hasta, $sucursal),
         ]);
     }
 }
