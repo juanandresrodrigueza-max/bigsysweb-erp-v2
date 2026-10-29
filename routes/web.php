@@ -399,6 +399,15 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::delete('/descuentos-lista/{id}',  [\App\Http\Controllers\Stock\DescuentosListaController::class, 'eliminar'])->middleware('permiso:stock,editar');
         Route::post('/rubros/{id}/aplicar',      [\App\Http\Controllers\Stock\StockController::class, 'aplicarRubro'])->middleware('permiso:stock,editar');
         Route::delete('/rubros/{id}',            [\App\Http\Controllers\Stock\StockController::class, 'eliminarRubro'])->middleware('permiso:stock,editar');
+        // Fase 34: el asistente de precios y datos en masa
+        Route::get('/precios',                   [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'index'])->middleware('permiso:stock,editar');
+        Route::post('/precios/contar',           [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'contar'])->middleware('permiso:stock,editar');
+        Route::get('/precios/buscar',            [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'buscar'])->middleware('permiso:stock,editar');
+        Route::post('/precios/masivo/previsualizar', [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'previsualizar'])->middleware('permiso:stock,editar');
+        Route::post('/precios/masivo',           [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'aplicar'])->middleware('permiso:stock,editar');
+        Route::post('/precios/datos/previsualizar', [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'previsualizarDatos'])->middleware('permiso:stock,editar');
+        Route::post('/precios/datos',            [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'aplicarDatos'])->middleware('permiso:stock,editar');
+        Route::post('/precios/deshacer/{id}',    [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'deshacer'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::post('/precios/previsualizar', [\App\Http\Controllers\Stock\StockController::class, 'previsualizarPrecios'])->middleware('permiso:stock,editar');
         Route::post('/precios/deshacer', [\App\Http\Controllers\Stock\StockController::class, 'deshacerPrecios'])->middleware('permiso:stock,editar');
         Route::post('/precios',                  [\App\Http\Controllers\Stock\StockController::class, 'actualizarPrecios'])->middleware('permiso:stock,editar');

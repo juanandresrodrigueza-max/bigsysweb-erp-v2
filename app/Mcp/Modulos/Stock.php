@@ -90,6 +90,31 @@ class Stock
                     \App\Models\AuditLog::registrar('editar', $p, "Precio lista {$d['lista']} de {$p->name} a " . Busca::pesos($d['precio']) . ' (IA)');
                     return ['texto' => "Precio actualizado: {$p->name} " . Busca::pesos($d['precio']) . '.'];
                 }],
+            // Fase 34.6: "subime 15% el rubro bebidas" → propone con la cantidad de artículos y una muestra, y aplica con el asistente (queda en el historial, se puede deshacer).
+            ['nombre' => 'precios_en_masa', 'titulo' => 'Cambiar precios de un grupo', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion', 'delicada' => true,
+                'descripcion' => 'Sube o baja un porcentaje (o fija un margen sobre costo) a todos los artículos de un rubro, un proveedor, una marca o los que dicen cierto texto. Todo o nada, con deshacer.',
+                'parametros' => ['porcentaje' => ['type' => 'number', 'description' => 'Aumento (negativo para bajar) en %.'], 'margen' => ['type' => 'number', 'description' => 'En vez de porcentaje: margen % sobre el costo.'], 'rubro' => ['type' => 'string'], 'proveedor' => ['type' => 'string'], 'marca' => ['type' => 'string'], 'texto' => ['type' => 'string'], 'lista' => ['type' => 'integer', 'description' => '1 a 6, o 0 para el costo'], 'redondeo' => ['type' => 'integer', 'description' => '0, 1, 10 o 100']],
+                'requeridos' => [],
+                'proponer' => function (User $u, array $a) {
+                    $sel = [];
+                    if (! empty($a['rubro'])) { $r = \App\Models\Rubro::where('nombre', \App\Support\Sql::like(), '%' . $a['rubro'] . '%')->first(); if (! $r) return ['error' => "No encuentro el rubro \"{$a['rubro']}\"."]; $sel['rubro_id'] = $r->id; }
+                    if (! empty($a['proveedor'])) { $c = \App\Models\Contact::suppliers()->where('name', \App\Support\Sql::like(), '%' . $a['proveedor'] . '%')->first(); if (! $c) return ['error' => "No encuentro el proveedor \"{$a['proveedor']}\"."]; $sel['proveedor_id'] = $c->id; }
+                    if (! empty($a['marca'])) $sel['marca'] = $a['marca'];
+                    if (! empty($a['texto'])) $sel['texto'] = $a['texto'];
+                    if (! $sel) return ['error' => 'Decime a qué grupo: un rubro, un proveedor, una marca o un texto. Para todo el catálogo usá la pantalla Stock → Precios.'];
+                    if (! isset($a['porcentaje']) && ! isset($a['margen'])) return ['error' => 'Decime el porcentaje de aumento (o el margen sobre costo).'];
+                    $lista = (int) ($a['lista'] ?? 1);
+                    $como = ['campo' => $lista <= 0 ? 'cost' : (string) min(6, $lista), 'modo' => isset($a['margen']) ? 'margen' : 'porcentaje', 'valor' => (float) ($a['margen'] ?? $a['porcentaje']), 'redondeo' => (int) ($a['redondeo'] ?? 0)];
+                    $prev = app(\App\Services\Stock\PreciosMasivosService::class)->previsualizar($sel, $como, 5);
+                    if (! $prev['n']) return ['error' => 'Con eso no cambia ningún artículo.'];
+                    $muestra = collect($prev['filas'])->map(fn($f) => "{$f['nombre']}: " . Busca::pesos($f['antes']) . ' → ' . Busca::pesos($f['despues']))->implode(' · ');
+                    $aviso = $prev['avisos']['bajo_costo'] ? " ¡Ojo! {$prev['avisos']['bajo_costo']} quedarían bajo el costo." : '';
+                    return ['titulo' => ($como['modo'] === 'margen' ? "Poner {$como['valor']}% de margen" : ($como['valor'] >= 0 ? 'Subir ' : 'Bajar ') . abs($como['valor']) . '%') . ' a ' . $prev['n'] . ' artículos (' . ($como['campo'] === 'cost' ? 'costo' : "lista {$como['campo']}") . ')', 'detalle' => "Por ejemplo: {$muestra}.{$aviso} Queda en el historial y se puede deshacer.", 'datos' => ['sel' => $sel, 'como' => $como]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $log = app(\App\Services\Stock\PreciosMasivosService::class)->aplicar($d['sel'], $d['como']);
+                    return ['texto' => $log->descripcion . '. Si te arrepentís: Stock → Precios → Historial → Deshacer.'];
+                }],
             ['nombre' => 'ajustar_stock', 'titulo' => 'Ajustar stock', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion', 'delicada' => true,
                 'descripcion' => 'Corrige el stock de un artículo a la cantidad contada, en el depósito principal de la sucursal (o el indicado).',
                 'parametros' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number', 'description' => 'Stock real contado.'], 'motivo' => ['type' => 'string'], 'deposito' => ['type' => 'string']],
