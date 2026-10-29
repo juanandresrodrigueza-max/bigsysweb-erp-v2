@@ -16,7 +16,7 @@ class Product extends Model
     public const UNIDADES = ['un' => 'unidad', 'kg' => 'kg', 'g' => 'gramo', 'lt' => 'litro', 'ml' => 'ml', 'm' => 'metro', 'm2' => 'm²', 'm3' => 'm³', 'bolsa' => 'bolsa', 'caja' => 'caja', 'par' => 'par', 'hs' => 'hora'];
 
     protected $fillable = [
-        'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'proveedor_id', 'description',
+        'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'ubicacion', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
         'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'unidades_bulto', 'control_turno', 'en_tienda', 'descripcion_tienda', 'margen_minimo',
     ];
@@ -36,6 +36,9 @@ class Product extends Model
     // Margen sobre el costo (como la ficha) de la lista pedida, y el mínimo que le corresponde: el del artículo, si no el del rubro, si no el general.
     public function margenSobreCosto(int $lista = 1): ?float { $c = $this->costoPesos(); return $c > 0 ? round(($this->precioLista($lista) - $c) / $c * 100, 2) : null; }
     public function margenMinimo(?float $general = null): ?float { return $this->margen_minimo !== null ? (float) $this->margen_minimo : ($this->rubro?->margen_minimo !== null ? (float) $this->rubro->margen_minimo : $general); }
+
+    // El precio de la lista tal como está guardado (sin pasar a pesos si es en dólares): para cambiarlo en masa.
+    public function precioListaCruda(int $lista = 1): float { return $lista <= 1 ? (float) $this->price : (($v = $this->prices[(string) $lista] ?? $this->prices[$lista] ?? null) !== null && $v !== '' ? (float) $v : (float) $this->price); }
 
     public function precioLista(int $lista = 1): float
     {

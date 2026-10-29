@@ -130,3 +130,19 @@ Los colores y el logo salen de Configuración → Empresa → Diseño de comprob
 
 Con "Cálculo: Estadístico (95 %)" el mínimo cubre la variación de la venta, no solo el promedio: venta diaria × días de reposición + 1,65 × desvío de la venta diaria × raíz de los días de reposición. Es el mismo criterio del BigSys viejo. Un artículo que se vende parejo pide casi lo mismo que con el cálculo simple. Uno que se vende a los saltos pide bastante más, para no quedarte sin stock el 95 % de las veces. Marcá los que quieras y aplicá: el pedido sugerido de las órdenes de compra usa esos mínimos.
 
+
+## Precios y datos en masa (Stock → Precios y datos en masa)
+
+Para tocar cientos de artículos de una vez sin ir uno por uno. Son tres preguntas:
+
+1. **¿Qué querés hacer?** Cambiar precios, cambiar datos (rubro, ubicación, IVA, stock mínimo, estado, moneda, marca, proveedor), crear artículos desde la lista de un proveedor (te lleva a Importar) o comparar proveedores (te lleva al Consultor).
+2. **¿A qué artículos?** Un rubro (con sus subrubros), un proveedor, una marca, los que dicen cierto texto, los comprados entre dos fechas, una selección a mano o todo el catálogo. Abajo ves cuántos son y algunos ejemplos.
+3. **¿Cómo?** Qué precio (el costo o una lista del 1 al 6) y el cambio: un porcentaje para arriba o para abajo, un margen sobre el costo, un precio exacto, sumar o restar un monto fijo, o copiar otra lista más un porcentaje. Podés redondear a $1, $10 o $100. Si cambiás el costo, podés recalcular las listas con los márgenes de cada artículo.
+
+Antes de grabar aparece **la pantalla que salva**: cada artículo con el antes y el después. Lo raro viene en rojo y destildado para que lo revises: precios que quedan bajo el costo, en cero, o que cambian más del límite que pusiste (50 % por defecto). Se graba todo o nada.
+
+Todo queda en el **Historial** de la derecha: quién, cuándo, qué, y el valor de antes y después de cada artículo. Cualquier cambio masivo se puede **deshacer** hasta 30 días después (una sola vez).
+
+Desde la lista de Stock, si tildás varios artículos, el botón "Actualizar precios de estos" abre el asistente con esos ya elegidos.
+
+Por el asistente de IA también podés pedirlo con palabras: "subime 15 % el rubro bebidas". Te muestra cuántos artículos son y algunos ejemplos, y aplica recién cuando confirmás.

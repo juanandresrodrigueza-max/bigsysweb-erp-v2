@@ -7,7 +7,7 @@
         <Link v-if="puede('stock','editar')" href="/stock/inventario" class="btn-secondary">Inventario</Link>
         <button v-if="puede('stock','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
         <a href="/configuracion/importar/exportar/articulos" class="btn-secondary" title="Todos los artículos con sus 6 listas, stock y descuentos">Exportar CSV</a>
-        <button v-if="puede('stock','editar')" @click="preciosAbierto = true" class="btn-secondary">Actualizar precios</button>
+        <Link v-if="puede('stock','editar')" href="/stock/precios" class="btn-secondary" data-ir-precios>Precios y datos en masa</Link>
         <Link v-if="puede('stock','editar')" href="/stock/importar" class="btn-secondary">Importar lista</Link>
         <Link href="/stock/informes" class="btn-secondary">Informes</Link>
         <Link href="/stock/etiquetas" class="btn-secondary">Etiquetas</Link>
@@ -41,7 +41,7 @@
 
     <div v-if="sel.length" class="flex flex-wrap items-center gap-2 mb-3 rounded-xl bg-violeta/10 border border-violeta/30 px-4 py-2 text-sm">
       <b>{{ sel.length }} artículo{{ sel.length > 1 ? 's' : '' }} seleccionado{{ sel.length > 1 ? 's' : '' }}</b>
-      <button class="btn-primary !py-1 text-xs" @click="pr.ids = [...sel]; preciosAbierto = true">Actualizar precios de estos</button>
+      <Link class="btn-primary !py-1 text-xs" :href="'/stock/precios?' + [...sel].map(i => 'ids[]=' + i).join('&')">Actualizar precios de estos</Link>
       <button class="btn-ghost !py-1 text-xs" @click="sel = []">Quitar selección</button>
       <span class="text-xs text-marca-muted">Podés ir marcando en varias páginas.</span>
     </div>
