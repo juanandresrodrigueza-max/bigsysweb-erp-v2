@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ComprobanteItem extends Model
 {
-    protected $fillable = ['comprobante_id', 'product_id', 'descripcion', 'cantidad', 'unidad', 'precio_unit', 'costo_unit', 'descuento', 'alicuota_iva', 'neto', 'iva', 'total', 'orden', 'cantidad_entregada', 'cantidad_facturada', 'origen_item_id', 'lote_id', 'lote', 'vencimiento', 'serie', 'actualiza_costo'];
+    protected $fillable = ['comprobante_id', 'product_id', 'descripcion', 'cantidad', 'unidad', 'precio_unit', 'costo_unit', 'descuento', 'alicuota_iva', 'neto', 'iva', 'total', 'orden', 'cantidad_entregada', 'cantidad_facturada', 'origen_item_id', 'lote_id', 'lote', 'vencimiento', 'serie', 'actualiza_costo', 'cantidad_recibida'];
 
-    protected $casts = ['cantidad' => 'decimal:3', 'precio_unit' => 'decimal:4', 'costo_unit' => 'decimal:4', 'descuento' => 'decimal:2', 'alicuota_iva' => 'decimal:2', 'neto' => 'decimal:2', 'iva' => 'decimal:2', 'total' => 'decimal:2', 'cantidad_entregada' => 'decimal:3', 'cantidad_facturada' => 'decimal:3'];
+    protected $casts = ['cantidad' => 'decimal:3', 'precio_unit' => 'decimal:4', 'costo_unit' => 'decimal:4', 'descuento' => 'decimal:2', 'alicuota_iva' => 'decimal:2', 'neto' => 'decimal:2', 'iva' => 'decimal:2', 'total' => 'decimal:2', 'cantidad_entregada' => 'decimal:3', 'cantidad_facturada' => 'decimal:3', 'cantidad_recibida' => 'decimal:3'];
 
     public function comprobante(): BelongsTo { return $this->belongsTo(Comprobante::class); }
     public function product(): BelongsTo { return $this->belongsTo(Product::class); }

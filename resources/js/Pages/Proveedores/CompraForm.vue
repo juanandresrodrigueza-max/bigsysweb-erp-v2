@@ -144,7 +144,7 @@ const tipos = [['FA', 'Factura A'], ['FB', 'Factura B'], ['FC', 'Factura C'], ['
 const b = props.compra ?? props.desdeOrden
 const form = useForm({
   contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null, orden_compra_id: b?.orden_compra_id ?? null,
-  fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', notas: b?.notas ?? '',
+  fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', adjunto_id: null, notas: b?.notas ?? '',
   moneda: b?.moneda ?? 'ARS', cotizacion: (b?.moneda === 'USD' ? b?.cotizacion : null) || props.cotizacionUsd || null,
   solo_stock: false, remito_id: null, borrador_id: null,
   items: (b?.items ?? []).map(i => ({ ...i, precio_unit: i.precio_unit_me ?? i.precio_unit, actualiza_costo: i.actualiza_costo ?? true })), impuestos: (b?.impuestos ?? []).map(i => ({ ...i, jurisdiccion: i.tipo?.startsWith('iibb_') ? i.tipo.slice(5).toUpperCase() : '', tipo: i.tipo?.startsWith('iibb') ? 'iibb' : i.tipo })), registrar: false,
@@ -186,7 +186,7 @@ async function leerOCR(file) {
     if (d.fecha) form.fecha = d.fecha
     if (d.fecha_vto) form.fecha_vto = d.fecha_vto
     if (d.cae) form.cae_proveedor = d.cae
-    form.origen_carga = 'ocr'
+    form.origen_carga = 'ocr'; form.adjunto_id = data.adjunto_id ?? null
     form.items = (d.items ?? []).map(i => ({ product_id: i.product_id ?? null, descripcion: i.descripcion ?? '', codigo: i.codigo ?? null, cantidad: Number(i.cantidad) || 1, unidad: null, precio_unit: Number(i.precio_unit) || 0, descuento: Number(i.descuento) || 0, alicuota_iva: Number(i.alicuota_iva ?? 21), actualiza_costo: i.actualiza_costo ?? !i.sin_cargo, bulto: i.bulto ?? null, por: i.por ?? null, sin_cargo: !!i.sin_cargo }))
     ocr.avisos = d.avisos ?? []; ocr.qr = !!d.cabecera_qr; pendientesPie.value = d.preguntar ?? []; siguientePie()
     if (form.contact_id) cargarAbiertos()

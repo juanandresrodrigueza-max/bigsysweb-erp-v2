@@ -16,7 +16,7 @@ class Business extends Model
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
         'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
-        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'onboarding', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
+        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'onboarding', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
     ];
 
     public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'hoteleria' => 'Hotelería / alojamiento', 'otro' => 'Otro'];
@@ -31,6 +31,7 @@ class Business extends Model
         'tienda'               => 'array',
         'pos'                  => 'array',
         'ventas_config'        => 'array',
+        'compras_config'       => 'array',
         'avisos'               => 'array',
         'fidelizacion'         => 'array',
         'onboarding_completado_en' => 'datetime',
