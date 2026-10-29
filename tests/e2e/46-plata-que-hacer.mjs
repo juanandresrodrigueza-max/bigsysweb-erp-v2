@@ -1,0 +1,16 @@
+// Fase 33.5–33.6: la solapa Plata (qué entra y cuándo, IVA del mes, cartera, cobradores) y Qué hacer (hallazgos y control de usuarios).
+import { abrir, idle as _idle, shot as _shot, login as _login, fin, BASE } from './lib.mjs'
+const { browser, page } = await abrir()
+const idle = () => _idle(page); const shot = n => _shot(page, 'plata-' + n)
+await _login(page, 'demo@bigsys.com.ar'); await page.click('button:has-text("Saltar")').catch(() => {})
+await page.goto(`${BASE}/estadisticas/plata`); await idle()
+for (const k of ['entra', 'iva', 'cartera', 'cobradores']) console.log(`  ${k}:`, (await page.innerText(`[data-e2e="${k}"]`)).replace(/\s+/g, ' ').slice(0, 120))
+await shot('01-plata')
+await page.click('[data-e2e="tab-que-hacer"]'); await idle(); await page.waitForTimeout(400)
+const tarjetas = await page.locator('[data-e2e^="hallazgo-"]').allInnerTexts()
+console.log('  hallazgos:', tarjetas.map(t => t.replace(/\s+/g, ' ').slice(0, 70)).join(' | '))
+console.log('  control:', (await page.innerText('[data-e2e="control"]')).replace(/\s+/g, ' ').slice(0, 160))
+await shot('02-que-hacer')
+await page.click('button:has-text("A deshora")'); await page.waitForTimeout(200)
+console.log('  a deshora filas:', await page.locator('[data-e2e="control"] .max-h-72 > div').count())
+await fin(browser)

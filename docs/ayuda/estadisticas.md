@@ -52,3 +52,15 @@ La pantalla del dueño: ventas de hoy contra ayer, cobrado, caja y bancos, por c
 - **Ajustes para abajo:** los ajustes de stock que bajaron cantidades en los últimos 30 días, valorizados al costo, por rubro y artículo por artículo. Los ajustes para arriba no se muestran.
 - **Cuánto aumentó cada proveedor:** el costo de los mismos artículos en sus facturas de los últimos 90 días contra los 90 anteriores, ponderado por lo comprado.
 - **Quién te vende más barato:** para cada artículo con más de un proveedor con precio en los últimos 180 días, el de hoy contra el más barato y el ahorro posible por mes por lo vendido en 30 días; quién gana más seguido. Una diferencia de más del 70 % va aparte, a revisar.
+
+## Solapa Plata
+
+- **Qué entra y cuándo:** lo que te deben (facturas con saldo, sin las cuentas de contado) más los cheques de terceros en cartera, por tramo: ya vencido, hasta 30 días, 31 a 60, 61 a 90 y más de 90.
+- **Cartera por semana de depósito:** los cheques en cartera agrupados por la semana en que se pueden depositar, con el detalle de cada uno.
+- **Cobranza por cobrador:** los recibos del período por quien cobró, con cuánto, cuántos recibos y cuántos clientes.
+- **IVA del mes:** débito fiscal (ventas) menos crédito fiscal (compras), menos las percepciones de IVA sufridas en compras y las retenciones de IVA que te hicieron al cobrar. Es una cuenta sobre lo cargado, no una declaración jurada.
+
+## Solapa Qué hacer
+
+- **Hallazgos de la semana:** lo que no sabés y te cuesta plata, con el número y qué hacer: listas de precios al revés (una mayorista más cara que la lista 1), clientes que compraban seguido y no compran hace más de 60 días (con teléfono), deuda vencida hace más de 60 días, cajas sin cerrar hace más de un día y artículos bajo su margen mínimo. Cada tarjeta tiene «Ver cuáles» y el link a donde se arregla.
+- **Control de usuarios:** por usuario, en los últimos 7, 30 o 90 días: qué anuló, qué comprobantes modificó después de emitidos, qué cargó a deshora (antes de las 7, después de las 22 o un domingo) y qué cargó con fecha atrasada, con el detalle de cada caso.

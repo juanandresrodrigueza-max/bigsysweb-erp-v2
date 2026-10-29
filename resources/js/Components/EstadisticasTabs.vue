@@ -8,7 +8,7 @@
 import { Link } from '@inertiajs/vue3'
 defineProps({ activa: String })
 const tabs = [
-  { key: 'resumen', label: 'Resumen', href: '/estadisticas' }, { key: 'ventas', label: 'Ventas', href: '/estadisticas/ventas' }, { key: 'rentabilidad', label: 'Rentabilidad', href: '/estadisticas/rentabilidad' }, { key: 'stock', label: 'Stock y compras', href: '/estadisticas/stock' },
+  { key: 'resumen', label: 'Resumen', href: '/estadisticas' }, { key: 'ventas', label: 'Ventas', href: '/estadisticas/ventas' }, { key: 'rentabilidad', label: 'Rentabilidad', href: '/estadisticas/rentabilidad' }, { key: 'stock', label: 'Stock y compras', href: '/estadisticas/stock' }, { key: 'plata', label: 'Plata', href: '/estadisticas/plata' }, { key: 'que-hacer', label: 'Qué hacer', href: '/estadisticas/que-hacer' },
   { key: 'vendedores', label: 'Vendedores', href: '/estadisticas/vendedores' }, { key: 'analista', label: '✦ Analista IA', href: '/estadisticas/analista' },
 ]
 </script>
