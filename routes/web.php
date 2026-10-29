@@ -320,6 +320,14 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/tienda-online/{canal}/categorias',    [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'categorias'])->whereNumber('canal');
         Route::get('/tienda-online/{canal}/atributos/{categoria}', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'atributos'])->whereNumber('canal');
         Route::post('/tienda-online/{canal}/sincronizar',  [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'sincronizar'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::get('/tienda-online/{canal}/existentes',    [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'existentes'])->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/atar-seguras', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'atarSeguras'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/adoptar-atadas', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'adoptarAtadas'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/traer-fotos',  [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'traerFotos'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::get('/tienda-online/buscar-articulo',       [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'buscarArticulo']);
+        Route::post('/tienda-online/publicaciones/{id}/atar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'atar'])->middleware('permiso:stock,editar')->whereNumber('id');
+        Route::post('/tienda-online/publicaciones/{id}/desatar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'desatar'])->middleware('permiso:stock,editar')->whereNumber('id');
+        Route::post('/tienda-online/publicaciones/{id}/adoptar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'adoptar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::post('/tienda-online/publicaciones/{id}/pausar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'pausar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::get('/',                          [\App\Http\Controllers\Stock\StockController::class, 'index']);
         Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar');

@@ -44,3 +44,11 @@ Elegís la tienda, un rubro (o buscás productos en todos), tildás y tocás **R
 En **MercadoLibre** cada rubro necesita su **categoría**: ML la propone a partir del producto más vendido del rubro, o escribís qué vendés con tus palabras. La categoría dice qué datos exige (marca, modelo…) y Mercado Envíos pide medidas y peso: se cargan **una vez por rubro**. Si ML rechaza algo, el panel lo dice en castellano con el paso a seguir ("esa categoría no admite Mercado Envíos" casi nunca es tu cuenta: probá con otro rubro). En WooCommerce, Tienda Nube y Shopify la categoría se crea sola con el nombre del rubro, o unís el rubro a una que la web ya tiene.
 
 **Se mantiene solo**: cada 5 minutos (y al instante al mover stock) se compara precio y stock con lo publicado y se corrige lo que cambió. Un artículo sin stock se pausa y vuelve cuando entra mercadería. En *Lo publicado* ves cada una con su estado, la lista con la que sale y el último error si lo hubo.
+
+## Lo que ya tenés en la tienda: atar, adoptar, desatar
+
+En **Stock → Tienda online → Las que ya tenés en la tienda** se leen todas las publicaciones (activas y pausadas) con foto, precio, stock y cuántas vendieron. Cada una viene con el artículo **propuesto**: por código (si el SKU de la tienda es tu código), por código de barras, por memoria ("ya lo ataste antes") o por nombre. **Segura**: un botón *Es «tal artículo»*. **Dudosa**: dos o tres candidatos (una cantidad distinta, "25 KG" contra "5 kg", baja la sugerencia a dudosa). **Ninguna**: *Decir cuál artículo es* abre un buscador por nombre, descripción, código o barras. **Nada se ata solo.**
+
+- **Atar**: sus ventas entran con el artículo puesto y se pueden facturar; la web no se toca. Al atar, la foto de la tienda pasa al catálogo si el artículo no tenía, las ventas pendientes de esa publicación quedan con el artículo, y el sistema se acuerda del título para la próxima.
+- **Adoptar**: además, el precio (lista de la tienda, con IVA) y el stock (menos el colchón) los manda el ERP desde ese momento; lo que la web tenía se pisa. *Emparejar las N seguras* ata y adopta de un clic; *Adoptar las N atadas* hace todas juntas. Una publicación **con variantes** se ata pero no se adopta.
+- **Desatar**: deshace y olvida el título.

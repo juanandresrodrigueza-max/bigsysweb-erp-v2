@@ -98,8 +98,68 @@
         </div>
       </div>
 
+      <!-- LAS QUE YA TENÉS EN LA TIENDA: atar, adoptar, desatar -->
+      <div v-else-if="solapa === 'existentes'" class="space-y-3" data-e2e="existentes">
+        <div class="card text-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div><h2 class="font-bold">Lo que ya tenés en {{ actual.nombre }}</h2><p class="text-xs text-marca-muted">Se lee de la tienda. Cada una viene con el artículo propuesto; <b>nada se ata solo</b>: siempre confirmás vos. <b>Atar</b> sirve para facturar sus ventas; <b>adoptar</b> además hace que el precio y el stock los mande el ERP (lo que la web tenía se pisa). Con variantes se ata pero no se adopta.</p></div>
+            <div class="flex flex-wrap gap-1"><button class="btn-secondary !py-1 text-xs" :disabled="leyendo" @click="leerTienda" data-e2e="leer-tienda">{{ leyendo ? 'Leyendo la tienda…' : (ex ? 'Volver a leer la tienda' : 'Leer la tienda') }}</button><button v-if="ex?.seguras" class="btn-primary !py-1 text-xs" @click="atarSeguras" data-e2e="atar-seguras">Emparejar las {{ ex.seguras }} seguras</button><button v-if="ex?.atadas_sin_adoptar" class="btn-secondary !py-1 text-xs" @click="adoptarAtadas">Adoptar las {{ ex.atadas_sin_adoptar }} atadas</button><button v-if="ex" class="btn-ghost !px-2 text-xs" @click="traerFotos">Traer las fotos al catálogo</button></div>
+          </div>
+          <p v-if="ex?.pendientes?.ventas" class="mt-2 text-xs rounded-lg bg-amber-50 text-amber-900 px-2 py-1">{{ ex.pendientes.ventas }} venta{{ ex.pendientes.ventas > 1 ? 's esperan' : ' espera' }} por {{ ex.pendientes.publicaciones }} publicaci{{ ex.pendientes.publicaciones > 1 ? 'ones' : 'ón' }} sin artículo: al tocar «Es éste» todas quedan con el artículo.</p>
+          <p v-if="exError" class="mt-2 text-xs text-carmin">{{ exError }} <button class="underline" @click="leerTienda">Reintentar</button></p>
+          <p class="mt-2 text-xs text-marca-muted">Lista de precios de la tienda: <b>{{ actual.cfg.lista ?? 1 }}</b> (con IVA). Cada producto dice con qué precio queda con el ERP y cuál tiene la web hoy.</p>
+        </div>
+        <div v-if="ex" class="card p-0">
+          <div class="px-4 py-2 border-b border-marca-borde flex flex-wrap items-center gap-2 text-xs">
+            <input v-model="qEx" class="input !py-1 flex-1 min-w-[10rem]" placeholder="Filtrar por título, código de la tienda, SKU o artículo (palabras en cualquier orden)" data-e2e="filtro-existentes" />
+            <div class="flex gap-1"><button v-for="f in [['todas','Todas'],['activa','Activas'],['pausada','Pausadas']]" :key="f[0]" class="px-2 py-1 rounded-full" :class="filtroEx === f[0] ? 'bg-marca-texto text-white' : 'bg-marca-fondo text-marca-muted'" @click="filtroEx = f[0]">{{ f[1] }}</button><button class="px-2 py-1 rounded-full" :class="soloFaltan ? 'bg-amber-600 text-white' : 'bg-marca-fondo text-marca-muted'" @click="soloFaltan = !soloFaltan" data-e2e="faltan-emparejar">{{ ex.items.filter(i => !i.articulo).length }} faltan emparejar</button></div>
+            <span class="text-marca-muted ml-auto">Se ven {{ existentesVisibles.length }} de {{ ex.items.length }}</span>
+          </div>
+          <div class="divide-y divide-marca-borde text-sm max-h-[70vh] overflow-y-auto">
+            <div v-for="p in existentesVisibles" :key="p.id" class="px-4 py-2 flex flex-wrap items-center gap-2" :data-e2e="`ex-${p.id}`">
+              <img v-if="p.foto" :src="p.foto" class="w-10 h-10 rounded object-cover bg-marca-fondo" /><div v-else class="w-10 h-10 rounded bg-marca-fondo"></div>
+              <div class="flex-1 min-w-[14rem]">
+                <p class="font-medium">{{ p.titulo }} <a v-if="p.permalink" :href="p.permalink" target="_blank" class="text-violeta text-xs">ver</a></p>
+                <p class="text-[11px] text-marca-muted">{{ p.external_id }}{{ p.variante_id ? ' · var ' + p.variante_id : '' }}<span v-if="p.sku_remoto"> · SKU {{ p.sku_remoto }}</span> · en la web hoy <b class="tabular-nums">{{ moneda(p.precio_web ?? 0) }}</b> · {{ p.stock_web ?? 0 }} u. · {{ p.estado }}<span v-if="p.vendidas != null"> · {{ p.vendidas }} vendidas</span><span v-if="p.categoria"> · {{ p.categoria }}</span><span v-if="p.con_variantes" class="text-amber-700"> · con variantes</span></p>
+                <p v-if="p.articulo" class="text-[11px]"><span class="text-emerald-700 font-semibold">{{ p.origen === 'publicada' ? 'publicada desde acá' : p.adoptada ? 'adoptada: el ERP le manda precio y stock' : 'atada a mano' }}</span> · {{ p.articulo.nombre }} ({{ p.articulo.sku }}) · con el ERP queda en <b class="tabular-nums">{{ p.articulo.precio_erp != null ? moneda(p.articulo.precio_erp) : 'sin precio' }}</b> · lista {{ p.articulo.lista }} · {{ p.articulo.stock_erp }} u.<span v-if="p.error" class="text-carmin"> · la tienda rechazó el último envío: {{ p.error }}</span></p>
+              </div>
+              <div class="flex flex-wrap gap-1 items-center text-xs">
+                <template v-if="p.articulo">
+                  <button v-if="!p.adoptada && !p.con_variantes && p.origen !== 'publicada'" class="btn-secondary !py-1" @click="adoptar(p, true)" :data-e2e="`adoptar-${p.id}`">Adoptar</button>
+                  <button v-else-if="p.adoptada" class="btn-ghost !px-2" @click="adoptar(p, false)">Dejar de sincronizar</button>
+                  <button class="btn-ghost !px-2 text-carmin" @click="desatar(p)">Desatar</button>
+                </template>
+                <template v-else-if="p.sugerencia?.tipo === 'segura'">
+                  <button class="btn-primary !py-1" @click="atar(p, p.sugerencia.product_id)" :data-e2e="`es-${p.id}`">Es «{{ p.sugerencia.nombre }}» <span class="opacity-70">· {{ p.sugerencia.por }}</span></button>
+                  <button class="btn-ghost !px-2" @click="buscando = p">¿No es? Buscar otro…</button>
+                </template>
+                <template v-else-if="p.sugerencia?.tipo === 'dudosa'">
+                  <span class="text-marca-muted">¿Cuál es?<span v-if="p.sugerencia.por"> ({{ p.sugerencia.por }})</span></span>
+                  <button v-for="k in p.sugerencia.candidatos" :key="k.id" class="btn-secondary !py-1" @click="atar(p, k.id)" :data-e2e="`cand-${p.id}-${k.id}`">{{ k.nombre }}</button>
+                  <button class="btn-ghost !px-2" @click="buscando = p">Otro…</button>
+                </template>
+                <template v-else>
+                  <span class="text-marca-muted">no encontré ninguno seguro</span>
+                  <button class="btn-secondary !py-1" @click="buscando = p" :data-e2e="`decir-${p.id}`">Decir cuál artículo es</button>
+                </template>
+              </div>
+            </div>
+            <p v-if="!existentesVisibles.length" class="px-4 py-8 text-center text-xs text-marca-muted">{{ ex.items.length ? 'Ninguna coincide con el filtro.' : 'La tienda contestó que no tiene publicaciones.' }}</p>
+          </div>
+        </div>
+      </div>
+
       <div v-else class="card text-center py-10 text-sm text-marca-muted">Esta solapa llega en el próximo paso de la fase.</div>
     </template>
+
+    <!-- Buscar el artículo para atar -->
+    <Modal :abierto="!!buscando" :titulo="buscando ? `¿Cuál artículo es «${buscando.titulo}»?` : ''" @cerrar="buscando = null">
+      <input v-model="qArt" class="input" placeholder="Nombre, descripción, código o código de barras" autofocus @input="buscarArticulo" data-e2e="buscar-articulo" />
+      <div class="mt-2 max-h-72 overflow-y-auto divide-y divide-marca-borde text-sm">
+        <button v-for="a in resultadosArt" :key="a.id" class="w-full text-left px-2 py-1.5 hover:bg-marca-fondo flex items-center gap-2" @click="atar(buscando, a.id); buscando = null" :data-e2e="`art-${a.id}`"><img v-if="a.foto" :src="a.foto" class="w-8 h-8 rounded object-cover" /><span class="flex-1"><b>{{ a.nombre }}</b> <span class="text-marca-muted text-xs">{{ a.sku }}</span><span v-if="a.por" class="block text-[11px] text-marca-muted">{{ a.por }}</span></span><span class="text-violeta text-xs font-semibold">Es este</span></button>
+        <p v-if="qArt && !resultadosArt.length" class="text-xs text-marca-muted py-4 text-center">Nada parecido.</p>
+      </div>
+    </Modal>
 
     <!-- Revisar y publicar -->
     <Modal :abierto="!!revision" titulo="Revisar y publicar" @cerrar="revision = null" ancho="max-w-3xl">
@@ -122,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
@@ -160,6 +220,22 @@ async function publicar() {
   publicando.value = true
   try { const ids = revision.value.items.filter(p => !p.motivos.length).map(p => p.id); const r = await api(`/stock/tienda-online/${props.canal}/publicar`, { ids, listas: revision.value.listas }); const j = await r.json(); revision.value.resultado = r.ok ? j : { ok: [], errores: [{ id: 0, nombre: 'Error', error: j.message ?? 'No se pudo' }] }; j.ok?.forEach(o => delete sel[o.id]); if (j.ok?.length) setTimeout(() => router.reload({ only: ['publicaciones', 'rubros', 'canales'] }), 500); cargarProductos() } finally { publicando.value = false }
 }
+
+// --- Las que ya tenés en la tienda ---
+const ex = ref(null), exError = ref(null), leyendo = ref(false), qEx = ref(''), filtroEx = ref('todas'), soloFaltan = ref(false), buscando = ref(null), qArt = ref(''), resultadosArt = ref([])
+async function cargarExistentes(leer = false) { leyendo.value = leer; exError.value = null; try { const r = await api(`/stock/tienda-online/${props.canal}/existentes${leer ? '?leer=1' : ''}`); const j = await r.json(); if (!r.ok) throw new Error(j.message ?? 'No se pudo'); ex.value = j } catch (e) { exError.value = e.message } finally { leyendo.value = false } }
+function leerTienda() { cargarExistentes(true) }
+const norm = s => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const existentesVisibles = computed(() => { if (!ex.value) return []; const tk = norm(qEx.value).split(' ').filter(Boolean); return ex.value.items.filter(p => (filtroEx.value === 'todas' || p.estado === filtroEx.value) && (!soloFaltan.value || !p.articulo) && tk.every(t => norm(`${p.titulo} ${p.external_id} ${p.sku_remoto ?? ''} ${p.articulo?.nombre ?? ''} ${p.articulo?.sku ?? ''}`).includes(t))) })
+async function atar(p, productId) { const r = await api(`/stock/tienda-online/publicaciones/${p.id}/atar`, { product_id: productId, adoptar: false }); if (r.ok) cargarExistentes() }
+async function desatar(p) { if (!confirm('¿Desatar? Sus próximas ventas entran sin artículo.')) return; const r = await api(`/stock/tienda-online/publicaciones/${p.id}/desatar`, {}); if (r.ok) cargarExistentes() }
+async function adoptar(p, si) { if (si && !confirm(`Adoptar pisa lo que la web tenía: queda en ${p.articulo.precio_erp != null ? moneda(p.articulo.precio_erp) : 'sin precio'} y ${p.articulo.stock_erp} u. ¿Seguimos?`)) return; const r = await api(`/stock/tienda-online/publicaciones/${p.id}/adoptar`, { dejar: !si }); const j = await r.json().catch(() => ({})); if (!r.ok) exError.value = j.message; cargarExistentes() }
+async function atarSeguras() { const n = ex.value.items.filter(i => i.sugerencia?.tipo === 'segura').length; if (!confirm(`Se emparejan y adoptan ${n} publicaciones: desde ahí el precio y el stock los manda el ERP con la lista de la tienda. ¿Seguimos?`)) return; const r = await api(`/stock/tienda-online/${props.canal}/atar-seguras`, {}); if (r.ok) cargarExistentes() }
+async function adoptarAtadas() { if (!confirm('Adoptar pisa el precio y el stock que la web tenía en todas las atadas. ¿Seguimos?')) return; const r = await api(`/stock/tienda-online/${props.canal}/adoptar-atadas`, {}); if (r.ok) cargarExistentes() }
+async function traerFotos() { const r = await api(`/stock/tienda-online/${props.canal}/traer-fotos`, {}); const j = await r.json(); alert(`${j.fotos} fotos pasaron al catálogo.`) }
+let tArt = null
+function buscarArticulo() { clearTimeout(tArt); tArt = setTimeout(async () => { const r = await api(`/stock/tienda-online/buscar-articulo?q=${encodeURIComponent(qArt.value)}`); resultadosArt.value = r.ok ? await r.json() : [] }, 250) }
+watch(solapa, s => { if (s === 'existentes' && !ex.value) cargarExistentes(false) }, { immediate: true })
 
 // --- Lo publicado ---
 const qPub = ref(''), filtroPub = ref('todas')

@@ -13,4 +13,6 @@ await page.goto(`${BASE}/stock/tienda-online`); await idle()
 if (await page.locator('[data-e2e="sin-tiendas"]').isVisible().catch(() => false)) console.log('  sin tiendas:', (await page.innerText('[data-e2e="sin-tiendas"]')).replace(/\s+/g, ' ').trim().slice(0, 120))
 else { console.log('  rubros:', (await page.innerText('[data-e2e="rubros"]')).replace(/\s+/g, ' ').trim().slice(0, 160)); await page.locator('[data-e2e^="rubro-"]').first().click(); await page.waitForTimeout(1200); console.log('  productos:', (await page.innerText('[data-e2e="productos"]')).replace(/\s+/g, ' ').trim().slice(0, 200)) }
 await shot('03-tienda-online')
+// 30.3: la solapa de lo que ya tenés en la tienda (la tienda demo no responde: lo dice y ofrece reintentar).
+if (await page.locator('[data-e2e="solapa-existentes"]').isVisible().catch(() => false)) { await page.click('[data-e2e="solapa-existentes"]'); await page.waitForTimeout(800); console.log('  existentes:', (await page.innerText('[data-e2e="existentes"]')).replace(/\s+/g, ' ').trim().slice(0, 220)); await shot('04-existentes') }
 await fin(browser)

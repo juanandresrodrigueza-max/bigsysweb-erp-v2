@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Publicacion;
 use App\Models\Rubro;
 use App\Models\RubroCanal;
+use App\Services\Canales\EmparejarService;
 use App\Services\Canales\PublicacionesService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,7 +17,7 @@ use Inertia\Inertia;
 // de cada rubro, lista por tienda/rubro/artículo, y lo publicado con su estado.
 class TiendaOnlineController extends Controller
 {
-    public function __construct(private PublicacionesService $pub) {}
+    public function __construct(private PublicacionesService $pub, private EmparejarService $emp) {}
 
     private function canales() { return Canal::where('activo', true)->whereIn('tipo', ['mercadolibre', 'woocommerce', 'shopify', 'tiendanube'])->orderBy('nombre')->get(); }
 
@@ -105,6 +106,56 @@ class TiendaOnlineController extends Controller
     {
         try { return response()->json($this->pub->atributosObligatorios(Canal::findOrFail($canal), $categoria)); }
         catch (\Throwable $e) { return response()->json(['message' => 'MercadoLibre no contestó: ' . mb_substr($e->getMessage(), 0, 160)], 422); }
+    }
+
+    // ---- Fase 30.3: las que ya tenés en la tienda ----
+    private function filaExistente(Publicacion $p, array $sug, Canal $c, $rcs): array
+    {
+        $prod = $p->product;
+        $lista = $prod ? $this->pub->listaPara($c, $prod, $p, $prod->rubro_id ? ($rcs[$prod->rubro_id] ?? null) : null) : null;
+        return ['id' => $p->id, 'external_id' => $p->external_id, 'variante_id' => $p->variante_id, 'titulo' => $p->titulo, 'sku_remoto' => $p->sku_remoto, 'precio_web' => $p->precio_remoto, 'stock_web' => $p->stock_remoto, 'estado' => $p->estado, 'foto' => $p->foto_url, 'permalink' => $p->permalink, 'vendidas' => $p->datos['vendidas'] ?? null, 'categoria' => $p->datos['categoria_nombre'] ?? $p->categoria_id, 'con_variantes' => $p->con_variantes, 'origen' => $p->origen, 'adoptada' => $p->adoptada, 'error' => $p->ultimo_error,
+            'articulo' => $prod ? ['id' => $prod->id, 'nombre' => $prod->name, 'sku' => $prod->sku, 'precio_erp' => $this->pub->tienePrecio($prod, $lista) ? $this->pub->precioPara($c, $prod, $lista) : null, 'lista' => $lista, 'stock_erp' => $this->pub->stockPara($c, $prod)] : null,
+            'sugerencia' => $sug[$p->id] ?? null];
+    }
+
+    public function existentes(Request $request, int $canal)
+    {
+        $c = Canal::findOrFail($canal);
+        if ($request->boolean('leer')) { try { $this->emp->leer($c); } catch (\Throwable $e) { return response()->json(['message' => 'No se pudo leer la tienda: ' . mb_substr($e->getMessage(), 0, 160) . '. Reintentá.'], 422); } }
+        $pubs = Publicacion::where('canal_id', $c->id)->where('origen', '!=', 'publicada')->where('estado', '!=', 'cerrada')->with('product:id,name,sku,rubro_id,price,prices,iva,stock,moneda')->orderByDesc('product_id')->orderBy('titulo')->get();
+        $sug = $this->emp->sugerencias($c, $pubs->whereNull('product_id'));
+        $rcs = RubroCanal::where('canal_id', $c->id)->get()->keyBy('rubro_id');
+        return response()->json(['items' => $pubs->map(fn($p) => $this->filaExistente($p, $sug, $c, $rcs))->values()->all(), 'seguras' => collect($sug)->where('tipo', 'segura')->count(), 'atadas_sin_adoptar' => $pubs->filter(fn($p) => $p->product_id && ! $p->adoptada && ! $p->con_variantes)->count(), 'pendientes' => $this->emp->pendientesSinArticulo($c), 'leida' => $c->publicaciones()->max('updated_at')]);
+    }
+
+    public function atar(Request $request, int $id)
+    {
+        $d = $request->validate(['product_id' => 'required|exists:products,id', 'adoptar' => 'boolean']);
+        $p = Publicacion::findOrFail($id);
+        $p = $this->emp->atar($p, Product::findOrFail($d['product_id']), $request->boolean('adoptar'));
+        return response()->json(['ok' => true, 'adoptada' => $p->adoptada, 'error' => $p->ultimo_error]);
+    }
+
+    public function desatar(int $id) { $this->emp->desatar(Publicacion::findOrFail($id)); return response()->json(['ok' => true]); }
+
+    public function adoptar(Request $request, int $id)
+    {
+        try { $p = $this->emp->adoptar(Publicacion::findOrFail($id), ! $request->boolean('dejar')); }
+        catch (\RuntimeException $e) { return response()->json(['message' => $e->getMessage()], 422); }
+        return response()->json(['ok' => true, 'adoptada' => $p->adoptada, 'error' => $p->ultimo_error]);
+    }
+
+    public function atarSeguras(int $canal) { return response()->json($this->emp->atarSeguras(Canal::findOrFail($canal))); }
+    public function adoptarAtadas(int $canal) { return response()->json($this->emp->adoptarAtadas(Canal::findOrFail($canal))); }
+    public function traerFotos(int $canal) { return response()->json(['fotos' => $this->emp->traerFotos(Canal::findOrFail($canal))]); }
+
+    // Buscar un artículo para atarlo: nombre, descripción, código o barras, con las palabras en cualquier orden.
+    public function buscarArticulo(Request $request)
+    {
+        $q = trim((string) $request->q); if ($q === '') return response()->json([]);
+        $like = \App\Support\Sql::like(); $tk = array_filter(explode(' ', $q), fn($t) => strlen($t) > 1);
+        $prods = Product::where('active', true)->where(function ($w) use ($tk, $like, $q) { foreach ($tk as $t) $w->where(fn($x) => $x->where('name', $like, "%{$t}%")->orWhere('description', $like, "%{$t}%")->orWhere('sku', $like, "%{$t}%")->orWhere('barcode', $like, "%{$t}%")); })->orderBy('name')->limit(20)->get(['id', 'name', 'sku', 'barcode', 'description', 'imagen']);
+        return response()->json($prods->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'foto' => $p->imagen, 'por' => stripos($p->name, $q) === false && $p->description && stripos($p->description, $tk[array_key_first($tk)] ?? $q) !== false ? '…' . mb_substr($p->description, max(0, stripos($p->description, $tk[array_key_first($tk)] ?? $q) - 20), 60) . '…' : null]));
     }
 
     public function pausar(Request $request, int $id)
