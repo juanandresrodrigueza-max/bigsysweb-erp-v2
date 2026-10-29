@@ -71,3 +71,27 @@ El cupón entra al fondo de la tarjeta cuando cobrás, pero cuando la procesador
 - **A revisar**: lo que el sistema no se animó a decidir, con los candidatos. Nunca asigna a la fuerza: elegís con un clic o marcás "no es de este sistema". Se puede volver atrás.
 
 **Asentar**: la previa muestra cada liquidación en formato contable (banco, comisiones, IVA crédito, retenciones contra cupones a cobrar) con debe = haber. "Ver qué escribiría" corre todo sin grabar y es obligatorio. "Asentar" registra las liquidaciones en una sola operación (todo o nada): los cupones pasan a liquidados y el neto entra al banco. "Deshacer" las anula y los cupones vuelven a cartera.
+
+## El extracto del banco: los tres cajones (Contable → Conciliación)
+
+Debajo del extracto, el sistema reparte todo como lo hace el contador:
+
+1. **Está en los dos**: conciliado.
+2. **Está en el sistema y todavía no en el banco**: el cheque que emitiste y nadie cobró. Es normal; se muestra con los días que lleva.
+3. **Está en el banco y no en el sistema**: agrupado por concepto (impuestos, comisiones, IVA, intereses), con **Registrar todos** para cargar el grupo de una vez en Fondos, ya conciliado. Las **acreditaciones de tarjetas** quedan aparte (se concilian en Fondos → Conciliar) y lo que no es gasto va a "otros a revisar".
+
+Si un concepto no se reconoce, lo clasificás una vez en el renglón y queda **aprendido** para todos tus extractos.
+
+**El puente**: libro + lo que falta registrar − lo que está en la calle = saldo del extracto. Si queda diferencia, la muestra.
+
+**Extractos en PDF**: un PDF no es una tabla. Por eso la **cadena de saldos** tiene que cerrar renglón por renglón (saldo anterior + movimiento = saldo siguiente). Si no cierra, el PDF no se importa y te dice en qué renglón falló: mejor "no pude" que conciliar con un número inventado.
+
+## Controlar la planilla de caja (Fondos → Cierres)
+
+Si las cajeras llevan una planilla en Excel, subila con **Controlar la planilla de caja**. Día por día compara ingresos y egresos contra lo cargado en la caja, los **arqueos** de la planilla contra el cierre del turno, la rendición de cada cajera, y los **recibos** por número: los que están en la planilla y no en el sistema, y al revés. No graba nada.
+
+## Acopios (Clientes → Cobranzas → Acopios)
+
+Lo que el cliente tiene para retirar no es deuda. Por cliente: lo acopiado, lo retirado, lo que le queda (en plata y artículo por artículo, en kilos, bolsas o lo que sea) y lo que **debe de verdad** (sin contar la factura del acopio). A la derecha, el **stock comprometido**: por artículo, el stock, lo comprometido en acopios y el disponible; en rojo si no alcanza para entregar.
+
+**Los avisos**: 🔴 acopio en negativo (se retiró más de lo acopiado), 🟠 plata a favor que no es acopio (pagó sin facturar o el recibo fue a otra cuenta), 🟡 más de 6 meses sin retirar.

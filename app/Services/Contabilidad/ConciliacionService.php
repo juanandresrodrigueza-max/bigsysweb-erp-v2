@@ -27,7 +27,10 @@ class ConciliacionService
     public function importarArchivo(CuentaFondos $cuenta, string $path, string $nombreArchivo): ExtractoBancario
     {
         $filas = app(ExtractoLectorService::class)->leer($path, $nombreArchivo);
-        return DB::transaction(function () use ($cuenta, $filas, $nombreArchivo) {
+        // Fase 35.3: guardia obligatoria para el PDF. Si la cadena de saldos no cierra renglón por renglón, no se concilia con números inventados.
+        $cadena = app(BancoCajonesService::class)->cadena($filas);
+        if (str_ends_with(strtolower($nombreArchivo), '.pdf') && $cadena['cierra'] === false) throw ValidationException::withMessages(['archivo' => "Leí el PDF pero la cadena de saldos no cierra en {$cadena['cantidad_rotos']} renglones (el primero: {$cadena['rotos'][0]['fecha']} {$cadena['rotos'][0]['descripcion']}: esperaba " . number_format($cadena['rotos'][0]['esperado'], 2, ',', '.') . ', leí ' . number_format($cadena['rotos'][0]['leido'], 2, ',', '.') . '). Puede ser un dígito mal leído o una página que falta: probá con el CSV o Excel del home banking, o cargalo a mano.']);
+        return DB::transaction(function () use ($cuenta, $filas, $nombreArchivo, $cadena) {
             $ext = ExtractoBancario::create(['business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'user_id' => Auth::id(), 'archivo' => $nombreArchivo]);
             $n = 0; $fechas = []; $saldoFinal = null;
             foreach ($filas as $f) {
@@ -36,7 +39,7 @@ class ConciliacionService
                 $n++; $fechas[] = $f['fecha']; if ($f['saldo'] !== null) $saldoFinal = $f['saldo'];
             }
             if (! $n) throw ValidationException::withMessages(['archivo' => 'No había renglones nuevos para importar (o ya estaban cargados).']);
-            $ext->update(['items' => $n, 'desde' => min($fechas), 'hasta' => max($fechas), 'saldo_final' => $saldoFinal]);
+            $ext->update(['items' => $n, 'desde' => min($fechas), 'hasta' => max($fechas), 'saldo_final' => $saldoFinal, 'cadena' => $cadena]);
             AuditLog::registrar('crear', $ext, "Importó extracto de {$cuenta->nombre} ({$nombreArchivo}): {$n} renglones");
             $this->conciliarAutomatico($cuenta);
             return $ext->fresh();

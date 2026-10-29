@@ -14,8 +14,8 @@ class ExtractoBancario extends Model
     use BelongsToBusiness;
 
     protected $table = 'extractos_bancarios';
-    protected $fillable = ['business_id', 'cuenta_fondos_id', 'user_id', 'archivo', 'desde', 'hasta', 'items', 'saldo_final'];
-    protected $casts = ['desde' => 'date', 'hasta' => 'date', 'saldo_final' => 'decimal:2'];
+    protected $fillable = ['business_id', 'cuenta_fondos_id', 'user_id', 'archivo', 'desde', 'hasta', 'items', 'saldo_final', 'cadena'];
+    protected $casts = ['cadena' => 'array', 'desde' => 'date', 'hasta' => 'date', 'saldo_final' => 'decimal:2'];
 
     public function cuenta(): BelongsTo { return $this->belongsTo(CuentaFondos::class, 'cuenta_fondos_id'); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }

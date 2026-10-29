@@ -2,7 +2,7 @@
   <AppLayout titulo="Cierres de caja">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Control de cajas</h1><p class="page-subtitle">Cada cierre de turno con lo esperado, lo contado y la diferencia. Quién tiene faltantes, en qué caja, y los turnos abiertos ahora.</p></div>
-      <div class="flex gap-2"><Link href="/fondos" class="btn-secondary">Fondos</Link><a :href="`/fondos/cierres?export=1&desde=${filtros.desde}&hasta=${filtros.hasta}`" class="btn-secondary">Exportar CSV</a></div>
+      <div class="flex gap-2"><button class="btn-secondary" @click="pl.abierto = true" data-e2e="abrir-planilla">Controlar la planilla de caja</button><Link href="/fondos" class="btn-secondary">Fondos</Link><a :href="`/fondos/cierres?export=1&desde=${filtros.desde}&hasta=${filtros.hasta}`" class="btn-secondary">Exportar CSV</a></div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Turnos cerrados</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.turnos }}</p><p class="text-xs text-marca-muted">{{ kpis.promedio_horas }} h promedio</p></div>
@@ -79,6 +79,27 @@
       <table class="table text-sm"><thead><tr><th>Caja</th><th class="text-right">Turnos</th><th class="text-right">Con diferencia</th><th class="text-right">Cobrado</th><th class="text-right">Diferencia neta</th></tr></thead>
         <tbody><tr v-for="c in porCaja" :key="c.caja"><td class="font-medium">{{ c.caja }}</td><td class="text-right tabular-nums">{{ c.turnos }}</td><td class="text-right tabular-nums">{{ c.con_diferencia }}</td><td class="text-right tabular-nums">{{ moneda(c.cobros, 0) }}</td><td class="text-right tabular-nums font-bold" :class="c.neto < 0 ? 'text-carmin' : c.neto > 0 ? 'text-emerald-700' : ''">{{ moneda(c.neto, 0) }}</td></tr></tbody></table>
     </div>
+    <!-- Fase 35.5: la planilla de Excel contra lo cargado, día por día -->
+    <div v-if="pl.abierto" class="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4" @click.self="pl.abierto = false">
+      <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-5" data-e2e="planilla">
+        <div class="flex justify-between items-center mb-2"><h2 class="font-bold">Controlar la planilla de caja</h2><button @click="pl.abierto = false">✕</button></div>
+        <p class="text-xs text-marca-muted mb-2">Subí la planilla que llevan en Excel (fecha, concepto, recibo, ingreso, egreso, cajera; un renglón "arqueo" con lo contado). No se graba nada: te dice qué cierra y qué no.</p>
+        <div class="flex flex-wrap gap-2 items-center"><select v-model="pl.caja" class="input !w-auto"><option v-for="c in cajas" :key="c.id" :value="c.id">{{ c.nombre }}</option></select><input type="file" accept=".csv,.txt,.xlsx" class="input !w-auto !py-1.5 text-xs" @change="subirPlanilla($event.target.files[0])" data-e2e="archivo-planilla" /></div>
+        <p v-if="pl.error" class="text-carmin text-xs mt-2">{{ pl.error }}</p>
+        <template v-if="pl.r">
+          <p class="text-sm mt-3" data-e2e="planilla-resumen"><b>{{ pl.r.dias_que_cierran }} de {{ pl.r.dias.length }} días cierran</b> · {{ pl.r.renglones }} renglones del {{ pl.r.desde }} al {{ pl.r.hasta }}</p>
+          <table class="table text-xs mt-2"><thead><tr><th>Día</th><th class="text-right">Ingresos planilla / sistema</th><th class="text-right">Egresos planilla / sistema</th><th>Arqueos</th><th>Rendición</th></tr></thead>
+            <tbody><tr v-for="d in pl.r.dias" :key="d.fecha" :class="d.cierra ? '' : 'bg-red-50'"><td>{{ d.fecha }} {{ d.cierra ? '✓' : '' }}</td><td class="text-right tabular-nums">{{ moneda(d.planilla_ingresos) }} / {{ moneda(d.sistema_ingresos) }}<span v-if="d.dif_ingresos" class="block text-carmin">dif. {{ moneda(d.dif_ingresos) }}</span></td><td class="text-right tabular-nums">{{ moneda(d.planilla_egresos) }} / {{ moneda(d.sistema_egresos) }}<span v-if="d.dif_egresos" class="block text-carmin">dif. {{ moneda(d.dif_egresos) }}</span></td>
+              <td><span v-for="(a, i) in d.arqueos" :key="i" class="block">{{ a.cajera }}: {{ moneda(a.planilla) }}<span v-if="a.diferencia !== null" :class="a.diferencia ? 'text-carmin' : 'text-emerald-700'"> ({{ a.diferencia ? 'dif. ' + moneda(a.diferencia) : 'igual al cierre' }})</span></span></td>
+              <td><span v-for="(t, i) in d.rendicion" :key="i" class="block">{{ t.cajera }}: esperado {{ moneda(t.esperado) }} · contado {{ t.contado !== null ? moneda(t.contado) : '—' }}</span></td></tr></tbody></table>
+          <div class="grid sm:grid-cols-3 gap-3 mt-3 text-xs">
+            <div><b>Recibos en la planilla y no en el sistema</b><p v-for="n in pl.r.recibos_solo_planilla" :key="n" class="text-carmin">N° {{ n }}</p><p v-if="!pl.r.recibos_solo_planilla.length" class="text-emerald-700">Ninguno.</p></div>
+            <div><b>Recibos del sistema que no están en la planilla</b><p v-for="x in pl.r.recibos_solo_sistema" :key="x.numero">{{ x.numero }} · {{ x.fecha }} · {{ moneda(x.total) }}</p><p v-if="!pl.r.recibos_solo_sistema.length" class="text-emerald-700">Ninguno.</p></div>
+            <div><b>Pagos del sistema que no están en la planilla</b><p v-for="x in pl.r.pagos_solo_sistema" :key="x.numero">{{ x.numero }} · {{ x.fecha }} · {{ moneda(x.total) }}</p><p v-if="!pl.r.pagos_solo_sistema.length" class="text-emerald-700">Ninguno.</p></div>
+          </div>
+        </template>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -88,6 +109,8 @@ import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ turnos: Array, porCajero: Array, porCaja: Array, porDia: Array, abiertos: Array, filtros: Object, cajas: Array, cajeros: Array, cuentasDestino: Array, kpis: Object })
+const pl = reactive({ abierto: false, caja: props.cajas[0]?.id ?? null, r: null, error: null })
+async function subirPlanilla(f) { if (!f) return; pl.error = null; pl.r = null; const fd = new FormData(); fd.append('archivo', f); fd.append('cuenta_fondos_id', pl.caja); try { const { data } = await window.axios.post('/fondos/cierres/planilla', fd); pl.r = data } catch (e) { pl.error = e.response?.data?.errors?.archivo?.[0] ?? e.response?.data?.message ?? 'No se pudo leer la planilla.' } }
 const f = reactive({ ...props.filtros })
 function filtrar() { router.get('/fondos/cierres', { desde: f.desde, hasta: f.hasta, caja: f.caja || undefined, cajero: f.cajero || undefined, solo_dif: f.solo_dif ? 1 : undefined }, { preserveState: true }) }
 const abierto = ref(null)

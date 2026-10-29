@@ -36,6 +36,8 @@ class ConciliacionController extends Controller
                 'ultimo_extracto' => $ultimoExt ? ['fecha' => $ultimoExt->created_at->format('d/m/Y'), 'desde' => $ultimoExt->desde?->format('d/m'), 'hasta' => $ultimoExt->hasta?->format('d/m'), 'items' => $ultimoExt->items, 'archivo' => $ultimoExt->archivo] : null,
             ],
             'categorias' => ExpenseCategory::orderBy('name')->get(['id', 'name']),
+            'cajones' => $cuenta ? app(\App\Services\Contabilidad\BancoCajonesService::class)->cajones(CuentaFondos::find($cuentaId)) : null,
+            'clases' => \App\Services\Contabilidad\BancoCajonesService::CLASES,
         ]);
     }
 
@@ -78,5 +80,20 @@ class ConciliacionController extends Controller
         $d = $request->validate(['expense_category_id' => 'nullable|exists:expense_categories,id', 'concepto' => 'nullable|string|max:150']);
         $m = $svc->registrarDesdeExtracto(ExtractoItem::findOrFail($id), $d['expense_category_id'] ?? null, $d['concepto'] ?? null);
         return back()->with('success', "Registrado en Fondos: {$m->concepto}.");
+    }
+
+    // Fase 35.3: clasificar un concepto una vez (queda para todos los extractos) y registrar de una vez un grupo de gastos.
+    public function clasificar(Request $request, int $id)
+    {
+        $d = $request->validate(['clase' => 'required|string']);
+        app(\App\Services\Contabilidad\BancoCajonesService::class)->aprender(ExtractoItem::findOrFail($id), $d['clase']);
+        return back()->with('success', 'Listo: ese concepto queda clasificado para todos tus extractos.');
+    }
+
+    public function registrarGrupo(Request $request)
+    {
+        $d = $request->validate(['cuenta' => 'required|integer', 'clase' => 'required|string', 'expense_category_id' => 'nullable|integer']);
+        $n = app(\App\Services\Contabilidad\BancoCajonesService::class)->registrarGrupo(CuentaFondos::findOrFail($d['cuenta']), $d['clase'], $d['expense_category_id'] ?? null);
+        return back()->with('success', "Registrados {$n} renglones del banco en Fondos, ya conciliados.");
     }
 }
