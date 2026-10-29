@@ -24,6 +24,7 @@ class TiendaController extends Controller
             'rubros' => $tienda->rubrosDisponibles($b), 'enTienda' => Product::where('active', true)->where('en_tienda', true)->count(), 'totalArticulos' => Product::where('active', true)->whereIn('tipo', ['producto', 'elaborado', 'servicio'])->count(),
             'fidelizacion' => $fid->config($b),
             'canales' => Canal::orderBy('nombre')->get()->map(fn($c) => ['id' => $c->id, 'tipo' => $c->tipo, 'tipo_label' => Canal::TIPOS[$c->tipo]['label'] ?? $c->tipo, 'nombre' => $c->nombre, 'credenciales' => $c->credenciales, 'activo' => $c->activo, 'sync_stock' => $c->sync_stock, 'sync_precios' => $c->sync_precios, 'importar_pedidos' => $c->importar_pedidos, 'url_entrada' => $c->urlEntrada(), 'ultimo_sync' => $c->ultimo_sync_en?->diffForHumans(), 'ultimo_error' => $c->ultimo_error, 'pedidos_importados' => $c->pedidos_importados, 'cfg' => $c->cfg(), 'metodo' => $c->metodo, 'conectado' => (bool) $c->conectado_en || ! empty($c->credenciales), 'conectado_en' => $c->conectado_en?->format('d/m/Y H:i'), 'avisos' => count($c->webhooks ?? []), 'cuenta' => $c->external_user_id, 'publicadas' => $c->publicaciones()->count()]),
+            'datosPersonales' => \App\Models\PedidoDatosPersonales::orderByDesc('id')->limit(30)->get()->map(fn($x) => ['id' => $x->id, 'tipo' => $x->tipo, 'cliente' => $x->cliente, 'pedidos' => $x->pedidos, 'estado' => $x->estado, 'cuando' => $x->created_at->format('d/m/Y'), 'hecho' => $x->hecho_at?->format('d/m/Y')]),
             'oauth' => ['mercadolibre' => (bool) \App\Models\SistemaConfig::get('ml_app_id'), 'tiendanube' => (bool) \App\Models\SistemaConfig::get('tn_app_id'), 'woocommerce' => true],
             'clientes' => \App\Models\Contact::customers()->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'name', 'condicion_iva']),
             'tiposCanal' => Canal::TIPOS,
@@ -77,6 +78,13 @@ class TiendaController extends Controller
         $c->fill(['tipo' => $d['tipo'], 'nombre' => $d['nombre'], 'credenciales' => array_merge($c->credenciales ?? [], $cred), 'activo' => $d['activo'] ?? true, 'sync_stock' => $d['sync_stock'] ?? true, 'sync_precios' => $d['sync_precios'] ?? false, 'importar_pedidos' => $d['importar_pedidos'] ?? true])->save();
         AuditLog::registrar($id ? 'editar' : 'crear', $c, "Canal {$c->nombre}");
         return back()->with('success', 'Canal guardado.');
+    }
+
+    public function datosContestado(Request $request, int $id)
+    {
+        \App\Models\PedidoDatosPersonales::findOrFail($id)->forceFill(['estado' => 'hecho', 'hecho_at' => now(), 'hecho_por' => $request->user()->id])->save();
+        \App\Models\Alerta::where('tipo', 'datos_personales')->where('url', 'like', "%datos={$id}")->update(['resuelta_en' => now()]);
+        return back()->with('success', 'Queda la constancia de que le contestaste.');
     }
 
     public function borrarCanal(int $id) { Canal::findOrFail($id)->delete(); return back()->with('success', 'Canal eliminado.'); }

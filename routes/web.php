@@ -183,6 +183,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/pedidos/{id}/estado',    [\App\Http\Controllers\Comprobantes\PedidosController::class, 'estado'])->middleware('permiso:comprobantes,editar');
         Route::post('/pedidos/{id}/responder', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'responder'])->middleware('permiso:comprobantes,editar');
         Route::get('/pedidos/{id}/etiqueta',   [\App\Http\Controllers\Comprobantes\PedidosController::class, 'etiqueta'])->whereNumber('id');
+        Route::get('/pedidos/exportar',        [\App\Http\Controllers\Comprobantes\PedidosController::class, 'exportar'])->middleware('permiso:comprobantes,exportar');
+        Route::post('/pedidos/{id}/factura-ml', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'subirFactura'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
+        Route::post('/pedidos/{id}/mandar-factura', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'mandarFactura'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
+        Route::post('/pedidos/{id}/devolver',  [\App\Http\Controllers\Comprobantes\PedidosController::class, 'devolver'])->middleware('permiso:comprobantes,crear')->whereNumber('id');
+        Route::post('/pedidos/{id}/devolucion-resuelta', [\App\Http\Controllers\Comprobantes\PedidosController::class, 'devolucionResuelta'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
         Route::post('/pedidos/{id}/envio',     [\App\Http\Controllers\Comprobantes\PedidosController::class, 'envioEstado'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
         Route::get('/{id}',                [ComprobantesController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/editar',         [ComprobantesController::class, 'edit'])->middleware('permiso:comprobantes,editar');
@@ -320,6 +325,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/tienda-online/{canal}/categorias',    [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'categorias'])->whereNumber('canal');
         Route::get('/tienda-online/{canal}/atributos/{categoria}', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'atributos'])->whereNumber('canal');
         Route::post('/tienda-online/{canal}/sincronizar',  [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'sincronizar'])->middleware('permiso:stock,editar')->whereNumber('canal');
+        Route::get('/tienda-online/{canal}/cargos',        [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'cargos'])->whereNumber('canal');
+        Route::post('/tienda-online/{canal}/cargos/compra', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'compraCargos'])->middleware('permiso:proveedores,crear')->whereNumber('canal');
+        Route::get('/tienda-online/empretienda',           [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'empretienda']);
         Route::get('/tienda-online/{canal}/existentes',    [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'existentes'])->whereNumber('canal');
         Route::post('/tienda-online/{canal}/atar-seguras', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'atarSeguras'])->middleware('permiso:stock,editar')->whereNumber('canal');
         Route::post('/tienda-online/{canal}/adoptar-atadas', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'adoptarAtadas'])->middleware('permiso:stock,editar')->whereNumber('canal');
@@ -668,6 +676,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/tienda/whatsapp',      [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarWhatsapp'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/canales/{id?}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarCanal'])->middleware('permiso:configuracion,editar');
         Route::delete('/tienda/canales/{id}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'borrarCanal'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/datos-personales/{id}/contestado', [\App\Http\Controllers\Configuracion\TiendaController::class, 'datosContestado'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/tienda/conectar-claves', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'conectarConClaves'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/canales/{id}/probar', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'probar'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/tienda/canales/{id}/desconectar', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'desconectar'])->middleware('permiso:configuracion,editar')->whereNumber('id');

@@ -2,7 +2,21 @@
   <AppLayout titulo="Tienda online">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Tienda online</h1><p class="page-subtitle">Publicar desde el catálogo, atar lo que ya tenés publicado y que el precio y el stock se mantengan solos. Cada venta entra a Comprobantes → Pedidos.</p></div>
-      <div class="flex flex-wrap gap-2"><Link href="/stock/catalogos" class="btn-secondary !py-1 text-xs">Catálogos</Link><Link href="/configuracion/tienda#canales" class="btn-secondary !py-1 text-xs">Conectar tienda</Link><Link href="/comprobantes/pedidos" class="btn-secondary !py-1 text-xs">Pedidos</Link></div>
+      <div class="flex flex-wrap gap-2"><button class="btn-secondary !py-1 text-xs" @click="empretienda = !empretienda">Empretienda (planilla)</button><Link href="/stock/catalogos" class="btn-secondary !py-1 text-xs">Catálogos</Link><Link href="/configuracion/tienda#canales" class="btn-secondary !py-1 text-xs">Conectar tienda</Link><Link href="/comprobantes/pedidos" class="btn-secondary !py-1 text-xs">Pedidos</Link></div>
+    </div>
+
+    <!-- Empretienda: por planilla -->
+    <div v-if="empretienda" class="card text-sm mb-4" data-e2e="empretienda">
+      <h2 class="font-bold">Empretienda: la planilla para su importación masiva</h2>
+      <p class="text-xs text-marca-muted mb-2">Empretienda no tiene API: los precios y el stock se actualizan cada vez que subís la planilla (Administrar productos → Importación masiva, con la tienda apagada mientras dura). Sale con los encabezados exactos que pide: SKU = tu código, precio de vidriera (lista + IVA), categoría = rubro, stock menos el colchón. Las fotos se cargan aparte: el ZIP trae cada archivo con el nombre del producto.</p>
+      <div class="flex flex-wrap items-end gap-2">
+        <div><label class="label">Rubro</label><select v-model="emp.rubro" class="input !py-1.5 w-auto"><option :value="null">Todos</option><option v-for="r in rubros" :key="r.id" :value="r.id">{{ r.nombre }}</option></select></div>
+        <div><label class="label">Colchón</label><input v-model.number="emp.colchon" type="number" min="0" class="input !py-1.5 w-24" /></div>
+        <div><label class="label">Lista</label><select v-model.number="emp.lista" class="input !py-1.5 w-auto"><option v-for="l in listas" :key="l" :value="l">{{ l }}</option></select></div>
+        <a :href="`/stock/tienda-online/empretienda?rubro=${emp.rubro ?? ''}&colchon=${emp.colchon}&lista=${emp.lista}`" class="btn-primary !py-1.5 text-xs" data-e2e="empretienda-planilla">Descargar la planilla</a>
+        <a :href="`/stock/tienda-online/empretienda?rubro=${emp.rubro ?? ''}&fotos=1`" class="btn-secondary !py-1.5 text-xs">Descargar las fotos (ZIP)</a>
+        <button class="btn-ghost !px-2 text-xs" @click="empretienda = false">Cerrar</button>
+      </div>
     </div>
 
     <div v-if="!canales.length" class="card text-center py-10" data-e2e="sin-tiendas">
@@ -149,6 +163,22 @@
         </div>
       </div>
 
+      <!-- CARGOS DE MERCADOLIBRE -->
+      <div v-else-if="solapa === 'cargos'" class="space-y-3" data-e2e="cargos">
+        <div class="card text-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div><h2 class="font-bold">Cargos de MercadoLibre</h2><p class="text-xs text-marca-muted">Lo que MercadoLibre se queda de cada venta, junto por mes. Sale del pago en Mercado Pago. La venta se factura por el precio entero; los cargos son una <b>compra</b> a MERCADO LIBRE S.R.L.; las retenciones son pagos a cuenta.</p></div>
+            <div class="flex items-center gap-2"><input v-model="mesCargos" type="month" class="input !py-1 w-auto text-xs" @change="cargarCargos" /><a :href="`/stock/tienda-online/${canal}/cargos?mes=${mesCargos}&csv=1`" class="btn-secondary !py-1 text-xs">Bajar para el contador</a><button v-if="cargos && !cargos.compra_id && cargos.cargo_venta + cargos.cuotas + cargos.envio > 0" class="btn-primary !py-1 text-xs" @click="compraCargos" data-e2e="compra-cargos">Cargar como compra</button><Link v-else-if="cargos?.compra_id" :href="`/proveedores/compras/${cargos.compra_id}`" class="btn-secondary !py-1 text-xs">Ver la compra del mes</Link></div>
+          </div>
+          <div v-if="cargos" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mt-3 text-center">
+            <div v-for="k in [['ventas','Ventas',false],['vendido','Vendido'],['cargo_venta','Cargo por vender'],['cuotas','Cuotas'],['envio','Envíos'],['retenciones','Retenciones'],['recibe','Recibís'],['deja','Te deja']]" :key="k[0]" class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">{{ k[1] }}</p><p class="font-extrabold tabular-nums" :class="k[0] === 'deja' && cargos.deja < 0 ? 'text-carmin' : ''">{{ k[2] === false ? cargos[k[0]] : moneda(cargos[k[0]], 0) }}</p></div>
+          </div>
+        </div>
+        <div v-if="cargos" class="card p-0 overflow-x-auto"><table class="table text-xs"><thead><tr><th>Fecha</th><th>Venta</th><th>Comprador</th><th>Comprobante</th><th class="text-right">Precio</th><th class="text-right">Cargo</th><th class="text-right">Cuotas</th><th class="text-right">Envío</th><th class="text-right">Retenc.</th><th class="text-right">Recibís</th><th>Libera</th><th class="text-right">Te deja</th></tr></thead>
+          <tbody><tr v-for="f in cargos.filas" :key="f.id"><td>{{ f.fecha }}</td><td><Link :href="`/comprobantes/pedidos?abrir=${f.id}`" class="text-violeta">{{ f.venta }}</Link></td><td>{{ f.comprador }}</td><td>{{ f.comprobante ?? '—' }}</td><td class="text-right tabular-nums">{{ moneda(f.precio) }}</td><td class="text-right tabular-nums">{{ moneda(f.cargo_venta) }}</td><td class="text-right tabular-nums">{{ moneda(f.cuotas) }}</td><td class="text-right tabular-nums">{{ moneda(f.envio) }}</td><td class="text-right tabular-nums">{{ moneda(f.retenciones) }}</td><td class="text-right tabular-nums">{{ moneda(f.recibe) }}</td><td>{{ f.libera ?? '—' }}</td><td class="text-right tabular-nums" :class="f.deja < 0 ? 'text-carmin font-semibold' : ''">{{ moneda(f.deja) }}</td></tr>
+          <tr v-if="!cargos.filas.length"><td colspan="12" class="text-center text-marca-muted py-8">Sin ventas con cargos en ese mes.</td></tr></tbody></table></div>
+      </div>
+
       <div v-else class="card text-center py-10 text-sm text-marca-muted">Esta solapa llega en el próximo paso de la fase.</div>
     </template>
 
@@ -189,7 +219,12 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ canales: Array, canal: Number, rubros: Array, publicaciones: Array, listas: Array })
 const actual = computed(() => props.canales.find(c => c.id === props.canal))
-const solapas = [{ k: 'publicar', t: 'Publicar desde el catálogo' }, { k: 'publicadas', t: 'Lo publicado' }, { k: 'existentes', t: 'Las que ya tenés en la tienda' }]
+const solapas = computed(() => [{ k: 'publicar', t: 'Publicar desde el catálogo' }, { k: 'publicadas', t: 'Lo publicado' }, { k: 'existentes', t: 'Las que ya tenés en la tienda' }, ...(actual.value?.tipo === 'mercadolibre' ? [{ k: 'cargos', t: 'Cargos de MercadoLibre' }] : [])])
+const empretienda = ref(location.search.includes('empretienda=1')), emp = reactive({ rubro: null, colchon: 0, lista: 1 })
+// --- Cargos de MercadoLibre ---
+const mesCargos = ref(new Date().toISOString().slice(0, 7)), cargos = ref(null)
+async function cargarCargos() { const r = await api(`/stock/tienda-online/${props.canal}/cargos?mes=${mesCargos.value}`); cargos.value = r.ok ? await r.json() : null }
+async function compraCargos() { if (!confirm('Se arma una compra en borrador a MERCADO LIBRE S.R.L. con los cargos del mes, para completar con el número y el CAE de la factura de ML. ¿Seguimos?')) return; const r = await api(`/stock/tienda-online/${props.canal}/cargos/compra`, { mes: mesCargos.value }); if (r.ok) cargarCargos() }
 const solapa = ref(location.hash === '#publicadas' ? 'publicadas' : 'publicar')
 const xsrf = () => decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '')
 const api = (url, body) => fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() }, body: JSON.stringify(body) } : { headers: { Accept: 'application/json' } })
@@ -235,7 +270,7 @@ async function adoptarAtadas() { if (!confirm('Adoptar pisa el precio y el stock
 async function traerFotos() { const r = await api(`/stock/tienda-online/${props.canal}/traer-fotos`, {}); const j = await r.json(); alert(`${j.fotos} fotos pasaron al catálogo.`) }
 let tArt = null
 function buscarArticulo() { clearTimeout(tArt); tArt = setTimeout(async () => { const r = await api(`/stock/tienda-online/buscar-articulo?q=${encodeURIComponent(qArt.value)}`); resultadosArt.value = r.ok ? await r.json() : [] }, 250) }
-watch(solapa, s => { if (s === 'existentes' && !ex.value) cargarExistentes(false) }, { immediate: true })
+watch(solapa, s => { if (s === 'existentes' && !ex.value) cargarExistentes(false); if (s === 'cargos' && !cargos.value) cargarCargos() }, { immediate: true })
 
 // --- Lo publicado ---
 const qPub = ref(''), filtroPub = ref('todas')

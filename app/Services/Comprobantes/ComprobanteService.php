@@ -35,7 +35,9 @@ class ComprobanteService
                 $nuevo = $cf->contacto($data['receptor'], $user->business_id, $guardar);
                 if ($guardar) $contact = $nuevo; else $receptor = collect($data['receptor'])->only(\App\Services\Ventas\ClienteDesdeFacturaService::CAMPOS)->filter(fn($v) => $v !== null && $v !== '')->all() + ['condicion_iva' => $nuevo->condicion_iva];
             }
-            $tipo = $this->resolverTipo($data['tipo'], $contact ?? ($receptor ? new Contact(['condicion_iva' => $receptor['condicion_iva']]) : null));
+            // Venta de una tienda (Fase 30.4): va a la cuenta fija de la tienda pero con el CUIT y la condición del comprador, que deciden la letra.
+            if ($contact && ! empty($data['receptor_datos']['nombre'])) $receptor = collect($data['receptor_datos'])->only(\App\Services\Ventas\ClienteDesdeFacturaService::CAMPOS)->filter(fn($v) => $v !== null && $v !== '')->all();
+            $tipo = $this->resolverTipo($data['tipo'], $receptor && ! empty($receptor['condicion_iva']) ? new Contact(['condicion_iva' => $receptor['condicion_iva']]) : $contact);
 
             $c ??= new Comprobante(['business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'user_id' => $user->id, 'direccion' => 'venta']);
             abort_if($c->exists && $c->estado !== 'borrador', 422, 'Solo se pueden editar comprobantes en borrador.');
