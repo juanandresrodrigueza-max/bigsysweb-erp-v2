@@ -62,3 +62,18 @@ Después de leer, la factura se **entiende** como la entiende el que la carga a 
 **Revisar antes de mandar** muestra cada renglón con el costo del sistema contra el de la factura, el % que cambia (en rojo si es más del 15 %), el margen que queda con el precio de venta y un tilde por renglón para decidir qué costo se escribe. Y controla que cierre: si los renglones no suman el total de la factura, hay repetidos o un costo queda arriba del precio, lo dice y no deja registrar hasta arreglarlo.
 
 **Remito y factura**: tildá *Es un remito sin precios* y entra **sólo al stock** (sin cuenta ni asiento). Cuando llega la factura, elegís *¿Es la factura de un remito que ya entró?* y entra **sólo a contabilidad y a la cuenta**, sin mover el stock otra vez, y recién ahí se escribe el costo. **Comparar con orden de compra** cruza la factura contra lo pedido con una tolerancia de precio (2 % por defecto, se cambia en la ficha del proveedor) y arma el reclamo para copiar. **Dejarla para después** guarda la factura a medio cargar (la lectura, lo que corregiste) y aparece arriba en Compras para retomarla desde cualquier computadora sin volver a leerla.
+
+## Controlar la recepción con la pistola
+
+Es opcional. Sirve para asegurarte de que lo que bajó del camión es lo que dice la factura, antes de que entre al stock.
+
+- **Arranca desde la factura.** En la compra (borrador o ya registrada) tocá **Controlar recepción**. Los renglones y las cantidades ya están: cada uno se cuenta contra su código de barras.
+- **El campo del lector siempre tiene el foco.** Funciona con una pistola USB o Bluetooth (se comporta como un teclado) y con la cámara del celular. Cada lectura suena: agudo corto si entró bien, grave doble si algo anda mal.
+- **La barra de arriba** arranca en rojo, pasa a amarillo y termina en verde cuando llegó todo. Se ve de lejos.
+- **Si vienen cajas, usá el multiplicador** ×6 ×12 ×24 (o escribí el tuyo). Si el bulto trae el código largo GS1-128, la pistola lee el GTIN, el lote, el vencimiento y la cantidad del bulto, y los anota sola.
+- **Un código que «no está en esta factura»** casi siempre es el código interno de la caja. Elegís de qué renglón es y tocás **Es éste**: se cuenta y queda aprendido para ese artículo en tu negocio (sin tocar la ficha). Si de verdad llegó algo que no está facturado, **Agregarlo para reclamar**; si fue un disparo al pasar, **No llegó**.
+- **Lo que no tiene código se cuenta a mano**, con los botones de cada renglón. Si un código está en dos renglones, el sistema te pregunta cuál es.
+- **Podés dejarlo a medias.** Se guarda solo: al volver a abrir la misma compra, retoma donde ibas (también desde otro celular).
+- **Cuando algo no cierra**, al terminar decidís renglón por renglón: entra **lo que contaste**, entra **lo que dice la factura**, o queda **pendiente** (entra lo contado y el resto se reclama). Hay «aplicar a todos».
+- **El reclamo al proveedor** aparece sólo si hubo diferencias, ya escrito con el detalle y con los botones de WhatsApp, mail y copiar. No se manda solo. En Compras → **Reclamos** está la lista; cada uno se cierra solo cuando registrás la nota de crédito del proveedor con esos artículos, o a mano con **Resuelto**.
+- **Si querés que el control sea obligatorio**, en Compras → Reclamos tildá **Exigir el control con la pistola antes de registrar**. Las notas de crédito y las facturas de un remito no lo piden. Si la compra ya estaba registrada cuando la controlás, el stock se corrige en el momento por la diferencia.

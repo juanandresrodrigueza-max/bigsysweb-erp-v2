@@ -9,6 +9,7 @@
       <div v-if="puede('proveedores','crear')" class="flex gap-2">
         <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
         <button @click="importarAbierto = true" class="btn-secondary">Importar de AFIP</button>
+        <button @click="abrirReclamos" class="btn-secondary" data-e2e="reclamos">Reclamos <span v-if="reclamosAbiertos" class="ml-1 rounded-full bg-carmin text-white text-[10px] px-1.5 py-0.5">{{ reclamosAbiertos }}</span></button>
         <Link href="/proveedores/compras/nueva" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Cargar factura</Link>
       </div>
     </div>
@@ -47,6 +48,18 @@
     </div>
     <Paginacion :links="lista.links" :desde="lista.from" :hasta="lista.to" :total="lista.total" />
 
+    <!-- Fase 31.5: lo que faltó y se reclamó al proveedor. Se cierra solo con la nota de crédito o a mano. -->
+    <Modal :abierto="reclamosAbierto" titulo="Reclamos a proveedores" @cerrar="reclamosAbierto = false">
+      <label v-if="puede('configuracion','editar')" class="flex items-center gap-2 text-sm mb-3 rounded-xl bg-gris-light px-3 py-2"><input type="checkbox" class="accent-carmin" :checked="exigeControl" @change="exigir($event.target.checked)" /> Exigir el control con la pistola antes de registrar una compra con mercadería <span class="text-xs text-marca-muted">(las notas de crédito y las facturas de remito no lo piden)</span></label>
+      <label class="flex items-center gap-2 text-xs text-marca-muted mb-2"><input v-model="verTodos" type="checkbox" class="accent-carmin" @change="cargarReclamos" /> ver también los resueltos</label>
+      <div v-if="!reclamos.length" class="text-sm text-marca-muted py-6 text-center">No hay reclamos {{ verTodos ? '' : 'abiertos' }}: lo que llegó fue lo facturado.</div>
+      <div v-for="r in reclamos" :key="r.id" class="rounded-xl border p-3 mb-2 text-sm" :class="r.estado === 'abierto' ? 'border-amber-300' : 'border-marca-borde opacity-70'">
+        <div class="flex flex-wrap items-center justify-between gap-2"><p><b>{{ r.proveedor }}</b> · <Link :href="`/proveedores/compras/${r.comprobante_id}`" class="text-carmin hover:underline">{{ r.comprobante }}</Link> · {{ r.fecha }} <span v-if="r.estado !== 'abierto'" class="badge bg-emerald-50 text-emerald-700 ml-1">resuelto: {{ r.resolucion }}</span></p>
+          <div v-if="r.estado === 'abierto'" class="flex gap-1.5 text-xs"><a v-if="r.telefono" :href="`https://wa.me/${r.telefono.length <= 10 ? '549' + r.telefono : r.telefono}?text=${encodeURIComponent(r.texto)}`" target="_blank" class="btn-secondary !py-1">WhatsApp</a><button class="btn-secondary !py-1" @click="copiar(r.texto)">Copiar</button><button class="btn-primary !py-1" @click="resolver(r)">Resuelto</button></div></div>
+        <ul class="text-xs text-marca-muted mt-1"><li v-for="(d, i) in r.detalle" :key="i">{{ d.descripcion }}: facturado {{ d.facturado }}, llegó {{ d.llego }} <span :class="d.diferencia < 0 ? 'text-carmin' : 'text-amber-700'">({{ d.tipo === 'no_facturado' ? 'no facturado' : d.tipo === 'pendiente' ? 'pendiente' : d.diferencia < 0 ? 'faltaron ' + (-d.diferencia) : 'sobraron ' + d.diferencia }})</span></li></ul>
+      </div>
+    </Modal>
+
     <Modal :abierto="importarAbierto" titulo="Importar de AFIP · Mis Comprobantes" @cerrar="importarAbierto = false">
       <p class="text-sm text-marca-muted mb-3">En AFIP entrá a <b>Mis Comprobantes → Recibidos</b>, filtrá el período y exportá el CSV. Subilo acá: se crean las facturas que falten y los proveedores nuevos por CUIT. Las que ya cargaste no se duplican.</p>
       <input type="file" accept=".csv,.txt" class="input !py-1.5 text-xs" @change="imp.archivo = $event.target.files[0]" />
@@ -70,7 +83,7 @@ import Paginacion from '@/Components/Paginacion.vue'
 import { moneda, entero, estadoCobro, estadoComprobante } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ lista: Object, resumen: Object, filtros: Object, proveedores: Array })
+const props = defineProps({ lista: Object, resumen: Object, filtros: Object, proveedores: Array, reclamosAbiertos: Number, exigeControl: Boolean })
 const { puede } = usePermisos()
 const f = reactive({ estado: props.filtros.estado ?? '', contact_id: props.filtros.contact_id ?? '', desde: props.filtros.desde ?? '', hasta: props.filtros.hasta ?? '', buscar: props.filtros.buscar ?? '' })
 function filtrar() { router.get('/proveedores/compras', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
@@ -81,4 +94,11 @@ async function cargarBorradores() { try { const { data } = await window.axios.ge
 async function borrarBorrador(b) { if (!confirm('¿Descartar esta factura a medio cargar?')) return; await window.axios.delete(`/proveedores/compras/borradores/${b.id}`); cargarBorradores() }
 onMounted(cargarBorradores)
 const imp = useForm({ archivo: null, registrar: false })
+// Fase 31.5: reclamos a proveedores y la opción de exigir el control con la pistola.
+const reclamosAbierto = ref(false), reclamos = ref([]), verTodos = ref(false)
+async function cargarReclamos() { try { const { data } = await window.axios.get('/proveedores/compras/reclamos', { params: { todos: verTodos.value ? 1 : 0 } }); reclamos.value = data } catch (e) {} }
+function abrirReclamos() { reclamosAbierto.value = true; cargarReclamos() }
+async function copiar(t) { try { await navigator.clipboard.writeText(t) } catch (e) {} }
+async function resolver(r) { const como = prompt('¿Cómo se resolvió?'); if (como === null) return; await window.axios.post(`/proveedores/compras/reclamos/${r.id}/resolver`, { como: como || 'resuelto' }); cargarReclamos(); router.reload({ only: ['reclamosAbiertos'] }) }
+function exigir(v) { router.post('/proveedores/compras/config', { exigir_control: v }, { preserveScroll: true }) }
 </script>

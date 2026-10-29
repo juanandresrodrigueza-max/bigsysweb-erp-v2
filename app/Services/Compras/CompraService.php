@@ -87,6 +87,11 @@ class CompraService
             abort_if($c->estado !== 'borrador', 422, 'Ya fue registrada.');
             abort_if($c->items()->count() === 0, 422, 'La compra no tiene ítems.');
 
+            // Fase 31.5: si el negocio exige el control con la pistola, una compra con mercadería no se registra sin contarla.
+            $rs = app(RecepcionService::class);
+            if (RecepcionService::controlable($c) && ($rs->config($c->business)['exigir_control'] ?? false) && ! \App\Models\Recepcion::where('comprobante_id', $c->id)->where('estado', 'cerrada')->exists()) {
+                abort(422, 'Esta compra tiene que controlarse con la pistola antes de registrarse (Controlar recepción).');
+            }
             $c->forceFill(['estado' => 'emitido', 'emitido_en' => now(), 'saldo' => $c->def()['cc'] > 0 ? $c->total : 0])->save();
 
             $signo = $c->def()['cc'];
@@ -117,12 +122,14 @@ class CompraService
                         $p->recalcularDesdeCosto();
                         $p->save();
                     }
-                    $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id, ['lote' => $it->lote, 'vencimiento' => $it->vencimiento, 'serie' => $it->serie]);
+                    // Si se controló con la pistola, entra lo contado (lo pendiente no entra hasta que se aclare).
+                    $this->stock->mover($p, $sentido * (float) ($it->cantidad_recibida ?? $it->cantidad), $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id, ['lote' => $it->lote, 'vencimiento' => $it->vencimiento, 'serie' => $it->serie]);
                 }
                 $c->forceFill(['stock_impactado' => true])->save();
             }
 
             if ($c->orden_compra_id) app(\App\Services\Compras\OrdenCompraService::class)->marcarRecibido($c);
+            if ($c->esNotaCredito()) $rs->cerrarConNotaCredito($c->fresh(['items']));
             AuditLog::registrar('crear', $c, "Registró compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->contact?->name}");
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'compra.registrada', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
             if (! $c->solo_stock) app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
@@ -148,7 +155,7 @@ class CompraService
                     $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
                     foreach ($c->items as $it) {
                         if (! $it->product_id || ! ($p = Product::find($it->product_id))) continue;
-                        $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Anulación compra {$c->numeroFormateado()}", $c, null, $c->business_location_id);
+                        $this->stock->mover($p, $sentido * (float) ($it->cantidad_recibida ?? $it->cantidad), $deposito, $sentido > 0 ? 'in' : 'out', "Anulación compra {$c->numeroFormateado()}", $c, null, $c->business_location_id);
                     }
                 }
             }

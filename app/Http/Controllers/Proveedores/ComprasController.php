@@ -26,13 +26,15 @@ class ComprasController extends Controller
             ->when($request->hasta, fn($q, $h) => $q->where('fecha', '<=', h))
             ->when($request->buscar, fn($q, $b) => $q->where(fn($w) => $w->where('numero_proveedor', 'like', "%{$b}%")->orWhereHas('contact', fn($c) => $c->where('name', 'like', "%{$b}%"))))
             ->orderByDesc('fecha')->orderByDesc('id');
-        $resumen = (clone $q)->selectRaw("COUNT(*) as cantidad, COALESCE(SUM(CASE WHEN estado='emitido' THEN total ELSE 0 END),0) as total, COALESCE(SUM(CASE WHEN estado='emitido' THEN saldo ELSE 0 END),0) as saldo")->first();
+        $resumen = (clone $q)->reorder()->selectRaw("COUNT(*) as cantidad, COALESCE(SUM(CASE WHEN estado='emitido' THEN total ELSE 0 END),0) as total, COALESCE(SUM(CASE WHEN estado='emitido' THEN saldo ELSE 0 END),0) as saldo")->first();
 
         return Inertia::render('Proveedores/Compras', [
             'lista' => $q->paginate(25)->withQueryString()->through(fn($c) => $this->resumir($c)),
             'resumen' => ['cantidad' => (int) $resumen->cantidad, 'total' => (float) $resumen->total, 'saldo' => (float) $resumen->saldo],
             'filtros' => $request->only('estado', 'contact_id', 'desde', 'hasta', 'buscar'),
             'proveedores' => Contact::suppliers()->orderBy('name')->get(['id', 'name']),
+            'reclamosAbiertos' => \App\Models\ReclamoCompra::abiertos()->count(),
+            'exigeControl' => (bool) (app(\App\Services\Compras\RecepcionService::class)->config($request->user()->business)['exigir_control'] ?? false),
         ]);
     }
 
@@ -66,6 +68,8 @@ class ComprasController extends Controller
         if ($data['tipo'] === 'REM') { $data['solo_stock'] = true; $data['condicion'] = 'contado'; }
         if (! empty($data['remito_id'])) { $data['solo_contable'] = true; Comprobante::compras()->where('solo_stock', true)->findOrFail($data['remito_id']); }
         $c = $this->service->guardarBorrador($data, $id ? Comprobante::compras()->findOrFail($id) : null);
+        // La foto con la que se leyó queda con la compra: se ve al costado mientras se controla la recepción.
+        if ($request->filled('adjunto_id')) ComprobanteAdjunto::whereNull('comprobante_id')->whereKey((int) $request->input('adjunto_id'))->update(['comprobante_id' => $c->id]);
         // Lo que confirmaste queda aprendido para la próxima factura de ese proveedor; la "a medio cargar" se borra.
         app(\App\Services\Compras\LecturaCompraService::class)->aprender($c->contact, $data['items'], $data['fecha']);
         if (! empty($data['borrador_id'])) \App\Models\CompraBorrador::whereKey($data['borrador_id'])->delete();
@@ -89,6 +93,10 @@ class ComprasController extends Controller
                 'sucursal' => $c->location?->name, 'usuario' => $c->user?->name, 'notas' => $c->notas, 'neto' => (float) $c->neto, 'iva' => (float) $c->iva, 'percepciones' => (float) $c->percepciones, 'cae' => $c->cae_proveedor,
             ]),
             'puedeNC' => $c->estado === 'emitido' && $c->esFactura(),
+            // Fase 31.5: controlar lo que llegó con la pistola; si ya se controló, cómo fue.
+            'controlable' => \App\Services\Compras\RecepcionService::controlable($c),
+            'recepcion' => ($r = \App\Models\Recepcion::where('comprobante_id', $c->id)->orderByDesc('id')->first()) ? ['id' => $r->id, 'estado' => $r->estado, 'cerrada_en' => $r->cerrada_en?->format('d/m/Y H:i'), 'diferencias' => $r->items()->whereRaw('contado <> esperado')->count()] : null,
+            'reclamos' => \App\Models\ReclamoCompra::where('comprobante_id', $c->id)->orderByDesc('id')->get()->map(fn($x) => ['id' => $x->id, 'estado' => $x->estado, 'texto' => $x->texto, 'telefono' => preg_replace('/\D/', '', (string) ($c->contact?->mobile ?: $c->contact?->phone)), 'email' => $c->contact?->email, 'resolucion' => $x->resolucion, 'fecha' => $x->created_at->format('d/m/Y')]),
         ]);
     }
 
@@ -131,7 +139,8 @@ class ComprasController extends Controller
             $res['proveedor_nuevo'] = ! $res['proveedor_id'] && ! empty($res['datos']['proveedor']['nombre'] ?? $res['datos']['proveedor']['cuit'] ?? null);
         }
         $path = $f->store("adjuntos/{$request->user()->business_id}", 'local');
-        ComprobanteAdjunto::create(['business_id' => $request->user()->business_id, 'user_id' => $request->user()->id, 'tipo' => str_contains($f->getMimeType(), 'pdf') ? 'pdf' : 'imagen', 'archivo' => $path, 'items_detectados' => $res['datos'] ?? null, 'confianza' => $res['datos']['confianza'] ?? null]);
+        $adj = ComprobanteAdjunto::create(['business_id' => $request->user()->business_id, 'user_id' => $request->user()->id, 'tipo' => str_contains($f->getMimeType(), 'pdf') ? 'pdf' : 'imagen', 'archivo' => $path, 'items_detectados' => $res['datos'] ?? null, 'confianza' => $res['datos']['confianza'] ?? null]);
+        $res['adjunto_id'] = $adj->id;
         return response()->json($res);
     }
 

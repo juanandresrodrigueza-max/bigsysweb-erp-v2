@@ -270,6 +270,13 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras/borradores/{id?}', [ComprasController::class, 'guardarBorradorLectura'])->middleware('permiso:proveedores,crear')->whereNumber('id');
         Route::get('/compras/borradores/{id}',  [ComprasController::class, 'borrador'])->whereNumber('id');
         Route::delete('/compras/borradores/{id}', [ComprasController::class, 'borrarBorrador'])->middleware('permiso:proveedores,crear')->whereNumber('id');
+        // Fase 31.5: recepción con pistola y reclamos
+        Route::get('/compras/reclamos',         [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'reclamos']);
+        Route::post('/compras/reclamos/{id}/resolver', [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'resolverReclamo'])->middleware('permiso:proveedores,editar')->whereNumber('id');
+        Route::post('/compras/config',          [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'config'])->middleware('permiso:configuracion,editar');
+        Route::get('/compras/{id}/recepcion',   [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'show'])->middleware('permiso:proveedores,crear')->whereNumber('id');
+        Route::get('/compras/{id}/adjunto/{aid}', [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'adjunto'])->whereNumber('id')->whereNumber('aid');
+        foreach (['leer', 'asignar', 'contar', 'lote', 'agregar', 'quitar', 'cerrar'] as $acc) Route::post('/compras/{id}/recepcion/' . $acc, [\App\Http\Controllers\Proveedores\RecepcionesController::class, $acc])->middleware('permiso:proveedores,crear')->whereNumber('id');
         Route::get('/compras/{id}',             [ComprasController::class, 'show'])->whereNumber('id');
         Route::get('/compras/{id}/editar',      [ComprasController::class, 'edit'])->middleware('permiso:proveedores,editar');
         Route::post('/compras/{id}',            [ComprasController::class, 'store'])->middleware('permiso:proveedores,editar');

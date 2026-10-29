@@ -24,6 +24,7 @@
           <Link v-if="c.estado_pago === 'pendiente' || c.estado_pago === 'parcial'" :href="`/proveedores/${c.contact_id}?pagar=${c.id}`" class="btn-primary">Registrar pago</Link>
           <Link v-if="puedeNC" :href="`/proveedores/compras/${c.id}/nota-credito`" method="post" as="button" class="btn-secondary">Nota de crédito</Link>
         </template>
+        <Link v-if="controlable && puede('proveedores','crear')" :href="`/proveedores/compras/${c.id}/recepcion`" class="btn-secondary" data-e2e="controlar-recepcion"><Icono nombre="check" clase="w-4 h-4" /> {{ recepcion?.estado === 'abierta' ? 'Seguir controlando' : (recepcion ? 'Ver el control' : 'Controlar recepción') }}</Link>
         <button v-if="c.estado !== 'anulado' && puede('proveedores','anular')" @click="anularAbierto = true" class="btn-danger">Anular</button>
       </div>
     </div>
@@ -53,6 +54,20 @@
           </div>
         </div>
         <div v-if="c.notas" class="card text-sm text-marca-muted whitespace-pre-line">{{ c.notas }}</div>
+        <!-- Fase 31.5: cómo fue el control con la pistola y el reclamo al proveedor, si hubo diferencias -->
+        <div v-if="recepcion" class="card text-sm" data-e2e="recepcion-card">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p><b>Recepción</b> · <span v-if="recepcion.estado === 'abierta'" class="badge bg-amber-100 text-amber-800">control a medias</span><span v-else class="badge" :class="recepcion.diferencias ? 'bg-carmin-light text-carmin' : 'bg-emerald-50 text-emerald-700'">{{ recepcion.diferencias ? `controlada · ${recepcion.diferencias} renglón(es) con diferencia` : 'controlada · llegó todo' }}</span> <span v-if="recepcion.cerrada_en" class="text-xs text-marca-muted">{{ recepcion.cerrada_en }}</span></p>
+            <Link v-if="recepcion.estado === 'cerrada' && c.estado === 'borrador'" :href="`/proveedores/compras/${c.id}/recepcion?nueva=1`" class="text-xs text-carmin hover:underline">Volver a controlar</Link>
+          </div>
+          <div v-for="r in reclamos" :key="r.id" class="mt-3 rounded-xl border p-3" :class="r.estado === 'abierto' ? 'border-amber-300 bg-amber-50/40' : 'border-marca-borde'" data-e2e="reclamo">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1"><p class="font-semibold">Reclamo al proveedor · {{ r.fecha }} <span class="badge ml-1" :class="r.estado === 'abierto' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700'">{{ r.estado === 'abierto' ? 'abierto' : 'resuelto: ' + r.resolucion }}</span></p>
+              <div v-if="r.estado === 'abierto'" class="flex gap-2 text-xs"><a v-if="r.telefono" :href="`https://wa.me/${r.telefono.length <= 10 ? '549' + r.telefono : r.telefono}?text=${encodeURIComponent(r.texto)}`" target="_blank" class="btn-secondary !py-1">WhatsApp</a><a v-if="r.email" :href="`mailto:${r.email}?subject=${encodeURIComponent('Diferencias en ' + c.nombre + ' ' + (c.numero ?? ''))}&body=${encodeURIComponent(r.texto)}`" class="btn-secondary !py-1">Mail</a><button class="btn-secondary !py-1" @click="copiar(r.texto)">Copiar</button><button class="btn-primary !py-1" @click="resolver(r)">Resuelto</button></div>
+            </div>
+            <pre class="whitespace-pre-wrap font-sans text-xs text-marca-muted">{{ r.texto }}</pre>
+          </div>
+          <p v-if="recepcion.estado === 'cerrada' && !reclamos.length" class="text-xs text-marca-muted mt-1">No se mandó nada al proveedor: no hizo falta.</p>
+        </div>
       </div>
       <div class="space-y-4">
         <div class="card">
@@ -81,14 +96,17 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad, estadoCobro, estadoComprobante } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-defineProps({ c: Object, puedeNC: Boolean })
+defineProps({ c: Object, puedeNC: Boolean, controlable: Boolean, recepcion: Object, reclamos: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const anularAbierto = ref(false)
 const anular = useForm({ motivo: '' })
+// Fase 31.5: el reclamo no se manda solo; se copia, va por WhatsApp o mail, y se cierra a mano o con la nota de crédito.
+async function copiar(t) { try { await navigator.clipboard.writeText(t) } catch (e) {} }
+function resolver(r) { const como = prompt('¿Cómo se resolvió? (por ejemplo: mandaron la mercadería, nos hicieron descuento)'); if (como === null) return; window.axios.post(`/proveedores/compras/reclamos/${r.id}/resolver`, { como: como || 'resuelto' }).then(() => router.reload()) }
 </script>
