@@ -31,7 +31,11 @@ if [ -n "$CONT" ]; then
   docker exec "$CONT" sh -c "cd /var/www/html && composer install --no-dev --optimize-autoloader --no-interaction" 
 else
   echo "== Corre directo en el servidor"
-  run() { sh -c "$*"; }
+  # PHP corre con el usuario del servidor web (www-data), no con root: si artisan
+  # escribe la caché o las vistas como root, después www-data no las puede pisar.
+  U=$(stat -c %U storage 2>/dev/null || echo www-data); [ "$U" = root ] && U=www-data
+  id "$U" >/dev/null 2>&1 || U=root
+  run() { if [ "$U" = root ]; then sh -c "$*"; else runuser -u "$U" -- sh -c "$*"; fi; }
   composer install --no-dev --optimize-autoloader --no-interaction
 fi
 
@@ -40,6 +44,7 @@ if command -v npm >/dev/null; then npm ci --no-audit --no-fund && npm run build
 else docker run --rm -v "$DIR":/app -w /app node:20-alpine sh -c "npm ci --no-audit --no-fund && npm run build"; fi
 
 echo "== Base de datos y caché"
+[ -z "$CONT" ] && [ "$U" != root ] && chown -R "$U":"$U" storage bootstrap/cache
 run php artisan migrate --force
 run php artisan optimize:clear
 run php artisan optimize
@@ -49,9 +54,19 @@ command -v supervisorctl >/dev/null && supervisorctl restart all >/dev/null 2>&1
 systemctl reload php*-fpm 2>/dev/null || true
 
 echo "== Tareas programadas (parte de la mañana, avisos, tiendas)"
-if [ -z "$CONT" ] && ! crontab -l 2>/dev/null | grep -q "schedule:run"; then
-  (crontab -l 2>/dev/null; echo "* * * * * cd $DIR && php artisan schedule:run >> /dev/null 2>&1") | crontab -
-  echo "   Agregado el cron."
-else echo "   Ya estaba (o corre en Docker)."; fi
+# Una sola vez y con el usuario de la web. Ojo con set -e: `crontab -l` falla si
+# el usuario todavía no tiene ninguna, por eso va con `|| true`.
+tiene() { crontab -u "$1" -l 2>/dev/null | grep -q "schedule:run"; }
+if [ -n "$CONT" ]; then echo "   Corre en Docker (contenedor del cron)."
+elif tiene "$U"; then
+  echo "   Ya estaba (usuario $U)."
+  if [ "$U" != root ] && tiene root; then
+    echo "   OJO: también está en el cron de root, así corre dos veces. Sacá esa línea con: crontab -e"
+  fi
+elif tiene root; then echo "   Ya estaba (en el cron de root)."
+else
+  { crontab -u "$U" -l 2>/dev/null || true; echo "* * * * * cd $DIR && php artisan schedule:run >> /dev/null 2>&1"; } | crontab -u "$U" -
+  echo "   Agregado el cron (usuario $U)."
+fi
 
 echo; echo "✓ Listo. ERP actualizado en $DIR a la versión $(git -C "$DIR" log -1 --format='%h %s' 2>/dev/null || echo 'de main')."
