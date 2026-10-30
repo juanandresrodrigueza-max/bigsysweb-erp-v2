@@ -1,0 +1,71 @@
+# Producción en el VPS (Hostinger, Debian 12). El código llega ya compilado (vendor y public/build) desde GitHub Actions.
+# La base y Redis NO se publican a internet: sólo los ve la red interna. Nombres propios para no chocar con otros contenedores.
+name: bigsysweb
+
+x-php: &php
+  build: { context: ., dockerfile: Dockerfile }
+  image: bigsysweb-php
+  restart: unless-stopped
+  env_file: .env
+  volumes:
+    - .:/var/www/html
+  depends_on:
+    db: { condition: service_healthy }
+    redis: { condition: service_started }
+  networks: [interna]
+
+services:
+  app:
+    <<: *php
+
+  queue:
+    <<: *php
+    user: www-data   # mismo usuario que php-fpm: los logs y la caché no quedan de root
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+
+  # Tareas programadas: parte de la mañana, avisos, alertas, conciliaciones, tiendas, backups.
+  scheduler:
+    <<: *php
+    user: www-data
+    command: php artisan schedule:work
+
+  nginx:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [app]
+    networks: [interna]
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [interna]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks: [interna]
+
+volumes:
+  db_data:
+  redis_data:
+
+networks:
+  interna:

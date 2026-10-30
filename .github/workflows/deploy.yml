@@ -1,7 +1,11 @@
 name: Deploy
+# Cada merge a main se publica en el VPS: se compila acá (composer sin dev + frontend), se sube por SSH con rsync
+# y en el servidor se levantan los contenedores (docker-compose.prod.yml) y se corren las migraciones.
+# Secrets necesarios (entorno production): DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY y DEPLOY_PATH.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -9,34 +13,42 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: shivammathur/setup-php@v2
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-      - uses: docker/build-push-action@v5
+          php-version: "8.2"
+          extensions: bcmath,exif,gd,mbstring,pdo,pdo_pgsql,zip,intl
+          coverage: none
+      - run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+      - uses: actions/setup-node@v4
         with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.REGISTRY_URL }}/bigsysweb-erp:latest
-            ${{ secrets.REGISTRY_URL }}/bigsysweb-erp:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            docker compose pull && docker compose up -d --remove-orphans
-            docker compose exec -T app php artisan migrate --force
-            docker compose exec -T app php artisan config:cache
-            docker compose exec -T app php artisan route:cache
-            docker compose exec -T app php artisan view:cache
-            docker compose exec -T app php artisan queue:restart
-            docker image prune -f
+          node-version: "20"
+          cache: npm
+      - run: npm ci && npm run build
+      - name: Clave SSH
+        run: |
+          mkdir -p ~/.ssh && echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+      - name: Subir el código
+        # .env y storage/ viven en el servidor y no se tocan.
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy" \
+            --exclude .git --exclude node_modules --exclude tests --exclude .env --exclude 'storage/' \
+            --exclude 'bootstrap/cache/*.php' --exclude 'database/*.sqlite' \
+            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+      - name: Levantar y migrar
+        run: |
+          ssh -i ~/.ssh/id_deploy "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" "set -e
+            cd '${{ secrets.DEPLOY_PATH }}'
+            mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+            docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
+            docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+            docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
+            docker compose -f docker-compose.prod.yml exec -T app php artisan optimize
+            docker compose -f docker-compose.prod.yml restart queue scheduler
+            docker image prune -f"
+      - name: Comprobar que responde
+        run: ssh -i ~/.ssh/id_deploy "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" "curl -sf -o /dev/null -w '%{http_code}\n' http://127.0.0.1:\$(grep -E '^APP_PORT=' '${{ secrets.DEPLOY_PATH }}/.env' | cut -d= -f2 || echo 8080)/up"

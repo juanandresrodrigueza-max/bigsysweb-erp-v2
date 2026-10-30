@@ -32,11 +32,7 @@ Para preguntas de "¿cómo hago…?", Bigcito lee la sección entera del manual 
 
 ## Para publicar
 
-1. `composer install`. Se sumaron `setasign/fpdi`, `setasign/fpdf` y `minishlink/web-push`.
-2. `php artisan migrate`.
-3. `npm run build`.
-4. El cron de `schedule:run` tiene que estar corriendo. De ahí salen el parte de la mañana, las alertas al celular y las conciliaciones.
-5. En Superadmin → Sistema, cargar el WhatsApp de soporte, porque lo usan la Ayuda y Bigcito.
+Ver [`docs/DEPLOY-hostinger.md`](DEPLOY-hostinger.md): VPS de Hostinger con Docker y deploy automático en cada merge a `main`.
 
 ## Para probar a mano una vez publicado
 
