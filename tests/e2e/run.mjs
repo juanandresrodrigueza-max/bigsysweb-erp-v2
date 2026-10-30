@@ -7,8 +7,8 @@ const scripts = readdirSync(dir).filter(f => f.endsWith('.mjs') && !['run.mjs', 
 let fallas = 0
 for (const s of scripts) {
   console.log(`\n=== ${s} ===`)
-  const r = spawnSync(process.execPath, [dir + s], { stdio: 'inherit', env: process.env })
-  if (r.status !== 0) { fallas++; console.log(`--- ${s}: FALLÓ (código ${r.status})`) }
+  const r = spawnSync(process.execPath, [dir + s], { stdio: 'inherit', env: process.env, timeout: 120000 }) // un script colgado no frena al resto
+  if (r.status !== 0) { fallas++; console.log(`--- ${s}: FALLÓ (${r.error?.code === 'ETIMEDOUT' ? 'más de 2 minutos' : 'código ' + r.status})`) }
 }
 console.log(fallas ? `\n${fallas} script(s) con errores` : '\nTodo OK')
 process.exit(fallas ? 1 : 0)
