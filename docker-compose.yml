@@ -79,6 +79,22 @@ services:
     networks:
       - erp_network
 
+  # Tareas programadas: parte de la mañana, avisos, alertas, conciliaciones, tiendas, backups (routes/console.php).
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: erp_scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - app
+      - redis
+    networks:
+      - erp_network
+
 volumes:
   db_data:
   redis_data:
