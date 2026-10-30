@@ -83,6 +83,7 @@ jobs:
   e2e:
     name: Pruebas de navegador (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
