@@ -3,7 +3,15 @@
 Servidor: VPS KVM 4 · Debian 12 · `srv1759967.hstgr.cloud` · IP `2.25.209.3` · usuario `root`.
 BigSysWeb se instala en `/opt/bigsysweb`, con sus propios contenedores (proyecto `bigsysweb`) y en un puerto libre del 8080 al 8099. No toca lo que ya corre en el servidor.
 
-## Una sola vez
+## Actualizar el que ya está instalado (lo habitual)
+
+El ERP y el CRM ya corren en este VPS. Para actualizar el ERP, en hPanel → VPS → **Consola web**:
+
+`curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`
+
+Busca dónde está instalado (no toca el CRM), guarda una copia del `.env`, baja la última versión, instala dependencias, compila las pantallas, migra la base y limpia la caché.
+
+## Servidor nuevo (una sola vez)
 
 1. En hPanel → VPS → **Consola web**, pegá y ejecutá el contenido de [`deploy/primera-vez.sh`](../deploy/primera-vez.sh). Si el repo es público, alcanza con esta línea:
    `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/primera-vez.sh | bash`

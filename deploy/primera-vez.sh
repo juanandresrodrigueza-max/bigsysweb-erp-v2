@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SÓLO para un servidor NUEVO. Si el ERP ya está instalado, usá deploy/actualizar.sh.
 # Preparar el VPS para BigSysWeb. Se corre UNA sola vez, como root, desde la "Consola web" de Hostinger:
 #   curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/primera-vez.sh | bash
 # (si el repo es privado, pegá el contenido de este archivo en la consola).
