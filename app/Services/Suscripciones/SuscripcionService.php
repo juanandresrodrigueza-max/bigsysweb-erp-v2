@@ -173,6 +173,14 @@ class SuscripcionService
             $limite = $sub->fechaLimite();
             $dias = $sub->diasRestantes();
 
+            // Fin de la prueba sin contratar: sigue en el plan Gratis (no se suspende), como en el CRM.
+            if ($sub->status === 'trial' && $limite && $limite->isPast() && ($gratis = Plan::where('is_free', true)->where('is_active', true)->first())) {
+                $sub->update(['status' => 'cancelled', 'ends_at' => now()]);
+                Subscription::create(['business_id' => $sub->business_id, 'plan_id' => $gratis->id, 'status' => 'active', 'billing_cycle' => 'monthly', 'amount' => 0, 'starts_at' => now(), 'ends_at' => null]);
+                $this->alertar($sub, 'aviso', 'Terminó tu prueba: seguís en el plan Gratis', 'Podés facturar hasta ' . $gratis->max_facturas_mes . ' comprobantes por mes. Para usar todo, elegí un plan en Configuración > Suscripción.');
+                $r['a_gratis'] = ($r['a_gratis'] ?? 0) + 1;
+                continue;
+            }
             if (in_array($sub->status, ['trial', 'active'], true) && $limite && $limite->isPast()) {
                 $sub->update(['status' => 'grace', 'grace_ends_at' => now()->addDays($gracia)->endOfDay()]);
                 $r['a_gracia']++;

@@ -54,6 +54,7 @@
             <div class="flex items-center justify-between"><h3 class="text-lg font-extrabold">{{ p.nombre }}</h3><span v-if="actual?.plan_id === p.id" class="badge bg-lavanda-light text-violeta">Tu plan</span></div>
             <p class="text-xs text-marca-muted min-h-[2rem] mt-1">{{ p.descripcion }}</p>
             <p class="mt-3"><span class="text-2xl font-black tabular-nums">{{ moneda(pago.ciclo === 'yearly' ? p.anual : p.mensual, 0) }}</span><span class="text-xs text-marca-muted"> /{{ pago.ciclo === 'yearly' ? 'año' : 'mes' }}</span></p>
+            <p v-if="p.usd" class="text-xs text-marca-muted">USD {{ pago.ciclo === 'yearly' ? p.usd_anual : p.usd }} + IVA{{ pago.ciclo === 'yearly' ? ' · 2 meses de regalo' : '' }}</p>
             <ul class="mt-3 text-xs space-y-1 text-marca-muted flex-1">
               <li>{{ p.usuarios < 0 ? 'Usuarios sin límite' : `Hasta ${p.usuarios} usuario${p.usuarios === 1 ? '' : 's'}` }}</li>
               <li>{{ p.sucursales < 0 ? 'Sucursales sin límite' : `${p.sucursales} sucursal${p.sucursales === 1 ? '' : 'es'}` }}</li>

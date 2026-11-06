@@ -30,9 +30,9 @@ class SuscripcionController extends Controller
                 'monto' => (float) $sub->amount, 'vence' => $sub->fechaLimite()?->format('d/m/Y'), 'dias' => $sub->diasRestantes(), 'aviso' => $sub->aviso(),
             ] : null,
             'uso' => ['usuarios' => $b->users()->count(), 'sucursales' => $b->locations()->count()] + array_map(fn($u) => $u[0], app(\App\Services\Suscripciones\LimitesPlanService::class)->uso($b)),
-            'planes' => Plan::where('is_active', true)->orderBy('price_monthly')->get()->map(fn($p) => [
+            'planes' => Plan::where('is_active', true)->where('slug', '!=', 'prueba')->orderBy('orden')->orderBy('price_monthly')->get()->map(fn($p) => [
                 'id' => $p->id, 'nombre' => $p->name, 'descripcion' => $p->description, 'mensual' => (float) $p->price_monthly, 'anual' => (float) $p->price_yearly,
-                'usuarios' => $p->max_users, 'sucursales' => $p->max_locations, 'facturas' => (int) $p->max_facturas_mes, 'articulos' => (int) $p->max_products, 'gratis' => $p->is_free,
+                'usuarios' => $p->max_users, 'sucursales' => $p->max_locations, 'facturas' => (int) $p->max_facturas_mes, 'articulos' => (int) $p->max_products, 'gratis' => $p->is_free, 'usd' => $p->precio_usd !== null ? (float) ($p->precio_usd ?? 0) : null, 'usd_anual' => $p->precio_usd_anual !== null ? (float) $p->precio_usd_anual : null, 'recomendado' => (bool) $p->recomendado,
                 'modulos' => collect(config('erp.modulos'))->filter(fn($m, $k) => in_array('*', (array) $p->features, true) || $m['core'] || in_array($k, (array) $p->features, true))->pluck('label')->values(),
             ]),
             'pagos' => PagoSuscripcion::where('business_id', $b->id)->with('plan:id,name')->latest('fecha')->latest('id')->limit(24)->get()->map(fn($p) => [

@@ -16,7 +16,7 @@ class SistemaConfig extends Model
     protected $casts = ['valor' => 'array'];
 
     public const DEFAULTS = [
-        'dias_prueba'        => 14,
+        'dias_prueba'        => 15,
         'dias_gracia'        => 7,
         'aviso_dias'         => [7, 3, 1],
         'mp_access_token'    => null,
