@@ -16,14 +16,14 @@ class Business extends Model
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
         'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
-        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'onboarding', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'conciliacion', 'servicios_config', 'estudio', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
+        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'onboarding', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'modulos_contratados', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'conciliacion', 'servicios_config', 'estudio', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
     ];
 
     public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'hoteleria' => 'Hotelería / alojamiento', 'otro' => 'Otro'];
     public const VERTICALES_MODULOS = ['gastronomia', 'retail', 'minimarket', 'hoteleria', 'servicios'];
 
     protected $casts = ['marca' => 'array', 'inicio_actividades' => 'date', 
-        'verticales_extra' => 'array', 'sueldos' => 'array', 'lotes_config' => 'array', 'rentabilidad' => 'array', 'tarjetas' => 'array', 'conciliacion' => 'array', 'servicios_config' => 'array', 'estudio' => 'array',
+        'verticales_extra' => 'array', 'modulos_contratados' => 'array', 'sueldos' => 'array', 'lotes_config' => 'array', 'rentabilidad' => 'array', 'tarjetas' => 'array', 'conciliacion' => 'array', 'servicios_config' => 'array', 'estudio' => 'array',
         'is_active'            => 'boolean',
         'recordatorios'        => 'array',
         'impuestos'            => 'array',
@@ -133,6 +133,8 @@ class Business extends Model
         }
         $features = (array) ($plan->features ?? []);
         $modulos = in_array('*', $features, true) ? array_keys($todos) : array_values(array_unique(array_merge($core, array_intersect(array_keys($todos), $features))));
+        // Módulos contratados aparte del plan (p. ej. sueldos), que suma el superadmin.
+        $modulos = array_values(array_unique(array_merge($modulos, array_intersect(array_keys($todos), (array) ($this->modulos_contratados ?? [])))));
         // Los verticales se muestran según el rubro de la empresa: un corralón no necesita ver "Gastronomía".
         $permitidos = $this->verticalesPermitidos();
         return array_values(array_filter($modulos, fn($m) => ! in_array($m, self::VERTICALES_MODULOS, true) || in_array($m, $permitidos, true)));

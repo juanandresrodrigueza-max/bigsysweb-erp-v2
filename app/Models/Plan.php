@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Plan extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'price_monthly', 'price_yearly', 'max_users', 'max_locations', 'max_products', 'max_facturas_mes', 'features', 'is_active', 'is_free'];
+    protected $fillable = ['name', 'slug', 'description', 'price_monthly', 'price_yearly', 'max_users', 'max_locations', 'max_products', 'max_facturas_mes', 'features', 'is_active', 'is_free', 'precio_usd', 'precio_usd_anual', 'extras', 'orden', 'recomendado'];
 
     protected $casts = [
         'features'      => 'array',
+        'extras'        => 'array',
+        'recomendado'   => 'boolean',
         'is_active'     => 'boolean',
         'is_free'       => 'boolean',
         'price_monthly' => 'decimal:2',
