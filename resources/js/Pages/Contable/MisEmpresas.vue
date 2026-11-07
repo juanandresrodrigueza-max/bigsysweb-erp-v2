@@ -47,6 +47,7 @@
         <div class="flex flex-wrap gap-1.5 mt-3 text-xs">
           <span class="badge" :class="e.sin_asiento ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'">{{ e.sin_asiento }} sin asiento</span>
           <span class="badge" :class="e.pendientes_cae ? 'bg-carmin-light text-carmin' : 'bg-emerald-50 text-emerald-700'">{{ e.pendientes_cae }} pendientes de CAE</span>
+          <button class="badge bg-lavanda-light text-violeta hover:underline" @click="abrirEnvio(e)" data-e2e="enviar-empresa">Enviar a la empresa</button>
           <span class="badge bg-marca-fondo text-marca-muted">copia {{ e.ultimo_backup ? new Date(e.ultimo_backup).toLocaleDateString('es-AR') : 'nunca' }}</span>
         </div>
         <div v-if="e.actual" class="flex flex-wrap gap-1.5 mt-3">
@@ -57,15 +58,29 @@
       </div>
     </div>
     <p v-if="empresas.length < 2" class="text-sm text-marca-muted mt-4">Tenés acceso a una sola empresa. Cuando otro cliente te dé acceso desde su panel del contador con este mismo email, aparece acá.</p>
+    <Modal :abierto="!!envio" :titulo="envio ? `Enviar a ${envio.nombre}` : ''" @cerrar="envio = null">
+      <div v-if="envio" class="space-y-3">
+        <div><label class="label">Mail de la empresa</label><input v-model="envf.email" type="email" class="input" data-e2e="envio-email" /><p v-if="envf.errors.email" class="text-xs text-carmin">{{ envf.errors.email }}</p></div>
+        <div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input v-model="envf.formato" type="radio" value="pdf" class="accent-carmin" /> PDF adjunto</label><label class="flex items-center gap-2"><input v-model="envf.formato" type="radio" value="resumen" class="accent-carmin" /> Resumen en el mail</label></div>
+        <div><label class="label">Mensaje (opcional)</label><textarea v-model="envf.mensaje" rows="3" class="input" placeholder="Hola, te paso el resumen del mes…"></textarea></div>
+        <p class="text-xs text-marca-muted">Sale con el nombre y el logo de {{ estudio.marca }}, con ventas, compras e IVA de {{ mes }}.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="envio = null">Cancelar</button><button class="btn-primary" :disabled="envf.processing || !envf.email" @click="enviarEmpresa" data-e2e="envio-confirmar">Enviar</button></template>
+    </Modal>
   </AppLayout>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
+import Modal from '@/Components/Modal.vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ empresas: Array, mes: String, periodo: Object, estudio: Object, precio: Object, vencimientos: Array, conjuntos: Array })
+// Fase 45.2: enviar el resumen a la empresa (opcional), con el mail editable.
+const envio = ref(null); const envf = useForm({ email: '', formato: 'pdf', mes: '', mensaje: '' })
+function abrirEnvio(e) { envio.value = e; envf.clearErrors(); Object.assign(envf, { email: e.email_envio ?? '', formato: 'pdf', mes: props.mes, mensaje: '' }) }
+function enviarEmpresa() { envf.post(`/contador/empresas/${envio.value.id}/enviar`, { preserveScroll: true, onSuccess: () => (envio.value = null) }) }
 const editar = ref(false)
 const ef = reactive({ es_estudio: props.estudio.es_estudio, marca: props.estudio.marca, tramos: props.estudio.tramos.map(t => ({ ...t })), vencimientos: { ...props.estudio.vencimientos } })
 const nc = reactive({ nombre: '', empresas: [] })

@@ -41,7 +41,7 @@
           <div class="flex items-center justify-between gap-2"><label class="flex items-center gap-2 text-sm text-marca-muted"><input v-model="form.remember" type="checkbox" class="accent-carmin" /> Recordarme</label><Link href="/recuperar" class="text-sm text-violeta font-semibold">¿Olvidaste la contraseña?</Link></div>
           <button type="submit" class="btn-primary w-full !py-3 !text-[15px]" :disabled="form.processing">{{ form.processing ? 'Ingresando…' : 'Ingresar' }}</button>
         </form>
-
+        <p class="mt-6 text-center text-sm text-marca-muted">¿Todavía no tenés cuenta? <Link href="/registro" class="text-carmin font-bold" data-e2e="ir-registro">Registrate gratis</Link></p>
 
         <div v-if="demo" class="mt-6 p-4 rounded-xl bg-white border border-marca-borde text-xs text-marca-muted">
           <p class="font-semibold text-marca-texto mb-1">Demo</p>

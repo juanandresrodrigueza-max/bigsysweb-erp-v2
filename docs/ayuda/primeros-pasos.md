@@ -47,3 +47,7 @@ El sistema se usa igual desde el celular. Para tenerlo como app: en el iPhone, S
 ## Si algo no sale
 
 Desde **Soporte** (menú) abrís un ticket y el equipo de BigSys te responde ahí y por mail. Podés también escribir por WhatsApp al número que figura en la pantalla de soporte.
+
+## Registrate gratis (Fase 46)
+
+Entrás en **erp.bigsysweb.com/registro** y completás el nombre de tu empresa, tu nombre, tu email y una contraseña. En un minuto tenés la empresa armada, con sucursal, caja, depósito y plan de cuentas. Tenés **15 días de prueba con todo activado**, sin tarjeta. Al terminar seguís en el plan **Gratis** (1 usuario y 10 facturas por mes), salvo que elijas un plan en **Mi suscripción** y lo pagues con Mercado Pago. Después del registro entrás directo a **Primeros pasos**.

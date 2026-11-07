@@ -52,3 +52,7 @@ Si atendés clientes, marcá **Somos un estudio contable** y poné el nombre: ap
 **Precio progresivo**: configurá los tramos (por ejemplo, hasta 5 empresas a un precio, de la 6 a la 20 a otro) y el panel calcula cuánto cobrás por mes por las empresas que administrás.
 
 **Vencimientos**: la DDJJ de IVA de cada empresa según la terminación de su CUIT, en orden. Los días vienen cargados con el calendario habitual; como ARCA los cambia cada año, se corrigen en "configurar".
+
+## Enviar a la empresa (Fase 45)
+
+En Contable → Mis empresas, cada empresa tiene el botón **Enviar a la empresa**. Usarlo es opcional. Escribís o corregís el mail de la empresa y elegís cómo va: **PDF adjunto** o **Resumen en el mail**. Podés sumar un mensaje. Sale con el nombre y el logo de tu estudio, con las ventas, las compras y el IVA del mes. La próxima vez el mail ya aparece cargado. También se lo podés pedir a Bigcito: «mandale a López el resumen de octubre».
