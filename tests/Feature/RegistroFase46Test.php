@@ -46,4 +46,12 @@ class RegistroFase46Test extends ErpTestCase
         $this->post('/registro', $this->datos(['email' => $this->dueno->email]))->assertSessionHasErrors('email');
         $this->assertFalse(Business::where('name', 'Kiosco Nuevo')->exists());
     }
+
+    public function test_captcha_cuando_esta_configurado(): void
+    {
+        config(['services.turnstile.secret' => 'x', 'services.turnstile.site_key' => 'k']);
+        \Illuminate\Support\Facades\Http::fake(['challenges.cloudflare.com/*' => \Illuminate\Support\Facades\Http::sequence()->push(['success' => false])->push(['success' => true])]);
+        $this->post('/registro', $this->datos())->assertSessionHasErrors('captcha');
+        $this->post('/registro', $this->datos(['cf-turnstile-response' => 'tok']))->assertRedirect('/primeros-pasos');
+    }
 }

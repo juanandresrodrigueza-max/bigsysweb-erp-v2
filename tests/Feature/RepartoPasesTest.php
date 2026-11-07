@@ -51,7 +51,7 @@ class RepartoPasesTest extends ErpTestCase
         $this->post('/comprobantes/entregas/armar', ['fecha' => today()->toDateString(), 'paradas' => $paradas]);
         $oe = OrdenEntrega::latest('id')->first();
         $this->post("/comprobantes/entregas/{$oe->id}/ordenar")->assertSessionHas('success');
-        $this->assertSame(['Cerca', 'Medio', 'Lejos', 'Extra 1', 'Extra 2', 'Sin ubicación'], $oe->items()->orderBy('orden')->get()->map(fn($i) => $i->nombre)->all());
+        $this->assertSame(['Cerca', 'Medio', 'Lejos', 'Extra 1', 'Extra 2', 'Sin ubicación'], $oe->items()->orderBy('orden')->orderBy('id')->get()->map(fn($i) => $i->nombre)->all());
         $maps = app(RepartoService::class)->maps($oe->fresh());
         $this->assertCount(2, $maps); $this->assertStringContainsString('origin=-31.4', $maps[0]); $this->assertStringContainsString('waypoints=', $maps[0]);
         $ids = $oe->items()->orderBy('orden')->pluck('id')->reverse()->values()->all();
@@ -67,7 +67,7 @@ class RepartoPasesTest extends ErpTestCase
         $f = $this->factura($cli, [['product_id' => $cem->id, 'descripcion' => 'Cemento', 'cantidad' => 10, 'precio_unit' => 8000, 'alicuota_iva' => 21]], ['entrega_pendiente' => true]);
         $f2 = $this->factura($this->cliente(['name' => 'Cerrado', 'cuit' => null]), [['product_id' => $cem->id, 'descripcion' => 'Cemento', 'cantidad' => 2, 'precio_unit' => 8000, 'alicuota_iva' => 21]], ['entrega_pendiente' => true]);
         $this->post('/comprobantes/entregas/armar', ['fecha' => today()->toDateString(), 'repartidor' => 'Carlos', 'paradas' => [['tipo' => 'comprobante', 'id' => $f2->id], ['tipo' => 'comprobante', 'id' => $f->id, 'cantidades' => [$f->items->first()->id => 6]]]]);
-        $oe = OrdenEntrega::latest('id')->first(); [$p1, $p2] = $oe->items()->orderBy('orden')->get()->all();
+        $oe = OrdenEntrega::latest('id')->first(); [$p1, $p2] = $oe->items()->orderBy('orden')->orderBy('id')->get()->all();
         $stock = (float) $cem->fresh()->stock;
         auth()->logout();
         $this->get("/reparto/{$oe->token_chofer}")->assertOk()->assertSee('Salí');

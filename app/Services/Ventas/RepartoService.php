@@ -216,7 +216,7 @@ class RepartoService
         // Google Maps con el recorrido real (hasta 9 puntos intermedios repartidos).
         $muestra = $pos->count() > 11 ? collect(range(0, 10))->map(fn($k) => $pos[(int) round($k * ($pos->count() - 1) / 10)]) : $pos;
         $url = $muestra->count() >= 2 ? 'https://www.google.com/maps/dir/' . $muestra->map(fn($p) => "{$p->lat},{$p->lng}")->implode('/') : null;
-        $paradas = $oe->items()->orderBy('orden')->get()->map(fn($i) => ['nombre' => $i->nombre ?? $i->contact?->name ?? 'Parada', 'estado' => $i->estado, 'hora' => $i->entregado_en?->format('H:i'), 'recibio' => $i->recibio, 'motivo' => $i->motivo, 'foto' => (bool) $i->foto_path, 'lat' => $i->lat, 'lng' => $i->lng]);
+        $paradas = $oe->items()->orderBy('orden')->orderBy('id')->get()->map(fn($i) => ['nombre' => $i->nombre ?? $i->contact?->name ?? 'Parada', 'estado' => $i->estado, 'hora' => $i->entregado_en?->format('H:i'), 'recibio' => $i->recibio, 'motivo' => $i->motivo, 'foto' => (bool) $i->foto_path, 'lat' => $i->lat, 'lng' => $i->lng]);
         return ['puntos' => $pos->count(), 'km' => round($km, 1), 'salida' => $oe->salida_en?->format('d/m H:i'), 'fin' => $oe->entregada_en?->format('d/m H:i'), 'maps' => $url, 'paradas' => $paradas->all()];
     }
 

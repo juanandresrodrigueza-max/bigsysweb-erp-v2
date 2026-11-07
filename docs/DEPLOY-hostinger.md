@@ -29,6 +29,13 @@ Cada merge a `main` se publica solo: compila, sube el código, levanta los conte
 
 Los navegadores sólo los permiten con `https://`. Apuntá un dominio (o el gratis que ofrece Hostinger) a `2.25.209.3` y poné adelante un proxy con certificado. Si en el servidor ya hay uno en el 80/443 (Traefik, Nginx Proxy Manager, Caddy), agregale una regla hacia `127.0.0.1:<APP_PORT>`. Después cambiá `APP_URL` en `/opt/bigsysweb/.env` y volvé a correr el Deploy.
 
+## Para que el registro y los cobros anden de verdad
+
+1. **Mails.** Sirven para el aviso de cada registro, el «Enviar a la empresa», las facturas por mail y la recuperación de contraseña. En el `.env` del servidor hoy figura `MAIL_MAILER=log`, y así no sale ningún mail. Cambialo por los datos SMTP de tu casilla. En Hostinger: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.hostinger.com`, `MAIL_PORT=465`, `MAIL_SCHEME=smtps`, `MAIL_USERNAME=` y `MAIL_PASSWORD=` con los de la casilla, y `MAIL_FROM_ADDRESS=` con esa misma casilla. Después corré otra vez `actualizar.sh`.
+2. **Mercado Pago.** Entrá como superadmin a **Sistema** y pegá el access token de producción de la cuenta de BigSys. Mientras no esté cargado, el pago funciona en modo simulado.
+3. **Captcha (opcional).** Creá un widget gratis en Cloudflare Turnstile para `erp.bigsysweb.com` y cargá `TURNSTILE_SITE_KEY` y `TURNSTILE_SECRET` en el `.env`. Si no lo cargás, el registro se protege igual con el campo trampa y el límite de 5 registros por hora por IP.
+4. **Aviso de registros.** Llega al «email de soporte» configurado en Sistema y a todos los superadmin.
+
 ## Seguridad
 
 - La base de datos y Redis no se publican a internet: sólo los ve la red interna de Docker.

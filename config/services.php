@@ -46,4 +46,7 @@ return [
         'ambiente' => env('AFIP_AMBIENTE', 'homologacion'),
     ],
 
+    // Fase 46: captcha opcional del registro (Cloudflare Turnstile). Sin claves, el registro usa solo la trampa y el límite por IP.
+    'turnstile' => ['site_key' => env('TURNSTILE_SITE_KEY'), 'secret' => env('TURNSTILE_SECRET')],
+
 ];

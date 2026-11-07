@@ -21,7 +21,7 @@ class RegistroController extends Controller
 
     public function show()
     {
-        return Inertia::render('Auth/Registro', ['rubros' => Business::VERTICALES, 'marca' => Crypt::encryptString((string) now()->timestamp), 'dias' => self::DIAS_PRUEBA]);
+        return Inertia::render('Auth/Registro', ['rubros' => Business::VERTICALES, 'marca' => Crypt::encryptString((string) now()->timestamp), 'dias' => self::DIAS_PRUEBA, 'captcha' => config('services.turnstile.site_key')]);
     }
 
     public function store(Request $request, SuscripcionService $s)
@@ -30,6 +30,10 @@ class RegistroController extends Controller
         try { $t = (int) Crypt::decryptString((string) $request->input('marca')); } catch (\Throwable) { $t = 0; }
         if (filled($request->input('sitio_web')) || ! $t || now()->timestamp - $t < 3) abort(422, 'No pudimos validar el formulario. Probá de nuevo.');
 
+        if ($secret = config('services.turnstile.secret')) {
+            $ok = \Illuminate\Support\Facades\Http::asForm()->timeout(8)->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', ['secret' => $secret, 'response' => (string) $request->input('cf-turnstile-response'), 'remoteip' => $request->ip()])->json('success');
+            if (! $ok) return back()->withErrors(['captcha' => 'Confirmá que no sos un robot.'])->withInput($request->except('password', 'password_confirmation'));
+        }
         $d = $request->validate([
             'empresa' => 'required|string|max:120', 'nombre' => 'required|string|max:120', 'email' => 'required|email|max:150|unique:users,email',
             'password' => 'required|string|min:8|confirmed', 'telefono' => 'nullable|string|max:40', 'rubro' => 'nullable|in:' . implode(',', array_keys(Business::VERTICALES)),
