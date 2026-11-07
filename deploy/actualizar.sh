@@ -46,6 +46,7 @@ else docker run --rm -v "$DIR":/app -w /app node:20-alpine sh -c "npm ci --no-au
 echo "== Base de datos y caché"
 [ -z "$CONT" ] && [ "$U" != root ] && chown -R "$U":"$U" storage bootstrap/cache
 run php artisan migrate --force
+run php artisan planes:instalar   # los planes en dólares, sólo si todavía no están
 run php artisan optimize:clear
 run php artisan optimize
 run php artisan queue:restart || true
