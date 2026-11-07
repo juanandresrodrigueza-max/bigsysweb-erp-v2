@@ -74,9 +74,33 @@ class Gestion
 
             // ---- Fase 37.4: pases entre sucursales ----
             ['nombre' => 'pases_entre_sucursales', 'titulo' => 'Pases entre sucursales', 'modulo' => 'stock', 'permiso' => 'ver', 'tipo' => 'consulta',
-                'descripcion' => 'Los pases de mercadería entre sucursales: los que están en viaje y los que llegaron con diferencias.',
+                'descripcion' => 'Los pases de mercadería entre sucursales: los que están en viaje, los que llegaron con diferencias, los pedidos de las sucursales sin armar y lo que está en un proveedor por cambio o devolución.',
                 'parametros' => [],
-                'ejecutar' => fn(User $u, array $a) => ['pases' => TransferenciaStock::with('origen', 'destino', 'items.product')->whereIn('estado', ['en_viaje', 'con_diferencias'])->latest('id')->limit(20)->get()->map(fn($t) => app(\App\Services\Stock\PasesService::class)->resumen($t) + ['url' => Busca::url("/stock/pases/{$t->id}")])->map(fn($r) => collect($r)->except('token')->all())->all()]],
+                'ejecutar' => fn(User $u, array $a) => ['pases' => TransferenciaStock::with('origen', 'destino', 'items.product')->whereIn('estado', ['en_viaje', 'con_diferencias', 'pedido', 'en_proveedor'])->latest('id')->limit(20)->get()->map(fn($t) => app(\App\Services\Stock\PasesService::class)->resumen($t) + ['url' => Busca::url("/stock/pases/{$t->id}")])->map(fn($r) => collect($r)->except('token')->all())->all()]],
+            // Fase 42: pedir al depósito y mandar a un proveedor, de palabra.
+            ['nombre' => 'pedir_al_deposito', 'titulo' => 'Pedirle mercadería al depósito', 'modulo' => 'stock', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'La sucursal le pide artículos al depósito ("pedile al depósito 10 bolsas de cemento"). No mueve stock: el depósito arma el pase desde el pedido.',
+                'parametros' => ['articulos' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number']]]], 'deposito' => ['type' => 'string', 'description' => 'A qué depósito le pide; si no lo dice, el principal.'], 'para' => ['type' => 'string', 'description' => 'Qué sucursal pide; si no lo dice, la del usuario.']], 'requeridos' => ['articulos'],
+                'proponer' => function (User $u, array $a) {
+                    $deps = \App\Models\Deposito::where('activo', true)->get();
+                    $buscar = fn($t) => $t ? $deps->first(fn($d) => str_contains(mb_strtolower($d->nombre), mb_strtolower($t))) : null;
+                    $dep = $buscar($a['deposito'] ?? null) ?? $deps->firstWhere('es_default', true) ?? $deps->first();
+                    $para = $buscar($a['para'] ?? null) ?? $deps->first(fn($d) => $d->business_location_id === $u->current_location_id && $d->id !== $dep?->id) ?? $deps->first(fn($d) => $d->id !== $dep?->id);
+                    if (! $dep || ! $para || $dep->id === $para->id) return ['error' => 'Necesito dos depósitos distintos: el que manda y la sucursal que pide.'];
+                    $items = []; foreach ($a['articulos'] as $x) { $p = Busca::articulo($x['articulo'] ?? ''); if (! $p) return ['error' => 'No encontré el artículo "' . ($x['articulo'] ?? '') . '".']; $items[] = ['product_id' => $p->id, 'cantidad' => (float) ($x['cantidad'] ?? 1), 'nombre' => $p->name]; }
+                    return ['titulo' => "{$para->nombre} le pide a {$dep->nombre}", 'detalle' => collect($items)->map(fn($i) => Busca::cant($i['cantidad']) . ' ' . $i['nombre'])->implode(', '), 'datos' => ['dep' => $dep->id, 'para' => $para->id, 'items' => $items]];
+                },
+                'confirmar' => function (User $u, array $d) { $t = app(\App\Services\Stock\PasesService::class)->pedir(\App\Models\Deposito::findOrFail($d['dep']), \App\Models\Deposito::findOrFail($d['para']), $d['items']); return ['texto' => "Pedido {$t->numeroFormateado()} hecho: el depósito lo ve en Pases para armarlo.", 'url' => Busca::url("/stock/pases/{$t->id}")]; }],
+            ['nombre' => 'mandar_a_proveedor', 'titulo' => 'Mandar mercadería al proveedor (cambio o devolución)', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion',
+                'descripcion' => 'Saca del stock lo que va al proveedor por cambio o devolución, con el proveedor en el remito; queda "en el proveedor" hasta que vuelve.',
+                'parametros' => ['proveedor' => ['type' => 'string'], 'articulos' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number']]]], 'motivo' => ['type' => 'string']], 'requeridos' => ['proveedor', 'articulos'],
+                'proponer' => function (User $u, array $a) {
+                    $prov = Busca::proveedor($a['proveedor']); if (! $prov) return ['error' => 'No encontré al proveedor "' . $a['proveedor'] . '".'];
+                    $dep = \App\Models\Deposito::where('activo', true)->where('es_default', true)->first() ?? \App\Models\Deposito::where('activo', true)->first();
+                    $items = []; foreach ($a['articulos'] as $x) { $p = Busca::articulo($x['articulo'] ?? ''); if (! $p) return ['error' => 'No encontré el artículo "' . ($x['articulo'] ?? '') . '".']; $items[] = ['product_id' => $p->id, 'cantidad' => (float) ($x['cantidad'] ?? 1), 'nombre' => $p->name]; }
+                    return ['titulo' => "Mandar a {$prov->name} desde {$dep->nombre}", 'detalle' => collect($items)->map(fn($i) => Busca::cant($i['cantidad']) . ' ' . $i['nombre'])->implode(', ') . (($a['motivo'] ?? '') ? " · {$a['motivo']}" : ''), 'datos' => ['dep' => $dep->id, 'prov' => $prov->id, 'items' => $items, 'motivo' => $a['motivo'] ?? null]];
+                },
+                'confirmar' => function (User $u, array $d) { $t = app(\App\Services\Stock\PasesService::class)->aProveedor(\App\Models\Deposito::findOrFail($d['dep']), \App\Models\Contact::findOrFail($d['prov']), $d['items'], $d['motivo']); return ['texto' => "{$t->numeroFormateado()}: salió del stock a la cuenta de cambios del proveedor. Cuando vuelva, se recibe en Stock → Pases.", 'url' => Busca::url("/stock/pases/{$t->id}")]; }],
             ['nombre' => 'recibir_pase', 'titulo' => 'Recibir un pase completo', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion',
                 'descripcion' => 'Da por recibido un pase en viaje cuando llegó todo lo que salió ("llegó el pase 12, está todo"). Si faltó algo, hay que contarlo en la pantalla del pase.',
                 'parametros' => ['pase' => ['type' => 'string', 'description' => 'Número del pase; si no lo dice, el último en viaje.']],

@@ -48,6 +48,16 @@ class GenerarAlertas extends Command
             }
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'lote_vence')->whereNull('resuelta_en')->whereNotIn('modelo_id', $lotesV->pluck('id'))->update(['resuelta_en' => now()]);
 
+            // Fase 42.8: pases en viaje hace más de 2 días que nadie confirmó que llegaron.
+            $viaje = \App\Services\Stock\PasesService::enViajeSinConfirmar($id);
+            foreach ($viaje as $t) {
+                Alerta::withoutGlobalScopes()->updateOrCreate(
+                    ['business_id' => $id, 'tipo' => 'pase_en_viaje', 'modelo' => 'TransferenciaStock', 'modelo_id' => $t->id],
+                    ['business_location_id' => $t->business_location_id, 'modulo' => 'stock', 'severidad' => 'aviso', 'titulo' => "{$t->numeroFormateado()} sin confirmar que llegó", 'detalle' => 'Enviado el ' . $t->enviada_en?->format('d/m H:i') . '. Que la sucursal que lo recibe lo cuente en Stock → Pases.', 'url' => "/stock/pases/{$t->id}"]
+                );
+            }
+            Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'pase_en_viaje')->whereNull('resuelta_en')->whereNotIn('modelo_id', $viaje->pluck('id'))->update(['resuelta_en' => now()]);
+
             // Producción atrasada: órdenes abiertas cuya fecha programada ya pasó
             $atrasadas = \App\Models\ProductionOrder::withoutGlobalScopes()->where('business_id', $id)->whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->with('product:id,name,unit')->get();
             foreach ($atrasadas as $o) {
