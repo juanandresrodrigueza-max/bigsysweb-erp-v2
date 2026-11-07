@@ -32,6 +32,7 @@
         <input v-model="f.sitio_web" type="text" name="sitio_web" tabindex="-1" autocomplete="off" class="absolute -left-[9999px]" aria-hidden="true" />
         <label class="flex items-start gap-2 text-sm"><input v-model="f.acepto" type="checkbox" class="accent-carmin mt-1" /> <span>Acepto los términos de uso y la política de privacidad.</span></label>
         <p v-if="f.errors.acepto" class="text-xs text-carmin">{{ f.errors.acepto }}</p>
+ <div v-if="captcha" ref="caja" class="min-h-[65px]"></div><p v-if="f.errors.captcha" class="text-xs text-carmin">{{ f.errors.captcha }}</p>
         <p v-if="error" class="text-sm text-carmin">{{ error }}</p>
         <button class="btn-primary w-full !py-3" :disabled="f.processing">{{ f.processing ? 'Creando tu empresa…' : 'Crear mi cuenta gratis' }}</button>
         <p class="text-center text-sm text-marca-muted">¿Ya tenés cuenta? <Link href="/login" class="text-violeta font-semibold">Ingresá</Link></p>
@@ -41,11 +42,18 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
-const props = defineProps({ rubros: Object, marca: String, dias: Number })
-const f = useForm({ empresa: '', nombre: '', telefono: '', email: '', password: '', password_confirmation: '', rubro: 'otro', cuit: '', acepto: false, sitio_web: '', marca: props.marca })
-const error = ref('')
+const props = defineProps({ rubros: Object, marca: String, dias: Number, captcha: { type: String, default: null } })
+const f = useForm({ empresa: '', nombre: '', telefono: '', email: '', password: '', password_confirmation: '', rubro: 'otro', cuit: '', acepto: false, sitio_web: '', marca: props.marca, 'cf-turnstile-response': '' })
+const error = ref(''), caja = ref(null)
+// Captcha opcional: solo si el servidor tiene la clave de Turnstile.
+onMounted(() => {
+  if (!props.captcha) return
+  const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; s.async = true
+  s.onload = () => window.turnstile?.render(caja.value, { sitekey: props.captcha, callback: t => (f['cf-turnstile-response'] = t) })
+  document.head.appendChild(s)
+})
 function enviar() { error.value = ''; f.post('/registro', { onError: e => { if (!Object.keys(e).length) error.value = 'No pudimos crear la cuenta. Probá de nuevo.' } }) }
 </script>
