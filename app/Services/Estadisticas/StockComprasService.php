@@ -81,6 +81,17 @@ class StockComprasService
         return ['items' => $filas->take(300)->values()->all(), 'por_rubro' => $porRubro->all(), 'total' => round($filas->sum('valor'), 2), 'cantidad' => $filas->count(), 'dias' => $dias, 'como' => self::COMO['ajustes']];
     }
 
+    // Fase 44.2: lo que salió de cada artículo (ventas, pases, consumos, ajustes), en unidades y sin importes.
+    public function loQueSalio(Business $b, int $dias = 30): array
+    {
+        $f = StockMovement::where('stock_movements.business_id', $b->id)->whereColumn('stock_after', '<', 'stock_before')->where('stock_movements.created_at', '>=', today()->subDays($dias)->startOfDay())
+            ->join('products', 'products.id', '=', 'stock_movements.product_id')->leftJoin('rubros', 'rubros.id', '=', 'products.rubro_id')
+            ->selectRaw('products.id, products.name as nombre, products.sku, products.unit, MAX(rubros.nombre) as rubro, SUM(stock_before - stock_after) as salio, COUNT(*) as veces, MAX(products.stock) as stock')
+            ->groupBy('products.id', 'products.name', 'products.sku', 'products.unit')->orderByDesc('salio')->limit(2000)->get()
+            ->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombre, 'sku' => $r->sku, 'unit' => $r->unit, 'rubro' => $r->rubro ?? 'Sin rubro', 'salio' => round((float) $r->salio, 3), 'veces' => (int) $r->veces, 'stock' => (float) $r->stock]);
+        return ['items' => $f->all(), 'dias' => $dias, 'como' => 'Suma de todo lo que bajó el stock de cada artículo en el período: ventas, pases a otra sucursal, consumos de producción y ajustes. Sin plata, solo unidades.'];
+    }
+
     public function aumentoProveedores(Business $b): array
     {
         $q = fn(string $d, string $h) => ComprobanteItem::join('comprobantes', 'comprobantes.id', '=', 'comprobante_items.comprobante_id')->where('comprobantes.business_id', $b->id)->where('comprobantes.direccion', 'compra')->where('comprobantes.estado', 'emitido')->whereIn('comprobantes.tipo', TableroService::FACTURAS)

@@ -557,21 +557,21 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     });
 
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
-    Route::get('/estadisticas/ventas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'ventas'])->middleware('permiso:estadisticas');
-    Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware('permiso:estadisticas');
-    Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/ventas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'ventas'])->middleware(['permiso:estadisticas', 'parte:ventas']);
+    Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:analista']);
+    Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:vendedores']);
     Route::get('/estadisticas/vendedores/relevamiento/{id}/foto', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'foto'])->middleware('permiso:clientes')->whereNumber('id');
     Route::get('/buscar/global', [\App\Http\Controllers\BuscarController::class, 'global']);
     Route::get('/buscar/{entidad}/{forma}', \App\Http\Controllers\BuscarController::class);
-    Route::get('/estadisticas/rentabilidad', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'index'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/rentabilidad', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:rentabilidad']);
     Route::get('/estadisticas/rentabilidad/dim', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'dimension'])->middleware('permiso:estadisticas');
     Route::post('/estadisticas/rentabilidad/categorias', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'clasificar'])->middleware('permiso:fondos,editar');
     Route::post('/estadisticas/rentabilidad/config', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'configurar'])->middleware('permiso:configuracion,editar');
     Route::post('/estadisticas/rentabilidad/minimos', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'minimos'])->middleware('permiso:stock,editar');
     Route::get('/estadisticas/rentabilidad/historial/{id}', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'historial'])->middleware('permiso:estadisticas')->whereNumber('id');
-    Route::get('/estadisticas/stock', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'stock'])->middleware('permiso:estadisticas');
-    Route::get('/estadisticas/plata', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'plata'])->middleware('permiso:estadisticas');
-    Route::get('/estadisticas/que-hacer', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'queHacer'])->middleware('permiso:estadisticas');
+    Route::get('/estadisticas/stock', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'stock'])->middleware(['permiso:estadisticas', 'parte:stock']);
+    Route::get('/estadisticas/plata', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'plata'])->middleware(['permiso:estadisticas', 'parte:plata']);
+    Route::get('/estadisticas/que-hacer', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'queHacer'])->middleware(['permiso:estadisticas', 'parte:que_hacer']);
 
     // Agenda de turnos
     Route::prefix('agenda')->middleware('permiso:agenda')->group(function () {

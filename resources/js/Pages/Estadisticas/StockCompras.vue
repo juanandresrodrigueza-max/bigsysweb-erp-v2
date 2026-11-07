@@ -35,6 +35,12 @@
         <tbody><tr v-for="a in antiguedad.items" :key="a.id"><td><Link :href="`/stock/${a.id}`" class="hover:text-carmin">{{ a.nombre }}</Link> <span class="text-marca-muted">{{ a.sku }}</span></td><td class="text-right tabular-nums">{{ cantidad(a.stock) }} {{ a.unit }}</td><td class="text-right tabular-nums">{{ moneda(a.plata, 0) }}</td><td class="text-right tabular-nums" :class="a.dias_sin_vender === null || a.dias_sin_vender > 90 ? 'text-carmin' : ''">{{ a.ultima_venta ?? 'nunca' }}{{ a.dias_sin_vender !== null ? ' · ' + a.dias_sin_vender + ' d' : '' }}</td><td class="text-right tabular-nums text-marca-muted">{{ a.ultima_compra ?? 'nunca' }}{{ a.dias_sin_comprar !== null ? ' · ' + a.dias_sin_comprar + ' d' : '' }}</td></tr></tbody></table></div>
     </div>
 
+    <div class="card mb-4" data-e2e="lo-que-salio">
+      <div class="flex flex-wrap items-center gap-2"><h2 class="font-bold">Lo que salió <span class="text-marca-muted cursor-help font-normal text-sm" :title="salio.como">ⓘ</span></h2><span class="text-xs text-marca-muted">últimos {{ salio.dias }} días · unidades</span><input v-model="qSalio" class="input !py-1 !text-xs w-44 ml-auto" placeholder="Buscar artículo…" /></div>
+      <div class="overflow-x-auto max-h-80 mt-2"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-marca-muted"><th class="py-1">Artículo</th><th>Rubro</th><th class="text-right">Salió</th><th class="text-right">Movimientos</th><th class="text-right">Stock hoy</th></tr></thead>
+        <tbody><tr v-for="a in salioVisibles" :key="a.id" class="border-t border-marca-borde"><td class="py-1">{{ a.nombre }} <span class="text-xs text-marca-muted">{{ a.sku }}</span></td><td class="text-xs">{{ a.rubro }}</td><td class="text-right tabular-nums font-semibold">{{ cantidad(a.salio) }} {{ a.unit }}</td><td class="text-right tabular-nums">{{ a.veces }}</td><td class="text-right tabular-nums">{{ cantidad(a.stock) }}</td></tr></tbody></table>
+        <p v-if="!salio.items.length" class="text-sm text-marca-muted py-3 text-center">No salió nada en el período.</p></div>
+    </div>
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
       <div class="card" data-e2e="ajustes">
         <h2 class="font-bold">Ajustes para abajo <span class="text-marca-muted cursor-help font-normal text-sm" :title="ajustes.como">ⓘ</span></h2>
@@ -62,12 +68,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda, cantidad } from '@/util/formato'
-defineProps({ dejas: Object, pedir: Object, antiguedad: Object, ajustes: Object, aumentos: Object, barato: Object })
+const props = defineProps({ dejas: Object, pedir: Object, antiguedad: Object, ajustes: Object, aumentos: Object, barato: Object, salio: { type: Object, default: () => ({ items: [], dias: 30 }) } })
+const qSalio = ref('')
+const salioVisibles = computed(() => props.salio.items.filter(a => !qSalio.value || (a.nombre + ' ' + (a.sku ?? '')).toLowerCase().includes(qSalio.value.toLowerCase())).slice(0, 500))
 const page = usePage()
 const filtros = computed(() => Object.fromEntries(new URLSearchParams(page.url.split('?')[1] ?? '')))
 function ir(extra) { router.get('/estadisticas/stock', Object.fromEntries(Object.entries({ ...filtros.value, ...extra }).filter(([, v]) => v !== undefined && v !== '')), { preserveState: true, preserveScroll: true, replace: true, only: ['antiguedad'] }) }

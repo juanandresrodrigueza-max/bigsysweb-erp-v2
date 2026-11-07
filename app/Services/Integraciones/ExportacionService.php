@@ -42,7 +42,23 @@ class ExportacionService
     // Columnas que nunca se exportan (secretos, rutas internas, blobs).
     private const OCULTAS = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'portal_token', 'public_token', 'afip_respuesta', 'pdf_path', 'deleted_at', 'datos', 'prices', 'margenes', 'imagen'];
 
-    public const MAX_POR_PAGINA = 500;
+    public const MAX_POR_PAGINA = 5000;
+
+    // Columnas donde mira el parámetro buscar (las que existan en la tabla).
+    private const BUSCABLES = ['name', 'nombre', 'sku', 'razon_social', 'nombre_fantasia', 'email', 'tax_number', 'cuit', 'descripcion', 'numero', 'codigo'];
+
+    // Minúsculas y sin tildes ni ñ, igual en SQLite y PostgreSQL.
+    public static function normalizarSql(string $col): string
+    {
+        $e = "LOWER({$col})";
+        foreach (['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n', 'Á' => 'a', 'É' => 'e', 'Í' => 'i', 'Ó' => 'o', 'Ú' => 'u', 'Ü' => 'u', 'Ñ' => 'n'] as $a => $b) $e = "REPLACE({$e}, '{$a}', '{$b}')";
+        return $e;
+    }
+
+    public static function normalizar(string $t): string
+    {
+        return strtr(mb_strtolower($t), ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
+    }
 
     public static function catalogo(): array
     {
@@ -76,7 +92,14 @@ class ExportacionService
         if (! empty($f['actualizado_desde']) && Schema::hasColumn($tabla, 'updated_at')) $q->where("{$tabla}.updated_at", '>=', $f['actualizado_desde']);
         if (! empty($f['id_desde'])) $q->where("{$tabla}.id", '>', (int) $f['id_desde']);
         if (! empty($f['sucursal_id']) && Schema::hasColumn($tabla, 'business_location_id')) $q->where("{$tabla}.business_location_id", (int) $f['sucursal_id']);
-        return $q->select(array_map(fn($c) => "{$tabla}.{$c}", self::columnas($tabla)))->orderBy("{$tabla}.id");
+        if (! empty($f['buscar'])) {
+            $cols = array_intersect(self::BUSCABLES, self::columnas($tabla));
+            $t = '%' . self::normalizar($f['buscar']) . '%';
+            $q->where(function ($w) use ($cols, $tabla, $t) { foreach ($cols as $c) $w->orWhereRaw(self::normalizarSql("CAST({$tabla}.{$c} AS TEXT)") . ' LIKE ?', [$t]); if (! $cols) $w->whereRaw('1 = 0'); });
+        }
+        $cols = self::columnas($tabla);
+        if (! empty($f['columnas'])) $cols = array_values(array_intersect($cols, (array) $f['columnas'])) ?: $cols;
+        return $q->select(array_map(fn($c) => "{$tabla}.{$c}", $cols))->orderBy("{$tabla}.id");
     }
 
     public static function csv(iterable $filas, array $columnas): string

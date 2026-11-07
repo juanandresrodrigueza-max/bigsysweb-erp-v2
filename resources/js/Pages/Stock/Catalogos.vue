@@ -53,7 +53,7 @@
           <label class="flex items-center gap-2"><input v-model="form.iva_incluido" type="checkbox" class="accent-carmin" /> Precios con IVA incluido</label>
           <label class="flex items-center gap-2"><input v-model="form.mostrar_fotos" type="checkbox" class="accent-carmin" /> Fotos</label>
           <label class="flex items-center gap-2"><input v-model="form.mostrar_codigo" type="checkbox" class="accent-carmin" /> Código del artículo</label>
-          <label class="flex items-center gap-2"><input v-model="form.mostrar_stock" type="checkbox" class="accent-carmin" /> Mostrar stock</label>
+          <label class="flex items-center gap-2"><input v-model="form.mostrar_stock" type="checkbox" class="accent-carmin" /> Mostrar stock</label><select v-if="empresas.length > 1" v-model="form.stock_de" class="input !py-1 text-sm" data-e2e="catalogo-stock-de"><option :value="null">Stock de esta empresa</option><option value="todas">Stock sumando todas las empresas</option><option v-for="e in empresas" :key="e.id" :value="String(e.id)">Stock de {{ e.nombre }}</option></select>
           <label class="flex items-center gap-2"><input v-model="form.solo_con_stock" type="checkbox" class="accent-carmin" /> Solo artículos con stock</label>
           <label class="flex items-center gap-2"><input v-model="form.activo" type="checkbox" class="accent-carmin" /> Activo (el link abre)</label>
         </div>
@@ -103,10 +103,10 @@ import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 
-const props = defineProps({ catalogos: Array, rubros: Array, porLista: { type: Object, default: () => ({}) } })
+const props = defineProps({ catalogos: Array, rubros: Array, porLista: { type: Object, default: () => ({}) }, empresas: { type: Array, default: () => [] } })
 const page = usePage()
 const puede = (m, a) => { const p = page.props.auth?.permisos ?? {}; return !!(p['*'] || p[m]?.includes(a)) }
-const vacio = { id: null, nombre: '', lista: 1, rubros: [], iva_incluido: true, mostrar_stock: false, solo_con_stock: false, mostrar_fotos: true, mostrar_codigo: true, nota: '', activo: true }
+const vacio = { id: null, nombre: '', lista: 1, rubros: [], iva_incluido: true, mostrar_stock: false, stock_de: null, solo_con_stock: false, mostrar_fotos: true, mostrar_codigo: true, nota: '', activo: true }
 const form = useForm({ ...vacio })
 const editando = ref(false), borrarConfirmar = ref(false)
 function nuevo() { form.defaults({ ...vacio }); form.reset(); form.clearErrors(); editando.value = true }

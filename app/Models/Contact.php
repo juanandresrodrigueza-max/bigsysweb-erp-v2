@@ -45,6 +45,13 @@ class Contact extends Model
     public function scopeCustomers(Builder $q): Builder { return $q->whereIn('type', ['customer', 'both']); }
     public function scopeSuppliers(Builder $q): Builder { return $q->whereIn('type', ['supplier', 'both']); }
 
+    // Fase 44.7: condición de IVA que no cierra con el CUIT (CF con CUIT de 11 dígitos, o RI sin CUIT).
+    public function scopeIvaDudosa($q)
+    {
+        return $q->where(fn($w) => $w->where(fn($a) => $a->where('condicion_iva', 'Consumidor Final')->whereRaw("LENGTH(REPLACE(REPLACE(COALESCE(cuit, ''), '-', ''), ' ', '')) = 11"))
+            ->orWhere(fn($a) => $a->where('condicion_iva', 'Responsable Inscripto')->where(fn($c) => $c->whereNull('cuit')->orWhere('cuit', ''))));
+    }
+
     public function esConsumidorFinal(): bool { return ! $this->cuit || $this->condicion_iva === 'Consumidor Final'; }
 
     // Tipo de factura según condición IVA de la empresa y del cliente.

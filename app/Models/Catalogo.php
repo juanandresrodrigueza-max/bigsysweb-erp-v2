@@ -11,7 +11,7 @@ class Catalogo extends Model
 {
     use BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'nombre', 'lista', 'rubros', 'iva_incluido', 'mostrar_stock', 'solo_con_stock', 'mostrar_fotos', 'mostrar_codigo', 'nota', 'token', 'vistas', 'visto_en', 'activo', 'user_id'];
+    protected $fillable = ['business_id', 'nombre', 'lista', 'rubros', 'iva_incluido', 'mostrar_stock', 'stock_de', 'solo_con_stock', 'mostrar_fotos', 'mostrar_codigo', 'nota', 'token', 'vistas', 'visto_en', 'activo', 'user_id'];
     protected $casts = ['rubros' => 'array', 'iva_incluido' => 'boolean', 'mostrar_stock' => 'boolean', 'solo_con_stock' => 'boolean', 'mostrar_fotos' => 'boolean', 'mostrar_codigo' => 'boolean', 'activo' => 'boolean', 'visto_en' => 'datetime'];
 
     // Para el envío: el cliente al que se le manda (no se guarda).

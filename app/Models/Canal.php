@@ -16,7 +16,7 @@ class Canal extends Model
     protected $casts = ['credenciales' => 'encrypted:array', 'activo' => 'boolean', 'sync_stock' => 'boolean', 'sync_precios' => 'boolean', 'importar_pedidos' => 'boolean', 'ultimo_sync_en' => 'datetime', 'config' => 'array', 'webhooks' => 'array', 'conectado_en' => 'datetime', 'ultima_importacion_en' => 'datetime'];
 
     // Lo que se decide por tienda: a qué cuenta van las ventas, cuántas unidades se guardan, con qué lista se publica, quién factura.
-    public const CONFIG = ['contact_id' => null, 'colchon' => 0, 'lista' => null, 'factura_por' => null, 'fecha_corte' => null, 'automatico' => false, 'recargo_pct' => 0, 'campos' => ['precio', 'stock', 'nombre', 'descripcion', 'foto', 'categoria'], 'claves_fiscales' => null, 'pausar_en_cero' => true];
+    public const CONFIG = ['contact_id' => null, 'colchon' => 0, 'colchon_modo' => 'fijo', 'lista' => null, 'factura_por' => null, 'fecha_corte' => null, 'automatico' => false, 'recargo_pct' => 0, 'campos' => ['precio', 'stock', 'nombre', 'descripcion', 'foto', 'categoria'], 'claves_fiscales' => null, 'pausar_en_cero' => true];
     public function cfg(?string $k = null, $default = null) { $c = array_replace(self::CONFIG, $this->config ?? []); return $k === null ? $c : ($c[$k] ?? $default); }
     public function tienda(): bool { return in_array($this->tipo, ['mercadolibre', 'woocommerce', 'shopify', 'tiendanube'], true); }
     public function publicaciones(): \Illuminate\Database\Eloquent\Relations\HasMany { return $this->hasMany(Publicacion::class); }

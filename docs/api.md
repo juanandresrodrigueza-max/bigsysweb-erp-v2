@@ -50,7 +50,7 @@ Para alimentar un tablero de BI, pasarle todo al contador o sincronizar con otro
 
 1. `GET /api/exportar` lista las tablas disponibles (clientes, proveedores, artículos, comprobantes de venta y compra con ítems, cobros y pagos con medios e imputaciones, cuenta corriente, gastos, fondos y movimientos, stock, depósitos, sucursales, plan de cuentas, asientos y líneas, cotizaciones) con sus columnas.
 2. `GET /api/exportar/{tabla}` devuelve filas planas paginadas: `datos`, `total`, `pagina`, `ultima_pagina` y `siguiente` (URL de la página que sigue o `null`).
-3. Filtros: `per_page` (hasta 500), `desde` y `hasta` (fecha propia de la tabla), `actualizado_desde` (solo lo creado o modificado desde esa fecha y hora, para sincronizar de forma incremental), `id_desde` (cursor por id para tablas sin fecha de modificación), `sucursal_id`, y `formato=csv` para bajar un archivo CSV completo (separado por `;`, UTF-8 con BOM, listo para Excel).
+3. Filtros: `per_page` (hasta 5000), `buscar` (texto sin importar mayúsculas, tildes ni ñ: `buscar=pena` encuentra «Peña»), `columnas` (solo las que pedís, ej. `columnas=id,name,stock`), `desde` y `hasta` (fecha propia de la tabla), `actualizado_desde` (solo lo creado o modificado desde esa fecha y hora, para sincronizar de forma incremental), `id_desde` (cursor por id para tablas sin fecha de modificación), `sucursal_id`, y `formato=csv` para bajar un archivo CSV completo (separado por `;`, UTF-8 con BOM, listo para Excel).
 
 ```
 curl -H "Authorization: Bearer TU_TOKEN" \
@@ -76,3 +76,7 @@ Marketplaces y sistemas de delivery mandan pedidos a `POST /api/canales/{tipo}/{
 ## Especificación
 
 `GET /api/openapi.json` devuelve la especificación OpenAPI 3 generada desde las rutas reales, lista para importar en Postman, Insomnia o Swagger UI.
+
+### Tokens limitados (Fase 44)
+
+Al crear un token en Configuración → Seguridad podés completar «Solo estas tablas». Ejemplo: `products:id,name,stock; contacts`. Ese token solo puede exportar esas tablas, y en `products` solo esas columnas. Si pide otra tabla, recibe un 403. Si dejás el campo vacío, el token puede exportar todo.

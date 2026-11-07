@@ -12,6 +12,27 @@ class CatalogoService
 {
     public function __construct(private CondicionesClienteService $cond) {}
 
+    // Fase 44.6: stock de otra empresa del grupo (o la suma de todas), por código o nombre. null = el de esta empresa.
+    public static function stockDe(Catalogo $cat): ?array
+    {
+        if (! $cat->stock_de) return null;
+        $ids = $cat->stock_de === 'todas' ? self::grupo($cat->business_id) : array_intersect([(int) $cat->stock_de], self::grupo($cat->business_id));
+        if (! $ids) return null;
+        $m = [];
+        foreach (Product::withoutGlobalScopes()->whereIn('business_id', $ids)->where('active', true)->get(['sku', 'name', 'stock']) as $p) {
+            $k = mb_strtolower($p->sku ?: $p->name); $m[$k] = ($m[$k] ?? 0) + (float) $p->stock;
+        }
+        return $m;
+    }
+
+    // Empresas del grupo: esta y las que manejan sus mismos usuarios.
+    public static function grupo(int $businessId): array
+    {
+        $users = \App\Models\User::withoutGlobalScopes()->where('business_id', $businessId)->pluck('id');
+        $otras = \Illuminate\Support\Facades\DB::table('user_businesses')->whereIn('user_id', $users)->pluck('business_id');
+        return $otras->push($businessId)->map(fn($i) => (int) $i)->unique()->values()->all();
+    }
+
     public function datos(Catalogo $cat, ?Contact $cliente = null): array
     {
         $b = $cat->business;
@@ -25,7 +46,9 @@ class CatalogoService
         $cond = $cliente ? $this->cond->paraCliente($cliente) : null;
         if ($cond && $cond['lista'] < 1) $cond['lista'] = $cat->lista;
 
-        $items = $q->orderBy('name')->get()->map(function (Product $p) use ($cat, $cliente, $cond, $ri) {
+        $otro = self::stockDe($cat);
+        $items = $q->orderBy('name')->get()->map(function (Product $p) use ($cat, $cliente, $cond, $ri, $otro) {
+            if ($otro !== null) $p->stock = $otro[mb_strtolower($p->sku ?: $p->name)] ?? 0;
             if ($cliente) {
                 $k = $this->cond->para($cliente, $p, $cond);
                 $neto = round($k['precio'] * (1 - $k['descuento'] / 100), 2); $origen = $k['origen']; $desc = $k['descuento'];

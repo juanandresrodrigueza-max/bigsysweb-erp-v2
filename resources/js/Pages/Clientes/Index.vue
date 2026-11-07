@@ -18,7 +18,7 @@
     <div class="card mb-4 grid gap-2 sm:grid-cols-4">
       <input v-model="f.buscar" @keyup.enter="filtrar" class="input sm:col-span-2" placeholder="Buscar por nombre, CUIT, email o teléfono…" />
       <select v-model="f.tipo_cliente_id" @change="filtrar" class="input"><option value="">Todos los tipos</option><option v-for="t in tipos" :key="t.id" :value="t.id">{{ t.nombre }}</option></select>
-      <select v-model="f.estado" @change="filtrar" class="input"><option value="activos">Activos</option><option value="deudores">Con saldo</option><option value="inactivos">Inactivos</option></select>
+      <select v-model="f.estado" @change="filtrar" class="input"><option value="activos">Activos</option><option value="deudores">Con saldo</option><option value="inactivos">Inactivos</option><option value="iva">IVA para revisar</option></select>
     </div>
 
     <div class="card p-0 overflow-x-auto">

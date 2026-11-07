@@ -17,7 +17,7 @@
         <div class="grid grid-cols-3 gap-2 mb-3 text-sm">
           <div v-for="k in ['A','B','C']" :key="k" class="rounded-xl p-2.5" :class="{ 'bg-emerald-50': k === 'A', 'bg-amber-50': k === 'B', 'bg-gris-light': k === 'C' }"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ k }} · {{ { A: 'no pueden faltar', B: 'importantes', C: 'el resto' }[k] }}</p><p class="font-extrabold">{{ abc.cantidad[k] }} artículos <span class="font-normal text-marca-muted">· {{ abc.total ? Math.round(abc.monto[k] / abc.total * 100) : 0 }}% de lo facturado</span></p></div>
         </div>
-        <div class="flex gap-1.5 mb-2 text-xs"><button v-for="k in ['todos','A','B','C']" :key="k" class="rounded-full px-2.5 py-1 font-semibold border" :class="filtroAbc === k ? 'bg-marca-texto text-white border-marca-texto' : 'border-marca-borde'" @click="filtroAbc = k">{{ k === 'todos' ? 'Todos' : 'Sólo ' + k }}</button><input v-model="qAbc" class="input !py-1 !text-xs ml-auto w-44" placeholder="Buscar…" /></div>
+        <div class="flex gap-1.5 mb-2 text-xs"><button v-for="k in ['todos','A','B','C']" :key="k" class="rounded-full px-2.5 py-1 font-semibold border" :class="filtroAbc === k ? 'bg-marca-texto text-white border-marca-texto' : 'border-marca-borde'" @click="filtroAbc = k">{{ k === 'todos' ? 'Todos' : 'Sólo ' + k }}</button><select v-model="rubroAbc" class="input !py-1 !text-xs !w-auto ml-auto" data-e2e="abc-rubro"><option value="">Todos los rubros</option><option v-for="r in rubrosAbc" :key="r" :value="r">{{ r }}</option></select><select v-model="ordenAbc" class="input !py-1 !text-xs !w-auto" data-e2e="abc-orden"><option value="facturado">Más facturado</option><option value="mas">Más vendidos (unidades)</option><option value="menos">Menos vendidos</option><option value="nombre">Por nombre</option></select><button class="btn-secondary !py-1 text-xs" @click="excelAbc" data-e2e="abc-excel">Excel</button><input v-model="qAbc" class="input !py-1 !text-xs w-44" placeholder="Buscar…" /></div>
         <div class="max-h-80 overflow-y-auto">
           <table class="table text-xs"><thead><tr><th>Clase</th><th>Artículo</th><th class="text-right">Facturado s/IVA</th><th class="text-right">%</th><th class="text-right">Acum.</th><th class="text-right">Unidades</th><th class="text-right">Stock</th></tr></thead>
             <tbody><tr v-for="i in abcVisibles" :key="i.id"><td><span class="badge" :class="{ 'bg-emerald-50 text-emerald-700': i.clase === 'A', 'bg-amber-50 text-amber-800': i.clase === 'B', 'bg-gris-light text-marca-muted': i.clase === 'C' }">{{ i.clase }}</span></td><td><Link :href="`/stock/${i.id}`" class="hover:text-carmin">{{ i.nombre }}</Link> <span class="text-marca-muted">{{ i.sku }}</span></td><td class="text-right tabular-nums font-semibold">{{ moneda(i.neto, 0) }}</td><td class="text-right tabular-nums">{{ i.pct }}%</td><td class="text-right tabular-nums text-marca-muted">{{ i.acum }}%</td><td class="text-right tabular-nums">{{ cantidad(i.unidades) }}</td><td class="text-right tabular-nums" :class="i.clase === 'A' && i.stock <= 0 ? 'text-carmin font-bold' : ''">{{ cantidad(i.stock) }}</td></tr>
@@ -81,7 +81,21 @@ import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda, cantidad } from '@/util/formato'
 const props = defineProps({ periodo: Object, sucursalId: Number, listaSucursales: Array, abc: Object, cuando: Object, puntos: Object, frenados: Object, vendedores: Object })
 const filtroAbc = ref('todos'), qAbc = ref('')
-const abcVisibles = computed(() => props.abc.items.filter(i => (filtroAbc.value === 'todos' || i.clase === filtroAbc.value) && (!qAbc.value || (i.nombre + ' ' + (i.sku ?? '')).toLowerCase().includes(qAbc.value.toLowerCase()))).slice(0, 200))
+// Fase 44.1: unidades vendidas por producto: todos los del período, por rubro, buscador y orden; la lista que se ve se baja a Excel.
+const rubroAbc = ref(''), ordenAbc = ref('facturado')
+const rubrosAbc = computed(() => [...new Set(props.abc.items.map(i => i.rubro).filter(Boolean))].sort())
+const sinTilde = t => (t ?? '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const abcFiltrados = computed(() => {
+  const l = props.abc.items.filter(i => (filtroAbc.value === 'todos' || i.clase === filtroAbc.value) && (!rubroAbc.value || i.rubro === rubroAbc.value) && (!qAbc.value || sinTilde(i.nombre + ' ' + (i.sku ?? '')).includes(sinTilde(qAbc.value))))
+  const o = { facturado: (a, b) => b.neto - a.neto, mas: (a, b) => b.unidades - a.unidades, menos: (a, b) => a.unidades - b.unidades, nombre: (a, b) => a.nombre.localeCompare(b.nombre) }[ordenAbc.value]
+  return [...l].sort(o)
+})
+const abcVisibles = computed(() => abcFiltrados.value.slice(0, 500))
+function excelAbc() {
+  const esc = v => { const x = v === null || v === undefined ? '' : (typeof v === 'number' ? String(v).replace('.', ',') : String(v)); return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x }
+  const filas = [['Clase', 'Artículo', 'Código', 'Rubro', 'Unidades', 'Facturado sin IVA', '%', 'Acumulado %', 'Stock'], ...abcFiltrados.value.map(i => [i.clase, i.nombre, i.sku, i.rubro, i.unidades, i.neto, i.pct, i.acum, i.stock])]
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + filas.map(f => f.map(esc).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' })); a.download = 'unidades-vendidas' + (filtroAbc.value !== 'todos' ? '-' + filtroAbc.value : '') + '.csv'; a.click(); URL.revokeObjectURL(a.href)
+}
 const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const horas = Array.from({ length: 18 }, (_, i) => i + 6)
 const celda = (d, h) => props.cuando.celdas.find(c => c.d === d && c.h === h)?.monto ?? 0

@@ -22,6 +22,11 @@ class Role extends Model
         return $this->hasMany(User::class);
     }
 
+    // Fase 44.3: las partes del Tablero (Estadísticas). Sin la lista, ve todas.
+    public const PARTES_ESTADISTICAS = ['ventas' => 'Ventas', 'plata' => 'Plata', 'stock' => 'Stock y compras', 'que_hacer' => 'Qué hacer', 'rentabilidad' => 'Rentabilidad', 'vendedores' => 'Vendedores', 'analista' => 'Analista con IA'];
+
+    public function vePartes(): ?array { return is_array($this->permisos) && isset($this->permisos['_estadisticas']) ? (array) $this->permisos['_estadisticas'] : null; }
+
     public function permite(string $modulo, string $accion = 'ver'): bool
     {
         $p = $this->permisos;

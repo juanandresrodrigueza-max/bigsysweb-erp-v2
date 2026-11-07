@@ -45,6 +45,11 @@
               </tr>
             </tbody>
           </table>
+          <!-- Fase 44.3: el Tablero por partes. -->
+          <div v-if="tiene('estadisticas', 'ver')" class="mt-3 rounded-xl bg-gris-light px-3 py-2" data-e2e="partes">
+            <p class="text-xs font-semibold mb-1">Qué partes de Estadísticas ve</p>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm"><label v-for="(n, k) in partes" :key="k" class="flex items-center gap-1"><input type="checkbox" class="accent-carmin" :value="k" v-model="form.partes" /> {{ n }}</label></div>
+          </div>
         </div>
       </form>
       <template #pie>
@@ -63,9 +68,9 @@ import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 
-const props = defineProps({ roles: Array, modulos: Array, acciones: Array })
+const props = defineProps({ roles: Array, modulos: Array, acciones: Array, partes: { type: Object, default: () => ({}) } })
 const modal = ref(false)
-const form = useForm({ id: null, nombre: '', descripcion: '', permisos: {} })
+const form = useForm({ id: null, nombre: '', descripcion: '', permisos: {}, partes: Object.keys(props.partes ?? {}) })
 
 function expandir(p) {
   if (p === '*' || p?.['*'] === '*') return Object.fromEntries(props.modulos.map(m => [m.key, [...props.acciones]]))
@@ -82,7 +87,7 @@ function resumen(r) {
   if (n === props.modulos.length && Object.values(p).every(a => a.length === props.acciones.length)) return 'Acceso total a todos los módulos.'
   return n ? `Accede a ${n} módulo(s): ${Object.keys(p).map(k => props.modulos.find(m => m.key === k)?.label).join(', ')}.` : 'Sin permisos.'
 }
-function abrir(r) { form.clearErrors(); form.id = r?.id ?? null; form.nombre = r?.nombre ?? ''; form.descripcion = r?.descripcion ?? ''; form.permisos = r ? expandir(r.permisos) : {}; modal.value = true }
+function abrir(r) { form.clearErrors(); form.id = r?.id ?? null; form.nombre = r?.nombre ?? ''; form.descripcion = r?.descripcion ?? ''; form.permisos = r ? expandir(r.permisos) : {}; form.partes = r?.permisos?._estadisticas ?? Object.keys(props.partes ?? {}); modal.value = true }
 const tiene = (m, a) => (form.permisos[m] ?? []).includes(a)
 const tieneTodo = m => props.acciones.every(a => tiene(m, a))
 function toggle(m, a) {

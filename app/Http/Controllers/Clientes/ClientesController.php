@@ -21,8 +21,9 @@ class ClientesController extends Controller
             ->when($request->buscar, fn($q, $b) => $q->where(fn($w) => $w->where('name', 'like', "%{$b}%")->orWhere('cuit', 'like', "%{$b}%")->orWhere('email', 'like', "%{$b}%")->orWhere('phone', 'like', "%{$b}%")))
             ->when($request->tipo_cliente_id, fn($q, $t) => $q->where('tipo_cliente_id', $t))
             ->when($request->estado === 'deudores', fn($q) => $q->where('balance', '>', 0.005))
+            ->when($request->estado === 'iva', fn($q) => $q->ivaDudosa())
             ->when($request->estado === 'inactivos', fn($q) => $q->where('is_active', false))
-            ->when(! $request->estado || $request->estado === 'activos', fn($q) => $q->where('is_active', true))
+            ->when(! $request->estado || in_array($request->estado, ['activos', 'iva'], true), fn($q) => $q->where('is_active', true))
             ->orderBy('name');
 
         $totales = ['clientes' => (clone $q)->count(), 'por_cobrar' => (float) (clone $q)->where('balance', '>', 0)->sum('balance')];

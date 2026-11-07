@@ -77,6 +77,15 @@ class Gestion
                 'descripcion' => 'Los pases de mercadería entre sucursales: los que están en viaje, los que llegaron con diferencias, los pedidos de las sucursales sin armar y lo que está en un proveedor por cambio o devolución.',
                 'parametros' => [],
                 'ejecutar' => fn(User $u, array $a) => ['pases' => TransferenciaStock::with('origen', 'destino', 'items.product')->whereIn('estado', ['en_viaje', 'con_diferencias', 'pedido', 'en_proveedor'])->latest('id')->limit(20)->get()->map(fn($t) => app(\App\Services\Stock\PasesService::class)->resumen($t) + ['url' => Busca::url("/stock/pases/{$t->id}")])->map(fn($r) => collect($r)->except('token')->all())->all()]],
+            // Fase 44.2: cuántas unidades salieron de cada artículo, sin plata.
+            ['nombre' => 'lo_que_salio', 'titulo' => 'Lo que salió de cada artículo', 'modulo' => 'estadisticas', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Unidades que salieron de cada artículo (ventas, pases, consumos, ajustes) en los últimos días, sin importes. Sirve para "cuánto salió de tal cosa este mes".',
+                'parametros' => ['dias' => ['type' => 'integer', 'description' => 'Días hacia atrás, por defecto 30.'], 'articulo' => ['type' => 'string']],
+                'ejecutar' => function (User $u, array $a) {
+                    $r = app(\App\Services\Estadisticas\StockComprasService::class)->loQueSalio($u->business, (int) ($a['dias'] ?? 30));
+                    $items = collect($r['items']); if (! empty($a['articulo'])) { $t = mb_strtolower($a['articulo']); $items = $items->filter(fn($i) => str_contains(mb_strtolower($i['nombre'] . ' ' . $i['sku']), $t)); }
+                    return ['dias' => $r['dias'], 'articulos' => $items->take(40)->values()->all(), 'url' => Busca::url('/estadisticas/stock')];
+                }],
             // Fase 42: pedir al depósito y mandar a un proveedor, de palabra.
             ['nombre' => 'pedir_al_deposito', 'titulo' => 'Pedirle mercadería al depósito', 'modulo' => 'stock', 'permiso' => 'crear', 'tipo' => 'accion',
                 'descripcion' => 'La sucursal le pide artículos al depósito ("pedile al depósito 10 bolsas de cemento"). No mueve stock: el depósito arma el pase desde el pedido.',
