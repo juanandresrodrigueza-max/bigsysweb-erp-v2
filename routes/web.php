@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store')->middleware('throttle:login');
+    Route::get('/registro',  [\App\Http\Controllers\Auth\RegistroController::class, 'show'])->name('registro');
+    Route::post('/registro', [\App\Http\Controllers\Auth\RegistroController::class, 'store'])->middleware('throttle:5,60');
     Route::get('/recuperar',               [LoginController::class, 'recuperar'])->name('password.request');
     Route::post('/recuperar',              [LoginController::class, 'enviarRecuperacion'])->middleware('throttle:login');
     Route::get('/restablecer/{token}',     [LoginController::class, 'restablecer'])->name('password.reset');
@@ -151,6 +153,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/sucursal/{id}', [SucursalController::class, 'cambiar'])->whereNumber('id')->name('sucursal.cambiar');
     Route::post('/empresa/{id}',  [\App\Http\Controllers\EmpresaSwitchController::class, 'cambiar'])->whereNumber('id')->name('empresa.cambiar');
     Route::get('/contador/empresas', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'index']);
+    Route::post('/contador/empresas/{id}/enviar', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'enviar'])->middleware('throttle:20,1');
     Route::post('/contador/estudio', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'guardarEstudio']);
     Route::get('/conjuntos/{id}', [\App\Http\Controllers\ConjuntosController::class, 'ver'])->whereNumber('id');
     Route::post('/conjuntos/{id?}', [\App\Http\Controllers\ConjuntosController::class, 'guardar'])->whereNumber('id');

@@ -24,7 +24,7 @@ class EstudioService
     public function guardar(Business $estudio, array $d): void
     {
         $tramos = collect($d['tramos'] ?? self::TRAMOS)->map(fn($t) => ['hasta' => isset($t['hasta']) && $t['hasta'] !== '' && $t['hasta'] !== null ? (int) $t['hasta'] : null, 'precio' => (float) ($t['precio'] ?? 0)])->values()->all();
-        $estudio->estudio = ['es_estudio' => (bool) ($d['es_estudio'] ?? true), 'marca' => $d['marca'] ?? $estudio->name, 'tramos' => $tramos, 'vencimientos' => array_map('intval', $d['vencimientos'] ?? self::VENCIMIENTOS)];
+        $estudio->estudio = ['es_estudio' => (bool) ($d['es_estudio'] ?? true), 'marca' => $d['marca'] ?? $estudio->name, 'tramos' => $tramos, 'vencimientos' => array_map('intval', $d['vencimientos'] ?? self::VENCIMIENTOS), 'mails' => $estudio->estudio['mails'] ?? []];
         $estudio->save();
     }
 
