@@ -47,4 +47,14 @@ class PlanesUsdTest extends ErpTestCase
         $this->empresa->forceFill(['modulos_contratados' => ['sueldos']])->save();
         $this->assertContains('sueldos', $this->empresa->fresh()->modulosActivos());
     }
+
+    public function test_planes_instalar_no_pisa_lo_cambiado(): void
+    {
+        $this->artisan('planes:instalar')->assertSuccessful();
+        Plan::where('slug', 'negocio')->update(['precio_usd' => 120]);
+        $this->artisan('planes:instalar')->assertSuccessful();
+        $this->assertEquals(120, (float) Plan::where('slug', 'negocio')->value('precio_usd'));
+        $this->artisan('planes:instalar', ['--forzar' => true])->assertSuccessful();
+        $this->assertEquals(99, (float) Plan::where('slug', 'negocio')->value('precio_usd'));
+    }
 }
