@@ -172,3 +172,11 @@ Parámetros: **Sólo el precio de compra** (actualiza el costo y no toca los pre
 El pase se cuenta dos veces. **Armar**: elegí de dónde sale y a dónde va, y escaneá lo que va (`3*código` suma tres; las etiquetas de balanza traen el peso). **Enviar**: sale el stock del origen y el pase queda **en viaje** (no está en ninguna de las dos sucursales). **Recibir**: la otra sucursal cuenta lo que llegó y entra eso. Si llegó distinto, queda **con diferencias**, a la vista de las dos; lo que faltó y no va a aparecer se puede devolver al stock del origen.
 
 Cada pase tiene su **PDF de control** y un link para mandarlo por WhatsApp a quien lo recibe. La transferencia directa (de un depósito a otro en el momento) sigue estando.
+
+## Pedidos al depósito y mercadería al proveedor (Stock → Pases)
+
+- **Pedir al depósito:** en Pases elegí **Pedir al depósito**, el depósito al que le pedís y la sucursal que pide, y escaneá. El pedido no mueve stock. El depósito lo ve en la lista, lo abre y toca **Armar el pase con este pedido**: arma el pase con lo pedido al lado y corrige con lo que realmente manda.
+- **A proveedor:** para un cambio o una devolución elegí **A proveedor**, el proveedor y el motivo. La mercadería sale del stock y queda **En el proveedor**. Cuando vuelve, abrilo y contá lo que volvió (entra al mismo depósito); si no vuelve, **No vuelve: cerrar**.
+- **Escanear y poner la cantidad:** al escanear, el cursor queda en la cantidad de ese renglón; Enter vuelve al lector.
+- **Filtros:** por tipo, estado, sucursal, fecha y un buscador por número o artículo.
+- **Pases en viaje:** si un pase lleva más de 2 días en viaje sin que nadie lo reciba, aparece un aviso en Alertas.

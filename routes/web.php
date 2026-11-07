@@ -413,6 +413,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/pases',                     [\App\Http\Controllers\Stock\PasesController::class, 'index']);
         Route::post('/pases/leer',               [\App\Http\Controllers\Stock\PasesController::class, 'leer'])->middleware('permiso:stock,editar');
         Route::post('/pases',                    [\App\Http\Controllers\Stock\PasesController::class, 'enviar'])->middleware('permiso:stock,editar');
+        Route::post('/pases/pedir',              [\App\Http\Controllers\Stock\PasesController::class, 'pedir'])->middleware('permiso:stock,crear');
+        Route::post('/pases/proveedor',          [\App\Http\Controllers\Stock\PasesController::class, 'aProveedor'])->middleware('permiso:stock,editar');
+        Route::post('/pases/{id}/volvio',        [\App\Http\Controllers\Stock\PasesController::class, 'volvio'])->middleware('permiso:stock,editar');
         Route::get('/pases/{id}',                [\App\Http\Controllers\Stock\PasesController::class, 'ver'])->whereNumber('id');
         Route::post('/pases/{id}/recibir',       [\App\Http\Controllers\Stock\PasesController::class, 'recibir'])->middleware('permiso:stock,editar');
         Route::post('/pases/{id}/devolver',      [\App\Http\Controllers\Stock\PasesController::class, 'devolver'])->middleware('permiso:stock,editar');

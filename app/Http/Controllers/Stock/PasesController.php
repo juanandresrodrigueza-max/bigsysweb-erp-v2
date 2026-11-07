@@ -14,10 +14,13 @@ class PasesController extends Controller
 {
     public function __construct(private PasesService $svc) {}
 
-    public function index()
+    public function index(Request $request)
     {
+        $f = $request->only('tipo', 'estado', 'deposito', 'desde', 'hasta', 'q');
         return Inertia::render('Stock/Pases', [
-            'pases' => TransferenciaStock::with('items.product', 'origen', 'destino', 'user')->latest('id')->limit(40)->get()->map(fn($t) => $this->svc->resumen($t)),
+            'pases' => $this->svc->lista($f), 'filtros' => (object) $f, 'estados' => PasesService::ESTADOS,
+            'pedido' => $request->filled('pedido') && ($pd = TransferenciaStock::where('tipo', 'pedido')->where('estado', 'pedido')->find($request->integer('pedido'))) ? $this->svc->resumen($pd) : null,
+            'proveedores' => \App\Models\Contact::suppliers()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'depositos' => Deposito::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
@@ -31,8 +34,31 @@ class PasesController extends Controller
     public function enviar(Request $request)
     {
         $d = $request->validate(['origen_id' => 'required|integer', 'destino_id' => 'required|integer', 'notas' => 'nullable|string|max:300', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|gt:0']);
-        $t = $this->svc->enviar(Deposito::findOrFail($d['origen_id']), Deposito::findOrFail($d['destino_id']), $d['items'], $d['notas'] ?? null);
+        $pedido = $request->filled('pedido_id') ? TransferenciaStock::where('tipo', 'pedido')->findOrFail($request->integer('pedido_id')) : null;
+        $t = $this->svc->enviar(Deposito::findOrFail($d['origen_id']), Deposito::findOrFail($d['destino_id']), $d['items'], $d['notas'] ?? null, $pedido);
         return redirect("/stock/pases/{$t->id}")->with('success', "Pase {$t->numeroFormateado()} enviado: el stock ya salió de {$t->origen->nombre}.");
+    }
+
+    // Fase 42.1: la sucursal pide al depósito; 42.2: cambio o devolución a un proveedor.
+    public function pedir(Request $request)
+    {
+        $d = $request->validate(['origen_id' => 'required|integer', 'destino_id' => 'required|integer', 'notas' => 'nullable|string|max:300', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|gt:0']);
+        $t = $this->svc->pedir(Deposito::findOrFail($d['origen_id']), Deposito::findOrFail($d['destino_id']), $d['items'], $d['notas'] ?? null);
+        return redirect("/stock/pases/{$t->id}")->with('success', "Pedido {$t->numeroFormateado()} hecho: el depósito lo ve en Pases para armarlo.");
+    }
+
+    public function aProveedor(Request $request)
+    {
+        $d = $request->validate(['origen_id' => 'required|integer', 'contact_id' => 'required|integer', 'notas' => 'nullable|string|max:300', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|gt:0']);
+        $t = $this->svc->aProveedor(Deposito::findOrFail($d['origen_id']), \App\Models\Contact::suppliers()->findOrFail($d['contact_id']), $d['items'], $d['notas'] ?? null);
+        return redirect("/stock/pases/{$t->id}")->with('success', "{$t->numeroFormateado()}: la mercadería salió a la cuenta de cambios de {$t->contacto->name}.");
+    }
+
+    public function volvio(Request $request, int $id)
+    {
+        $d = $request->validate(['conteos' => 'nullable|array', 'conteos.*' => 'nullable|numeric|min:0', 'cerrar' => 'boolean', 'notas' => 'nullable|string|max:300']);
+        $t = $this->svc->volvioDelProveedor(TransferenciaStock::findOrFail($id), $d['conteos'] ?? [], (bool) ($d['cerrar'] ?? false), $d['notas'] ?? null);
+        return back()->with('success', $t->estado === 'cerrado' ? 'Cerrado: la mercadería no vuelve.' : 'Listo: lo que volvió entró al stock.');
     }
 
     public function ver(int $id)
