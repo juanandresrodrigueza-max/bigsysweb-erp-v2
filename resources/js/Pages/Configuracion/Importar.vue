@@ -3,6 +3,28 @@
     <h1 class="page-title mb-4">Configuración</h1>
     <ConfigTabs />
 
+    <div class="card mb-4" data-e2e="bigconnect">
+      <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Traer todo desde BIG Connect</h2><span class="badge" :class="bigconnect?.conectado ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light'">{{ bigconnect?.conectado ? 'Conectado · ' + bigconnect.clave + (bigconnect.ultima ? ' · última migración ' + bigconnect.ultima : '') : 'Sin conectar' }}</span></div>
+      <p class="text-sm text-marca-muted mt-1">Para clientes de BigSys que ya usan BIG Connect: proveedores, clientes, artículos con sus 6 listas y stock, y lo que cada cuenta tiene impago, comprobante por comprobante. Sin exportar planillas. Se puede repetir el día del corte: actualiza, no duplica.</p>
+      <form class="grid sm:grid-cols-[1fr_1fr_8rem_auto] gap-2 items-end mt-3" @submit.prevent="bc.post('/configuracion/importar/bigconnect', { preserveScroll: true, onSuccess: () => bc.reset('clave') })">
+        <div><label class="label">Dirección del Hub</label><input v-model="bc.url" class="input" placeholder="https://hub.bigsys.com.ar" /></div>
+        <div><label class="label">Clave de API (bk_…)</label><input v-model="bc.clave" type="password" autocomplete="off" class="input font-mono" :placeholder="bigconnect?.conectado ? 'Dejala vacía para mantenerla' : 'bk_…'" /></div>
+        <div><label class="label">Empresa</label><input v-model="bc.empresa" class="input" placeholder="e01" /></div>
+        <button class="btn-secondary" :disabled="bc.processing">{{ bc.processing ? 'Probando…' : 'Conectar' }}</button>
+      </form>
+      <p v-if="bc.errors.url || bc.errors.clave" class="text-sm text-carmin mt-1">{{ bc.errors.url || bc.errors.clave }}</p>
+      <div v-if="bigconnect?.conectado" class="flex flex-wrap gap-2 mt-3">
+        <button class="btn-secondary" :disabled="mig.processing" @click="migrar(true)" data-e2e="bc-prueba">{{ mig.processing ? 'Trayendo…' : '1. Probar sin guardar' }}</button>
+        <button class="btn-primary" :disabled="mig.processing || !migracion?.prueba" :title="migracion?.prueba ? '' : 'Primero hacé la prueba'" @click="migrar(false)" data-e2e="bc-migrar">2. Migrar de verdad</button>
+      </div>
+      <div v-if="migracion" class="mt-4" data-e2e="bc-resultado">
+        <p class="text-sm font-semibold" :class="migracion.prueba ? 'text-violeta' : 'text-emerald-700'">{{ migracion.prueba ? 'Resultado de la prueba (no se guardó nada)' : 'Migración guardada' }}</p>
+        <div class="overflow-x-auto"><table class="w-full text-sm mt-2"><thead><tr class="text-left text-marca-muted"><th class="py-1">Qué</th><th>En BigSys</th><th>Nuevos</th><th>Actualizados</th><th>Con error</th></tr></thead>
+          <tbody><tr v-for="p in migracion.pasos" :key="p.paso" class="border-t border-marca-borde/60"><td class="py-1">{{ p.que }}</td><td>{{ p.en_bigsys }}</td><td>{{ p.creadas }}</td><td>{{ p.actualizadas }}</td><td :class="p.errores ? 'text-carmin font-semibold' : ''">{{ p.errores }}<span v-if="p.detalle?.length" class="block text-xs font-normal">{{ p.detalle.join(' · ') }}</span></td></tr></tbody></table></div>
+        <p v-if="migracion.cuenta_contado" class="text-xs text-marca-muted mt-1">No se traen {{ migracion.cuenta_contado }} cuenta(s) de contado / consumidor final: en el ERP ya existe.</p>
+      </div>
+    </div>
+
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="card lg:col-span-2">
         <h2 class="font-bold mb-1">Traer tus datos del sistema anterior o de Excel</h2>
@@ -91,7 +113,11 @@ import { router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
 import { hoyISO } from '@/util/formato'
-const props = defineProps({ entidades: Array, historial: Array })
+const props = defineProps({ entidades: Array, historial: Array, bigconnect: Object, migracion: Object })
+// Fase 41: migrar desde BIG Connect (primero la prueba, después la de verdad).
+const bc = useForm({ url: props.bigconnect?.url ?? '', clave: '', empresa: props.bigconnect?.empresa ?? '' })
+const mig = useForm({ prueba: true })
+function migrar(prueba) { mig.prueba = prueba; mig.post('/configuracion/importar/bigconnect/migrar', { preserveScroll: true }) }
 const page = usePage()
 const preview = computed(() => page.props.flash?.preview)
 const entidadActual = computed(() => props.entidades.find(e => e.key === (preview.value?.entidad ?? sub.entidad)) ?? props.entidades[0])

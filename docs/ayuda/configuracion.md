@@ -60,6 +60,17 @@ Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente 
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.
 
+## Migrar desde BIG Connect (lo más rápido)
+
+Si el cliente ya usa BIG Connect, sus datos se traen directo, sin exportar planillas.
+
+1. En BIG Connect → **Importar y exportar → API**, generá una clave con acceso completo (empieza con `bk_`) y copiá la dirección del Hub.
+2. En el ERP → **Configuración → Importar**, tarjeta **Traer todo desde BIG Connect**: pegá la dirección, la clave y, si tiene varias, la empresa (`e01`, `e02`…). **Conectar** prueba que la clave sirva.
+3. **Probar sin guardar**: trae todo y muestra cuántos proveedores, clientes, artículos y saldos entrarían, nuevos o actualizados, y los que tienen error. No guarda nada.
+4. **Migrar de verdad**: lo mismo, guardando. Se puede repetir el día del corte: lo que ya está se actualiza, no se duplica.
+
+Qué trae: proveedores y clientes con su código de BigSys, CUIT, condición de IVA, lista, descuento, vendedor y límite de crédito; artículos con las 6 listas (netas), costo, IVA, stock y mínimo; y lo impago de cada cuenta comprobante por comprobante, con su vencimiento. La cuenta de contado no se trae porque en el ERP ya existe. También se le puede pedir a Bigcito: «probá la migración desde BIG Connect».
+
 ## Migrar desde BigSys (Clarion)
 
 En Configuración → Importar elegí "Viene de: BigSys (Clarion)". Los nombres de las columnas del BigSys viejo se reconocen solos. Conviene importar en este orden: clientes, proveedores, artículos y por último los saldos.

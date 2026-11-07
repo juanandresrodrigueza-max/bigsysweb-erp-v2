@@ -195,6 +195,21 @@ class Gestion
                 'confirmar' => function (User $u, array $d) { $r = app(\App\Services\Sueldos\RecibosFirmaService::class)->enviarLiquidacion(Liquidacion::findOrFail($d['id']), $u->business()->first(), (bool) $d['faltan']); return ['texto' => count($r) . ' recibos enviados.' . (collect($r)->where('sin_contacto', true)->count() ? ' Sin mail ni teléfono: ' . collect($r)->where('sin_contacto', true)->pluck('empleado')->implode(', ') . '.' : '')]; }],
 
             // ---- Fase 39: varias empresas ----
+            // Fase 41: migrar a un cliente de BigSys desde BIG Connect.
+            ['nombre' => 'migrar_desde_bigconnect', 'titulo' => 'Traer los datos desde BIG Connect', 'modulo' => 'configuracion', 'permiso' => 'editar', 'tipo' => 'accion', 'delicada' => true,
+                'descripcion' => 'Trae proveedores, clientes, artículos, stock y saldos impagos desde BIG Connect (BigSys). Con prueba=true sólo dice qué pasaría, sin guardar. Requiere la conexión cargada en Configuración → Importar.',
+                'parametros' => ['prueba' => ['type' => 'boolean', 'description' => 'true = simular sin guardar (recomendado primero)']],
+                'proponer' => function (User $u, array $a) {
+                    $c = app(\App\Services\Migracion\BigConnectService::class)->config($u->business()->first());
+                    if (! $c['conectado']) return ['error' => 'Todavía no está conectado BIG Connect: cargá la dirección y la clave en Configuración → Importar.', 'url' => Busca::url('/configuracion/importar')];
+                    $p = (bool) ($a['prueba'] ?? true);
+                    return ['titulo' => $p ? 'Probar la migración desde BIG Connect (no guarda nada)' : 'Migrar de verdad desde BIG Connect', 'detalle' => 'Proveedores, clientes, artículos con sus listas y stock, y saldos por comprobante. Lo que ya existe se actualiza, no se duplica.', 'datos' => ['prueba' => $p]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $r = app(\App\Services\Migracion\BigConnectService::class)->migrar($u->business()->first(), $d['prueba']);
+                    return ['texto' => ($r['prueba'] ? 'Prueba (sin guardar): ' : 'Migrado: ') . collect($r['pasos'])->map(fn($p) => "{$p['que']} {$p['en_bigsys']} ({$p['creadas']} nuevos, {$p['actualizadas']} actualizados" . ($p['errores'] ? ", {$p['errores']} con error" : '') . ')')->implode('; ') . '.',
+                        '_tabla' => ['columnas' => ['Qué', 'En BigSys', 'Nuevos', 'Actualizados', 'Con error'], 'filas' => array_map(fn($p) => [$p['que'], $p['en_bigsys'], $p['creadas'], $p['actualizadas'], $p['errores']], $r['pasos'])]];
+                }],
             // Fase 40.5: avisos al celular, novedades, parte de la mañana y mejoras.
             ['nombre' => 'novedades_bigsys', 'titulo' => 'Novedades de BigSys', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Lo nuevo que trae el sistema (la campanita de novedades), sin las que la persona pospuso.',
