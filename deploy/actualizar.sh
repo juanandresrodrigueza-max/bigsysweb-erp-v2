@@ -7,7 +7,7 @@ REPO=https://github.com/juanandresrodrigueza-max/bigsysweb-erp-v2.git
 
 echo "== Buscando dónde está instalado el ERP…"
 # Es el proyecto Laravel que tiene el catálogo de Bigcito (app/Mcp/Catalogo.php): así no se confunde con el CRM.
-DIRS=$(find / -xdev \( -path /proc -o -path /var/lib/docker -o -path /var/lib/containerd -o -path '*/node_modules' \) -prune -o -name Catalogo.php -path '*/app/Mcp/*' -print 2>/dev/null | sed 's#/app/Mcp/Catalogo.php##' | grep -v '/vendor/' | sort -u)
+DIRS=$(find / -xdev \( -path /proc -o -path /tmp -o -path /root/.claude -o -path /var/lib/docker -o -path /var/lib/containerd -o -path '*/node_modules' \) -prune -o -name Catalogo.php -path '*/app/Mcp/*' -print 2>/dev/null | sed 's#/app/Mcp/Catalogo.php##' | grep -v '/vendor/' | sort -u)
 [ -n "$DIRS" ] || { echo "No encontré el ERP en el disco. Mandale esta pantalla a Claude."; exit 1; }
 if [ "$(echo "$DIRS" | wc -l)" -gt 1 ]; then echo "Encontré más de una copia:"; echo "$DIRS"; echo "Mandale esta pantalla a Claude."; exit 1; fi
 DIR=$DIRS; cd "$DIR"; echo "   Está en: $DIR"
