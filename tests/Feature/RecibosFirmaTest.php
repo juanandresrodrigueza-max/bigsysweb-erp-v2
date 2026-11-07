@@ -98,4 +98,24 @@ class RecibosFirmaTest extends ErpTestCase
         $c = app(RecibosFirmaService::class)->costoLaboral();
         $this->assertCount(1, $c['meses']); $this->assertEqualsWithDelta((float) $l->total_bruto + (float) $l->total_no_rem + (float) $l->total_contribuciones, $c['total'], 0.01);
     }
+
+    public function test_recibo_escaneado_lo_lee_la_ia_y_asigna_solo_por_numero_exacto(): void
+    {
+        Storage::fake();
+        [, $ana] = $this->liquidacion();
+        $this->empresa->forceFill(['ia_settings' => ['api_key' => 'sk-test', 'modelo' => 'claude-haiku-5-5']])->save();
+        \Illuminate\Support\Facades\Http::fake(['api.anthropic.com/*' => \Illuminate\Support\Facades\Http::sequence()
+            ->push(['content' => [['type' => 'text', 'text' => "Empleado: PEREZ ANA\nCUIL: 27-30111222-3\nPeríodo: Septiembre 2026"]]])
+            ->push(['content' => [['type' => 'text', 'text' => 'Empleado: alguien parecido a Ana']]])]);
+        // Dos hojas que son sólo imagen: sin texto adentro, como un escaneo.
+        $img = '<img src="' . self::FIRMA_PNG . '" style="width:200px">';
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML("<div>{$img}</div><div style=\"page-break-before:always\">" . str_replace('200px', '120px', $img) . '</div>')->output();
+        $this->post('/sueldos/externos', ['archivo' => UploadedFile::fake()->createWithContent('escaneado.pdf', $pdf)]);
+        $rs = ReciboExterno::orderBy('pagina')->get(); $this->assertCount(2, $rs);
+        $this->assertSame([$ana->id, 'cuil_ia'], [$rs[0]->empleado_id, $rs[0]->identificado_por]);
+        $this->assertSame('2026-09', $rs[0]->periodo);
+        $this->assertNull($rs[1]->empleado_id, 'Sin número exacto no se asigna por parecido');
+    }
+
+    private const FIRMA_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 }

@@ -55,7 +55,7 @@ class RecibosController extends Controller
     {
         $d = $request->validate(['archivo' => 'required|file|max:30720|mimes:pdf', 'periodo' => 'nullable|date_format:Y-m']);
         $r = $this->svc->importarPdf($request->file('archivo')->getRealPath(), $request->file('archivo')->getClientOriginalName(), $d['periodo'] ?? null);
-        return back()->with($r['sin_asignar'] ? 'error' : 'success', "Separé {$r['hojas']} hojas: {$r['asignadas']} asignadas" . ($r['sin_asignar'] ? ", {$r['sin_asignar']} para que me digas de quién son" : '') . ($r['hojas'] > $r['nuevas'] ? ' (' . ($r['hojas'] - $r['nuevas']) . ' ya estaban)' : '') . '.');
+        return back()->with($r['sin_asignar'] ? 'error' : 'success', "Separé {$r['hojas']} hojas: {$r['asignadas']} asignadas" . ($r['sin_asignar'] ? ", {$r['sin_asignar']} para que me digas de quién son" : '') . (($r['leidas_ia'] ?? 0) ? " ({$r['leidas_ia']} escaneadas leídas con IA)" : '') . ($r['hojas'] > $r['nuevas'] ? ' (' . ($r['hojas'] - $r['nuevas']) . ' ya estaban)' : '') . '.');
     }
 
     public function asignar(Request $request, int $id)
