@@ -58,7 +58,7 @@ class LecturaCompraService
             $it['por'] = $it['por'] ?? (! empty($it['product_id']) ? 'ia' : null);
             $cod = trim((string) ($it['codigo'] ?? '')); $desc = ProveedorArticulo::normalizar((string) ($it['descripcion'] ?? ''));
             $ap = ($cod !== '' ? $aprendidos->first(fn($a) => $a->codigo && mb_strtolower($a->codigo) === mb_strtolower($cod)) : null) ?? ($desc !== '' ? $aprendidos->first(fn($a) => $a->descripcion === $desc) : null);
-            if ($ap && isset($productos[$ap->product_id])) { $it['product_id'] = $ap->product_id; $it['por'] = 'aprendido'; if ($ap->unidades_bulto && empty($it['unidades_bulto'])) $it['unidades_bulto'] = $ap->unidades_bulto; }
+            if ($ap && isset($productos[$ap->product_id])) { $it['product_id'] = $ap->product_id; $it['por'] = 'aprendido'; if ($ap->unidades_bulto && empty($it['unidades_bulto'])) $it['unidades_bulto'] = $ap->unidades_bulto; if ($ap->divisor && empty($it['divisor'])) $it['divisor'] = (float) $ap->divisor; }
             // Sin IA ni memoria: por código de barras o por código exacto.
             if (empty($it['product_id']) && $cod !== '') { $pr = $productos->first(fn($p) => ($p->barcode && $p->barcode === $cod) || ($p->sku && mb_strtolower($p->sku) === mb_strtolower($cod))); if ($pr) { $it['product_id'] = $pr->id; $it['por'] = 'codigo'; } }
         }
@@ -99,6 +99,23 @@ class LecturaCompraService
             if ($n > 1 && ($porBulto || ! empty($it['bulto_deducido']) || ($costo > 0 && $precio > $costo * 2.5))) {
                 $it['cantidad'] = round((float) $it['cantidad'] * $n, 3); $it['precio_unit'] = round($precio / $n, 4); $it['bulto'] = $n;
                 $avisos[] = 'Bulto de ' . $n . ': «' . trim((string) $it['descripcion']) . '» pasó a unidades (' . ($it['cantidad']) . ' × $ ' . number_format($it['precio_unit'], 2, ',', '.') . ')' . (! empty($it['bulto_deducido']) ? ' porque el precio era como ' . $n . ' veces el costo' : '') . '.';
+            }
+        }
+        unset($it);
+
+        // 4b) Fase 42.5: el proveedor factura por metro (o kilo) y el artículo es la pieza («Caño 4 m»): la cantidad se divide
+        // por el largo y el precio se multiplica. Lo aprendido de ese proveedor manda; si no, sale del nombre del artículo.
+        foreach ($items as &$it) {
+            $p = ! empty($it['product_id']) ? ($productos[$it['product_id']] ?? null) : null; if (! $p || ! empty($it['bulto'])) continue;
+            $div = (float) ($it['divisor'] ?? 0);
+            if (! $div) {
+                $porMedida = preg_match('/^(m|mt|mts|metro|metros|ml|kg|kgs|kilo|kilos)\.?$/i', trim((string) ($it['unidad'] ?? ''))) || preg_match('/\b(x|por)\s*(m|mt|mts|metro|kg|kilo)\b/i', (string) ($it['descripcion'] ?? ''));
+                if ($porMedida && preg_match('/(\d+(?:[.,]\d+)?)\s*(m|mts|metros|kg|kilos)\b/i', $p->name, $m)) $div = (float) str_replace(',', '.', $m[1]);
+            }
+            if ($div > 1) {
+                $cant = round((float) $it['cantidad'] / $div, 3); $precio = round((float) ($it['precio_unit'] ?? 0) * $div, 4);
+                $avisos[] = '«' . trim((string) $it['descripcion']) . '» viene por medida: ' . $it['cantidad'] . ' ÷ ' . rtrim(rtrim(number_format($div, 2, '.', ''), '0'), '.') . ' = ' . $cant . ' × «' . $p->name . '»';
+                $it['cantidad'] = $cant; $it['precio_unit'] = $precio; $it['divisor'] = $div;
             }
         }
         unset($it);
@@ -170,7 +187,7 @@ class LecturaCompraService
             if (empty($it['product_id']) || trim((string) ($it['descripcion'] ?? '')) === '') continue;
             $desc = ProveedorArticulo::normalizar((string) $it['descripcion']); $cod = trim((string) ($it['codigo'] ?? '')) ?: null;
             $pa = ProveedorArticulo::firstOrNew(['contact_id' => $prov->id, 'descripcion' => $desc], ['business_id' => $prov->business_id]);
-            $pa->fill(['product_id' => $it['product_id'], 'codigo' => $cod ?? $pa->codigo, 'unidades_bulto' => $it['bulto'] ?? $pa->unidades_bulto, 'ultimo_costo' => (float) ($it['precio_unit'] ?? 0) * (1 - (float) ($it['descuento'] ?? 0) / 100), 'ultima_fecha' => $fecha])->save();
+            $pa->fill(['product_id' => $it['product_id'], 'codigo' => $cod ?? $pa->codigo, 'unidades_bulto' => $it['bulto'] ?? $pa->unidades_bulto, 'divisor' => $it['divisor'] ?? $pa->divisor, 'ultimo_costo' => (float) ($it['precio_unit'] ?? 0) * (1 - (float) ($it['descuento'] ?? 0) / 100), 'ultima_fecha' => $fecha])->save();
             if (! empty($it['bulto']) && ($p = Product::find($it['product_id'])) && ! $p->unidades_bulto) $p->forceFill(['unidades_bulto' => (int) $it['bulto']])->saveQuietly();
         }
     }

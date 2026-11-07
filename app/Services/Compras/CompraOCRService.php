@@ -22,8 +22,8 @@ class CompraOCRService
 Sos un lector de facturas de compra argentinas para un ERP. Extraé los datos del comprobante y devolvé SOLO JSON con esta forma:
 {"proveedor":{"nombre":"","cuit":"30-12345678-9","condicion_iva":""},"tipo":"FA|FB|FC|NCA|NCB|NCC|NDA|NDB|NDC","numero":"0003-00012345","fecha":"YYYY-MM-DD","fecha_vto":"YYYY-MM-DD o null","cae":"",
 "items":[{"product_id":123 o null,"descripcion":"","cantidad":1,"precio_unit":0,"alicuota_iva":21,"descuento":0}],
-"neto":0,"iva":0,"percepciones":[{"tipo":"iibb_cba|iva|ganancias|otro","monto":0}],"total":0,"confianza":0.0-1.0,"observaciones":""}
-Reglas: la letra del tipo es la letra grande del comprobante (A, B, C). En facturas B y C el precio unitario ya incluye IVA: pasalo a neto dividiendo por 1.21 y poné alicuota 21. Matcheá cada ítem con el catálogo (id|sku|nombre|unidad) solo si es claramente el mismo artículo; si no, product_id null. Nunca inventes datos: si algo no se lee, null.
+"neto":0,"iva":0,"percepciones":[{"tipo":"iibb_cba|iva|ganancias|otro","monto":0}],"total":0,"facturas_en_archivo":1,"confianza":0.0-1.0,"observaciones":""}
+Reglas: la letra del tipo es la letra grande del comprobante (A, B, C). En facturas B y C el precio unitario ya incluye IVA: pasalo a neto dividiendo por 1.21 y poné alicuota 21. Matcheá cada ítem con el catálogo (id|sku|nombre|unidad) solo si es claramente el mismo artículo; si no, product_id null. Nunca inventes datos: si algo no se lee, null. Si el archivo trae más de un comprobante distinto (otro número u otro proveedor), leé sólo el primero y poné en facturas_en_archivo cuántos hay.
 Catálogo:
 {$catalogo}
 TXT;
@@ -51,6 +51,8 @@ TXT;
         $cuit = isset($json['proveedor']['cuit']) ? preg_replace('/\D/', '', $json['proveedor']['cuit']) : null;
         $prov = $cuit ? Contact::suppliers()->get()->first(fn($c) => preg_replace('/\D/', '', (string) $c->cuit) === $cuit) : null;
 
-        return ['ok' => true, 'datos' => $json, 'proveedor_id' => $prov?->id, 'proveedor_nuevo' => ! $prov && ! empty($json['proveedor']['nombre'])];
+        // Fase 42.7: dos facturas mandadas juntas no se mezclan: se lee la primera y se avisa.
+        if ((int) ($json['facturas_en_archivo'] ?? 1) > 1) $json['observaciones'] = trim('El archivo trae ' . (int) $json['facturas_en_archivo'] . ' facturas distintas: se leyó sólo la primera. Cargá las otras por separado. ' . ($json['observaciones'] ?? ''));
+        return ['ok' => true, 'aviso_varias' => (int) ($json['facturas_en_archivo'] ?? 1) > 1, 'datos' => $json, 'proveedor_id' => $prov?->id, 'proveedor_nuevo' => ! $prov && ! empty($json['proveedor']['nombre'])];
     }
 }

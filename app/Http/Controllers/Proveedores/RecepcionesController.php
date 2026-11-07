@@ -109,9 +109,10 @@ class RecepcionesController extends Controller
 
     public function config(Request $request)
     {
-        $d = $request->validate(['exigir_control' => 'required|boolean']);
+        $d = $request->validate(['exigir_control' => 'sometimes|boolean', 'fecha_ingreso' => 'sometimes|in:carga,comprobante']);
         $b = $request->user()->business;
         $b->update(['compras_config' => array_replace($b->compras_config ?? [], $d)]);
+        if (array_key_exists('fecha_ingreso', $d)) return back()->with('success', $d['fecha_ingreso'] === 'comprobante' ? 'La mercadería entra con la fecha del comprobante.' : 'La mercadería entra con el día en que se carga.');
         return back()->with('success', $d['exigir_control'] ? 'Desde ahora las compras con mercadería se controlan con la pistola antes de registrarse.' : 'El control con la pistola queda opcional.');
     }
 }

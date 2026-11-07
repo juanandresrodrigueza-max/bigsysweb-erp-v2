@@ -463,6 +463,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/precios/masivo',           [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'aplicar'])->middleware('permiso:stock,editar');
         Route::post('/precios/datos/previsualizar', [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'previsualizarDatos'])->middleware('permiso:stock,editar');
         Route::post('/precios/datos',            [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'aplicarDatos'])->middleware('permiso:stock,editar');
+        Route::post('/precios/stock/previsualizar', [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'previsualizarStock'])->middleware('permiso:stock,editar');
+        Route::post('/precios/stock',            [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'aplicarStock'])->middleware('permiso:stock,editar');
         Route::post('/precios/deshacer/{id}',    [\App\Http\Controllers\Stock\PreciosMasivosController::class, 'deshacer'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::post('/precios/previsualizar', [\App\Http\Controllers\Stock\StockController::class, 'previsualizarPrecios'])->middleware('permiso:stock,editar');
         Route::post('/precios/deshacer', [\App\Http\Controllers\Stock\StockController::class, 'deshacerPrecios'])->middleware('permiso:stock,editar');

@@ -20,7 +20,7 @@ class PreciosMasivosController extends Controller
             'rubros' => Rubro::orderBy('nombre')->get(['id', 'nombre', 'parent_id']),
             'proveedores' => Contact::suppliers()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'marcas' => \App\Models\Product::whereNotNull('marca')->where('marca', '!=', '')->distinct()->orderBy('marca')->pluck('marca')->take(200),
-            'campos' => PreciosMasivosService::CAMPOS_DATOS, 'historial' => $this->svc->historial(),
+            'campos' => PreciosMasivosService::CAMPOS_DATOS, 'depositos' => \App\Models\Deposito::where('activo', true)->orderByDesc('es_default')->orderBy('nombre')->get(['id', 'nombre']), 'historial' => $this->svc->historial(),
             'ids' => array_values(array_filter(array_map('intval', (array) $request->query('ids', [])))),
             'inicial' => $request->only('que', 'rubro_id', 'proveedor_id', 'texto'),
         ]);
@@ -73,5 +73,19 @@ class PreciosMasivosController extends Controller
         $q = trim((string) $request->q); if ($q === '') return response()->json([]);
         $like = \App\Support\Sql::like();
         return response()->json(\App\Models\Product::where('active', true)->where(fn($w) => $w->where('name', $like, "%{$q}%")->orWhere('sku', $like, "%{$q}%")->orWhere('barcode', $like, "%{$q}%"))->orderBy('name')->limit(20)->get(['id', 'name', 'sku', 'price', 'cost'])->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'precio' => (float) $p->price, 'costo' => (float) $p->cost]));
+    }
+
+    // Fase 42.3: ajustar stock con una planilla (código y stock que queda), viendo antes las diferencias.
+    public function previsualizarStock(Request $request, \App\Services\Stock\ImportacionPreciosService $lector)
+    {
+        $d = $request->validate(['archivo' => 'required|file|max:10240|mimes:csv,txt,xlsx', 'deposito_id' => 'required|integer']);
+        return response()->json($this->svc->previsualizarStock($lector->leer($d['archivo']->getRealPath(), $d['archivo']->getClientOriginalName(), 20000), $d['deposito_id']));
+    }
+
+    public function aplicarStock(Request $request)
+    {
+        $d = $request->validate(['deposito_id' => 'required|integer', 'cambios' => 'required|array|min:1', 'cambios.*.product_id' => 'required|integer', 'cambios.*.nuevo' => 'required|numeric']);
+        $n = $this->svc->aplicarStock($d['cambios'], $d['deposito_id']);
+        return back()->with('success', "Listo: el stock de {$n} artículos quedó como dice la planilla.");
     }
 }

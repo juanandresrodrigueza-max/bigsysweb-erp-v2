@@ -44,7 +44,8 @@ class CompraService
             $c->fill([
                 'contact_id' => $proveedor->id, 'tipo' => $data['tipo'], 'numero_proveedor' => $numero ?: null, 'cae_proveedor' => $data['cae_proveedor'] ?? null,
                 'solo_stock' => (bool) ($data['solo_stock'] ?? ($c->exists ? $c->solo_stock : false)), 'solo_contable' => (bool) ($data['solo_contable'] ?? ($c->exists ? $c->solo_contable : false)), 'remito_id' => $data['remito_id'] ?? $c->remito_id,
-                'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id, 'orden_compra_id' => $data['orden_compra_id'] ?? $c->orden_compra_id,
+                'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id, 'orden_compra_id' => $data['orden_compra_id'] ?? ($data['ordenes_compra'][0] ?? null) ?? $c->orden_compra_id, 'ordenes_compra' => $data['ordenes_compra'] ?? $c->ordenes_compra,
+                'stock_en_business_id' => array_key_exists('stock_en_business_id', $data) ? $this->empresaStockValida($data['stock_en_business_id']) : $c->stock_en_business_id,
                 'fecha' => $data['fecha'], 'fecha_vto' => isset($data['fecha_vto']) && $data['fecha_vto'] ? $data['fecha_vto'] : \Carbon\Carbon::parse($data['fecha'])->addDays($dias),
                 'condicion' => $data['condicion'] ?? 'cta_cte', 'notas' => $data['notas'] ?? null,
                 'moneda' => $moneda = strtoupper($data['moneda'] ?? 'ARS'),
@@ -109,7 +110,10 @@ class CompraService
                 CuentaCorriente::recalcularSaldo($c->contact_id);
             }
 
-            if ($c->def()['stock'] && ! $c->solo_contable) {
+            // Fase 42.6: la mercadería entra en otra empresa del grupo. La factura queda acá, sólo contable, y el costo se actualiza allá.
+            if ($c->def()['stock'] && ! $c->solo_contable && $c->stock_en_business_id) {
+                $this->entrarEnOtraEmpresa($c);
+            } elseif ($c->def()['stock'] && ! $c->solo_contable) {
                 $sentido = $c->esNotaCredito() ? -1 : 1; // compra entra, NC de compra devuelve
                 $deposito = \App\Models\Deposito::porDefecto($c->business_location_id);
                 foreach ($c->items as $it) {
@@ -123,12 +127,14 @@ class CompraService
                         $p->save();
                     }
                     // Si se controló con la pistola, entra lo contado (lo pendiente no entra hasta que se aclare).
-                    $this->stock->mover($p, $sentido * (float) ($it->cantidad_recibida ?? $it->cantidad), $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id, ['lote' => $it->lote, 'vencimiento' => $it->vencimiento, 'serie' => $it->serie]);
+                    $mov = $this->stock->mover($p, $sentido * (float) ($it->cantidad_recibida ?? $it->cantidad), $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id, ['lote' => $it->lote, 'vencimiento' => $it->vencimiento, 'serie' => $it->serie]);
+                    // Fase 42.7: el ingreso con la fecha del comprobante, si el negocio lo prefiere (si no, el día en que se carga).
+                    if ($mov && $this->fechaIngresoDelComprobante($c)) $mov->forceFill(['created_at' => $c->fecha->copy()->setTimeFrom(now())])->saveQuietly();
                 }
                 $c->forceFill(['stock_impactado' => true])->save();
             }
 
-            if ($c->orden_compra_id) app(\App\Services\Compras\OrdenCompraService::class)->marcarRecibido($c);
+            if ($c->orden_compra_id || $c->ordenes_compra) app(\App\Services\Compras\OrdenCompraService::class)->marcarRecibido($c);
             if ($c->esNotaCredito()) $rs->cerrarConNotaCredito($c->fresh(['items']));
             AuditLog::registrar('crear', $c, "Registró compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->contact?->name}");
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'compra.registrada', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
@@ -164,5 +170,50 @@ class CompraService
             app(\App\Services\Contabilidad\ContabilidadService::class)->anular('compra', $c->id, $motivo);
             return $c;
         });
+    }
+
+    private function fechaIngresoDelComprobante(Comprobante $c): bool
+    {
+        return (app(RecepcionService::class)->config($c->business)['fecha_ingreso'] ?? 'carga') === 'comprobante';
+    }
+
+    // Sólo una empresa a la que la persona tiene acceso, y que no sea ésta.
+    private function empresaStockValida($id): ?int
+    {
+        if (! $id) return null;
+        $u = Auth::user();
+        abort_unless($u && (int) $id !== (int) $u->business_id && $u->empresasAccesibles()->contains('id', (int) $id), 422, 'No tenés acceso a esa empresa.');
+        return (int) $id;
+    }
+
+    // Los artículos se buscan allá por código, barras o nombre; lo que no existe se crea con el costo de la factura.
+    private function entrarEnOtraEmpresa(Comprobante $c): void
+    {
+        $destino = \App\Models\Business::findOrFail($c->stock_en_business_id);
+        $items = $c->items->filter(fn($i) => $i->product_id)->map(fn($i) => ['p' => Product::find($i->product_id), 'cant' => (float) ($i->cantidad_recibida ?? $i->cantidad), 'costo' => (float) $i->precio_unit * (1 - (float) $i->descuento / 100)])->filter(fn($x) => $x['p']);
+        $origen = "Compra {$c->nombreTipo()} {$c->numeroFormateado()} de {$c->business?->name} (factura en la central)";
+        self::comoEmpresa($destino, function () use ($items, $origen, $c) {
+            $dep = \App\Models\Deposito::porDefecto(Auth::user()->current_location_id);
+            foreach ($items as $x) {
+                $src = $x['p'];
+                $p = ($src->sku ? Product::where('sku', $src->sku)->first() : null) ?? ($src->barcode ? Product::where('barcode', $src->barcode)->first() : null) ?? Product::where('name', $src->name)->first()
+                    ?? Product::create(['name' => $src->name, 'sku' => $src->sku, 'barcode' => $src->barcode, 'unit' => $src->unit, 'iva' => $src->iva, 'cost' => $x['costo'], 'price' => $src->price, 'controla_stock' => true, 'active' => true]);
+                $p->cost = $x['costo']; $p->recalcularDesdeCosto(); $p->save();
+                $mov = $this->stock->mover($p, $c->esNotaCredito() ? -$x['cant'] : $x['cant'], $dep, $c->esNotaCredito() ? 'out' : 'in', $origen, null, $x['costo']);
+                if ($mov && $this->fechaIngresoDelComprobante($c)) $mov->forceFill(['created_at' => $c->fecha->copy()->setTimeFrom(now())])->saveQuietly();
+            }
+        });
+        $c->forceFill(['stock_impactado' => true, 'notas' => trim(($c->notas ?? '') . " · La mercadería entró en {$destino->name}")])->save();
+        AuditLog::registrar('editar', $c, "La mercadería de {$c->numeroFormateado()} entró en {$destino->name}");
+    }
+
+    // Trabajar un momento como otra empresa del grupo (el aislamiento por empresa sale del usuario) y volver.
+    public static function comoEmpresa(\App\Models\Business $b, callable $fn)
+    {
+        $u = Auth::user();
+        [$bid, $loc] = [$u->business_id, $u->current_location_id];
+        $u->business_id = $b->id;
+        $u->current_location_id = \App\Models\BusinessLocation::withoutGlobalScopes()->where('business_id', $b->id)->orderByDesc('is_default')->value('id');
+        try { return $fn(); } finally { $u->business_id = $bid; $u->current_location_id = $loc; $u->syncOriginalAttributes(['business_id', 'current_location_id']); }
     }
 }

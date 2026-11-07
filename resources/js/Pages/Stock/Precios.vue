@@ -126,6 +126,22 @@
         <p v-if="!historial.length" class="text-sm text-marca-muted">Todavía no hiciste ningún cambio masivo.</p>
       </div>
     </div>
+    <div class="card mt-4" data-e2e="ajustar-stock">
+      <h2 class="font-bold">Ajustar stock con una planilla</h2>
+      <p class="text-sm text-marca-muted">Una planilla con dos columnas: el código (o código de barras) y el stock que queda. Ves la diferencia de cada artículo antes de grabar; cada ajuste queda con tu nombre.</p>
+      <div class="flex flex-wrap gap-2 items-end mt-2">
+        <label class="text-sm">Depósito<select v-model="aj.deposito_id" class="input"><option v-for="d in depositos" :key="d.id" :value="d.id">{{ d.nombre }}</option></select></label>
+        <input type="file" accept=".csv,.txt,.xlsx" class="text-sm" @change="aj.archivo = $event.target.files[0]" data-e2e="aj-archivo" />
+        <button class="btn-secondary" :disabled="!aj.archivo || aj.cargando" @click="verAjuste">{{ aj.cargando ? 'Leyendo…' : 'Ver diferencias' }}</button>
+      </div>
+      <div v-if="aj.prev" class="mt-3">
+        <p v-if="aj.prev.no_encontrados.length" class="text-xs text-carmin mb-1">No encontré: {{ aj.prev.no_encontrados.slice(0, 15).join(', ') }}{{ aj.prev.no_encontrados.length > 15 ? '…' : '' }}</p>
+        <div class="overflow-x-auto max-h-80"><table class="table text-sm"><thead><tr><th>Artículo</th><th class="text-right">Hay</th><th class="text-right">Queda</th><th class="text-right">Diferencia</th></tr></thead>
+          <tbody><tr v-for="c in aj.prev.cambios" :key="c.product_id"><td>{{ c.articulo }} <span class="text-xs text-marca-muted">{{ c.codigo }}</span></td><td class="text-right tabular-nums">{{ c.actual }}</td><td class="text-right tabular-nums font-semibold">{{ c.nuevo }}</td><td class="text-right tabular-nums" :class="c.diferencia < 0 ? 'text-carmin' : 'text-emerald-700'">{{ c.diferencia > 0 ? '+' : '' }}{{ c.diferencia }}</td></tr>
+            <tr v-if="!aj.prev.cambios.length"><td colspan="4" class="text-center text-marca-muted py-4">El stock ya está como dice la planilla.</td></tr></tbody></table></div>
+        <button v-if="aj.prev.cambios.length" class="btn-primary mt-2" @click="router.post('/stock/precios/stock', { deposito_id: aj.prev.deposito_id, cambios: aj.prev.cambios }, { preserveScroll: true, onSuccess: () => aj.prev = null })" data-e2e="aj-aplicar">Dejar el stock de {{ aj.prev.cambios.length }} artículos como dice la planilla</button>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -135,7 +151,10 @@ import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { moneda } from '@/util/formato'
 
-const props = defineProps({ rubros: Array, proveedores: Array, marcas: Array, campos: Object, historial: Array, ids: Array, inicial: Object })
+const props = defineProps({ rubros: Array, proveedores: Array, marcas: Array, campos: Object, historial: Array, ids: Array, inicial: Object, depositos: { type: Array, default: () => [] } })
+// Fase 42.3: ajustar stock con una planilla.
+const aj = reactive({ deposito_id: props.depositos[0]?.id ?? null, archivo: null, prev: null, cargando: false })
+async function verAjuste() { aj.cargando = true; try { const fd = new FormData(); fd.append('archivo', aj.archivo); fd.append('deposito_id', aj.deposito_id); aj.prev = (await window.axios.post('/stock/precios/stock/previsualizar', fd)).data } finally { aj.cargando = false } }
 
 const ques = [
   { k: 'precios', t: 'Cambiar precios', d: 'Subir, bajar, poner margen o un precio exacto.' },
