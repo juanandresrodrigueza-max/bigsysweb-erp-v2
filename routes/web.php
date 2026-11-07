@@ -789,6 +789,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/importar',              [\App\Http\Controllers\Configuracion\ImportarController::class, 'index'])->middleware('permiso:configuracion,editar');
         Route::post('/importar/previsualizar', [\App\Http\Controllers\Configuracion\ImportarController::class, 'previsualizar'])->middleware('permiso:configuracion,editar');
         Route::post('/importar/aplicar',     [\App\Http\Controllers\Configuracion\ImportarController::class, 'aplicar'])->middleware('permiso:configuracion,editar');
+        Route::post('/importar/bigconnect',  [\App\Http\Controllers\Configuracion\ImportarController::class, 'bigconnectConectar'])->middleware('permiso:configuracion,editar');
+        Route::post('/importar/bigconnect/migrar', [\App\Http\Controllers\Configuracion\ImportarController::class, 'bigconnectMigrar'])->middleware(['permiso:configuracion,editar', 'throttle:6,1']);
         Route::get('/importar/plantilla/{entidad}', [\App\Http\Controllers\Configuracion\ImportarController::class, 'plantilla']);
         Route::get('/importar/exportar/{entidad}',  [\App\Http\Controllers\Configuracion\ImportarController::class, 'exportar'])->middleware('permiso:configuracion,exportar');
         Route::get('/datos',                 [\App\Http\Controllers\Configuracion\DatosController::class, 'index']);

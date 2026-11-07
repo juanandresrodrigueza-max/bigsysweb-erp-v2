@@ -15,6 +15,8 @@ class ImportarController extends Controller
     {
         return Inertia::render('Configuracion/Importar', [
             'entidades' => collect(ImportadorService::ENTIDADES)->map(fn($e, $k) => ['key' => $k, 'label' => $e['label'], 'campos' => $e['campos']])->values(),
+            'bigconnect' => app(\App\Services\Migracion\BigConnectService::class)->config(auth()->user()->business()->first()),
+            'migracion' => session('migracion'),
             'historial' => Importacion::with('user:id,name')->latest()->limit(10)->get()->map(fn($i) => ['id' => $i->id, 'fecha' => $i->created_at->format('d/m/Y H:i'), 'entidad' => ImportadorService::ENTIDADES[$i->entidad]['label'] ?? $i->entidad, 'archivo' => $i->archivo, 'leidas' => $i->leidas, 'creadas' => $i->creadas, 'actualizadas' => $i->actualizadas, 'errores' => $i->errores, 'detalle' => $i->detalle, 'usuario' => $i->user?->name]),
         ]);
     }
@@ -50,5 +52,21 @@ class ImportarController extends Controller
         abort_if(! isset(ImportadorService::PLANTILLAS[$entidad]), 404);
         \App\Models\AuditLog::registrar('exportar', null, "Exportó {$entidad} a CSV");
         return response($svc->exportarCsv($entidad), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => "attachment; filename={$entidad}_" . today()->toDateString() . '.csv']);
+    }
+
+    // Fase 41: traer los datos del cliente de BigSys directo desde BIG Connect.
+    public function bigconnectConectar(Request $request, \App\Services\Migracion\BigConnectService $svc)
+    {
+        $d = $request->validate(['url' => 'required|string|max:200', 'clave' => 'nullable|string|max:60', 'empresa' => 'nullable|string|max:40']);
+        $r = $svc->conectar($request->user()->business()->first(), $d['url'], $d['clave'] ?? null, $d['empresa'] ?? null);
+        return back()->with('success', "Conectado con BIG Connect (empresa {$r['empresa']}, {$r['tablas']} tablas). Hacé primero la prueba.");
+    }
+
+    public function bigconnectMigrar(Request $request, \App\Services\Migracion\BigConnectService $svc)
+    {
+        $d = $request->validate(['prueba' => 'boolean', 'pasos' => 'nullable|array', 'pasos.*' => 'in:' . implode(',', array_keys(\App\Services\Migracion\BigConnectService::PASOS))]);
+        @set_time_limit(600);
+        $r = $svc->migrar($request->user()->business()->first(), (bool) ($d['prueba'] ?? true), $d['pasos'] ?? []);
+        return back()->with('migracion', $r)->with('success', $r['prueba'] ? 'Prueba terminada: no se guardó nada. Revisá el resultado abajo.' : 'Migración terminada.');
     }
 }
