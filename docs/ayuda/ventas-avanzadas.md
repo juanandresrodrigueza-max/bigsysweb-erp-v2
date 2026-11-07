@@ -92,3 +92,12 @@ Aparece todo lo pendiente de entregar, agrupado por cliente: facturas con entreg
 **El link del chofer**: mandáselo por WhatsApp. Sin usuario, desde el celular: **Salí**, en cada parada **Entregué** (quién lo recibió y una foto) o **No se pudo** (con el motivo). Mientras tiene la página abierta, manda su ubicación cada 15 segundos. Al entregar, sale el remito por lo que llevó (o el retiro del acopio) y baja el stock. Lo que no se pudo **vuelve a pendientes** para el próximo viaje.
 
 **El link del cliente** (en cada parada, "copiar link del cliente"): el cliente ve si su pedido se está preparando, está en camino o se entregó, cuántas entregas faltan antes de la suya y a cuántos km está el camión.
+
+## Camiones, choferes y el registro del reparto
+
+- **Camiones y choferes** (al armar el viaje, en *Camiones y choferes*): una lista con nombre y patente de cada camión y cada chofer. Al armar se eligen de la lista, y en un viaje ya armado se cambian desde su pantalla.
+- **Usuario chofer:** creá el usuario con el perfil **Chofer** (Configuración → Usuarios) y asignáselo al chofer en la lista. Al entrar ve sólo sus repartos y no ocupa un usuario del plan. Sin usuario, sigue andando con el link del chofer.
+- **Foto del remito firmado:** al entregar, es obligatoria y queda guardada en la parada. Se puede apagar en *Camiones y choferes*.
+- **Buscar la dirección:** en las paradas a mano, el buscador muestra primero los clientes ya ubicados, después direcciones cerca del negocio, con los km. También acepta un link de Google Maps.
+- **Registro del reparto:** en cada viaje se ve a qué hora salió y terminó, los km recorridos, qué pasó en cada parada (quién recibió, a qué hora, con foto o el motivo si no se pudo) y el recorrido real del camión en Google Maps.
+- **Buscar repartos:** en Entregas, por número de factura, cliente o chofer.

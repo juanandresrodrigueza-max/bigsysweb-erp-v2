@@ -136,6 +136,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
 
 Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/', fn() => redirect(request()->user()?->is_superadmin && ! request()->user()->business_id ? '/admin' : '/dashboard'));
+    Route::get('/mis-repartos', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'misRepartos']); // Fase 43.2: el chofer
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permiso:dashboard')->name('dashboard');
     Route::get('/integraciones/crm/ir', [\App\Http\Controllers\Integraciones\CrmHandoffController::class, 'ir']);
     Route::get('/primeros-pasos',            [\App\Http\Controllers\OnboardingController::class, 'index']);
@@ -194,6 +195,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/entregas',                [\App\Http\Controllers\Comprobantes\EntregasController::class, 'ordenes']);
         Route::get('/entregas/armar',          [\App\Http\Controllers\Comprobantes\RepartoController::class, 'armar']);
         Route::post('/entregas/armar',         [\App\Http\Controllers\Comprobantes\RepartoController::class, 'crear'])->middleware('permiso:comprobantes,crear');
+        Route::post('/entregas/reparto-config', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'guardarConfig'])->middleware('permiso:comprobantes,editar');
+        Route::post('/entregas/{id}/asignar',  [\App\Http\Controllers\Comprobantes\RepartoController::class, 'asignar'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
+        Route::get('/entregas/direccion',      [\App\Http\Controllers\Comprobantes\RepartoController::class, 'direccion'])->middleware('throttle:60,1');
         Route::post('/entregas/origen',        [\App\Http\Controllers\Comprobantes\RepartoController::class, 'origen'])->middleware('permiso:comprobantes,editar');
         Route::post('/entregas/{id}/ordenar',  [\App\Http\Controllers\Comprobantes\RepartoController::class, 'ordenar'])->middleware('permiso:comprobantes,editar')->whereNumber('id');
         Route::post('/entregas/{id}/reordenar', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'reordenar'])->middleware('permiso:comprobantes,editar')->whereNumber('id');

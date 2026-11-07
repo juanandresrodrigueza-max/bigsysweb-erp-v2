@@ -35,10 +35,12 @@ class EntregasController extends Controller
 
     public function ordenes(Request $request)
     {
-        $q = OrdenEntrega::withCount('items')->when($request->estado, fn($q, $e) => $q->where('estado', $e), fn($q) => $q->whereIn('estado', ['pendiente', 'en_curso']))->orderByDesc('fecha')->orderByDesc('id');
+        // Fase 43.4: buscar repartos por factura, cliente o chofer (en todos los estados).
+        $q = $request->filled('q') ? OrdenEntrega::withCount('items')->whereIn('id', app(\App\Services\Ventas\RepartoService::class)->buscarRepartos($request->q)->pluck('id'))->orderByDesc('fecha')->orderByDesc('id')
+            : OrdenEntrega::withCount('items')->when($request->estado, fn($q, $e) => $q->where('estado', $e), fn($q) => $q->whereIn('estado', ['pendiente', 'en_curso']))->orderByDesc('fecha')->orderByDesc('id');
         return Inertia::render('Comprobantes/Entregas', [
             'ordenes' => $q->limit(50)->get()->map(fn($o) => ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'fecha' => $o->fecha->format('d/m/Y'), 'repartidor' => $o->repartidor, 'estado' => $o->estado, 'items' => $o->items_count, 'entregados' => $o->items()->where('estado', 'entregado')->count()]),
-            'filtros' => $request->only('estado'), 'estados' => OrdenEntrega::ESTADOS,
+            'filtros' => $request->only('estado', 'q'), 'estados' => OrdenEntrega::ESTADOS,
             // Candidatos: facturas con entrega pendiente y remitos emitidos de los últimos 60 días no incluidos en hojas abiertas
             'candidatos' => Comprobante::ventas()->emitidos()->with('contact:id,name,address,city')->where(fn($q) => $q->where('tipo', 'REM')->orWhere(fn($w) => $w->facturas()->where('entrega_pendiente', true)))->where('fecha', '>=', today()->subDays(60))
                 ->whereNotIn('id', OrdenEntregaItem::whereHas('hoja', fn($q) => $q->whereIn('estado', ['pendiente', 'en_curso']))->pluck('comprobante_id'))->orderByDesc('fecha')->get()
@@ -66,6 +68,7 @@ class EntregasController extends Controller
                     'saldo' => (float) ($i->comprobante?->saldo ?? 0), 'saldo_cliente' => (float) ($i->comprobante?->contact?->balance ?? 0),
                     'cobros' => $oe->cobros->where('orden_entrega_item_id', $i->id)->values()->map(fn($c) => ['id' => $c->id, 'medio' => $c->medio, 'monto' => (float) $c->monto, 'referencia' => $c->referencia, 'datos' => $c->datos, 'recibo' => $c->cobro?->numeroFormateado(), 'cobro_id' => $c->cobro_id])])],
             'estados' => OrdenEntrega::ESTADOS, 'carga' => $rep->planillaCarga($oe), 'maps' => $rep->maps($oe), 'link_chofer' => $oe->token_chofer ? url("/reparto/{$oe->token_chofer}") : null,
+            'registro' => $rep->registro($oe), 'reparto' => $rep->config(),
             'posicion' => $oe->ultima_lat !== null ? ['lat' => $oe->ultima_lat, 'lng' => $oe->ultima_lng, 'hace' => $oe->ultima_pos_en?->diffForHumans()] : null,
             'rendicion' => $oe->rendida_en ? ($oe->rendicion + ['fecha' => $oe->rendida_en->format('d/m/Y H:i')]) : null,
             'esperado' => $rend->esperado($oe), 'medios' => \App\Models\OrdenEntregaCobro::MEDIOS,

@@ -89,6 +89,12 @@ return [
             'descripcion' => 'Stock, remitos y producción.',
             'permisos' => ['dashboard' => ['ver'], 'stock' => ['ver', 'crear', 'editar', 'exportar'], 'produccion' => ['ver', 'crear', 'editar'], 'alertas' => ['ver']],
         ],
+        // Fase 43.2: el chofer entra sólo a sus repartos (no ocupa un usuario del plan).
+        'chofer' => [
+            'nombre' => 'Chofer',
+            'descripcion' => 'Ve sólo sus repartos desde el celular. No ocupa un usuario del plan.',
+            'permisos' => ['dashboard' => ['ver']],
+        ],
         'mozo' => [
             'nombre' => 'Mozo',
             'descripcion' => 'Mesas y comandas de su sucursal.',

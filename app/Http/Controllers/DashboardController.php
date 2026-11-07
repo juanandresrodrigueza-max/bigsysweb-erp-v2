@@ -16,6 +16,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        if ($request->user()->role?->slug === 'chofer') return redirect('/mis-repartos'); // Fase 43.2: el chofer va directo a sus repartos
         if (! $request->user()->business_id) return redirect($request->user()->is_superadmin ? '/admin' : '/login');
         $user     = $request->user();
         $periodo  = $request->input('periodo', 'mes');

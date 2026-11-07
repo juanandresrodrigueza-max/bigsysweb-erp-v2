@@ -114,6 +114,7 @@ class FondosService
         if (abs($contado - $esperado) > 0.005) {
             $this->registrar($turno->cuenta, ['origen' => 'ajuste', 'origen_id' => $turno->id, 'concepto' => 'Diferencia de cierre de turno', 'ingreso' => max(0, $contado - $esperado), 'egreso' => max(0, $esperado - $contado)]);
         }
+        app(CierreAlertasService::class)->revisar($turno->fresh(['cuenta', 'user'])); // Fase 43.5
         AuditLog::registrar('editar', $turno, "Cerró turno en {$turno->cuenta->nombre}: esperado $ " . number_format($esperado, 2, ',', '.') . ", contado $ " . number_format($contado, 2, ',', '.'));
         return $turno->fresh();
     }

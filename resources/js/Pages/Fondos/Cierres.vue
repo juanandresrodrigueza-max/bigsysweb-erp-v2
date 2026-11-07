@@ -52,8 +52,25 @@
     </div>
 
     <div class="card p-0 overflow-x-auto">
-      <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">Cierres</h2><span class="text-xs text-marca-muted">Tocá un cierre para ver el detalle por medio de pago</span></div>
-      <table class="table text-sm">
+      <div class="px-4 py-3 border-b border-marca-borde flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Cierres</h2><div class="flex items-center gap-2 text-xs"><span class="text-marca-muted">Tocá un cierre para ver el detalle por medio de pago</span><button class="px-2.5 py-1 rounded-full border" :class="vista === 'turnos' ? 'bg-violeta text-white border-violeta' : 'border-marca-borde'" @click="vista = 'turnos'">Cada cierre</button><button class="px-2.5 py-1 rounded-full border" :class="vista === 'dias' ? 'bg-violeta text-white border-violeta' : 'border-marca-borde'" @click="vista = 'dias'" data-e2e="por-dia">Por día</button></div></div>
+      <!-- Fase 43.6: cierres por día: quién cerró y a qué hora; con varios cierres, «×N» abre cada uno con su plata y sus comprobantes. -->
+      <table v-if="vista === 'dias'" class="table text-sm" data-e2e="cierres-dia">
+        <thead><tr><th>Día</th><th>Caja</th><th>Quién cerró</th><th class="text-right">Comprobantes</th><th class="text-right">Cobros</th><th class="text-right">Contado</th><th class="text-right">Diferencia</th></tr></thead>
+        <tbody>
+          <template v-for="d in porDiaCaja" :key="d.clave">
+            <tr class="hover:bg-gris-light/40" :class="d.turnos.length > 1 ? 'cursor-pointer' : ''" @click="d.turnos.length > 1 && (diaAbierto = diaAbierto === d.clave ? null : d.clave)">
+              <td class="tabular-nums">{{ d.fecha }}</td><td>{{ d.caja }}</td>
+              <td>{{ d.turnos.map(t => t.cajero + ' ' + t.hora_cierre).join(' · ') }} <span v-if="d.turnos.length > 1" class="badge bg-violeta/10 text-violeta ml-1">×{{ d.turnos.length }}</span></td>
+              <td class="text-right tabular-nums">{{ d.comprobantes }}</td><td class="text-right tabular-nums text-emerald-700">{{ moneda(d.cobros, 0) }}</td><td class="text-right tabular-nums">{{ moneda(d.contado, 0) }}</td>
+              <td class="text-right tabular-nums font-bold" :class="Math.abs(d.diferencia) < 0.005 ? 'text-emerald-700' : 'text-carmin'">{{ Math.abs(d.diferencia) < 0.005 ? 'justo' : moneda(d.diferencia, 0) }}</td>
+            </tr>
+            <template v-if="diaAbierto === d.clave"><tr v-for="t in d.turnos" :key="t.id" class="bg-gris-light/40 text-xs"><td></td><td colspan="2">{{ t.cajero }} · {{ t.apertura }} → {{ t.cierre }}</td><td class="text-right tabular-nums">{{ t.comprobantes }}</td><td class="text-right tabular-nums">{{ moneda(t.cobros, 0) }}</td><td class="text-right tabular-nums">{{ moneda(t.contado, 0) }}</td><td class="text-right tabular-nums">{{ moneda(t.diferencia, 0) }}</td></tr></template>
+          </template>
+          <tr v-if="porDiaCaja.length" class="font-bold border-t-2 border-marca-borde"><td colspan="3">Total</td><td class="text-right tabular-nums">{{ porDiaCaja.reduce((a, d) => a + d.comprobantes, 0) }}</td><td class="text-right tabular-nums">{{ moneda(porDiaCaja.reduce((a, d) => a + d.cobros, 0), 0) }}</td><td class="text-right tabular-nums">{{ moneda(porDiaCaja.reduce((a, d) => a + d.contado, 0), 0) }}</td><td class="text-right tabular-nums">{{ moneda(porDiaCaja.reduce((a, d) => a + d.diferencia, 0), 0) }}</td></tr>
+          <tr v-else><td colspan="7" class="text-center text-marca-muted py-8">Sin cierres en el período.</td></tr>
+        </tbody>
+      </table>
+      <table v-else class="table text-sm">
         <thead><tr><th>Caja</th><th>Cajero</th><th>Turno</th><th class="text-right">Inicial</th><th class="text-right">Cobros</th><th class="text-right">Gastos</th><th class="text-right">Retiros</th><th class="text-right">Esperado</th><th class="text-right">Contado</th><th class="text-right">Diferencia</th><th></th></tr></thead>
         <tbody>
           <template v-for="t in turnos" :key="t.id">
@@ -114,6 +131,12 @@ async function subirPlanilla(f) { if (!f) return; pl.error = null; pl.r = null; 
 const f = reactive({ ...props.filtros })
 function filtrar() { router.get('/fondos/cierres', { desde: f.desde, hasta: f.hasta, caja: f.caja || undefined, cajero: f.cajero || undefined, solo_dif: f.solo_dif ? 1 : undefined }, { preserveState: true }) }
 const abierto = ref(null)
+const vista = ref('turnos'), diaAbierto = ref(null)
+const porDiaCaja = computed(() => {
+  const g = {}
+  for (const t of props.turnos) { const k = t.dia + '|' + t.caja; (g[k] ??= { clave: k, dia: t.dia, fecha: t.dia.split('-').reverse().slice(0, 2).join('/'), caja: t.caja, turnos: [], comprobantes: 0, cobros: 0, contado: 0, diferencia: 0 }); const d = g[k]; d.turnos.push(t); d.comprobantes += t.comprobantes ?? 0; d.cobros += t.cobros; d.contado += t.contado; d.diferencia += t.diferencia }
+  return Object.values(g).sort((a, b) => b.dia.localeCompare(a.dia))
+})
 const W = 760, H = 140, bw = computed(() => Math.max(3, W / Math.max(1, props.porDia.length) - 4))
 const max = computed(() => Math.max(1, ...props.porDia.map(d => Math.abs(d.diferencia))))
 const y = v => H / 2 - (v / max.value) * (H / 2 - 6)

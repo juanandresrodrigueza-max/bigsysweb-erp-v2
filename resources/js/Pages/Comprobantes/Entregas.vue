@@ -11,6 +11,7 @@
 
     <div class="card mb-4 flex gap-2 items-center">
       <select :value="filtros.estado ?? ''" @change="$inertia.visit(`/comprobantes/entregas?estado=${$event.target.value}`)" class="input w-auto"><option value="">Abiertas</option><option v-for="(l, k) in estados" :key="k" :value="k">{{ l }}</option></select>
+      <form class="flex gap-1 ml-auto" @submit.prevent="$inertia.visit(`/comprobantes/entregas?q=${encodeURIComponent(buscar)}`)"><input v-model="buscar" class="input !w-56" placeholder="Buscar por factura, cliente o chofer" data-e2e="buscar-reparto" /><button class="btn-secondary">Buscar</button></form>
     </div>
 
     <div class="card p-0 overflow-x-auto">
@@ -54,7 +55,8 @@ import Modal from '@/Components/Modal.vue'
 import { hoyISO } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-defineProps({ ordenes: Array, filtros: Object, estados: Object, candidatos: Array })
+const props = defineProps({ ordenes: Array, filtros: Object, estados: Object, candidatos: Array })
+const buscar = ref(props.filtros?.q ?? '')
 const { puede } = usePermisos()
 const nuevaAbierta = ref(false)
 const nf = useForm({ fecha: hoyISO(), repartidor: '', vehiculo: '', notas: '', comprobantes: [] })
