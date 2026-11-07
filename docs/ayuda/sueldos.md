@@ -61,6 +61,8 @@ Al lado de cada recibo se ve el estado: enviado, lo vio, firmado o firmó discon
 
 Si liquidás con otro programa o lo hace el contador, subí el **PDF de la liquidación entera** en Firmas y recibos → Recibos externos. El sistema lo **separa por hoja**, lee cada una y la asigna a su empleado por **CUIL, DNI o legajo** (y por último por el nombre). Lo que no pudo asignar te lo pregunta. Si subís el mismo PDF otra vez, aunque tenga otro nombre, no se duplica. Después se mandan y se firman igual que los de acá.
 
+**Recibos escaneados:** cuando la hoja es una foto y no tiene texto adentro, la IA de la empresa la lee y saca el nombre, el CUIL, el DNI, el legajo y el período. Con eso la asigna, pero **solo si el número coincide exacto**; nunca la asigna por parecido. En la lista figura «leído con IA». Necesita la clave de IA cargada en Configuración → IA. Si no está, la hoja queda para que la asignes a mano.
+
 ## Datos del período y costo laboral
 
 En **Datos del período** cargás una vez por mes la **fecha de pago** y el **último depósito jubilatorio** (fecha, banco y mes), y salen en todos los recibos del período. Al lado, el **costo laboral de los últimos 12 meses**: bruto, no remunerativo y contribuciones del empleador, mes por mes.

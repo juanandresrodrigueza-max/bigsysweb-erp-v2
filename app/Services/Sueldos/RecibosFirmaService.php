@@ -108,6 +108,9 @@ class RecibosFirmaService
         $u = Auth::user(); $hash = sha1_file($path);
         if ($ya = ReciboExterno::where('hash_archivo', $hash)->first()) throw ValidationException::withMessages(['archivo' => "Ese PDF ya se subió el " . $ya->created_at->format('d/m/Y') . " (como «{$ya->archivo_origen}»). No se duplica aunque tenga otro nombre."]);
         $paginas = $this->separar($path);
+        // Hojas escaneadas (sin texto): la IA las transcribe; después se asignan igual, sólo por número exacto.
+        $ia = 0;
+        foreach ($paginas as $k => $pg) if (preg_replace('/\s+/u', '', $pg['texto']) === '' && ($t = $this->leerConIa($pg['pdf']))) { $paginas[$k]['texto'] = $t; $paginas[$k]['ia'] = true; $ia++; }
         $empleados = Empleado::all(); $creados = []; $asig = 0;
         DB::transaction(function () use ($paginas, $empleados, $hash, $nombre, $periodo, $u, &$creados, &$asig) {
             foreach ($paginas as $n => $pg) {
@@ -115,12 +118,28 @@ class RecibosFirmaService
                 if (ReciboExterno::where('hash_pagina', $hp)->exists()) continue; // la misma hoja en otro archivo
                 $dest = "sueldos/{$u->business_id}/externos/" . Str::random(20) . '.pdf'; Storage::put($dest, $pg['pdf']);
                 [$emp, $por] = $this->identificar($pg['texto'], $empleados);
+                if ($emp && ! empty($pg['ia'])) $por .= '_ia';
                 $creados[] = ReciboExterno::create(['business_id' => $u->business_id, 'empleado_id' => $emp?->id, 'periodo' => $periodo ?? $this->periodoEnTexto($pg['texto']), 'archivo_origen' => $nombre, 'hash_archivo' => $hash, 'pagina' => $n + 1, 'hash_pagina' => $hp, 'path' => $dest, 'texto' => mb_substr($pg['texto'], 0, 20000), 'identificado_por' => $por, 'user_id' => $u->id, 'token' => Str::random(40)]);
                 if ($emp) $asig++;
             }
         });
         AuditLog::registrar('crear', null, "Subió recibos de sueldo externos ({$nombre}): " . count($paginas) . " hojas, {$asig} asignadas");
-        return ['hojas' => count($paginas), 'nuevas' => count($creados), 'asignadas' => $asig, 'sin_asignar' => count($creados) - $asig];
+        return ['hojas' => count($paginas), 'nuevas' => count($creados), 'asignadas' => $asig, 'sin_asignar' => count($creados) - $asig, 'leidas_ia' => $ia];
+    }
+
+    // Transcribe una hoja escaneada con la IA (los datos del recibo, tal cual figuran). Sin clave o si falla, devuelve null y queda para asignar a mano.
+    public function leerConIa(string $pdf): ?string
+    {
+        $key = config('services.anthropic.api_key'); if (! $key) return null;
+        try {
+            $res = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => $key, 'anthropic-version' => '2023-06-01'])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
+                'model' => config('services.anthropic.model'), 'max_tokens' => 800,
+                'system' => 'Sos un lector de recibos de sueldo argentinos escaneados. Transcribí en texto plano, tal cual figuran, sólo estos datos: apellido y nombre del empleado, CUIL, DNI, legajo, período liquidado y empresa. Una línea por dato, ej. "CUIL: 20-12345678-3". Si un dato no se lee con seguridad, no lo pongas. Nunca inventes números.',
+                'messages' => [['role' => 'user', 'content' => [['type' => 'document', 'source' => ['type' => 'base64', 'media_type' => 'application/pdf', 'data' => base64_encode($pdf)]], ['type' => 'text', 'text' => 'Transcribí los datos del recibo.']]]],
+            ]);
+            $t = trim(collect($res->json('content', []))->where('type', 'text')->pluck('text')->implode("\n"));
+            return $t !== '' ? '[Leído con IA] ' . $t : null;
+        } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('Recibo IA: ' . $e->getMessage()); return null; }
     }
 
     // Una hoja por recibo. FPDI arma cada hoja; si el PDF viene comprimido de una forma que FPDI no lee, se usa pdfseparate del sistema.
