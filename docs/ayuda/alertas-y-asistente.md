@@ -88,3 +88,7 @@ En iPhone, primero agregá BigSysWeb a la pantalla de inicio (Compartir → Agre
 - La **✨** muestra lo nuevo del sistema. Cada novedad se marca leída o se pospone **7 o 30 días**.
 - **Mejoras** lista los módulos que tu plan no tiene y qué hace cada uno. Con **Me interesa** le avisás a BigSys para que te escriba (lo pide el dueño o un administrador).
 - A Bigcito: “mandame el parte a las 7 y media”, “¿qué hay de nuevo en BigSys?”, “¿qué módulos no tengo?”, “me interesa Sueldos”.
+
+## Alerta de condición de IVA (Fase 44)
+
+Te avisa cuando hay clientes con la condición de IVA mal cargada: Consumidor Final con un CUIT de 11 dígitos, o Responsable Inscripto sin CUIT. Así la factura no sale con la letra equivocada. Para verlos, entrá en Clientes y elegí el filtro «IVA para revisar».

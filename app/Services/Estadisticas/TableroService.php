@@ -91,16 +91,16 @@ class TableroService
     }
 
     // Matriz ABC del período: A el primer 80 % de lo facturado sin IVA, B hasta el 95 %, C el resto.
-    public function abc(Carbon $desde, Carbon $hasta, ?int $sucursal = null, int $limite = 300): array
+    public function abc(Carbon $desde, Carbon $hasta, ?int $sucursal = null, int $limite = 5000): array
     {
-        $filas = $this->items($desde->toDateString(), $hasta->toDateString(), $sucursal)->join('products', 'products.id', '=', 'comprobante_items.product_id')
-            ->selectRaw('products.id, products.name as nombre, products.sku, products.stock, SUM((' . self::SIGNO . ') * (comprobante_items.neto - comprobante_items.descuento)) as neto, SUM((' . self::SIGNO . ') * comprobante_items.cantidad) as unidades')
+        $filas = $this->items($desde->toDateString(), $hasta->toDateString(), $sucursal)->join('products', 'products.id', '=', 'comprobante_items.product_id')->leftJoin('rubros', 'rubros.id', '=', 'products.rubro_id')
+            ->selectRaw('products.id, products.name as nombre, products.sku, products.stock, MAX(rubros.nombre) as rubro, SUM((' . self::SIGNO . ') * (comprobante_items.neto - comprobante_items.descuento)) as neto, SUM((' . self::SIGNO . ') * comprobante_items.cantidad) as unidades')
             ->groupBy('products.id', 'products.name', 'products.sku', 'products.stock')->orderByDesc('neto')->get();
         $total = (float) $filas->sum('neto'); $acum = 0; $out = []; $cnt = ['A' => 0, 'B' => 0, 'C' => 0]; $monto = ['A' => 0.0, 'B' => 0.0, 'C' => 0.0];
         foreach ($filas as $f) {
             $acum += (float) $f->neto; $share = $total > 0 ? $acum / $total : 1;
             $clase = $share <= 0.8 ? 'A' : ($share <= 0.95 ? 'B' : 'C'); $cnt[$clase]++; $monto[$clase] += (float) $f->neto;
-            if (count($out) < $limite) $out[] = ['id' => $f->id, 'nombre' => $f->nombre, 'sku' => $f->sku, 'neto' => round((float) $f->neto, 2), 'unidades' => (float) $f->unidades, 'pct' => $total > 0 ? round((float) $f->neto / $total * 100, 1) : 0, 'acum' => round($share * 100, 1), 'clase' => $clase, 'stock' => (float) $f->stock];
+            if (count($out) < $limite) $out[] = ['id' => $f->id, 'nombre' => $f->nombre, 'sku' => $f->sku, 'rubro' => $f->rubro, 'neto' => round((float) $f->neto, 2), 'unidades' => (float) $f->unidades, 'pct' => $total > 0 ? round((float) $f->neto / $total * 100, 1) : 0, 'acum' => round($share * 100, 1), 'clase' => $clase, 'stock' => (float) $f->stock];
         }
         return ['items' => $out, 'total' => round($total, 2), 'cantidad' => $cnt, 'monto' => array_map(fn($m) => round($m, 2), $monto), 'como' => self::COMO['abc']];
     }

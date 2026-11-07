@@ -58,6 +58,12 @@ class GenerarAlertas extends Command
             }
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'pase_en_viaje')->whereNull('resuelta_en')->whereNotIn('modelo_id', $viaje->pluck('id'))->update(['resuelta_en' => now()]);
 
+            // Fase 44.7: clientes con la condición de IVA mal cargada (sale mal la factura A/B).
+            $dudosos = \App\Models\Contact::withoutGlobalScopes()->where('business_id', $id)->whereIn('type', ['customer', 'both'])->where('is_active', true)->ivaDudosa()->count();
+            if ($dudosos) Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $id, 'tipo' => 'condicion_iva', 'modelo' => 'Business', 'modelo_id' => $id, 'resuelta_en' => null],
+                ['modulo' => 'clientes', 'severidad' => 'aviso', 'titulo' => "{$dudosos} cliente" . ($dudosos > 1 ? 's' : '') . ' con la condición de IVA para revisar', 'detalle' => 'Consumidor Final con CUIT de empresa, o Responsable Inscripto sin CUIT. Revisalos para que la factura salga con la letra correcta.', 'url' => '/clientes?estado=iva']);
+            else Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'condicion_iva')->whereNull('resuelta_en')->update(['resuelta_en' => now()]);
+
             // Producción atrasada: órdenes abiertas cuya fecha programada ya pasó
             $atrasadas = \App\Models\ProductionOrder::withoutGlobalScopes()->where('business_id', $id)->whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->with('product:id,name,unit')->get();
             foreach ($atrasadas as $o) {

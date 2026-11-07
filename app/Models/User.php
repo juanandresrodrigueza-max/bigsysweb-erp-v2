@@ -96,6 +96,13 @@ class User extends Authenticatable
     }
 
     // Fase 32.5: dos perfiles del Consultor. El vendedor ve precios y stock; el comprador o el dueño ve además el costo, el margen y los proveedores.
+    public function veParteEstadisticas(string $parte): bool
+    {
+        if ($this->is_superadmin || $this->esDueno()) return true;
+        $partes = $this->rolActual()?->vePartes();
+        return $partes === null || in_array($parte, $partes, true);
+    }
+
     public function veCostos(): bool { return $this->is_superadmin || $this->esDueno() || (bool) $this->ve_costos; }
     public function veProveedores(): bool { return $this->is_superadmin || $this->esDueno() || (bool) $this->ve_proveedores; }
 

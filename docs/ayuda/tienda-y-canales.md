@@ -64,3 +64,13 @@ Cada venta pagada entra a **Comprobantes → Pedidos** con el CUIT y la condici�
 Cada venta de ML muestra el **resumen de cargos** (cargo por vender, cuotas, envío a tu cargo, retenciones, lo que recibís, cuándo se libera) y cuánto te deja contra el costo. En **Stock → Tienda online → Cargos de MercadoLibre** está el mes junto, *Bajar para el contador* (una línea por venta) y *Cargar como compra*: los cargos del mes como compra en borrador a MERCADO LIBRE S.R.L., para completar con la factura real. Las retenciones son pagos a cuenta, no gasto.
 
 **Exportar pedidos** (botón en Pedidos): período, plataforma y estado, cuántos van a salir antes de bajar, CSV o Excel, con los renglones aparte si querés, y la opción *Para Excel en español*. **Empretienda** no tiene API: en Stock → Tienda online se baja la planilla con sus encabezados exactos (SKU = código, precio de vidriera, categoría = rubro, stock menos colchón) y un ZIP con las fotos nombradas por producto. **Datos personales** (Tienda Nube): si un comprador pide borrar sus datos, el sistema los borra de sus compras (el comprobante queda); si pide verlos, te aparece en Configuración → Tienda y canales para contestarle y marcar *Ya le contesté*.
+
+## Colchón fijo o mínimo (Fase 44)
+
+En los ajustes de cada tienda, el colchón de stock tiene dos modos:
+- **Fijo**: siempre resta. Con 12 en stock y colchón 2, se publican 10.
+- **Mínimo**: si el stock es igual o menor al colchón, se publica 0; si es mayor, se publica todo. Con 12 se publican 12, con 2 se publica 0.
+
+## Catálogos con stock de otra empresa
+
+Si manejás varias empresas, el catálogo puede mostrar el stock de esta empresa, el de otra empresa del grupo o la suma de todas. Los artículos se cruzan por código.

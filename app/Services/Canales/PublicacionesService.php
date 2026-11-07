@@ -42,7 +42,10 @@ class PublicacionesService
 
     public function stockPara(Canal $c, Product $p): int
     {
-        return max(0, (int) floor((float) $p->stock) - (int) $c->cfg('colchon', 0));
+        // Fase 44.4: colchón fijo (resta siempre) o mínimo (por debajo de ese stock se publica 0).
+        $s = (int) floor((float) $p->stock); $col = (int) $c->cfg('colchon', 0);
+        if ($c->cfg('colchon_modo', 'fijo') === 'minimo') return $s <= $col ? 0 : $s;
+        return max(0, $s - $col);
     }
 
     // Lo que se va a mandar, para revisar antes de publicar: cada producto con su precio en cada lista, si tiene foto y si falta categoría.

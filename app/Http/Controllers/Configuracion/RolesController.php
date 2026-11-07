@@ -22,7 +22,7 @@ class RolesController extends Controller
                 'permisos' => $r->permisos, 'es_sistema' => $r->es_sistema, 'usuarios' => $r->users_count,
             ]),
             'modulos'  => $modulos,
-            'acciones' => config('erp.acciones'),
+            'acciones' => config('erp.acciones'), 'partes' => Role::PARTES_ESTADISTICAS,
         ]);
     }
 
@@ -35,9 +35,12 @@ class RolesController extends Controller
             'permisos'    => 'required|array',
             'permisos.*'  => 'array',
             'permisos.*.*' => 'in:ver,crear,editar,anular,exportar',
+            'partes'      => 'nullable|array', 'partes.*' => 'in:' . implode(',', array_keys(Role::PARTES_ESTADISTICAS)),
         ]);
 
-        $permisos = collect($data['permisos'])->filter(fn($acciones) => ! empty($acciones))->all();
+        $permisos = collect($data['permisos'])->except('_estadisticas')->filter(fn($acciones) => ! empty($acciones))->all();
+        // Fase 44.3: si se destildó alguna parte del Tablero, se guarda la lista; con todas, no se guarda nada (ve todo).
+        if ($request->has('partes') && count($data['partes'] ?? []) < count(Role::PARTES_ESTADISTICAS)) $permisos['_estadisticas'] = array_values($data['partes'] ?? []);
         $rol = $id ? $b->roles()->findOrFail($id) : new Role(['business_id' => $b->id, 'slug' => Str::slug($data['nombre'])]);
 
         if ($rol->exists && $rol->slug === 'dueno') {

@@ -32,6 +32,7 @@ class HandleInertiaRequests extends Middleware
                     'is_superadmin' => $user->is_superadmin,
                 ],
                 'permisos' => $user->permisosResumen(),
+                'partesEstadisticas' => $user->esDueno() || $user->is_superadmin ? null : $user->rolActual()?->vePartes(),
             ] : null,
             'empresa' => fn() => $user?->business ? [
                 'id'     => $user->business->id,

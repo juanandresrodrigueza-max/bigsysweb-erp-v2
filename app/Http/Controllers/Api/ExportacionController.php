@@ -12,7 +12,7 @@ class ExportacionController extends Controller
     public function index()
     {
         return response()->json([
-            'como_usar' => 'GET /api/exportar/{tabla}?page=1&per_page=500&desde=YYYY-MM-DD&hasta=YYYY-MM-DD&actualizado_desde=YYYY-MM-DDTHH:MM:SS&id_desde=0&formato=json|csv. Recorré las páginas hasta que "siguiente" sea null. Para sincronizar solo lo nuevo, guardá la fecha/hora de tu última corrida y mandala en actualizado_desde.',
+            'como_usar' => 'GET /api/exportar/{tabla}?page=1&per_page=500&desde=YYYY-MM-DD&hasta=YYYY-MM-DD&actualizado_desde=YYYY-MM-DDTHH:MM:SS&id_desde=0&formato=json|csv&buscar=texto (sin importar mayúsculas ni tildes)&columnas=id,name,sku. Recorré las páginas hasta que "siguiente" sea null. Para sincronizar solo lo nuevo, guardá la fecha/hora de tu última corrida y mandala en actualizado_desde.',
             'tablas' => ExportacionService::catalogo(),
         ], 200, [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
@@ -20,11 +20,21 @@ class ExportacionController extends Controller
     public function tabla(Request $request, string $tabla)
     {
         abort_unless($request->user()->puede('configuracion') || $request->user()->puede('estadisticas'), 403, 'El usuario del token no tiene permiso para exportar datos.');
-        $f = $request->validate(['desde' => 'nullable|date', 'hasta' => 'nullable|date', 'actualizado_desde' => 'nullable|date', 'id_desde' => 'nullable|integer|min:0', 'sucursal_id' => 'nullable|integer', 'per_page' => 'nullable|integer|min:1|max:' . ExportacionService::MAX_POR_PAGINA, 'formato' => 'nullable|in:json,csv', 'page' => 'nullable|integer|min:1']);
+        $f = $request->validate(['desde' => 'nullable|date', 'hasta' => 'nullable|date', 'actualizado_desde' => 'nullable|date', 'id_desde' => 'nullable|integer|min:0', 'sucursal_id' => 'nullable|integer', 'per_page' => 'nullable|integer|min:1|max:' . ExportacionService::MAX_POR_PAGINA, 'formato' => 'nullable|in:json,csv', 'page' => 'nullable|integer|min:1', 'buscar' => 'nullable|string|max:100', 'columnas' => 'nullable|string|max:1000']);
+        abort_unless(isset(ExportacionService::TABLAS[$tabla]), 404, "La tabla '{$tabla}' no existe.");
+        $todas = ExportacionService::columnas(ExportacionService::TABLAS[$tabla][0]);
+        $pedidas = ! empty($f['columnas']) ? array_map('trim', explode(',', $f['columnas'])) : $todas;
+        // Fase 44.5: un token puede quedar limitado a ciertas tablas y columnas (habilidad exportar:tabla o exportar:tabla:col,col).
+        $token = $request->user()->currentAccessToken();
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken && is_array($token->abilities) && ! in_array("*", $token->abilities, true)) {
+            $hab = collect($token->abilities)->first(fn($a) => $a === "exportar:{$tabla}" || str_starts_with($a, "exportar:{$tabla}:"));
+            abort_unless($hab, 403, "Este token no puede exportar la tabla {$tabla}.");
+            if (substr_count($hab, ':') === 2) $pedidas = array_intersect($pedidas, explode(',', explode(':', $hab)[2]));
+        }
+        $f['columnas'] = $columnas = array_values(array_intersect($todas, $pedidas)) ?: abort(403, 'Ninguna de las columnas pedidas está permitida.');
         $q = ExportacionService::consulta($tabla, $request->user()->business_id, $f);
-        $columnas = ExportacionService::columnas(ExportacionService::TABLAS[$tabla][0]);
         $porPagina = (int) ($f['per_page'] ?? 200);
-        \App\Models\AuditLog::registrar('exportar', null, "Exportó la tabla {$tabla} por API" . ($f ? ' (' . http_build_query($f, '', ', ') . ')' : ''));
+        \App\Models\AuditLog::registrar('exportar', null, "Exportó la tabla {$tabla} por API" . ($f ? ' (' . http_build_query(array_diff_key($f, ['columnas' => 1]), '', ', ') . ')' : ''));
 
         if (($f['formato'] ?? 'json') === 'csv') {
             $nombre = $tabla . '-' . now()->format('Ymd-His') . '.csv';

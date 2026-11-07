@@ -126,7 +126,7 @@ class EstadisticasController extends Controller
         $b = $request->user()->business;
         return Inertia::render('Estadisticas/StockCompras', [
             'dejas' => $sc->dejasDeVender($b), 'pedir' => $sc->pedirPorProveedor($b), 'antiguedad' => $sc->antiguedad($b, $request->orden ?: 'sin_vender', $request->q ?: null),
-            'ajustes' => $sc->ajustesAbajo($b, (int) ($request->dias ?: 30)), 'aumentos' => $sc->aumentoProveedores($b), 'barato' => $sc->masBarato($b),
+            'ajustes' => $sc->ajustesAbajo($b, (int) ($request->dias ?: 30)), 'aumentos' => $sc->aumentoProveedores($b), 'barato' => $sc->masBarato($b), 'salio' => $sc->loQueSalio($b, (int) ($request->dias ?: 30)),
         ]);
     }
 

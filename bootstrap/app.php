@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RegistrarUso::class,
         ]);
         $middleware->alias([
+            'parte' => \App\Http\Middleware\ParteEstadisticas::class,
             'permiso'    => \App\Http\Middleware\Permiso::class,
             'superadmin' => \App\Http\Middleware\SuperAdmin::class,
             'suscripcion' => \App\Http\Middleware\SuscripcionActiva::class,

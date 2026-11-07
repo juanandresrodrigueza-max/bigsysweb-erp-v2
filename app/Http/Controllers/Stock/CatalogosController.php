@@ -18,11 +18,12 @@ class CatalogosController extends Controller
     public function index(Request $request)
     {
         return Inertia::render('Stock/Catalogos', [
-            'catalogos' => Catalogo::latest('id')->get()->map(fn($c) => $c->only('id', 'nombre', 'lista', 'rubros', 'iva_incluido', 'mostrar_stock', 'solo_con_stock', 'mostrar_fotos', 'mostrar_codigo', 'nota', 'vistas', 'activo') + [
+            'catalogos' => Catalogo::latest('id')->get()->map(fn($c) => $c->only('id', 'nombre', 'lista', 'rubros', 'iva_incluido', 'mostrar_stock', 'stock_de', 'solo_con_stock', 'mostrar_fotos', 'mostrar_codigo', 'nota', 'vistas', 'activo') + [
                 'url' => $c->url(), 'visto' => $c->visto_en?->format('d/m H:i'), 'enviados' => Envio::where('modelo', 'Catalogo')->where('modelo_id', $c->id)->count(),
                 'clientes_lista' => Contact::customers()->where('is_active', true)->where('lista_precios', $c->lista)->count(),
             ]),
             'rubros' => Rubro::with('parent')->get()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombreCompleto()])->sortBy('nombre')->values(),
+            'empresas' => \App\Models\Business::whereIn('id', \App\Services\Ventas\CatalogoService::grupo(auth()->user()->business_id))->orderBy('name')->get(['id', 'name'])->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name]),
             'porLista' => Contact::customers()->where('is_active', true)->selectRaw('lista_precios, count(*) as n')->groupBy('lista_precios')->pluck('n', 'lista_precios'),
         ]);
     }
@@ -31,7 +32,7 @@ class CatalogosController extends Controller
     {
         $d = $request->validate([
             'nombre' => 'required|string|max:120', 'lista' => 'required|integer|min:1|max:6', 'rubros' => 'nullable|array', 'rubros.*' => 'integer|exists:rubros,id',
-            'iva_incluido' => 'boolean', 'mostrar_stock' => 'boolean', 'solo_con_stock' => 'boolean', 'mostrar_fotos' => 'boolean', 'mostrar_codigo' => 'boolean', 'nota' => 'nullable|string|max:500', 'activo' => 'boolean',
+            'iva_incluido' => 'boolean', 'mostrar_stock' => 'boolean', 'stock_de' => ['nullable', 'string', 'max:20', fn($a, $v, $fail) => $v && $v !== 'todas' && ! in_array((int) $v, \App\Services\Ventas\CatalogoService::grupo(auth()->user()->business_id), true) ? $fail('Esa empresa no es del grupo.') : null], 'solo_con_stock' => 'boolean', 'mostrar_fotos' => 'boolean', 'mostrar_codigo' => 'boolean', 'nota' => 'nullable|string|max:500', 'activo' => 'boolean',
         ]);
         $d['rubros'] = ! empty($d['rubros']) ? array_values(array_map('intval', $d['rubros'])) : null;
         $c = $id ? Catalogo::findOrFail($id) : new Catalogo(['user_id' => $request->user()->id]);

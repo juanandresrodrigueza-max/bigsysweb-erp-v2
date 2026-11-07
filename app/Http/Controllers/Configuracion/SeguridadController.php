@@ -100,8 +100,10 @@ class SeguridadController extends Controller
     // --- Tokens de API ---
     public function crearToken(Request $request)
     {
-        $d = $request->validate(['nombre' => 'required|string|max:60']);
-        $t = $request->user()->createToken($d['nombre']);
+        $d = $request->validate(['nombre' => 'required|string|max:60', 'tablas' => 'nullable|string|max:500']);
+        // Opcional: limitar el token a tablas (y columnas) del exportador, ej. "products:id,name,stock; contacts".
+        $hab = collect(explode(';', $d['tablas'] ?? ''))->map(fn($x) => trim($x))->filter()->map(fn($x) => 'exportar:' . preg_replace('/\s+/', '', $x))->values()->all();
+        $t = $request->user()->createToken($d['nombre'], $hab ?: ['*']);
         AuditLog::registrar('crear', $request->user(), "Creó el token de API {$d['nombre']}");
         return back()->with('success', 'Token creado. Copialo ahora: no se vuelve a mostrar.')->with('token_nuevo', $t->plainTextToken);
     }
