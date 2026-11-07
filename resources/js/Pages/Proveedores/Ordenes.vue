@@ -23,11 +23,17 @@
       <select v-model="f.contact_id" @change="filtrar" class="input"><option value="">Todos los proveedores</option><option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.name }}</option></select>
     </div>
 
+    <div v-if="juntas.length" class="mb-3 flex flex-wrap items-center gap-2 text-sm rounded-xl bg-lavanda-light px-3 py-2" data-e2e="facturar-juntas">
+      <span>{{ juntas.length }} órdenes de {{ juntasProv }} elegidas.</span>
+      <Link :href="`/proveedores/compras/nueva?orden=${juntas.join(',')}`" class="btn-primary !py-1 text-xs">Cargar una factura contra las {{ juntas.length }}</Link>
+      <button class="text-xs text-marca-muted" @click="juntas = []">Limpiar</button>
+    </div>
     <div class="card p-0 overflow-x-auto">
       <table class="table">
-        <thead><tr><th>Orden</th><th>Fecha</th><th>Proveedor</th><th>Entrega</th><th class="text-right">Ítems</th><th class="text-right">Total</th><th>Estado</th></tr></thead>
+        <thead><tr><th class="w-8" title="Para cargar una sola factura contra varias órdenes del mismo proveedor"></th><th>Orden</th><th>Fecha</th><th>Proveedor</th><th>Entrega</th><th class="text-right">Ítems</th><th class="text-right">Total</th><th>Estado</th></tr></thead>
         <tbody>
           <tr v-for="o in lista.data" :key="o.id" class="cursor-pointer" @click="$inertia.visit(`/proveedores/ordenes/${o.id}`)">
+            <td @click.stop><input v-if="['enviada', 'parcial'].includes(o.estado)" type="checkbox" class="accent-carmin" :value="o.id" v-model="juntas" :disabled="juntas.length > 0 && juntasProv !== o.proveedor" :title="juntas.length && juntasProv !== o.proveedor ? 'Sólo órdenes del mismo proveedor' : 'Facturar junto con otras'" /></td>
             <td class="font-semibold tabular-nums">{{ o.numero }}</td>
             <td class="text-marca-muted tabular-nums">{{ o.fecha }}</td>
             <td class="font-medium">{{ o.proveedor }}</td>
@@ -36,7 +42,7 @@
             <td class="text-right font-semibold tabular-nums">{{ moneda(o.total) }}</td>
             <td><span class="badge" :class="claseEstado[o.estado]">{{ estados[o.estado] }}</span></td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="7" class="text-center text-marca-muted py-10">No hay órdenes con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="8" class="text-center text-marca-muted py-10">No hay órdenes con estos filtros.</td></tr>
         </tbody>
       </table>
     </div>
@@ -45,7 +51,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -54,6 +60,9 @@ import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
 const props = defineProps({ lista: Object, filtros: Object, proveedores: Array, estados: Object, resumen: Object })
+// Fase 42.4: una factura contra varias órdenes del mismo proveedor.
+const juntas = ref([])
+const juntasProv = computed(() => props.lista.data.find(o => o.id === juntas.value[0])?.proveedor ?? '')
 const { puede } = usePermisos()
 const f = reactive({ estado: props.filtros.estado ?? '', contact_id: props.filtros.contact_id ?? '' })
 function filtrar() { router.get('/proveedores/ordenes', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }

@@ -34,7 +34,7 @@ class Comprobante extends Model
     ];
 
     protected $fillable = [
-        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'fce', 'fce_estado', 'fce_vto_pago', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
+        'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'ordenes_compra', 'stock_en_business_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'fce', 'fce_estado', 'fce_vto_pago', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
         'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'receptor', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id', 'crm_quote_id',
@@ -42,7 +42,7 @@ class Comprobante extends Model
     ];
 
     protected $casts = [
-        'receptor' => 'array',
+        'receptor' => 'array', 'ordenes_compra' => 'array',
         'fecha' => 'date', 'fecha_vto' => 'date', 'cae_vto' => 'date', 'emitido_en' => 'datetime', 'anulado_en' => 'datetime',
         'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean', 'entrega_pendiente' => 'boolean', 'fce' => 'boolean', 'fce_vto_pago' => 'date', 'aprobado_en' => 'datetime', 'rechazado_en' => 'datetime', 'entregado_at' => 'datetime', 'solo_stock' => 'boolean', 'solo_contable' => 'boolean',
         'neto' => 'decimal:2', 'exento' => 'decimal:2', 'iva' => 'decimal:2', 'percepciones' => 'decimal:2',

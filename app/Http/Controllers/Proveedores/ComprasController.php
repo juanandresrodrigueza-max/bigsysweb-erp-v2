@@ -34,6 +34,7 @@ class ComprasController extends Controller
             'filtros' => $request->only('estado', 'contact_id', 'desde', 'hasta', 'buscar'),
             'proveedores' => Contact::suppliers()->orderBy('name')->get(['id', 'name']),
             'reclamosAbiertos' => \App\Models\ReclamoCompra::abiertos()->count(),
+            'fechaIngreso' => app(\App\Services\Compras\RecepcionService::class)->config($request->user()->business)['fecha_ingreso'] ?? 'carga',
             'exigeControl' => (bool) (app(\App\Services\Compras\RecepcionService::class)->config($request->user()->business)['exigir_control'] ?? false),
         ]);
     }
@@ -42,9 +43,15 @@ class ComprasController extends Controller
     {
         $datos = $this->datosForm($request, null);
         if ($request->orden) {
-            $oc = \App\Models\OrdenCompra::with('items.product')->findOrFail($request->orden);
-            $datos['desdeOrden'] = $ocs->datosCompra($oc) + ['numero_oc' => $oc->numeroFormateado()];
+            // Fase 42.4: ?orden=12,15 → una factura contra varias órdenes.
+            $ids = array_values(array_filter(array_map('intval', explode(',', (string) $request->orden))));
+            $lista = \App\Models\OrdenCompra::with('items.product')->whereIn('id', $ids)->orderBy('id')->get();
+            abort_if($lista->count() !== count($ids), 404);
+            $datos['desdeOrden'] = count($ids) > 1 ? $ocs->datosCompraVarias($lista) + ['numero_oc' => $lista->map->numeroFormateado()->implode(', ')]
+                : $ocs->datosCompra($lista->first()) + ['numero_oc' => $lista->first()->numeroFormateado()];
         }
+        // Fase 42.6: la mercadería puede entrar en otra empresa del grupo (la factura queda acá, sólo contable).
+        $datos['empresasStock'] = $request->user()->empresasAccesibles()->where('id', '!=', $request->user()->business_id)->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name])->values();
         return Inertia::render('Proveedores/CompraForm', $datos);
     }
 
@@ -59,7 +66,7 @@ class ComprasController extends Controller
     {
         $data = $request->validate([
             'contact_id' => 'required|integer|exists:contacts,id', 'tipo' => 'required|in:FA,FB,FC,FE,NCA,NCB,NCC,NDA,NDB,NDC,REM', 'solo_stock' => 'boolean', 'solo_contable' => 'boolean', 'remito_id' => 'nullable|integer', 'items.*.actualiza_costo' => 'nullable|boolean', 'items.*.codigo' => 'nullable|string|max:60', 'items.*.bulto' => 'nullable|integer', 'borrador_id' => 'nullable|integer', 'numero_proveedor' => 'nullable|string|max:20', 'cae_proveedor' => 'nullable|string|max:20',
-            'fecha' => 'required|date', 'fecha_vto' => 'nullable|date', 'dias_vto' => 'nullable|integer|min:0|max:365', 'condicion' => 'nullable|in:contado,cta_cte', 'moneda' => 'nullable|in:ARS,USD', 'cotizacion' => 'nullable|numeric|min:0', 'origen_carga' => 'nullable|in:manual,ocr,afip_csv', 'origen_id' => 'nullable|integer', 'orden_compra_id' => 'nullable|integer|exists:ordenes_compra,id', 'notas' => 'nullable|string|max:2000',
+            'fecha' => 'required|date', 'fecha_vto' => 'nullable|date', 'dias_vto' => 'nullable|integer|min:0|max:365', 'condicion' => 'nullable|in:contado,cta_cte', 'moneda' => 'nullable|in:ARS,USD', 'cotizacion' => 'nullable|numeric|min:0', 'origen_carga' => 'nullable|in:manual,ocr,afip_csv', 'origen_id' => 'nullable|integer', 'orden_compra_id' => 'nullable|integer|exists:ordenes_compra,id', 'ordenes_compra' => 'nullable|array', 'ordenes_compra.*' => 'integer|exists:ordenes_compra,id', 'stock_en_business_id' => 'nullable|integer', 'notas' => 'nullable|string|max:2000',
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:255', 'items.*.cantidad' => 'required|numeric|gt:0', 'items.*.unidad' => 'nullable|string|max:10',
             'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.alicuota_iva' => 'nullable|numeric|in:0,2.5,5,10.5,21,27', 'items.*.lote' => 'nullable|string|max:40', 'items.*.vencimiento' => 'nullable|date', 'items.*.serie' => 'nullable|string|max:500',
             'impuestos' => 'nullable|array', 'impuestos.*.tipo' => 'required_with:impuestos|string|max:30', 'impuestos.*.monto' => 'required_with:impuestos|numeric|min:0',

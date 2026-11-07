@@ -86,3 +86,15 @@ Una pregunta concreta: **¿hay comprobantes de proveedores que ARCA tiene y tu s
 - Te contesta cinco cosas: **las que faltan** (ordenadas de la que más IVA tiene a la que menos, con aviso de los proveedores que no tenés), **las cargadas sin el CUIT del proveedor** (por eso el libro de IVA no cruza solo; se arregla poniendo el CUIT en la ficha), **las cargadas por otro importe**, **las cargadas dos veces** (IVA computado de más) y **las que no cierran** (neto + exento + IVA + percepciones no da el total).
 - Tildás las que faltan y **Crear las que faltan**: quedan como borrador para completar los artículos, o registradas directamente si así lo elegís. Los proveedores nuevos se crean por CUIT.
 - Si al leer una factura con la cámara el proveedor tiene **una sola orden de compra abierta**, la comparación con la orden se hace sola. El pedido al proveedor sale por WhatsApp o mail desde la orden (también desde el pedido sugerido).
+
+## Varias órdenes, otra empresa, unidades distintas y fecha de ingreso
+
+- **Una factura contra varias órdenes:** en Proveedores → Órdenes tildá las órdenes del mismo proveedor y tocá **Cargar una factura contra las N**. Los renglones vienen al precio de cada orden. Al registrar, lo recibido llena primero la orden más vieja.
+- **La mercadería entra en otra empresa:** si manejás varias empresas, en la factura elegí **La mercadería entra en**. La factura y la cuenta del proveedor quedan en esta empresa (sólo contable) y el stock y el costo entran en la otra.
+- **Factura por metro, artículo por pieza:** si el proveedor factura por metro (o kilo) y tu artículo es la pieza ("Caño 4 m"), la lectura divide la cantidad por el largo y multiplica el precio: 1.800 m de caño de 4 m = 450 caños. Queda aprendido para ese proveedor.
+- **Dos facturas en un archivo:** si el PDF o la foto trae dos facturas distintas, se lee sólo la primera y te avisa que cargues las otras por separado.
+- **Con qué fecha entra la mercadería:** en Proveedores → Compras elegí si entra al stock con el día en que se carga o con la fecha de la factura.
+
+## Ajustar stock con una planilla (Stock → Precios y datos en masa)
+
+Al pie de la pantalla, **Ajustar stock con una planilla**: subí un Excel o CSV con el código (o código de barras) y el stock que queda, elegí el depósito y tocá **Ver diferencias**. Ves cuánto hay, cuánto queda y la diferencia de cada artículo; los códigos que no encuentra se listan aparte. Al confirmar, cada ajuste queda con tu nombre en los movimientos.

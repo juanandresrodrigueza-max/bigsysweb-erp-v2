@@ -11,7 +11,7 @@ class ProveedorArticulo extends Model
     use BelongsToBusiness;
 
     protected $table = 'proveedor_articulos';
-    protected $fillable = ['business_id', 'contact_id', 'codigo', 'descripcion', 'product_id', 'unidades_bulto', 'ultimo_costo', 'ultima_fecha'];
+    protected $fillable = ['business_id', 'contact_id', 'codigo', 'descripcion', 'product_id', 'unidades_bulto', 'divisor', 'ultimo_costo', 'ultima_fecha'];
     protected $casts = ['ultima_fecha' => 'date', 'ultimo_costo' => 'float'];
 
     public function contact(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(Contact::class); }

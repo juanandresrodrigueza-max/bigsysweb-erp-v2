@@ -87,6 +87,7 @@
           </div>
           <p v-if="form.errors.items" class="text-carmin text-xs px-4 pb-3">{{ form.errors.items }}</p>
         </div>
+        <div v-if="empresasStock?.length" class="card" data-e2e="entra-en"><label class="label">La mercadería entra en</label><select v-model="form.stock_en_business_id" class="input"><option :value="null">Esta empresa</option><option v-for="e in empresasStock" :key="e.id" :value="e.id">{{ e.nombre }} (la factura queda acá, sólo contable)</option></select></div>
         <div class="card"><label class="label">Notas</label><textarea v-model="form.notas" rows="2" class="input"></textarea></div>
       </div>
 
@@ -136,14 +137,14 @@ import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 
-const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object, cotizacionUsd: { type: Number, default: 0 } })
+const props = defineProps({ catalogoParcial: { type: Object, default: () => ({}) },  compra: Object, contactIdInicial: Number, proveedores: Array, productos: Array, iaDisponible: Boolean, desdeOrden: Object, empresasStock: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 } })
 const productosCat = ref([...props.productos])
 const proveedoresCat = ref([...props.proveedores])
 function sumar(lista, filas) { const arr = Array.isArray(lista) ? lista : lista.value; const por = new Map(arr.map(x => [x.id, x])); filas.forEach(f => { const e = por.get(f.id); if (e) Object.assign(e, f); else arr.push(f) }) } // en el template los refs llegan desenvueltos; lo que ya está se actualiza (sugerido, precios)
 const tipos = [['FA', 'Factura A'], ['FB', 'Factura B'], ['FC', 'Factura C'], ['FE', 'Factura E'], ['NCA', 'Nota de crédito A'], ['NCB', 'Nota de crédito B'], ['NCC', 'Nota de crédito C'], ['NDA', 'Nota de débito A'], ['NDB', 'Nota de débito B'], ['NDC', 'Nota de débito C']].map(([key, label]) => ({ key, label }))
 const b = props.compra ?? props.desdeOrden
 const form = useForm({
-  contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null, orden_compra_id: b?.orden_compra_id ?? null,
+  contact_id: b?.contact_id ?? props.contactIdInicial ?? null, tipo: b?.tipo ?? 'FA', numero_proveedor: b?.numero_proveedor ?? '', cae_proveedor: b?.cae_proveedor ?? '', origen_id: b?.origen_id ?? null, orden_compra_id: b?.orden_compra_id ?? null, ordenes_compra: b?.ordenes_compra ?? null, stock_en_business_id: b?.stock_en_business_id ?? null,
   fecha: b?.fecha ?? hoyISO(), fecha_vto: b?.fecha_vto ?? '', condicion: b?.condicion ?? 'cta_cte', origen_carga: props.compra ? undefined : 'manual', adjunto_id: null, notas: b?.notas ?? '',
   moneda: b?.moneda ?? 'ARS', cotizacion: (b?.moneda === 'USD' ? b?.cotizacion : null) || props.cotizacionUsd || null,
   solo_stock: false, remito_id: null, borrador_id: null,

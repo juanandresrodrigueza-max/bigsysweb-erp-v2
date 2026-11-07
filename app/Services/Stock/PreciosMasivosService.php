@@ -173,4 +173,43 @@ class PreciosMasivosService
             return ['id' => $l->id, 'fecha' => $l->created_at->format('d/m/Y H:i'), 'usuario' => $l->user?->name ?? '—', 'descripcion' => $l->descripcion, 'n' => (int) ($l->despues['n'] ?? count($antes)), 'se_puede_deshacer' => (bool) $l->antes && $l->created_at->gt(now()->subDays(30)), 'tipo' => $l->accion, 'muestra' => $muestra];
         })->all();
     }
+
+    // ---- Fase 42.3: ajustar stock con una planilla (código y stock que queda) ----
+    // Primera fila con encabezados o sin ellos: se toma la columna que tiene códigos y la que tiene números.
+    public function previsualizarStock(array $filas, int $depositoId): array
+    {
+        $dep = \App\Models\Deposito::findOrFail($depositoId);
+        $esNum = fn($v) => is_numeric(str_replace(',', '.', trim((string) $v)));
+        if ($filas && ! $esNum($filas[0][1] ?? '')) array_shift($filas); // encabezado
+        $out = []; $no = [];
+        foreach ($filas as $f) {
+            $cod = trim((string) ($f[0] ?? '')); $v = trim((string) ($f[1] ?? '')); if ($cod === '' || ! $esNum($v)) continue;
+            $nuevo = round((float) str_replace(',', '.', $v), 3);
+            $p = Product::where('sku', $cod)->orWhere('barcode', $cod)->first();
+            if (! $p) { $no[] = $cod; continue; }
+            if (! $p->controla_stock) { $no[] = "{$cod} (no controla stock)"; continue; }
+            $actual = round((float) $p->stockEn($dep->id), 3);
+            if (abs($nuevo - $actual) < 0.0005) continue;
+            $out[$p->id] = ['product_id' => $p->id, 'codigo' => $cod, 'articulo' => $p->name, 'actual' => $actual, 'nuevo' => $nuevo, 'diferencia' => round($nuevo - $actual, 3)];
+        }
+        return ['deposito' => $dep->nombre, 'deposito_id' => $dep->id, 'cambios' => array_values($out), 'no_encontrados' => $no];
+    }
+
+    // Deja el stock como dice la planilla, con un movimiento de ajuste por artículo que dice quién lo hizo.
+    public function aplicarStock(array $cambios, int $depositoId): int
+    {
+        $dep = \App\Models\Deposito::findOrFail($depositoId); $n = 0; $u = \Illuminate\Support\Facades\Auth::user();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($cambios, $dep, &$n, $u) {
+            $st = app(\App\Services\Stock\StockService::class);
+            foreach ($cambios as $c) {
+                $p = Product::find($c['product_id']); if (! $p) continue;
+                $dif = round((float) $c['nuevo'] - (float) $p->stockEn($dep->id), 3);
+                if (abs($dif) < 0.0005) continue;
+                $st->mover($p, $dif, $dep, 'ajuste', "Ajuste por planilla ({$u?->name})");
+                $n++;
+            }
+            \App\Models\AuditLog::registrar('editar', $dep, "Ajustó el stock de {$n} artículos con una planilla en {$dep->nombre}");
+        });
+        return $n;
+    }
 }

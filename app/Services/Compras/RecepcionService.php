@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 // resultado de leer(); acá está lo que se cuenta, lo que se aprende y lo que pasa al cerrar: cantidades recibidas, lotes y el reclamo.
 class RecepcionService
 {
-    public const DEFAULT = ['exigir_control' => false];
+    public const DEFAULT = ['exigir_control' => false, 'fecha_ingreso' => 'carga'];
 
     public function __construct(private \App\Services\Stock\StockService $stock) {}
 

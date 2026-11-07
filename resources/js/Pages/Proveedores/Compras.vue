@@ -51,6 +51,7 @@
     <!-- Fase 31.5: lo que faltó y se reclamó al proveedor. Se cierra solo con la nota de crédito o a mano. -->
     <Modal :abierto="reclamosAbierto" titulo="Reclamos a proveedores" @cerrar="reclamosAbierto = false">
       <label v-if="puede('configuracion','editar')" class="flex items-center gap-2 text-sm mb-3 rounded-xl bg-gris-light px-3 py-2"><input type="checkbox" class="accent-carmin" :checked="exigeControl" @change="exigir($event.target.checked)" /> Exigir el control con la pistola antes de registrar una compra con mercadería <span class="text-xs text-marca-muted">(las notas de crédito y las facturas de remito no lo piden)</span></label>
+      <label v-if="puede('configuracion','editar')" class="flex flex-wrap items-center gap-2 text-sm mb-3 rounded-xl bg-gris-light px-3 py-2" data-e2e="fecha-ingreso">La mercadería entra al stock con <select class="input !w-auto !py-0.5" :value="fechaIngreso" @change="router.post('/proveedores/compras/config', { fecha_ingreso: $event.target.value }, { preserveScroll: true })"><option value="carga">el día en que se carga</option><option value="comprobante">la fecha de la factura</option></select></label>
       <label class="flex items-center gap-2 text-xs text-marca-muted mb-2"><input v-model="verTodos" type="checkbox" class="accent-carmin" @change="cargarReclamos" /> ver también los resueltos</label>
       <div v-if="!reclamos.length" class="text-sm text-marca-muted py-6 text-center">No hay reclamos {{ verTodos ? '' : 'abiertos' }}: lo que llegó fue lo facturado.</div>
       <div v-for="r in reclamos" :key="r.id" class="rounded-xl border p-3 mb-2 text-sm" :class="r.estado === 'abierto' ? 'border-amber-300' : 'border-marca-borde opacity-70'">
@@ -117,7 +118,7 @@ import Paginacion from '@/Components/Paginacion.vue'
 import { moneda, entero, estadoCobro, estadoComprobante } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ lista: Object, resumen: Object, filtros: Object, proveedores: Array, reclamosAbiertos: Number, exigeControl: Boolean })
+const props = defineProps({ lista: Object, resumen: Object, filtros: Object, proveedores: Array, reclamosAbiertos: Number, exigeControl: Boolean , fechaIngreso: { type: String, default: 'carga' } })
 const { puede } = usePermisos()
 const f = reactive({ estado: props.filtros.estado ?? '', contact_id: props.filtros.contact_id ?? '', desde: props.filtros.desde ?? '', hasta: props.filtros.hasta ?? '', buscar: props.filtros.buscar ?? '' })
 function filtrar() { router.get('/proveedores/compras', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }

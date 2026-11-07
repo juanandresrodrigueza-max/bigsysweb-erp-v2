@@ -106,17 +106,36 @@ class OrdenCompraService
         return ['contact_id' => $oc->contact_id, 'orden_compra_id' => $oc->id, 'tipo' => 'FA', 'fecha' => today()->toDateString(), 'condicion' => 'cta_cte', 'items' => $items, 'notas' => "Según {$oc->numeroFormateado()}"];
     }
 
+    // Fase 42.4: una factura contra varias órdenes del mismo proveedor. Los renglones se juntan por artículo,
+    // al precio de cada orden (como «Recibir» en BigSys: el descuento de la orden ya está en ese precio).
+    public function datosCompraVarias(\Illuminate\Support\Collection $ocs): array
+    {
+        abort_if($ocs->isEmpty(), 404);
+        abort_if($ocs->pluck('contact_id')->unique()->count() > 1, 422, 'Las órdenes son de proveedores distintos.');
+        $items = []; $numeros = [];
+        foreach ($ocs as $oc) { $d = $this->datosCompra($oc); $numeros[] = $oc->numeroFormateado(); foreach ($d['items'] as $i) $items[] = $i + ['orden' => $oc->numeroFormateado()]; }
+        $base = $this->datosCompra($ocs->first());
+        return array_replace($base, ['items' => $items, 'ordenes_compra' => $ocs->pluck('id')->values()->all(), 'notas' => 'Según ' . implode(', ', $numeros)]);
+    }
+
     // Al registrar una compra vinculada, suma lo recibido por artículo y cierra la OC si no queda nada pendiente.
+    // Con varias órdenes, lo recibido de cada artículo va llenando lo pendiente de una orden tras otra (la más vieja primero).
     public function marcarRecibido(Comprobante $compra): void
     {
-        $oc = OrdenCompra::find($compra->orden_compra_id);
-        if (! $oc || ! $oc->abierta()) return;
-        foreach ($compra->items as $it) {
-            if (! $it->product_id) continue;
-            $ocItem = $oc->items()->where('product_id', $it->product_id)->first();
-            if ($ocItem) $ocItem->update(['recibido' => round((float) $ocItem->recibido + (float) $it->cantidad, 3)]);
+        $ids = $compra->ordenes_compra ?: array_filter([$compra->orden_compra_id]);
+        $ocs = OrdenCompra::whereIn('id', $ids)->orderBy('id')->get()->filter(fn($o) => $o->abierta());
+        if ($ocs->isEmpty()) return;
+        $resta = [];
+        foreach ($compra->items as $it) if ($it->product_id) $resta[$it->product_id] = ($resta[$it->product_id] ?? 0) + (float) $it->cantidad;
+        foreach ($ocs as $oc) {
+            foreach ($oc->items()->get() as $ocItem) {
+                $r = $resta[$ocItem->product_id] ?? 0; if ($r <= 0) continue;
+                $toma = $ocs->count() > 1 ? min($r, max(0, $ocItem->pendiente())) : $r;
+                $ocItem->update(['recibido' => round((float) $ocItem->recibido + $toma, 3)]);
+                $resta[$ocItem->product_id] = round($r - $toma, 3);
+            }
+            $pendiente = $oc->items()->get()->sum(fn($i) => $i->pendiente());
+            $oc->update(['estado' => $pendiente <= 0 ? 'recibida' : 'parcial']);
         }
-        $pendiente = $oc->items()->get()->sum(fn($i) => $i->pendiente());
-        $oc->update(['estado' => $pendiente <= 0 ? 'recibida' : 'parcial']);
     }
 }
