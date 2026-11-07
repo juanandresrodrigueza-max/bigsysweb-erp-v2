@@ -18,13 +18,44 @@ class RepartoController extends Controller
     public function armar(Request $request)
     {
         $loc = BusinessLocation::find($request->user()->current_location_id);
-        return Inertia::render('Comprobantes/ArmarViaje', ['pendientes' => $this->svc->pendientes(), 'origen' => ['nombre' => $loc?->name, 'lat' => $loc?->lat !== null ? (float) $loc->lat : null, 'lng' => $loc?->lng !== null ? (float) $loc->lng : null, 'direccion' => trim(($loc?->address ?? '') . ' ' . ($loc?->city ?? ''))]]);
+        return Inertia::render('Comprobantes/ArmarViaje', ['reparto' => $this->svc->config(), 'usuariosChofer' => \App\Models\User::where('business_id', $request->user()->business_id)->whereHas('role', fn($q) => $q->where('slug', 'chofer'))->get(['id', 'name']), 'pendientes' => $this->svc->pendientes(), 'origen' => ['nombre' => $loc?->name, 'lat' => $loc?->lat !== null ? (float) $loc->lat : null, 'lng' => $loc?->lng !== null ? (float) $loc->lng : null, 'direccion' => trim(($loc?->address ?? '') . ' ' . ($loc?->city ?? ''))]]);
+    }
+
+    // Fase 43.1: camiones y choferes.
+    public function guardarConfig(Request $request)
+    {
+        $d = $request->validate(['camiones' => 'nullable|array|max:50', 'camiones.*.nombre' => 'required|string|max:60', 'camiones.*.patente' => 'nullable|string|max:12', 'choferes' => 'nullable|array|max:50', 'choferes.*.nombre' => 'required|string|max:80', 'choferes.*.user_id' => 'nullable|integer', 'foto_obligatoria' => 'boolean']);
+        $this->svc->guardarConfig($d);
+        return back()->with('success', 'Camiones y choferes guardados.');
+    }
+
+    public function asignar(Request $request, int $id)
+    {
+        $d = $request->validate(['vehiculo' => 'nullable|string|max:60', 'repartidor' => 'nullable|string|max:80']);
+        $this->svc->asignar(\App\Models\OrdenEntrega::findOrFail($id), $d['vehiculo'] ?? null, $d['repartidor'] ?? null);
+        return back()->with('success', 'Viaje actualizado.');
+    }
+
+    // Fase 43.3: buscar una dirección (clientes ya ubicados primero, cerca del negocio, o un link de Google Maps).
+    public function direccion(Request $request)
+    {
+        $d = $request->validate(['q' => 'required|string|max:300']);
+        $loc = BusinessLocation::find($request->user()->current_location_id);
+        return response()->json($this->svc->buscarDireccion($d['q'], $loc?->lat !== null ? (float) $loc->lat : null, $loc?->lng !== null ? (float) $loc->lng : null));
+    }
+
+    // Fase 43.2: el chofer entra y ve sólo sus repartos.
+    public function misRepartos(Request $request)
+    {
+        $viajes = \App\Models\OrdenEntrega::withCount('items')->where('chofer_user_id', $request->user()->id)->whereIn('estado', ['pendiente', 'en_curso'])->orderBy('fecha')->get()
+            ->map(fn($o) => ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'fecha' => $o->fecha->format('d/m'), 'vehiculo' => $o->vehiculo, 'paradas' => $o->items_count, 'estado' => \App\Models\OrdenEntrega::ESTADOS[$o->estado] ?? $o->estado, 'link' => $o->token_chofer ? url("/reparto/{$o->token_chofer}") : null]);
+        return Inertia::render('Comprobantes/MisRepartos', ['viajes' => $viajes]);
     }
 
     public function crear(Request $request)
     {
         $d = $request->validate(['fecha' => 'required|date', 'repartidor' => 'nullable|string|max:80', 'vehiculo' => 'nullable|string|max:40', 'notas' => 'nullable|string|max:500', 'ordenar' => 'boolean',
-            'paradas' => 'required|array|min:1', 'paradas.*.tipo' => 'required|in:comprobante,acopio,parada', 'paradas.*.id' => 'nullable|integer', 'paradas.*.cantidades' => 'nullable|array', 'paradas.*.nombre' => 'nullable|string|max:120', 'paradas.*.direccion' => 'nullable|string|max:200', 'paradas.*.contact_id' => 'nullable|integer']);
+            'paradas' => 'required|array|min:1', 'paradas.*.tipo' => 'required|in:comprobante,acopio,parada', 'paradas.*.id' => 'nullable|integer', 'paradas.*.cantidades' => 'nullable|array', 'paradas.*.nombre' => 'nullable|string|max:120', 'paradas.*.direccion' => 'nullable|string|max:200', 'paradas.*.contact_id' => 'nullable|integer', 'paradas.*.lat' => 'nullable|numeric', 'paradas.*.lng' => 'nullable|numeric']);
         $oe = $this->svc->armar($d);
         return redirect("/comprobantes/entregas/{$oe->id}")->with('success', "Viaje {$oe->numeroFormateado()} armado con " . $oe->items->count() . ' paradas.');
     }
@@ -57,7 +88,7 @@ class RepartoController extends Controller
     {
         $oe = $this->hoja($token); $b = \App\Models\Business::find($oe->business_id);
         $items = OrdenEntregaItem::with(['comprobante' => fn($q) => $q->withoutGlobalScopes()->with(['items', 'contact' => fn($c) => $c->withoutGlobalScopes()]), 'acopio' => fn($q) => $q->withoutGlobalScopes()->with('items'), 'contact' => fn($q) => $q->withoutGlobalScopes()])->where('orden_entrega_id', $oe->id)->orderBy('orden')->get();
-        return view('entregas.chofer', ['oe' => $oe, 'b' => $b, 'items' => $items->map(fn($i) => ['i' => $i, 'lleva' => $this->svc->lleva($i), 'tel' => $i->contact?->mobile ?: $i->contact?->phone])->all(), 'maps' => $this->svc->maps($oe)]);
+        return view('entregas.chofer', ['fotoObligatoria' => $this->svc->config($b)['foto_obligatoria'] ?? true, 'oe' => $oe, 'b' => $b, 'items' => $items->map(fn($i) => ['i' => $i, 'lleva' => $this->svc->lleva($i), 'tel' => $i->contact?->mobile ?: $i->contact?->phone])->all(), 'maps' => $this->svc->maps($oe)]);
     }
 
     public function salir(string $token) { $this->svc->salir($this->hoja($token)); return back(); }

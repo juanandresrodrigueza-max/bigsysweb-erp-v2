@@ -28,6 +28,12 @@
         </div>
         <template v-if="link_chofer"><p class="text-xs text-marca-muted">Link del chofer (salí, entregué con nombre y foto, no se pudo, y manda su ubicación):</p>
           <div class="flex gap-2 items-center"><a :href="link_chofer" target="_blank" class="text-xs text-violeta break-all underline" data-e2e="link-chofer">{{ link_chofer }}</a><button class="btn-ghost !py-0.5 text-xs" @click="copiar(link_chofer)">Copiar</button></div></template>
+        <!-- Fase 43.1: cambiar camión o chofer de un viaje armado. -->
+        <div v-if="puede('comprobantes','editar') && !['entregada', 'cancelada'].includes(orden.estado)" class="flex flex-wrap gap-1 items-center text-xs mt-2" data-e2e="asignar">
+          <input v-model="asig.vehiculo" list="ver-camiones" class="input !py-0.5 !w-36" placeholder="Camión" /><input v-model="asig.repartidor" list="ver-choferes" class="input !py-0.5 !w-36" placeholder="Chofer" />
+          <datalist id="ver-camiones"><option v-for="c in reparto?.camiones ?? []" :key="c.nombre" :value="c.nombre" /></datalist><datalist id="ver-choferes"><option v-for="c in reparto?.choferes ?? []" :key="c.nombre" :value="c.nombre" /></datalist>
+          <button class="btn-secondary !py-0.5 text-xs" @click="router.post(`/comprobantes/entregas/${orden.id}/asignar`, asig, { preserveScroll: true })">Cambiar</button>
+        </div>
         <p v-if="posicion" class="text-xs mt-1">Última posición del camión {{ posicion.hace }} · <a :href="`https://www.google.com/maps?q=${posicion.lat},${posicion.lng}`" target="_blank" class="text-violeta">ver en el mapa</a></p>
       </div>
       <div class="card text-sm" data-e2e="carga"><h2 class="font-bold mb-1">Planilla de carga</h2>
@@ -127,18 +133,24 @@
       </form>
       <template #pie><button type="button" class="btn-secondary" @click="rindiendo = false">Cancelar</button><button type="submit" form="form-rendir" class="btn-primary" :disabled="rf.processing || !!pendientes || rf.efectivo_contado === null || rf.efectivo_contado === ''" data-confirmar-rendir>Rendir</button></template>
     </Modal>
+    <!-- Fase 43.4: el registro del reparto. -->
+    <div v-if="registro && (registro.puntos || registro.paradas.some(p => p.estado !== 'pendiente'))" class="card mt-4" data-e2e="registro">
+      <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Registro del reparto</h2><a v-if="registro.maps" :href="registro.maps" target="_blank" class="btn-secondary !py-1 text-xs">Ver el recorrido en Google Maps</a></div>
+      <p class="text-sm text-marca-muted">Salió {{ registro.salida ?? '—' }}<span v-if="registro.fin"> · terminó {{ registro.fin }}</span> · {{ registro.km }} km recorridos · {{ registro.puntos }} posiciones</p>
+      <table class="table text-sm mt-2"><tbody><tr v-for="(p, k) in registro.paradas" :key="k"><td>{{ k + 1 }}. {{ p.nombre }}</td><td>{{ { entregado: 'Entregado', no_entregado: 'No se pudo', pendiente: 'Pendiente' }[p.estado] ?? p.estado }}<span v-if="p.hora"> a las {{ p.hora }}</span></td><td class="text-xs text-marca-muted">{{ p.recibio ? 'recibió ' + p.recibio : '' }}{{ p.motivo ? 'motivo: ' + p.motivo : '' }}{{ p.foto ? ' · con foto' : '' }}</td></tr></tbody></table>
+    </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ orden: Object, estados: Object, rendicion: Object, esperado: { type: Object, default: () => ({ efectivo: 0, cheque: 0, transferencia: 0, mercadopago: 0 }) }, medios: Object, cajas: { type: Array, default: () => [] }, bancos: { type: Array, default: () => [] }, categorias: { type: Array, default: () => [] }, carga: { type: Array, default: () => [] }, maps: { type: Array, default: () => [] }, link_chofer: String, posicion: Object })
+const props = defineProps({ registro: Object, reparto: Object, orden: Object, estados: Object, rendicion: Object, esperado: { type: Object, default: () => ({ efectivo: 0, cheque: 0, transferencia: 0, mercadopago: 0 }) }, medios: Object, cajas: { type: Array, default: () => [] }, bancos: { type: Array, default: () => [] }, categorias: { type: Array, default: () => [] }, carga: { type: Array, default: () => [] }, maps: { type: Array, default: () => [] }, link_chofer: String, posicion: Object })
 async function copiar(t) { try { await navigator.clipboard.writeText(t) } catch { window.prompt('Copiá el link', t) } }
 function mover(n, d) { const ids = props.orden.items.map(i => i.id); [ids[n], ids[n + d]] = [ids[n + d], ids[n]]; router.post(`/comprobantes/entregas/${props.orden.id}/reordenar`, { ids }, { preserveScroll: true }) }
 const { puede } = usePermisos()
@@ -159,4 +171,5 @@ const debe = computed(() => Math.round((props.esperado.efectivo - totalViaticos.
 const dif = computed(() => Math.round(((Number(rf.efectivo_contado) || 0) - debe.value) * 100) / 100)
 function abrirRendir() { rf.clearErrors(); rindiendo.value = true }
 function rendir() { rf.post(`/comprobantes/entregas/${props.orden.id}/rendir`, { preserveScroll: true, onSuccess: () => { rindiendo.value = false } }) }
+const asig = reactive({ vehiculo: props.orden.vehiculo ?? '', repartidor: props.orden.repartidor ?? '' })
 </script>

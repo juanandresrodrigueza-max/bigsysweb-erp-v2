@@ -31,7 +31,8 @@
       <details><summary>Entregué</summary>
         <form method="post" enctype="multipart/form-data" action="/reparto/{{ $oe->token_chofer }}/parada/{{ $i->id }}/entregue" class="conpos">@csrf
           <input name="recibio" placeholder="¿Quién lo recibió?" required>
-          <input type="file" name="foto" accept="image/*" capture="environment">
+          <label style="font-size:13px">Foto del remito firmado{{ ($fotoObligatoria ?? true) ? '' : ' (opcional)' }}</label>
+          <input type="file" name="foto" accept="image/*" capture="environment" {{ ($fotoObligatoria ?? true) ? 'required' : '' }}>
           <input type="hidden" name="lat"><input type="hidden" name="lng">
           <button class="btn p">Confirmar entrega</button></form></details>
       <details><summary>No se pudo</summary>

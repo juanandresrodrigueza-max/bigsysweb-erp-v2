@@ -63,6 +63,8 @@ class RepartoService
         return DB::transaction(function () use ($d, $paradas) {
             $u = Auth::user(); $loc = BusinessLocation::find($u->current_location_id);
             $oe = OrdenEntrega::create(['business_id' => $u->business_id, 'business_location_id' => $u->current_location_id, 'user_id' => $u->id, 'numero' => ((int) OrdenEntrega::withoutGlobalScopes()->where('business_id', $u->business_id)->max('numero')) + 1, 'fecha' => $d['fecha'] ?? today(), 'repartidor' => $d['repartidor'] ?? null, 'vehiculo' => $d['vehiculo'] ?? null, 'notas' => $d['notas'] ?? null, 'estado' => 'pendiente', 'token_chofer' => Str::random(40), 'origen_lat' => $loc?->lat, 'origen_lng' => $loc?->lng]);
+            // Fase 43.2: si el chofer de la lista tiene usuario, el viaje le aparece en «Mis repartos».
+            if (! empty($oe->repartidor) && ($ch = collect($this->config()['choferes'])->firstWhere('nombre', $oe->repartidor)) && ! empty($ch['user_id'])) $oe->update(['chofer_user_id' => $ch['user_id']]);
             foreach ($paradas as $i => $p) {
                 $base = ['orden' => $i, 'tipo' => $p['tipo'], 'token' => Str::random(32), 'cantidades' => ! empty($p['cantidades']) ? array_map('floatval', array_filter($p['cantidades'], fn($v) => (float) $v > 0)) : null];
                 if ($p['tipo'] === 'comprobante') {
@@ -155,12 +157,83 @@ class RepartoService
     public function posicion(OrdenEntrega $oe, float $lat, float $lng): void
     {
         $oe->update(['ultima_lat' => $lat, 'ultima_lng' => $lng, 'ultima_pos_en' => now()]);
+        // Fase 43.4: el recorrido queda guardado (un punto cada 30 segundos como mucho, para no llenar la base).
+        $ult = DB::table('orden_entrega_posiciones')->where('orden_entrega_id', $oe->id)->latest('en')->first();
+        if (! $ult || \Carbon\Carbon::parse($ult->en)->diffInSeconds(now()) >= 30) DB::table('orden_entrega_posiciones')->insert(['orden_entrega_id' => $oe->id, 'lat' => $lat, 'lng' => $lng, 'en' => now()]);
+    }
+
+    // ---- Fase 43.1: camiones y choferes, una lista por empresa ----
+    public function config(?\App\Models\Business $b = null): array
+    {
+        $b ??= Auth::user()?->business;
+        return array_replace(['camiones' => [], 'choferes' => [], 'foto_obligatoria' => true], ($b?->ventas_config['reparto'] ?? []));
+    }
+
+    public function guardarConfig(array $d): array
+    {
+        $b = Auth::user()->business;
+        $limpiar = fn($l) => collect($l ?? [])->map(fn($x) => is_array($x) ? $x : ['nombre' => $x])->filter(fn($x) => trim((string) ($x['nombre'] ?? '')) !== '')
+            ->map(fn($x) => ['nombre' => trim($x['nombre']), 'patente' => trim((string) ($x['patente'] ?? '')) ?: null, 'user_id' => ! empty($x['user_id']) ? (int) $x['user_id'] : null])->values()->all();
+        $c = ['camiones' => $limpiar($d['camiones'] ?? []), 'choferes' => $limpiar($d['choferes'] ?? []), 'foto_obligatoria' => (bool) ($d['foto_obligatoria'] ?? true)];
+        $b->update(['ventas_config' => array_replace($b->ventas_config ?? [], ['reparto' => $c])]);
+        AuditLog::registrar('editar', $b, 'Camiones y choferes: ' . count($c['camiones']) . ' camiones, ' . count($c['choferes']) . ' choferes');
+        return $c;
+    }
+
+    // Cambiar camión o chofer de un viaje ya armado (mientras no terminó).
+    public function asignar(OrdenEntrega $oe, ?string $camion, ?string $chofer): void
+    {
+        abort_if(in_array($oe->estado, ['entregada', 'cancelada'], true), 422, 'El viaje ya terminó.');
+        $ch = collect($this->config()['choferes'])->firstWhere('nombre', $chofer);
+        $oe->update(['vehiculo' => $camion ?: $oe->vehiculo, 'repartidor' => $chofer ?: $oe->repartidor, 'chofer_user_id' => $ch['user_id'] ?? null]);
+        AuditLog::registrar('editar', $oe, "Viaje {$oe->numeroFormateado()}: camión {$oe->vehiculo}, chofer {$oe->repartidor}");
+    }
+
+    // ---- Fase 43.3: encontrar la dirección: primero los clientes ya ubicados, cerca del negocio, con los km; también un link de Google Maps ----
+    public function buscarDireccion(string $q, ?float $lat0 = null, ?float $lng0 = null): array
+    {
+        $q = trim($q);
+        if (preg_match('#@(-?\d+\.\d+),(-?\d+\.\d+)#', $q, $m) || preg_match('#[?&](?:q|query|ll|destination)=(-?\d+\.\d+),\s*(-?\d+\.\d+)#', $q, $m) || preg_match('#^\s*(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$#', $q, $m))
+            return [['tipo' => 'maps', 'nombre' => 'Punto de Google Maps', 'direccion' => "{$m[1]}, {$m[2]}", 'lat' => (float) $m[1], 'lng' => (float) $m[2], 'km' => $lat0 !== null ? round(self::km($lat0, $lng0, (float) $m[1], (float) $m[2]), 1) : null]];
+        if (mb_strlen($q) < 3) return [];
+        $out = Contact::whereNotNull('lat')->where(fn($w) => $w->where('name', \App\Support\Sql::like(), "%{$q}%")->orWhere('address', \App\Support\Sql::like(), "%{$q}%"))->limit(8)->get(['id', 'name', 'address', 'city', 'lat', 'lng'])
+            ->map(fn($c) => ['tipo' => 'cliente', 'contact_id' => $c->id, 'nombre' => $c->name, 'direccion' => trim("{$c->address} {$c->city}"), 'lat' => (float) $c->lat, 'lng' => (float) $c->lng, 'km' => $lat0 !== null ? round(self::km($lat0, $lng0, (float) $c->lat, (float) $c->lng), 1) : null])->all();
+        // Lo que no es cliente, con el buscador de mapas, cerca del negocio (una caja de ~60 km alrededor).
+        try {
+            $p = ['format' => 'json', 'q' => $q, 'limit' => 5, 'countrycodes' => 'ar', 'accept-language' => 'es'];
+            if ($lat0 !== null) $p += ['viewbox' => ($lng0 - 0.6) . ',' . ($lat0 + 0.6) . ',' . ($lng0 + 0.6) . ',' . ($lat0 - 0.6), 'bounded' => 0];
+            foreach (\Illuminate\Support\Facades\Http::withHeaders(['User-Agent' => 'BigSysWeb-ERP'])->timeout(6)->get('https://nominatim.openstreetmap.org/search', $p)->json() ?? [] as $r)
+                $out[] = ['tipo' => 'mapa', 'nombre' => mb_substr($r['display_name'] ?? '', 0, 60), 'direccion' => $r['display_name'] ?? '', 'lat' => (float) $r['lat'], 'lng' => (float) $r['lon'], 'km' => $lat0 !== null ? round(self::km($lat0, $lng0, (float) $r['lat'], (float) $r['lon']), 1) : null];
+        } catch (\Throwable) {}
+        return collect($out)->sortBy(fn($x) => [$x['tipo'] === 'cliente' ? 0 : 1, $x['km'] ?? 9999])->values()->all();
+    }
+
+    // ---- Fase 43.4: el registro del reparto ----
+    public function registro(OrdenEntrega $oe): array
+    {
+        $pos = DB::table('orden_entrega_posiciones')->where('orden_entrega_id', $oe->id)->orderBy('en')->get(['lat', 'lng', 'en']);
+        $km = 0; for ($i = 1; $i < $pos->count(); $i++) $km += self::km((float) $pos[$i - 1]->lat, (float) $pos[$i - 1]->lng, (float) $pos[$i]->lat, (float) $pos[$i]->lng);
+        // Google Maps con el recorrido real (hasta 9 puntos intermedios repartidos).
+        $muestra = $pos->count() > 11 ? collect(range(0, 10))->map(fn($k) => $pos[(int) round($k * ($pos->count() - 1) / 10)]) : $pos;
+        $url = $muestra->count() >= 2 ? 'https://www.google.com/maps/dir/' . $muestra->map(fn($p) => "{$p->lat},{$p->lng}")->implode('/') : null;
+        $paradas = $oe->items()->orderBy('orden')->get()->map(fn($i) => ['nombre' => $i->nombre ?? $i->contact?->name ?? 'Parada', 'estado' => $i->estado, 'hora' => $i->entregado_en?->format('H:i'), 'recibio' => $i->recibio, 'motivo' => $i->motivo, 'foto' => (bool) $i->foto_path, 'lat' => $i->lat, 'lng' => $i->lng]);
+        return ['puntos' => $pos->count(), 'km' => round($km, 1), 'salida' => $oe->salida_en?->format('d/m H:i'), 'fin' => $oe->entregada_en?->format('d/m H:i'), 'maps' => $url, 'paradas' => $paradas->all()];
+    }
+
+    public function buscarRepartos(string $q): \Illuminate\Support\Collection
+    {
+        $q = trim($q); $num = (int) preg_replace('/\D/', '', $q);
+        return OrdenEntrega::where(fn($w) => $w->where('repartidor', \App\Support\Sql::like(), "%{$q}%")->orWhere('vehiculo', \App\Support\Sql::like(), "%{$q}%")
+            ->orWhereHas('items', fn($i) => $i->where('nombre', \App\Support\Sql::like(), "%{$q}%")->orWhereHas('contact', fn($c) => $c->where('name', \App\Support\Sql::like(), "%{$q}%"))->orWhereHas('comprobante', fn($c) => $c->where('numero', $num ?: -1))))
+            ->latest('id')->limit(30)->get();
     }
 
     // Entregué: con quién lo recibió y la foto. Mueve el stock (remito por lo que va) o arma el retiro del acopio, y aprende dónde queda el cliente.
     public function entregue(OrdenEntregaItem $it, ?string $recibio, ?string $fotoPath, ?float $lat, ?float $lng): void
     {
         abort_if($it->estado === 'entregado', 422, 'Esta parada ya se entregó.');
+        // Fase 43.2: la foto del remito firmado es obligatoria (se puede apagar en Camiones y choferes).
+        if (! $fotoPath && ($this->config(\App\Models\Business::find($it->hoja->business_id))['foto_obligatoria'] ?? true)) throw ValidationException::withMessages(['foto' => 'Sacale una foto al remito firmado para cerrar la entrega.']);
         DB::transaction(function () use ($it, $recibio, $fotoPath, $lat, $lng) {
             $lleva = $this->lleva($it);
             if ($it->tipo === 'comprobante' && $it->comprobante && $it->comprobante->tipo !== 'REM' && $it->comprobante->pendienteEntrega() > 0)

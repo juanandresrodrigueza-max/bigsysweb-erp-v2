@@ -52,9 +52,11 @@ class UsuariosController extends Controller
             'sucursales.*.role_id' => ['nullable', Rule::exists('roles', 'id')->where('business_id', $b->id)],
         ]);
 
-        if (! $id) {
+        // Fase 43.2: el chofer no ocupa un usuario del plan.
+        $esChofer = \App\Models\Role::whereKey($request->input('role_id'))->value('slug') === 'chofer';
+        if (! $id && ! $esChofer) {
             $max = $b->activeSubscription?->plan?->max_users ?? 1;
-            if ($max > 0 && $b->users()->count() >= $max) {
+            if ($max > 0 && $b->users()->whereDoesntHave('role', fn($q) => $q->where('slug', 'chofer'))->count() >= $max) {
                 return back()->with('error', "Tu plan permite hasta {$max} usuario(s). Cambiá de plan para agregar más.");
             }
         }

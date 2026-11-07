@@ -95,3 +95,8 @@ Si las cajeras llevan una planilla en Excel, subila con **Controlar la planilla 
 Lo que el cliente tiene para retirar no es deuda. Por cliente: lo acopiado, lo retirado, lo que le queda (en plata y artículo por artículo, en kilos, bolsas o lo que sea) y lo que **debe de verdad** (sin contar la factura del acopio). A la derecha, el **stock comprometido**: por artículo, el stock, lo comprometido en acopios y el disponible; en rojo si no alcanza para entregar.
 
 **Los avisos**: 🔴 acopio en negativo (se retiró más de lo acopiado), 🟠 plata a favor que no es acopio (pagó sin facturar o el recibo fue a otra cuenta), 🟡 más de 6 meses sin retirar.
+
+## Cierres por día y alertas del cierre
+
+- **Por día** (Fondos → Cierres): una fila por día y caja con quién cerró y a qué hora, cuántos comprobantes, lo cobrado, lo contado y la diferencia, con el total abajo. Si hubo varios cierres ese día, **×N** los abre uno por uno.
+- **Alertas al celular en cada cierre:** cuando un cierre sale de lo normal para esa caja (mucho efectivo comparado con los últimos cierres, cerró en cero habiendo cobrado, o con muchos menos comprobantes que de costumbre), queda una alerta y le llega al dueño al celular.
