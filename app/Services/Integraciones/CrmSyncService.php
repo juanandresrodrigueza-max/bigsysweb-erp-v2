@@ -147,6 +147,49 @@ class CrmSyncService
     }
 
     // ── CRM → ERP ────────────────────────────────────────────────────────────
+    // Fase 75: identidad completa. El alta, el cambio de rol y la baja hechos en el CRM se espejan en el ERP (por mail, dentro de la
+    // misma empresa). El dueño del ERP es intocable desde afuera; el CRM no puede nombrar dueños ni pasar el máximo de usuarios del plan.
+    public static function recibirUsuario(Business $b, string $evento, array $k): array
+    {
+        $mail = strtolower(trim((string) ($k['email'] ?? ''))); if ($mail === '') return ['ok' => false, 'error' => 'Falta el email del usuario.'];
+        $u = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->whereRaw('lower(email) = ?', [$mail])->first();
+        $baja = in_array($evento, ['user.deactivated', 'user.deleted'], true) || (array_key_exists('is_active', $k) && ! $k['is_active']);
+        $esDueno = $u && $u->id === $b->owner_id;
+        $rolSlug = CrmService::ROLES_DESDE_CRM[strtolower((string) ($k['role'] ?? ''))] ?? null;
+        $rol = $rolSlug ? \App\Models\Role::withoutGlobalScopes()->where('business_id', $b->id)->where('slug', $rolSlug)->first() : null;
+
+        if ($baja) {
+            if (! $u) return ['ok' => true, 'ignorado' => 'No existe en el ERP.'];
+            if ($esDueno) return ['ok' => false, 'error' => 'El dueño de la empresa no se desactiva desde el CRM.'];
+            if ($u->status !== 'inactive') { $u->forceFill(['status' => 'inactive'])->save(); AuditLog::registrar('editar', $u, "Usuario {$u->email} dado de baja desde el CRM"); }
+            return ['ok' => true, 'user_id' => $u->id, 'accion' => 'baja'];
+        }
+        if ($u) {
+            $cambios = [];
+            if (! empty($k['name']) && $k['name'] !== $u->name) $cambios['name'] = mb_substr((string) $k['name'], 0, 120);
+            if ($rol && ! $esDueno && $rol->id !== $u->role_id) $cambios['role_id'] = $rol->id;
+            if (! $esDueno && $u->status !== 'active' && ($k['is_active'] ?? true)) $cambios['status'] = 'active';
+            if ($cambios) {
+                $u->forceFill($cambios)->save();
+                if (isset($cambios['role_id'])) foreach ($u->locations()->get() as $l) $u->locations()->updateExistingPivot($l->id, ['role_id' => $rol->id]);
+                AuditLog::registrar('editar', $u, "Usuario {$u->email} actualizado desde el CRM: " . implode(', ', array_keys($cambios)));
+            }
+            return ['ok' => true, 'user_id' => $u->id, 'accion' => $cambios ? 'actualizado' : 'sin_cambios'] + ($esDueno && $rol ? ['nota' => 'El rol del dueño no se cambia desde el CRM.'] : []);
+        }
+        // Alta: con el perfil que diga el CRM (o vendedor), en la sucursal principal, con una clave que nadie conoce (entra por el botón del CRM o la recupera).
+        $max = (int) ($b->activeSubscription?->plan?->max_users ?? 1);
+        $activos = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->where('status', 'active')->where('is_superadmin', false)->whereDoesntHave('role', fn($q) => $q->where('slug', 'chofer'))->count();
+        if ($max > 0 && $activos >= $max) return ['ok' => false, 'error' => "El plan del ERP permite hasta {$max} usuario(s): hay que cambiar de plan en el ERP para agregar a {$mail}."];
+        $rol = $rol ?? \App\Models\Role::withoutGlobalScopes()->where('business_id', $b->id)->where('slug', 'vendedor')->first();
+        if (! $rol) return ['ok' => false, 'error' => 'La empresa no tiene el perfil para este usuario.'];
+        $suc = $b->locations()->where('is_active', true)->orderByDesc('is_default')->first();
+        $u = new \App\Models\User(['business_id' => $b->id, 'name' => mb_substr((string) ($k['name'] ?: $mail), 0, 120), 'email' => $mail, 'password' => \Illuminate\Support\Str::random(40), 'status' => 'active', 'role_id' => $rol->id, 'current_location_id' => $suc?->id]);
+        $u->save();
+        if ($suc) $u->locations()->sync([$suc->id => ['role_id' => $rol->id]]);
+        AuditLog::registrar('crear', $u, "Usuario {$u->email} dado de alta desde el CRM ({$rol->nombre})");
+        return ['ok' => true, 'user_id' => $u->id, 'accion' => 'alta', 'perfil' => $rol->slug];
+    }
+
     // ── Fase 72: lo que el CRM sabe, para Bigcito del ERP ────────────────────
     // Una lectura GET a la API del CRM; null si no está conectado o no respondió (nunca rompe al que pregunta).
     public static function leer(Business $b, string $path, array $query = []): ?array
@@ -255,6 +298,7 @@ class CrmSyncService
             'quote.accepted' => self::recibirPresupuesto($b, (array) ($data['quote'] ?? []), is_array($data['contact'] ?? null) ? $data['contact'] : null),
             'deal.won' => self::avisarVentaGanada($b, (array) ($data['deal'] ?? [])),
             'task.overdue', 'task.completed' => CrmAvisosService::webhookTarea($b, $evento, (array) ($data['task'] ?? $data)), // Fase 73
+            'user.created', 'user.updated', 'user.deactivated', 'user.deleted' => self::recibirUsuario($b, $evento, (array) ($data['user'] ?? $data)), // Fase 75
             default => ['ok' => true, 'ignorado' => $evento],
         };
     }

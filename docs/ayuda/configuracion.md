@@ -81,6 +81,11 @@ Con el CRM conectado, **lo crítico del ERP le llega al vendedor que atiende al 
 - **El embudo del CRM en Estadísticas → Vendedores**: oportunidades abiertas por etapa, ganadas y perdidas en el período con la tasa de cierre, tareas vencidas, y una tabla por vendedor que cruza lo que tiene en el CRM (abiertas, ganadas) con lo que vendió de verdad en el ERP. Sólo con el CRM conectado.
 - **Comisiones con lo real**: la base de comisiones de cada vendedor sale del ERP (facturado menos notas de crédito, y cobrado, con sus porcentajes de Clientes → Vendedores). El CRM la lee por la API (`GET /api/comisiones/base`) y liquida sobre eso, no sobre el valor que el vendedor cargó en la oportunidad. Los avisos de factura emitida y cobro registrado al CRM ya dicen de qué vendedor son. A Bigcito: "¿cuánto le toca a Juan este mes?" (`comisiones_vendedores`).
 
+### Identidad completa y un solo plan (Fase 75)
+
+- **Un solo plan**: el plan se contrata y se paga en el ERP (Suscripción) y habilita los dos sistemas. En Configuración → CRM se ve si tu plan incluye el CRM, cuántos usuarios permite y cuándo vence; cada cambio de suscripción (alta, renovación, gracia, suspensión, baja) le llega al CRM al instante, y el CRM se frena solo si la suscripción se corta. No hay dos facturas ni dos vencimientos.
+- **Identidad en los dos sentidos**: ya el alta, el rol y la baja de un usuario hechos en el ERP llegaban al CRM. Ahora también al revés: si en el CRM dan de alta a alguien, le cambian el rol o lo dan de baja, el ERP lo espeja (admin → Administrador, supervisor → Administración de ventas, operator → Vendedor, viewer → Solo mirar). El dueño del ERP es intocable desde el CRM, y el CRM no puede pasar el máximo de usuarios del plan. El que nace desde el CRM entra al ERP por el botón del CRM (no conoce su clave hasta recuperarla).
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.

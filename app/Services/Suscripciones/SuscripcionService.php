@@ -93,6 +93,7 @@ class SuscripcionService
             $pago->update(['subscription_id' => $sub->id, 'periodo_desde' => $desde->toDateString(), 'periodo_hasta' => $hasta->toDateString()]);
         }
         AuditLog::registrar('suscripcion', $sub, "Suscripción {$plan->name} ({$ciclo}) hasta " . $hasta->format('d/m/Y') . " · {$medio}");
+        \App\Services\Integraciones\CrmService::avisarPlan($empresa); // Fase 75: un solo plan para los dos
         return $sub->fresh();
     }
 
@@ -127,6 +128,7 @@ class SuscripcionService
     {
         $empresa->forceFill(['suspended_at' => now(), 'suspension_motivo' => $motivo])->save();
         AuditLog::registrar('suspender_empresa', $empresa, "Empresa suspendida: {$motivo}");
+        \App\Services\Integraciones\CrmService::avisarPlan($empresa);
     }
 
     public function reactivar(Business $empresa): void
@@ -137,6 +139,7 @@ class SuscripcionService
             $sub->update(['status' => 'grace', 'grace_ends_at' => now()->addDays((int) SistemaConfig::get('dias_gracia'))->endOfDay()]);
         }
         AuditLog::registrar('reactivar_empresa', $empresa, 'Empresa reactivada');
+        \App\Services\Integraciones\CrmService::avisarPlan($empresa);
     }
 
     // Baja: la empresa deja de operar y sus usuarios no pueden entrar. Los datos quedan (soft delete) por si vuelve.
@@ -147,6 +150,7 @@ class SuscripcionService
             $empresa->subscription?->update(['status' => 'cancelled', 'cancelled_at' => now()]);
             $empresa->users()->update(['status' => 'inactive']);
             AuditLog::registrar('baja_empresa', $empresa, "Baja de empresa: {$motivo}");
+            \App\Services\Integraciones\CrmService::avisarPlan($empresa);
             $empresa->delete();
         });
     }
@@ -158,6 +162,7 @@ class SuscripcionService
             $empresa->forceFill(['is_active' => true, 'suspended_at' => null, 'suspension_motivo' => null])->save();
             $empresa->users()->where('id', $empresa->owner_id)->update(['status' => 'active']);
             AuditLog::registrar('restaurar_empresa', $empresa, 'Empresa restaurada');
+            \App\Services\Integraciones\CrmService::avisarPlan($empresa);
         });
     }
 
@@ -179,18 +184,21 @@ class SuscripcionService
                 Subscription::create(['business_id' => $sub->business_id, 'plan_id' => $gratis->id, 'status' => 'active', 'billing_cycle' => 'monthly', 'amount' => 0, 'starts_at' => now(), 'ends_at' => null]);
                 $this->alertar($sub, 'aviso', 'Terminó tu prueba: seguís en el plan Gratis', 'Podés facturar hasta ' . $gratis->max_facturas_mes . ' comprobantes por mes. Para usar todo, elegí un plan en Configuración > Suscripción.');
                 $r['a_gratis'] = ($r['a_gratis'] ?? 0) + 1;
+                \App\Services\Integraciones\CrmService::avisarPlan($sub->business);
                 continue;
             }
             if (in_array($sub->status, ['trial', 'active'], true) && $limite && $limite->isPast()) {
                 $sub->update(['status' => 'grace', 'grace_ends_at' => now()->addDays($gracia)->endOfDay()]);
                 $r['a_gracia']++;
                 $this->alertar($sub, 'critica', 'Suscripción vencida', "Tenés {$gracia} días para renovar antes de que se suspenda el acceso.");
+                \App\Services\Integraciones\CrmService::avisarPlan($sub->business);
                 continue;
             }
             if ($sub->status === 'grace' && $limite && $limite->isPast()) {
                 $sub->update(['status' => 'suspended']);
                 $sub->business->forceFill(['suspended_at' => now(), 'suspension_motivo' => 'Falta de pago'])->save();
                 $r['suspendidas']++;
+                \App\Services\Integraciones\CrmService::avisarPlan($sub->business);
                 continue;
             }
             if ($dias !== null && in_array($dias, $avisos, true)) {

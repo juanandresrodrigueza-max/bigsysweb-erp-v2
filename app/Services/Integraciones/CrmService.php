@@ -19,6 +19,28 @@ class CrmService
     // Rol del ERP → rol del CRM (role_templates). Los roles a medida del CRM no se pisan.
     public const ROLES = ['dueno' => 'admin', 'administrador' => 'admin', 'encargado' => 'supervisor', 'contador' => 'supervisor', 'vendedor' => 'operator', 'cajero' => 'operator', 'deposito' => 'viewer', 'produccion' => 'viewer', 'solo_lectura' => 'viewer'];
 
+    // Fase 75: del rol del CRM al perfil del ERP (lo inverso de ROLES). El CRM nunca puede nombrar un dueño.
+    public const ROLES_DESDE_CRM = ['admin' => 'administrador', 'supervisor' => 'admin_ventas', 'operator' => 'vendedor', 'viewer' => 'solo_mirar'];
+
+    // Fase 75: un solo plan. El plan se contrata en el ERP; esto es lo que el CRM lee para habilitarse (GET /api/plan y el aviso plan.cambiado).
+    public static function plan(Business $b): array
+    {
+        $b->unsetRelation('activeSubscription')->unsetRelation('subscription');
+        $sub = $b->activeSubscription ?? $b->subscription; $plan = $sub?->plan;
+        $features = (array) ($plan?->features ?? []);
+        $incluye = $plan && $sub->isActive() && (in_array('*', $features, true) || in_array('crm', $features, true) || in_array('crm', (array) ($b->modulos_contratados ?? []), true));
+        $activos = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->where('status', 'active')->where('is_superadmin', false)->count();
+        return ['plan' => $plan?->name, 'plan_slug' => $plan?->slug, 'estado' => $b->bloqueada() ? 'bloqueada' : ($sub?->status ?? 'sin_plan'), 'motivo' => $b->bloqueada() ? $b->motivoBloqueo() : null,
+            'vence' => $sub?->fechaLimite()?->toDateString(), 'incluye_crm' => (bool) $incluye, 'max_usuarios' => (int) ($plan?->max_users ?? 1), 'usuarios_activos' => $activos,
+            'url_suscripcion' => url('/suscripcion')];
+    }
+
+    // Cada cambio de suscripción le llega al CRM (si está conectado) para que se habilite o se frene con el mismo plan.
+    public static function avisarPlan(Business $b): void
+    {
+        try { \App\Jobs\NotificarCrmJob::avisar($b->id, 'plan.cambiado', self::plan($b)); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('CRM plan.cambiado: ' . $e->getMessage()); }
+    }
+
     public static function config(Business $b): array
     {
         return array_replace(self::DEFAULT, $b->crm_settings ?? []);

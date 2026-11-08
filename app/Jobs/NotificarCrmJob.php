@@ -33,13 +33,13 @@ class NotificarCrmJob implements ShouldQueue
     public static function avisar(?int $businessId, string $evento, array $datos): void
     {
         if (! $businessId) return;
-        $b = Business::withoutGlobalScopes()->find($businessId);
+        $b = Business::withoutGlobalScopes()->withTrashed()->find($businessId);
         if ($b && CrmService::activo($b)) self::dispatch($businessId, $evento, $datos);
     }
 
     public function handle(): void
     {
-        $b = Business::withoutGlobalScopes()->find($this->businessId);
+        $b = Business::withoutGlobalScopes()->withTrashed()->find($this->businessId);
         if (! $b || ! CrmService::activo($b)) return;
         $c = CrmService::config($b);
         $json = json_encode(['evento' => $this->evento, 'datos' => $this->datos + ['emisor_cuit' => Cuit::limpiar($b->cuit)], 'fecha' => now()->toIso8601String()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
