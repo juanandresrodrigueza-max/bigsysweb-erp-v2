@@ -231,6 +231,7 @@ class CrmSyncService
             'contact.created', 'contact.updated' => self::recibirContacto($b, (array) ($data['contact'] ?? $data)),
             'quote.accepted' => self::recibirPresupuesto($b, (array) ($data['quote'] ?? []), is_array($data['contact'] ?? null) ? $data['contact'] : null),
             'deal.won' => self::avisarVentaGanada($b, (array) ($data['deal'] ?? [])),
+            'task.overdue', 'task.completed' => CrmAvisosService::webhookTarea($b, $evento, (array) ($data['task'] ?? $data)), // Fase 73
             default => ['ok' => true, 'ignorado' => $evento],
         };
     }

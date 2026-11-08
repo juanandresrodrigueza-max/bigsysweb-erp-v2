@@ -113,3 +113,18 @@ le da a su Bigcito (`instructions`) ya le cuenta que el CRM está conectado y qu
 4. `GET /api/v1/deals` y `GET /api/v1/tasks` incluyen **`stage_name`**, **`assigned_to_name`** y **`contact_name`** (hoy sólo ids).
 5. `GET /api/v1/appointments` acepta `contact_id`.
 6. El SSO abre `/deals?id={id}` y `/tasks?id={id}`.
+
+## Fase 73 · Avisos cruzados
+
+**Lado ERP (hecho):** `crm:avisos` (diario 07:40) crea en el CRM una **tarea** (`POST /api/v1/tasks`, `task_type: call`, `contact_id`) por cada
+hecho crítico de un cliente que está en el CRM: deuda vencida hace más de 30 días y límite de crédito pasado (prioridad `high`), dejó de comprar
+(`medium`); un cheque rechazado la crea al instante. Un aviso por cliente y motivo cada 30 días; la descripción termina en "Aviso automático del
+ERP BigSys". Del lado de vuelta, el ERP lee `GET /api/v1/tasks?status=pending&to=hoy` y pone las vencidas en su campana, resolviéndolas cuando dejan
+de estar pendientes; además acepta los webhooks **`task.overdue`** y **`task.completed`** (`data.task` con `id`, `title`, `priority`, `due_date`,
+`contact_id`, `assigned_to_name`) para no esperar a la pasada diaria.
+
+**Lo que el ERP espera del CRM:**
+1. Las tareas que crea el ERP quedan **asignadas al vendedor dueño del contacto** (si no tiene, al admin) y se le notifican como cualquier tarea.
+2. Mostrarlas con una marca "Del ERP" (reconocibles por la descripción) y, en la ficha 360, como actividad del contacto.
+3. Mandar los webhooks `task.overdue` (cuando una tarea pasa a vencida) y `task.completed` (cuando la cierran) a `POST /api/crm/webhook/{business}`
+   firmados como los demás (`X-BigSysweb-Signature`).
