@@ -30,6 +30,8 @@ Respeta los permisos: un vendedor no puede registrar gastos ni por chat.
 
 **Soporte** (menú) abre un ticket con el equipo de BigSys: se responde ahí y por mail, y la respuesta aparece como alerta.
 
+**Bigcito responde primero (Fase 67).** Al abrir el ticket, Bigcito busca en las guías del sistema y, si está, te deja la respuesta con los pasos y los links a la guía, al instante. Debajo tenés dos botones: **"Me sirvió, cerrar el ticket"** o **"No me sirvió, que me responda una persona"**: con el segundo (o si escribís "no me sirvió", "quiero hablar con alguien") pasa al equipo de BigSys. Lo que las guías no cubren, los errores del sistema, las sugerencias y lo de facturación y planes van directo a una persona, y Bigcito te lo dice. Con clave de IA (la de BigSys) redacta los pasos para tu caso; sin clave, te pasa los pedazos de las guías que coinciden. También podés abrirlo por voz: "Bigcito, escribile a soporte que no me deja emitir la factura A".
+
 ## Hablarle a Bigcito
 
 Tocá el micrófono y hablá: Bigcito entiende, busca y **te contesta en voz alta** (el parlante de arriba lo silencia). Cuando le pedís que haga algo, te dice qué va a hacer y pregunta "¿Lo hago?": respondé **"sí"** o **"dale"** y lo hace, o **"no"** y lo deja. Nada se graba sin que confirmes.

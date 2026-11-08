@@ -23,7 +23,13 @@
           <button v-if="sel.estado !== 'cerrado'" class="btn-ghost text-xs" @click="router.post(`/soporte/${sel.id}/cerrar`, {}, { preserveScroll: true })">Marcar resuelto</button>
         </div>
         <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-          <div v-for="(m, i) in sel.mensajes" :key="i" class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm" :class="m.de === 'soporte' ? 'bg-lavanda-light text-marca-texto' : 'bg-marca-fondo ml-auto'"><p class="text-[11px] font-bold" :class="m.de === 'soporte' ? 'text-violeta' : 'text-marca-muted'">{{ m.de === 'soporte' ? 'Soporte BigSys' : m.usuario }} · {{ m.fecha_f }}</p><p class="whitespace-pre-wrap">{{ m.texto }}</p></div>
+          <div v-for="(m, i) in sel.mensajes" :key="i" class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm" :class="m.de === 'soporte' ? 'bg-lavanda-light text-marca-texto' : m.de === 'bigcito' ? 'bg-violeta/10 text-marca-texto border border-violeta/20' : 'bg-marca-fondo ml-auto'" :data-de="m.de"><p class="text-[11px] font-bold" :class="m.de === 'soporte' || m.de === 'bigcito' ? 'text-violeta' : 'text-marca-muted'">{{ m.de === 'soporte' ? 'Soporte BigSys' : m.de === 'bigcito' ? '✦ Bigcito' : m.usuario }} · {{ m.fecha_f }}</p><p class="whitespace-pre-wrap">{{ m.texto }}</p>
+            <ul v-if="m.de === 'bigcito' && m.fuentes?.length" class="mt-1 text-[11px]"><li v-for="f in m.fuentes" :key="f.url"><a :href="f.url" target="_blank" class="text-violeta underline">{{ f.titulo }}</a></li></ul></div>
+          <!-- Fase 67: ¿te sirvió lo de Bigcito? -->
+          <div v-if="sel.bigcito_espera" class="flex flex-wrap gap-2 text-xs" data-e2e="bigcito-sirvio">
+            <button class="btn-primary !py-1" @click="router.post(`/soporte/${sel.id}/cerrar`, {}, { preserveScroll: true })">Me sirvió, cerrar el ticket</button>
+            <button class="btn-secondary !py-1" @click="resp.mensaje = 'No me sirvió, necesito que me responda una persona.'; resp.post(`/soporte/${sel.id}/responder`, { preserveScroll: true, onSuccess: () => resp.reset() })">No me sirvió, que me responda una persona</button>
+          </div>
         </div>
         <form v-if="sel.estado !== 'cerrado'" @submit.prevent="resp.post(`/soporte/${sel.id}/responder`, { preserveScroll: true, onSuccess: () => resp.reset() })" class="flex gap-2 mt-3"><textarea v-model="resp.mensaje" rows="2" class="input" placeholder="Escribí tu respuesta…"></textarea><button class="btn-primary self-end" :disabled="resp.processing || !resp.mensaje.trim()">Enviar</button></form>
       </div>

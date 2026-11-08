@@ -51,6 +51,19 @@ class General
                     if (! $f) return ['fragmentos' => [], 'nota' => 'Ningún documento adjunto habla de eso. No inventes: decile que lo adjunte en Documentos del cliente, proveedor o artículo.'];
                     return ['fragmentos' => collect($f)->map(fn($x) => ['documento' => $x['nombre'], 'de' => $x['de'], 'fecha' => $x['fecha'], 'texto' => mb_substr($x['fragmento'], 0, 1500), 'url' => Busca::url($x['url'])])->all(), 'nota' => 'Respondé con lo que dicen los fragmentos y nombrá el documento de donde lo sacaste.'];
                 }],
+            // Fase 67: abrir un ticket de soporte por voz; Bigcito lo atiende primero con las guías.
+            ['nombre' => 'abrir_ticket_soporte', 'titulo' => 'Escribir a soporte', 'modulo' => null, 'permiso' => null, 'tipo' => 'accion',
+                'descripcion' => 'Abre un ticket de soporte a BigSys cuando algo no anda o la ayuda no alcanza. Bigcito lo responde primero con las guías y, si no sabe, lo ve una persona.',
+                'parametros' => ['asunto' => ['type' => 'string'], 'mensaje' => ['type' => 'string'], 'categoria' => ['type' => 'string', 'description' => 'consulta, error, sugerencia o facturacion'], 'prioridad' => ['type' => 'string', 'description' => 'baja, normal o alta']],
+                'requeridos' => ['asunto', 'mensaje'],
+                'proponer' => fn(User $u, array $a) => ['titulo' => 'Abrir el ticket «' . mb_substr($a['asunto'], 0, 80) . '»', 'detalle' => mb_substr($a['mensaje'], 0, 300),
+                    'datos' => ['asunto' => mb_substr($a['asunto'], 0, 150), 'mensaje' => mb_substr($a['mensaje'], 0, 4000), 'categoria' => in_array($a['categoria'] ?? '', array_keys(\App\Models\Ticket::CATEGORIAS), true) ? $a['categoria'] : 'consulta', 'prioridad' => in_array($a['prioridad'] ?? '', array_keys(\App\Models\Ticket::PRIORIDADES), true) ? $a['prioridad'] : 'normal']],
+                'confirmar' => function (User $u, array $d) {
+                    $t = \App\Models\Ticket::create(['business_id' => $u->business_id, 'user_id' => $u->id, 'asunto' => $d['asunto'], 'categoria' => $d['categoria'], 'prioridad' => $d['prioridad'], 'estado' => 'abierto', 'mensajes' => []]);
+                    $t->agregar('empresa', $u, $d['mensaje']);
+                    $bc = app(\App\Services\IA\SoporteIaService::class)->atender($t, $d['asunto'] . '. ' . $d['mensaje']);
+                    return ['texto' => "Ticket {$t->numero()} abierto. " . ($bc['escalado'] ? 'Lo ve el equipo de BigSys.' : 'Bigcito ya dejó una respuesta: ' . mb_substr($bc['texto'], 0, 400)), 'ticket_id' => $t->id, 'url' => Busca::url("/soporte?abrir={$t->id}")];
+                }],
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',
                 'parametros' => ['pregunta' => ['type' => 'string', 'description' => 'Qué se quiere hacer, en palabras del usuario.']], 'requeridos' => ['pregunta'],
