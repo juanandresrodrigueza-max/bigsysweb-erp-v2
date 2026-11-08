@@ -63,6 +63,13 @@
         <div><label class="label">Mail de la empresa</label><input v-model="envf.email" type="email" class="input" data-e2e="envio-email" /><p v-if="envf.errors.email" class="text-xs text-carmin">{{ envf.errors.email }}</p></div>
         <div class="flex gap-4 text-sm"><label class="flex items-center gap-2"><input v-model="envf.formato" type="radio" value="pdf" class="accent-carmin" /> PDF adjunto</label><label class="flex items-center gap-2"><input v-model="envf.formato" type="radio" value="resumen" class="accent-carmin" /> Resumen en el mail</label></div>
         <div><label class="label">Mensaje (opcional)</label><textarea v-model="envf.mensaje" rows="3" class="input" placeholder="Hola, te paso el resumen del mes…"></textarea></div>
+        <!-- Fase 66: el informe del mes en castellano -->
+        <label class="flex items-center gap-2 text-sm"><input v-model="envf.informe" type="checkbox" class="accent-carmin" data-e2e="envio-informe" /> Incluir el informe del mes en castellano (qué pasó, qué cambió, qué revisar)</label>
+        <div v-if="envf.informe" class="rounded-xl bg-marca-fondo p-3 text-xs" data-e2e="informe-preview">
+          <div class="flex items-center justify-between mb-1"><span class="font-semibold">Vista previa</span><button type="button" class="text-violeta" @click="verInforme" :disabled="infCargando">{{ infCargando ? 'Armando…' : (informe ? 'Actualizar' : 'Ver') }}</button></div>
+          <p v-if="informe" class="whitespace-pre-line leading-relaxed">{{ informe.texto }}</p>
+          <p v-else class="text-marca-muted">Con clave de IA lo redacta como un contador; sin clave, lo arma con los números.</p>
+        </div>
         <p class="text-xs text-marca-muted">Sale con el nombre y el logo de {{ estudio.marca }}, con ventas, compras e IVA de {{ mes }}.</p>
       </div>
       <template #pie><button class="btn-secondary" @click="envio = null">Cancelar</button><button class="btn-primary" :disabled="envf.processing || !envf.email" @click="enviarEmpresa" data-e2e="envio-confirmar">Enviar</button></template>
@@ -78,8 +85,10 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ empresas: Array, mes: String, periodo: Object, estudio: Object, precio: Object, vencimientos: Array, conjuntos: Array })
 // Fase 45.2: enviar el resumen a la empresa (opcional), con el mail editable.
-const envio = ref(null); const envf = useForm({ email: '', formato: 'pdf', mes: '', mensaje: '' })
-function abrirEnvio(e) { envio.value = e; envf.clearErrors(); Object.assign(envf, { email: e.email_envio ?? '', formato: 'pdf', mes: props.mes, mensaje: '' }) }
+const envio = ref(null); const envf = useForm({ email: '', formato: 'pdf', mes: '', mensaje: '', informe: true })
+const informe = ref(null), infCargando = ref(false)
+function abrirEnvio(e) { envio.value = e; envf.clearErrors(); informe.value = null; Object.assign(envf, { email: e.email_envio ?? '', formato: 'pdf', mes: props.mes, mensaje: '', informe: true }) }
+async function verInforme() { infCargando.value = true; try { informe.value = (await window.axios.get(`/contador/empresas/${envio.value.id}/informe`, { params: { mes: envf.mes } })).data } catch (e) { informe.value = { texto: 'No se pudo armar el informe.' } } finally { infCargando.value = false } }
 function enviarEmpresa() { envf.post(`/contador/empresas/${envio.value.id}/enviar`, { preserveScroll: true, onSuccess: () => (envio.value = null) }) }
 const editar = ref(false)
 const ef = reactive({ es_estudio: props.estudio.es_estudio, marca: props.estudio.marca, tramos: props.estudio.tramos.map(t => ({ ...t })), vencimientos: { ...props.estudio.vencimientos } })

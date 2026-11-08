@@ -14,6 +14,18 @@ class Contable
     {
         return [
             // Fase 45.2: "mandale a Ferretería López el resumen de octubre".
+            // Fase 66: el informe del mes en castellano, para leerlo o mandarlo.
+            ['nombre' => 'informe_mensual_contador', 'titulo' => 'Informe del mes para el contador', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'El informe del mes de una empresa en castellano: ventas, compras, IVA, gastos, sueldos, cobranza y plata, qué cambió contra el mes anterior y qué conviene revisar antes de liquidar. Si no se nombra la empresa, la propia.',
+                'parametros' => ['empresa' => ['type' => 'string'], 'mes' => ['type' => 'string', 'description' => 'YYYY-MM; por defecto el mes pasado.']],
+                'ejecutar' => function (User $u, array $a) {
+                    $b = $u->business;
+                    if (! empty($a['empresa'])) { $t = mb_strtolower($a['empresa']); $b = $u->empresasAccesibles()->first(fn($x) => str_contains(mb_strtolower($x->name), $t)) ?? null; if (! $b) return ['error' => 'No encontré la empresa "' . $a['empresa'] . '" entre las que manejás.']; }
+                    $mes = preg_match('/^\d{4}-\d{2}$/', (string) ($a['mes'] ?? '')) ? $a['mes'] : now()->subMonth()->format('Y-m');
+                    $r = app(\App\Services\Contabilidad\InformeContadorService::class)->informe($b, $mes);
+                    return ['empresa' => $b->name, 'mes' => $mes, 'informe' => $r['texto'], 'ventas' => $r['datos']['actual']['ventas'], 'compras' => $r['datos']['actual']['compras'], 'iva_saldo' => $r['datos']['iva']['saldo'], 'revisar' => $r['datos']['revisar'],
+                        'nota' => 'Para mandarlo a la empresa: enviar_resumen_a_empresa (el informe va incluido).'];
+                }],
             ['nombre' => 'enviar_resumen_a_empresa', 'titulo' => 'Mandarle el resumen del mes a una empresa', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'accion',
                 'descripcion' => 'Manda por mail a una empresa que administra el estudio su resumen del mes (ventas, compras, IVA), en PDF o en el cuerpo del mail, con el logo del estudio.',
                 'parametros' => ['empresa' => ['type' => 'string'], 'email' => ['type' => 'string', 'description' => 'Si no lo dice, el último usado o el de la empresa.'], 'mes' => ['type' => 'string', 'description' => 'YYYY-MM; por defecto el mes pasado.'], 'formato' => ['type' => 'string', 'enum' => ['pdf', 'resumen']]], 'requeridos' => ['empresa'],

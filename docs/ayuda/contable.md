@@ -56,3 +56,9 @@ Si atendés clientes, marcá **Somos un estudio contable** y poné el nombre: ap
 ## Enviar a la empresa (Fase 45)
 
 En Contable → Mis empresas, cada empresa tiene el botón **Enviar a la empresa**. Usarlo es opcional. Escribís o corregís el mail de la empresa y elegís cómo va: **PDF adjunto** o **Resumen en el mail**. Podés sumar un mensaje. Sale con el nombre y el logo de tu estudio, con las ventas, las compras y el IVA del mes. La próxima vez el mail ya aparece cargado. También se lo podés pedir a Bigcito: «mandale a López el resumen de octubre».
+
+### El informe del mes en castellano (Fase 66)
+
+Al enviar, dejá marcado **"Incluir el informe del mes en castellano"** y tocá **Ver** para la vista previa. Es el mes contado como lo haría el contador: cómo fueron las ventas y las compras y qué cambió contra el mes anterior, la posición de IVA en una línea (débito, crédito, a pagar o a favor, percepciones), los gastos pagados y las categorías más grandes, los sueldos del mes (bruto, neto, contribuciones), lo cobrado, lo vencido por cobrar y lo que se debe a proveedores, la plata en caja, bancos y cheques, y al final **"Qué conviene revisar"**: comprobantes sin CAE, sin asiento, anulados, meses sin compras cargadas, gastos sin categoría. Con clave de IA lo redacta; sin clave, lo arma con los números. Va en el cuerpo del mail y, si elegiste PDF, también en el PDF.
+
+A Bigcito: "¿cómo le fue a Ferretería López en octubre?" o "armame el informe del mes" → te lo lee; "mandáselo" → sale con enviar_resumen_a_empresa.
