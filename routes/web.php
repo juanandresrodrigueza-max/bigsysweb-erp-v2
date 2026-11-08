@@ -600,6 +600,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     });
 
     // Documentos adjuntos a clientes, proveedores y artículos
+    Route::post('/documentos/preguntar', [\App\Http\Controllers\DocumentosController::class, 'preguntar'])->middleware('throttle:30,1');
     Route::get('/documentos/{tipo}/{id}', [\App\Http\Controllers\DocumentosController::class, 'index'])->whereIn('tipo', ['contacto', 'articulo'])->whereNumber('id');
     Route::post('/documentos/{tipo}/{id}', [\App\Http\Controllers\DocumentosController::class, 'subir'])->whereIn('tipo', ['contacto', 'articulo'])->whereNumber('id');
     Route::get('/documentos/{doc}/descargar', [\App\Http\Controllers\DocumentosController::class, 'descargar'])->whereNumber('doc');

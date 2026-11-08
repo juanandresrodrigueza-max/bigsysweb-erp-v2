@@ -83,6 +83,14 @@ En la ficha del cliente, pestaña **Contactos**, cargás a las personas con las 
 
 En la ficha del cliente, pestaña **Documentos**, subís contratos, constancias de CUIT, fotos, planillas o lo que haga falta (PDF, imágenes, Excel, Word; hasta 10 MB por archivo). Se ven con un clic, se bajan y quedan en la copia de seguridad. Lo mismo en la ficha del **proveedor** y del **artículo** (fichas técnicas, certificados, manuales).
 
+### Preguntarle a los documentos (Fase 59)
+
+Cada archivo que adjuntás se lee una vez (PDF, Word, planillas, texto; las fotos las lee la IA si la empresa tiene clave) y queda su texto. Abajo de la lista aparece un renglón **"Preguntale a estos documentos"**: escribís la pregunta en castellano ("¿cuándo vence el contrato?", "¿qué precio tiene el caño de 4 m en la última lista?") y la IA responde sólo con lo que dicen los documentos, con la fuente al final. En **"Dónde lo encontré"** ves los pedazos exactos y abrís el archivo. Sin clave de IA, igual se muestran los pedazos que coinciden.
+
+A Bigcito se le pide por voz: "¿qué dice el contrato de López sobre la mora?" o "buscá en los documentos del proveedor Acindar el plazo de entrega". Si ningún documento habla de eso, lo dice y no inventa.
+
+Los documentos que ya estaban cargados antes de esta función se leen solos la primera vez que alguien pregunta.
+
 ## Armar el viaje del camión (Comprobantes → Entregas → Armar viaje)
 
 Aparece todo lo pendiente de entregar, agrupado por cliente: facturas con entrega pendiente, remitos y **retiros de acopio**. Tildá lo que lleva el camión; si va una parte, cambiá la cantidad de cada artículo. Podés sumar **paradas a mano** (retirar cheques, pasar por el banco). A la derecha, la **planilla de carga**: todo lo que sube al camión, sumado por artículo.

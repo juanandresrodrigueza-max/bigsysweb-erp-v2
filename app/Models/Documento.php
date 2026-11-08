@@ -24,6 +24,6 @@ class Documento extends Model
     public function datos(): array
     {
         return ['id' => $this->id, 'nombre' => $this->nombre, 'mime' => $this->mime, 'tamano' => (int) $this->tamano, 'fecha' => $this->fecha?->toDateString(), 'notas' => $this->notas,
-            'subido' => $this->created_at?->format('d/m/Y H:i'), 'usuario' => $this->user?->name, 'imagen' => str_starts_with((string) $this->mime, 'image/'), 'url' => "/documentos/{$this->id}/descargar"];
+            'subido' => $this->created_at?->format('d/m/Y H:i'), 'usuario' => $this->user?->name, 'imagen' => str_starts_with((string) $this->mime, 'image/'), 'url' => "/documentos/{$this->id}/descargar", 'leido' => $this->texto !== null];
     }
 }

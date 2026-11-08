@@ -32,7 +32,17 @@ class DocumentosController extends Controller
         $doc = Documento::create(['business_id' => $b, 'user_id' => $request->user()->id, 'adjuntable_type' => get_class($m), 'adjuntable_id' => $m->id,
             'nombre' => ($d['nombre'] ?? null) ?: $f->getClientOriginalName(), 'archivo' => $path, 'mime' => $f->getMimeType(), 'tamano' => $f->getSize(), 'fecha' => $d['fecha'] ?? today()->toDateString(), 'notas' => $d['notas'] ?? null]);
         AuditLog::registrar('crear', $m, "Adjuntó el documento {$doc->nombre}");
+        try { app(\App\Services\IA\DocumentosIaService::class)->indexar($doc); } catch (\Throwable) {} // Fase 59: queda leído para preguntarle
         return response()->json($doc->load('user:id,name')->datos());
+    }
+
+    // Fase 59: preguntarle en castellano a los documentos de un cliente/proveedor/artículo, a uno solo, o a todos.
+    public function preguntar(Request $request)
+    {
+        $d = $request->validate(['pregunta' => 'required|string|max:500', 'tipo' => 'nullable|in:contacto,articulo', 'id' => 'nullable|integer', 'doc' => 'nullable|integer']);
+        $type = null; if (! empty($d['tipo']) && ! empty($d['id'])) $type = get_class($this->duenio($d['tipo'], (int) $d['id']));
+        if (! empty($d['doc'])) Documento::findOrFail($d['doc']);
+        return response()->json(app(\App\Services\IA\DocumentosIaService::class)->preguntar($request->user()->business, $d['pregunta'], $type, $d['id'] ?? null, $d['doc'] ?? null));
     }
 
     public function descargar(Request $request, int $doc)

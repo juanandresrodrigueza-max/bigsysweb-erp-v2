@@ -23,6 +23,21 @@
       </div>
       <p v-if="!docs.length" class="text-sm text-marca-muted text-center py-4">Sin documentos. Hasta 10 MB por archivo: PDF, fotos, planillas, Word.</p>
     </div>
+    <!-- Fase 59: preguntarle a los documentos en castellano -->
+    <div v-if="docs.some(d => d.leido)" class="mt-3 pt-3 border-t border-marca-borde/60" data-e2e="preguntar-docs">
+      <form class="flex gap-2" @submit.prevent="preguntar">
+        <input v-model="pregunta" class="input flex-1 text-sm" placeholder="Preguntale a estos documentos: ¿cuándo vence el contrato? ¿qué precio tiene el caño de 4 m?" maxlength="500" />
+        <button class="btn-secondary !py-1 text-xs whitespace-nowrap" :disabled="preguntando || !pregunta.trim()">{{ preguntando ? 'Buscando…' : '✦ Preguntar' }}</button>
+      </form>
+      <div v-if="rta" class="mt-2 text-sm">
+        <p v-if="rta.respuesta" class="whitespace-pre-line bg-marca-fondo rounded-lg p-3">{{ rta.respuesta }}</p>
+        <p v-else-if="!rta.fuentes.length" class="text-marca-muted">Ningún documento habla de eso.</p>
+        <p v-else-if="!rta.ia" class="text-xs text-marca-muted mb-1">Sin clave de IA sólo se muestran los pedazos que coinciden (Configuración → IA para respuestas en castellano).</p>
+        <details v-if="rta.fuentes.length" class="mt-1 text-xs"><summary class="cursor-pointer text-violeta">Dónde lo encontré ({{ rta.fuentes.length }})</summary>
+          <div v-for="(f, i) in rta.fuentes" :key="i" class="mt-2 border-l-2 border-marca-borde pl-2"><a :href="f.url" target="_blank" class="font-semibold hover:text-carmin">{{ f.nombre }}</a><span v-if="f.fecha" class="text-marca-muted"> · {{ f.fecha }}</span><p class="text-marca-muted whitespace-pre-line line-clamp-4">{{ f.fragmento }}</p></div>
+        </details>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -42,5 +57,7 @@ async function subir(e) {
   finally { subiendo.value = false; e.target.value = ''; await cargar() }
 }
 async function borrar(d) { await window.axios.delete(`/documentos/${d.id}`); await cargar() }
+const pregunta = ref(''), rta = ref(null), preguntando = ref(false)
+async function preguntar() { if (!pregunta.value.trim()) return; preguntando.value = true; rta.value = null; try { rta.value = (await window.axios.post('/documentos/preguntar', { pregunta: pregunta.value, tipo: props.tipo, id: props.id })).data } catch (e) { error.value = 'No se pudo preguntar.' } finally { preguntando.value = false } }
 onMounted(cargar)
 </script>
