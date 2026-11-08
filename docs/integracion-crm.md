@@ -78,3 +78,19 @@ texto, ping: {ok, detalle, ms, cuando}, cola: {pendientes, fallidos}, errores_24
 3. Si el ERP no responde, usar el precio local sincronizado y avisar "precio sin confirmar con el ERP".
 4. Bigcito del CRM: "¿hay stock de caño de 4 m?" y "¿a cuánto le sale el cemento a López?" con estos endpoints (o con `stock_articulo` /
    `ficha_cliente` del MCP del ERP).
+
+## Fase 71 · Conversaciones del CRM en el ERP; reclamos como tarea del CRM
+
+**Lado ERP (hecho):** solapa **CRM** en la ficha del cliente (`GET /clientes/{id}/crm` lee `GET /api/v1/conversations?contact_id={external}` y los
+últimos mensajes de la más reciente, caché 2 min) con los botones "Escribirle por el CRM" (`/integraciones/crm/ir?a=/conversations?contact={id}`)
+y "Ver en el CRM" (`a=/contacts/{id}`); los reclamos y pedidos de atención por WhatsApp que atiende Bigcito crean una **tarea** en el CRM
+(`POST /api/v1/tasks`, `task_type: call`, prioridad alta, `contact_id` del CRM); Bigcito `conversaciones_crm`.
+
+**Lo que el ERP espera del CRM:**
+1. `GET /api/v1/conversations` acepta **`contact_id`** como filtro (hoy no filtra; el ERP descarta las de otro contacto, pero paginar sin filtro
+   no sirve en empresas grandes).
+2. El SSO (`/api/erp/sso?t=…&a=…`) abre los destinos `/conversations?id={id}`, `/conversations?contact={contactId}` (abre o crea la
+   conversación de WhatsApp de ese contacto, lista para escribir) y `/contacts/{id}`.
+3. Las tareas que crea el ERP (reclamo, hablar con alguien, cobranza) le llegan al **vendedor asignado** al contacto; si no tiene, al admin.
+4. En `GET /conversations/:id/messages` cada mensaje trae `created_at`, `direction`, `content` y `message_type` (confirmar que para un adjunto
+   `content` venga vacío y `message_type` diga el tipo).

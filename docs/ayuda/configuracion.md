@@ -60,6 +60,10 @@ Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente 
 
 Arriba de la configuración hay un semáforo: **verde** (el CRM responde y todo viajó), **amarillo** (hubo errores en las últimas 24 horas que se reintentan solos, o la cola está larga) o **rojo** (el CRM no responde, o hay envíos que agotaron los reintentos). Al lado, qué fue lo último que viajó en cada sentido, cuánto hay en la cola y la lista de los últimos eventos con su resultado. Si el CRM se cae te llega una **alerta** y lo que se genere mientras tanto queda en la cola; cuando vuelve, se manda solo y la alerta se resuelve. **Reintentar** vuelve a la cola lo que falló del todo; **Reconciliar ahora** vuelve a mandar lo de las últimas 48 horas (del lado del CRM no se duplica nada), y eso mismo pasa solo todos los días a las 6:30. A Bigcito: "¿anda la conexión con el CRM?".
 
+### El CRM en la ficha del cliente (Fase 71)
+
+Con el CRM conectado, cada cliente tiene la solapa **CRM**: las conversaciones que el equipo de ventas tuvo con él por WhatsApp, mail o redes (la más reciente con sus últimos mensajes) y los botones **Escribirle por el CRM** y **Ver en el CRM**, que abren el CRM ya logueado. Es sólo lectura: se escribe desde el CRM. Además, los **reclamos por WhatsApp** y los "quiero hablar con alguien" que atiende Bigcito (Fase 60) quedan también como **tarea del CRM** para el vendedor, con prioridad alta, y la alerta del ERP dice el número de tarea. A Bigcito: "¿qué habló el vendedor con López?".
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.

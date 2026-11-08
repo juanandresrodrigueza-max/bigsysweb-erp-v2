@@ -61,6 +61,17 @@ class Clientes
                     return ['pendientes' => $al->count(), 'reclamos' => $al->map(fn($x) => ['cuando' => $x->created_at->format('d/m H:i'), 'tipo' => $x->tipo === 'reclamo_whatsapp' ? 'reclamo' : 'quiere hablar con alguien', 'quien' => $x->titulo, 'mensaje' => $x->detalle, 'url' => Busca::url($x->url ?? '/clientes')])->all(),
                         'nota' => $al->isEmpty() ? 'No hay reclamos de clientes sin atender.' : 'Cuando se resuelva, marcar la alerta como resuelta en Inicio → Avisos.'];
                 }],
+            // Fase 71: lo que el CRM habló con el cliente.
+            ['nombre' => 'conversaciones_crm', 'titulo' => 'Conversaciones del CRM con un cliente', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Qué habló el equipo de ventas con un cliente en el CRM (WhatsApp, mail, redes): las últimas conversaciones y los últimos mensajes de la más reciente. Sólo si la empresa tiene el CRM conectado.',
+                'parametros' => ['cliente' => ['type' => 'string']], 'requeridos' => ['cliente'],
+                'ejecutar' => function (User $u, array $a) {
+                    $c = Busca::cliente($a['cliente']); if (! $c) return ['error' => "No encuentro el cliente \"{$a['cliente']}\"."];
+                    if (! \App\Services\Integraciones\CrmService::activo($u->business)) return ['error' => 'Esta empresa no tiene el CRM conectado (Configuración → CRM).'];
+                    if (! $c->crm_external_id) return ['conversaciones' => [], 'nota' => "{$c->name} todavía no está en el CRM."];
+                    $cv = \App\Services\Integraciones\CrmSyncService::conversaciones($u->business, $c);
+                    return ['cliente' => $c->name, 'conversaciones' => array_map(fn($x) => ['canal' => $x['canal'], 'estado' => $x['estado'], 'sin_leer' => $x['no_leidos'], 'ultimo_mensaje' => $x['ultimo'], 'mensajes' => $x['mensajes'], 'url' => Busca::url($x['url'])], $cv), 'nota' => $cv ? 'Para escribirle, el botón "Escribirle por el CRM" en la ficha del cliente.' : 'El CRM no tiene conversaciones con este cliente.'];
+                }],
             ['nombre' => 'ficha_cliente', 'titulo' => 'Ficha del cliente', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Todo de un cliente: datos, saldo, lo vencido, facturas pendientes, últimas compras, contactos y condiciones (lista de precios, descuento, días de pago).',
                 'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Nombre, CUIT o id.']], 'requeridos' => ['cliente'],

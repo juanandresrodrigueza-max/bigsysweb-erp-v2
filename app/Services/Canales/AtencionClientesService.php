@@ -129,15 +129,17 @@ class AtencionClientesService
     private function reclamo(Business $b, ?Contact $c, ?string $tel, string $texto): string
     {
         $nota = $c ? NotaCliente::create(['business_id' => $b->id, 'contact_id' => $c->id, 'user_id' => null, 'texto' => '📣 Reclamo por WhatsApp: ' . mb_substr($texto, 0, 500), 'created_at' => now()]) : null;
+        $tarea = null; try { $tarea = \App\Services\Integraciones\CrmSyncService::tarea($b, $c, 'Reclamo por WhatsApp de ' . ($c?->name ?? $tel ?? 'un cliente'), mb_substr($texto, 0, 1000) . ($tel ? "\nTeléfono: {$tel}" : ''), 'call', 'high'); } catch (\Throwable) {} // Fase 71: si hay CRM, el equipo lo ve como tarea
         Alerta::emitir(['business_id' => $b->id, 'modulo' => 'clientes', 'tipo' => 'reclamo_whatsapp', 'severidad' => 'warning', 'modelo' => 'whatsapp', 'modelo_id' => $nota?->id ?? crc32(($tel ?? '') . now()->timestamp),
-            'titulo' => 'Reclamo por WhatsApp de ' . ($c?->name ?? $tel ?? 'un cliente'), 'detalle' => mb_substr($texto, 0, 300), 'url' => $c ? "/clientes/{$c->id}" : '/comprobantes/pedidos']);
+            'titulo' => 'Reclamo por WhatsApp de ' . ($c?->name ?? $tel ?? 'un cliente'), 'detalle' => mb_substr($texto, 0, 260) . ($tarea ? " · tarea del CRM #{$tarea}" : ''), 'url' => $c ? "/clientes/{$c->id}" : '/comprobantes/pedidos']);
         return $this->saludo($c) . 'Lamento lo que pasó. Tomé nota del reclamo' . ($nota ? " (#{$nota->id})" : '') . ' y ya le avisé al equipo: una persona te escribe a la brevedad para resolverlo.';
     }
 
     private function persona(Business $b, ?Contact $c, ?string $tel, string $texto): string
     {
+        $tarea = null; try { $tarea = \App\Services\Integraciones\CrmSyncService::tarea($b, $c, ($c?->name ?? $tel ?? 'Un cliente') . ' quiere hablar con alguien (WhatsApp)', mb_substr($texto, 0, 1000) . ($tel ? "\nTeléfono: {$tel}" : ''), 'call', 'normal'); } catch (\Throwable) {} // Fase 71
         Alerta::emitir(['business_id' => $b->id, 'modulo' => 'clientes', 'tipo' => 'whatsapp_persona', 'severidad' => 'info', 'modelo' => 'whatsapp', 'modelo_id' => crc32(($tel ?? '') . now()->timestamp),
-            'titulo' => ($c?->name ?? $tel ?? 'Un cliente') . ' quiere hablar con alguien por WhatsApp', 'detalle' => mb_substr($texto, 0, 300), 'url' => $c ? "/clientes/{$c->id}" : '/comprobantes/pedidos']);
+            'titulo' => ($c?->name ?? $tel ?? 'Un cliente') . ' quiere hablar con alguien por WhatsApp', 'detalle' => mb_substr($texto, 0, 260) . ($tarea ? " · tarea del CRM #{$tarea}" : ''), 'url' => $c ? "/clientes/{$c->id}" : '/comprobantes/pedidos']);
         return $this->saludo($c) . 'Ya le avisé a una persona del equipo; te escriben por acá enseguida.';
     }
 
