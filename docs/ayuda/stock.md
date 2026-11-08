@@ -12,6 +12,12 @@ Cada artículo tiene código (SKU), código de barras, rubro, unidad, IVA, costo
 
 Tipos: **producto** (mueve stock), **servicio** (no mueve stock), **insumo** (para producción) y **combo/kit**.
 
+### Alta con IA: desde el nombre o una foto (Fase 61)
+
+En **Nuevo artículo**, escribís el nombre como te salga ("cemento loma negra 50") y tocás **✦ Completar con IA**, o **📷 Desde una foto** del producto o su etiqueta. La IA deja el nombre prolijo, la marca, el rubro (uno de los tuyos; si ninguno encaja te sugiere crearlo), la unidad, el IVA, el código de barras si se ve en la foto, el contenido neto, la descripción interna, la **descripción para la tienda online** y el **título y los atributos para MercadoLibre** (marca, modelo, medidas, color…), que después usan las publicaciones. Sólo rellena lo que está vacío: lo que ya escribiste se respeta, y todo se puede corregir antes de guardar.
+
+A Bigcito se le dice "creá el artículo caño PVC 110 x 4 m a 12.500" y, con la clave de IA cargada, propone el alta ya completa con rubro, unidad e IVA para que confirmes.
+
 ## Centro de etiquetas (Stock → Etiquetas)
 
 Todas las etiquetas en un lugar, en hoja A4 (65, 24 u 8 por hoja), en rollo para impresora de etiquetas o en **ZPL** para impresoras **Zebra** (Bajar ZPL y mandarlo a la impresora).

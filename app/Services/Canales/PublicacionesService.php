@@ -91,7 +91,7 @@ class PublicacionesService
         $precio = $this->precioPara($c, $p, $lista); $stock = $this->stockPara($c, $p);
         $campos = $c->cfg('campos');
         $pub = Publicacion::withoutGlobalScopes()->where('canal_id', $c->id)->where('product_id', $p->id)->first();
-        $titulo = mb_substr($p->descripcion_tienda ?: $p->name, 0, 60);
+        $titulo = mb_substr(($p->atributos['titulo_publicacion'] ?? null) ?: ($p->descripcion_tienda ?: $p->name), 0, 60); // Fase 61: el título armado para marketplace, si lo hay
         $desc = $p->description ?: $p->name;
         $r = match ($c->tipo) {
             'mercadolibre' => $this->subirMl($c, $p, $pub, $rc, $titulo, $desc, $precio, $stock),
@@ -111,6 +111,7 @@ class PublicacionesService
         $attrs = [];
         foreach (['BRAND' => $at['marca'] ?? $p->marca, 'MODEL' => $at['modelo'] ?? null, 'GTIN' => $p->barcode ?: null, 'SELLER_SKU' => $p->sku] as $id => $v) if ($v) $attrs[] = ['id' => $id, 'value_name' => (string) $v];
         foreach (($at['extra'] ?? []) as $id => $v) if ($v !== null && $v !== '') $attrs[] = ['id' => $id, 'value_name' => (string) $v];
+        foreach (($p->atributos['ml'] ?? []) as $id => $v) if ($v !== null && $v !== '') { $attrs = array_values(array_filter($attrs, fn($x) => $x['id'] !== $id)); $attrs[] = ['id' => $id, 'value_name' => (string) $v]; } // Fase 61: los del artículo mandan sobre los del rubro
         $body = ['title' => $titulo, 'price' => $precio, 'available_quantity' => $stock, 'currency_id' => 'ARS', 'condition' => 'new', 'listing_type_id' => $at['listing_type'] ?? 'gold_special', 'attributes' => $attrs];
         if ($stock <= 0) $body['status'] = 'paused';
         if ($pub) {

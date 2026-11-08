@@ -424,7 +424,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/tienda-online/publicaciones/{id}/adoptar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'adoptar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::post('/tienda-online/publicaciones/{id}/pausar', [\App\Http\Controllers\Stock\TiendaOnlineController::class, 'pausar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::get('/',                          [\App\Http\Controllers\Stock\StockController::class, 'index']);
-        Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar');
+        Route::post('/articulos/completar-ia',   [\App\Http\Controllers\Stock\StockController::class, 'completarIa'])->middleware(['permiso:stock,editar', 'throttle:20,1']);
+        Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::get('/movimientos',               [\App\Http\Controllers\Stock\StockController::class, 'movimientos']);
         Route::post('/ajustar',                  [\App\Http\Controllers\Stock\StockController::class, 'ajustar'])->middleware('permiso:stock,editar');
         Route::get('/pases',                     [\App\Http\Controllers\Stock\PasesController::class, 'index']);

@@ -106,6 +106,15 @@ class StockController extends Controller
         };
     }
 
+    // Fase 61: del nombre o de una foto, la IA completa el artículo (rubro, unidad, IVA, marca, código, descripciones y atributos de ML).
+    public function completarIa(Request $request)
+    {
+        $d = $request->validate(['nombre' => 'nullable|string|max:150', 'foto' => 'nullable|string']);
+        abort_unless(\App\Support\Ia::tiene($request->user()->business), 422, 'Cargá la clave de IA en Configuración → IA.');
+        $r = app(\App\Services\Stock\AltaArticuloIaService::class)->completar($request->user()->business, $d['nombre'] ?? null, $d['foto'] ?? null);
+        return $r['ok'] ? response()->json($r) : response()->json($r, 422);
+    }
+
     public function guardar(Request $request, ?int $id = null)
     {
         $d = $request->validate([
@@ -113,7 +122,7 @@ class StockController extends Controller
             'barcode' => 'nullable|string|max:40', 'marca' => 'nullable|string|max:60', 'rubro_id' => 'nullable|exists:rubros,id', 'proveedor_id' => 'nullable|exists:contacts,id', 'description' => 'nullable|string|max:500',
             'unit' => 'required|string|max:10', 'iva' => 'required|numeric|min:0|max:27', 'price' => 'required|numeric|min:0', 'cost' => 'required|numeric|min:0', 'prices' => 'nullable|array',
             'stock_min' => 'nullable|numeric|min:0', 'active' => 'boolean', 'controla_stock' => 'boolean', 'stock_inicial' => 'nullable|numeric|min:0', 'deposito_id' => 'nullable|exists:depositos,id',
-            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'desc_cant2_min' => 'nullable|numeric|min:0', 'desc_cant2_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'garantia_meses' => 'nullable|integer|min:0|max:240', 'pesable' => 'boolean', 'plu' => ['nullable', 'digits_between:1,6', Rule::unique('products', 'plu')->where('business_id', $request->user()->business_id)->ignore($id)->whereNull('deleted_at')], 'dias_vencimiento' => 'nullable|integer|min:0|max:365', 'contenido_neto' => 'nullable|numeric|gt:0', 'contenido_unidad' => 'nullable|in:g,kg,ml,l,un', 'control_turno' => 'boolean', 'en_tienda' => 'boolean', 'descripcion_tienda' => 'nullable|string|max:500',
+            'precio_compra' => 'nullable|numeric|min:0', 'descuento_proveedor' => 'nullable|numeric|min:0|max:100', 'margenes' => 'nullable|array', 'moneda' => 'nullable|in:ARS,USD', 'desc_cant_min' => 'nullable|numeric|min:0', 'desc_cant_pct' => 'nullable|numeric|min:0|max:100', 'desc_cant2_min' => 'nullable|numeric|min:0', 'desc_cant2_pct' => 'nullable|numeric|min:0|max:100', 'usar_margenes' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'garantia_meses' => 'nullable|integer|min:0|max:240', 'pesable' => 'boolean', 'plu' => ['nullable', 'digits_between:1,6', Rule::unique('products', 'plu')->where('business_id', $request->user()->business_id)->ignore($id)->whereNull('deleted_at')], 'dias_vencimiento' => 'nullable|integer|min:0|max:365', 'contenido_neto' => 'nullable|numeric|gt:0', 'contenido_unidad' => 'nullable|in:g,kg,ml,l,un', 'control_turno' => 'boolean', 'en_tienda' => 'boolean', 'descripcion_tienda' => 'nullable|string|max:500', 'atributos' => 'nullable|array',
         ]);
         $d['margenes'] = ($d['usar_margenes'] ?? false) ? collect($d['margenes'] ?? [])->filter(fn($v) => $v !== null && $v !== '')->all() ?: null : null;
         $d['moneda'] = $d['moneda'] ?? 'ARS';

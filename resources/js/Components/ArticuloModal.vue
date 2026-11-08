@@ -1,7 +1,14 @@
 <template>
   <Modal :abierto="abierto" :titulo="form.id ? `Editar ${form.name}` : 'Nuevo artículo'" ancho="max-w-3xl" @cerrar="$emit('cerrar')">
     <div class="grid sm:grid-cols-3 gap-4">
-      <div class="sm:col-span-2"><label class="label">Nombre</label><input v-model="form.name" class="input" placeholder="Ej: Cemento x 50 kg" /><p v-if="form.errors.name" class="text-carmin text-xs mt-1">{{ form.errors.name }}</p></div>
+      <div class="sm:col-span-2"><label class="label">Nombre</label><input v-model="form.name" class="input" placeholder="Ej: Cemento x 50 kg" /><p v-if="form.errors.name" class="text-carmin text-xs mt-1">{{ form.errors.name }}</p>
+        <!-- Fase 61: la IA completa el resto desde el nombre o una foto -->
+        <div v-if="$page.props.auth?.ia" class="flex flex-wrap items-center gap-2 mt-1.5">
+          <button type="button" class="btn-secondary !py-0.5 text-xs" :disabled="iaCargando || !form.name" @click="completar()" data-e2e="completar-ia">{{ iaCargando ? 'Completando…' : '✦ Completar con IA' }}</button>
+          <label class="btn-secondary !py-0.5 text-xs cursor-pointer" :class="iaCargando ? 'opacity-60 pointer-events-none' : ''">📷 Desde una foto<input type="file" accept="image/*" capture="environment" class="hidden" data-e2e="foto-ia" @change="desdeFoto" /></label>
+          <span v-if="iaNota" class="text-[11px]" :class="iaError ? 'text-carmin' : 'text-violeta'">{{ iaNota }}</span>
+        </div>
+      </div>
       <div><label class="label">Código (SKU)</label><input v-model="form.sku" class="input tabular-nums" placeholder="Se genera solo" /><p v-if="form.errors.sku" class="text-carmin text-xs mt-1">{{ form.errors.sku }}</p></div>
       <div><label class="label">Tipo</label><select v-model="form.tipo" class="input"><option v-for="(l, k) in tipos" :key="k" :value="k">{{ l.split(' (')[0] }}</option></select><p class="text-[11px] text-marca-muted mt-1">{{ tipos[form.tipo]?.match(/\((.*)\)/)?.[1] }}</p></div>
       <div><label class="label">Rubro</label><select v-model="form.rubro_id" class="input"><option :value="null">Sin rubro</option><option v-for="r in rubros" :key="r.id" :value="r.id">{{ r.completo }}</option></select></div>
@@ -59,6 +66,14 @@
         <label class="flex items-center gap-2 text-sm col-span-2" title="Aparece en la tienda online y el menú QR"><input v-model="form.en_tienda" type="checkbox" class="accent-carmin" /> Publicado en la tienda online / menú</label>
       </div>
       <div class="sm:col-span-3"><label class="label">Descripción</label><input v-model="form.description" class="input" /></div>
+      <div v-if="form.en_tienda || form.descripcion_tienda" class="sm:col-span-3"><label class="label">Descripción para la tienda online</label><textarea v-model="form.descripcion_tienda" class="input" rows="2" maxlength="500" placeholder="Lo que ve el cliente en la tienda y en los marketplaces"></textarea></div>
+      <details v-if="form.atributos && (form.atributos.titulo_publicacion || (form.atributos.ml && Object.keys(form.atributos.ml).length))" class="sm:col-span-3 text-sm" data-e2e="atributos-ml">
+        <summary class="cursor-pointer text-violeta text-xs">Para publicar en MercadoLibre y tiendas ({{ Object.keys(form.atributos.ml ?? {}).length }} atributos)</summary>
+        <div class="grid sm:grid-cols-2 gap-2 mt-2">
+          <label class="text-xs sm:col-span-2">Título de la publicación<input v-model="form.atributos.titulo_publicacion" class="input !py-1" maxlength="60" /></label>
+          <label v-for="(v, k) in form.atributos.ml" :key="k" class="text-xs">{{ k }}<input v-model="form.atributos.ml[k]" class="input !py-1" /></label>
+        </div>
+      </details>
       <label v-if="form.id" class="flex items-center gap-2 text-sm"><input v-model="form.active" type="checkbox" class="accent-carmin" /> Activo (se puede vender)</label>
     </div>
     <template #pie>
@@ -69,14 +84,14 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 
 const props = defineProps({ abierto: Boolean, articulo: Object, rubros: Array, depositos: Array, proveedores: Array, tipos: Object, unidades: Object })
 const emit = defineEmits(['cerrar', 'guardado'])
-const vacio = () => ({ id: null, name: '', sku: '', tipo: 'producto', rubro_id: null, unit: 'un', barcode: '', marca: '', proveedor_id: null, cost: 0, price: 0, iva: 21, prices: { 2: '', 3: '', 4: '', 5: '', 6: '' }, stock_min: 0, stock_inicial: '', deposito_id: null, controla_stock: true, description: '', active: true,
+const vacio = () => ({ id: null, name: '', sku: '', tipo: 'producto', rubro_id: null, unit: 'un', barcode: '', marca: '', proveedor_id: null, cost: 0, price: 0, iva: 21, prices: { 2: '', 3: '', 4: '', 5: '', 6: '' }, stock_min: 0, stock_inicial: '', deposito_id: null, controla_stock: true, description: '', descripcion_tienda: '', atributos: null, active: true,
   precio_compra: 0, descuento_proveedor: 0, moneda: 'ARS', usar_margenes: false, margenes: { 1: '', 2: '', 3: '', 4: '', 5: '', 6: '' }, desc_cant_min: 0, desc_cant_pct: 0, desc_cant2_min: 0, desc_cant2_pct: 0, perecedero: false, seriado: false, garantia_meses: null, pesable: false, plu: '', dias_vencimiento: null, contenido_neto: null, contenido_unidad: null, control_turno: false, en_tienda: true })
 const form = useForm(vacio())
 // Artículo nuevo: al elegir el rubro toma sus datos (IVA, tipo y marcas de stock), propios o heredados.
@@ -94,6 +109,29 @@ function derivarPrecios() {
   const m1 = form.margenes[1]
   if (m1 !== '' && m1 !== null) form.price = r2(form.cost * (1 + Number(m1) / 100))
   for (const n of [2, 3, 4, 5, 6]) { const m = form.margenes[n]; form.prices[n] = m !== '' && m !== null ? r2(form.cost * (1 + Number(m) / 100)) : '' }
+}
+// Fase 61: completar con IA. Sólo rellena lo que está vacío; lo que ya escribió el usuario se respeta.
+const iaCargando = ref(false), iaNota = ref(''), iaError = ref(false)
+async function completar(foto = null) {
+  iaCargando.value = true; iaNota.value = ''; iaError.value = false
+  try {
+    const { data } = await window.axios.post('/stock/articulos/completar-ia', { nombre: form.name || null, foto })
+    const c = data.campos, puestos = []
+    const poner = (k, v, vacio = v => v === '' || v === null || v === undefined || v === 0) => { if (v !== null && v !== undefined && vacio(form[k])) { form[k] = v; puestos.push(k) } }
+    if (!form.name || foto) poner('name', c.name, () => true)
+    poner('marca', c.marca); poner('barcode', c.barcode); poner('description', c.description); poner('descripcion_tienda', c.descripcion_tienda)
+    poner('contenido_neto', c.contenido_neto); poner('contenido_unidad', c.contenido_unidad)
+    if (!form.id) { poner('rubro_id', c.rubro_id); if (c.tipo) { form.tipo = c.tipo; puestos.push('tipo') } if (c.unit) { form.unit = c.unit; puestos.push('unidad') } if (c.iva !== undefined) { form.iva = c.iva; puestos.push('IVA') } }
+    if (c.atributos && Object.keys(c.atributos).length) { form.atributos = { ...(form.atributos ?? {}), ...c.atributos, ml: { ...(form.atributos?.ml ?? {}), ...(c.atributos.ml ?? {}) } }; puestos.push('atributos ML') }
+    iaNota.value = (puestos.length ? 'Completado con IA: ' + puestos.join(', ') + '. Revisá y corregí lo que haga falta.' : 'No había nada para completar.') + (data.rubro_sugerido ? ` Rubro sugerido «${data.rubro_sugerido}»: no existe todavía, crealo en Rubros.` : '')
+  } catch (e) { iaError.value = true; iaNota.value = e.response?.data?.aviso || e.response?.data?.message || 'No se pudo completar con IA.' }
+  finally { iaCargando.value = false }
+}
+function desdeFoto(e) {
+  const f = e.target.files?.[0]; e.target.value = ''; if (!f) return
+  const img = new Image(), url = URL.createObjectURL(f)
+  img.onload = () => { const k = Math.min(1, 1280 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); completar(cv.toDataURL('image/jpeg', 0.85)) }
+  img.src = url
 }
 function guardar() {
   derivarPrecios()
