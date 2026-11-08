@@ -20,7 +20,24 @@ class CrmController extends Controller
             'config' => ['activo' => $c['activo'], 'url' => $c['url'], 'secreto_set' => $c['secreto'] !== '', 'api_key_set' => $c['api_key'] !== '', 'webhook_secreto_set' => $c['webhook_secreto'] !== '', 'lista_precios' => $c['lista_precios'], 'presupuesto_como' => $c['presupuesto_como']],
             'cuit' => $b->cuit, 'urlEntrada' => url('/integraciones/crm/entrar'), 'urlWebhook' => url('/api/crm/webhook/' . $b->id), 'listo' => CrmService::activo($b),
             'prueba' => session('crm_prueba'),
+            'salud' => app(\App\Services\Integraciones\CrmSaludService::class)->resumen($b), // Fase 68
         ]);
+    }
+
+    // Fase 68: vuelve a la cola lo que agotó los reintentos.
+    public function reintentar(Request $request)
+    {
+        $n = app(\App\Services\Integraciones\CrmSaludService::class)->reintentar($request->user()->business);
+        return back()->with($n ? 'success' : 'error', $n ? "{$n} envío(s) vueltos a la cola." : 'No hay envíos fallidos para reintentar.');
+    }
+
+    // Fase 68: vuelve a mandar al CRM lo de las últimas 48 horas (idempotente del otro lado).
+    public function reconciliar(Request $request)
+    {
+        $b = $request->user()->business; $svc = app(\App\Services\Integraciones\CrmSaludService::class);
+        $r = $svc->reconciliar($b); $svc->ping($b, true);
+        AuditLog::registrar('editar', $b, "Reconcilió con el CRM: {$r['clientes']} clientes, {$r['articulos']} artículos, {$r['comprobantes']} comprobantes, {$r['cobros']} cobros");
+        return back()->with('success', "Se volvieron a mandar al CRM {$r['clientes']} clientes, {$r['articulos']} artículos, {$r['comprobantes']} comprobantes y {$r['cobros']} cobros de las últimas 48 horas.");
     }
 
     public function guardar(Request $request)
