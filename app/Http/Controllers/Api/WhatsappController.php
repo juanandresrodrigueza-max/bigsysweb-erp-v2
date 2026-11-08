@@ -28,12 +28,19 @@ class WhatsappController extends Controller
         foreach ($request->input('entry', []) as $e) foreach ($e['changes'] ?? [] as $ch) foreach ($ch['value']['messages'] ?? [] as $m) if (($m['type'] ?? '') === 'text') $mensajes[] = ['de' => $m['from'] ?? null, 'texto' => $m['text']['body'] ?? ''];
         // Formato simple para integradores: {"telefono": "...", "texto": "..."}
         if (! $mensajes && $request->filled('texto')) $mensajes[] = ['de' => $request->input('telefono'), 'texto' => $request->input('texto')];
-        $creados = [];
+        $creados = []; $atendidos = [];
         foreach ($mensajes as $m) {
             if (trim($m['texto']) === '') continue;
+            // Fase 60: si es una consulta (saldo, pedido, stock, reclamo, hablar con alguien) la atiende Bigcito y no sigue como pedido.
+            if (\App\Services\Canales\AtencionClientesService::activo($b) && ($at = app(\App\Services\Canales\AtencionClientesService::class)->atender($b, $m['de'], $m['texto']))) {
+                if (($ws['auto_responder'] ?? true) && $m['de']) $wa->responder($b, $m['de'], $at['respuesta']);
+                $atendidos[] = $at['intencion'];
+                continue;
+            }
             // Fase 53.2: en un local gastronómico el pedido entra directo a Big Restó como comanda (delivery o para retirar).
             if (\App\Services\Gastronomia\PedidoRestoService::activo($b)) {
                 $i = $wa->interpretar($b, $m['texto'], true);
+                if (\App\Services\Canales\AtencionClientesService::activo($b) && ($at = app(\App\Services\Canales\AtencionClientesService::class)->atenderInterpretado($b, $m['de'], $m['texto'], $i))) { if (($ws['auto_responder'] ?? true) && $m['de']) $wa->responder($b, $m['de'], $at['respuesta']); $atendidos[] = $at['intencion']; continue; } // Fase 60
                 $r = ($ws['auto_pedidos'] ?? true) && $i['items'] ? app(\App\Services\Gastronomia\PedidoRestoService::class)->desdeWhatsapp($b, $i, $m['de']) : null;
                 $c = $r['comanda'] ?? null;
                 if ($c) $creados[] = $c->numeroFormateado();
@@ -43,11 +50,12 @@ class WhatsappController extends Controller
                 continue;
             }
             $i = $wa->interpretar($b, $m['texto']);
+            if (\App\Services\Canales\AtencionClientesService::activo($b) && ($at = app(\App\Services\Canales\AtencionClientesService::class)->atenderInterpretado($b, $m['de'], $m['texto'], $i))) { if (($ws['auto_responder'] ?? true) && $m['de']) $wa->responder($b, $m['de'], $at['respuesta']); $atendidos[] = $at['intencion']; continue; } // Fase 60
             $p = ($ws['auto_pedidos'] ?? true) && $i['items'] ? $wa->crearDesdeTexto($b, $m['texto'], $m['de'], $i) : null;
             if ($p) $creados[] = $p->numeroFormateado();
             if (($ws['auto_responder'] ?? true) && $m['de'] && ! empty($i['respuesta'])) $wa->responder($b, $m['de'], $i['respuesta'] . ($p ? "\nTu pedido es el {$p->numeroFormateado()}. Seguilo acá: {$p->urlPublica()}" : ''));
             if (! $p && $m['de']) \App\Models\Alerta::emitir(['business_id' => $b->id, 'modulo' => 'comprobantes', 'tipo' => 'whatsapp_sin_pedido', 'severidad' => 'info', 'titulo' => 'Mensaje de WhatsApp sin pedido: ' . $m['de'], 'detalle' => mb_substr($m['texto'], 0, 140), 'url' => '/comprobantes/pedidos']);
         }
-        return response()->json(['ok' => true, 'pedidos' => $creados]);
+        return response()->json(['ok' => true, 'pedidos' => $creados, 'atendidos' => $atendidos]);
     }
 }
