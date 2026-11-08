@@ -38,7 +38,19 @@ class ConciliacionController extends Controller
             'categorias' => ExpenseCategory::orderBy('name')->get(['id', 'name']),
             'cajones' => $cuenta ? app(\App\Services\Contabilidad\BancoCajonesService::class)->cajones(CuentaFondos::find($cuentaId)) : null,
             'clases' => \App\Services\Contabilidad\BancoCajonesService::CLASES,
+            // Transferencias que entraron: de qué cliente son (por CUIT, DNI o nombre exacto) para hacer el recibo con un clic.
+            'deClientes' => $cuenta ? app(\App\Services\Comprobantes\TransferenciaClienteService::class)->sugerencias(CuentaFondos::find($cuentaId)) : [],
+            'clientes' => \App\Models\Contact::customers()->where('is_active', true)->where('name', '!=', 'Consumidor Final')->orderBy('name')->limit(3000)->get(['id', 'name'])->map(fn($c) => ['id' => $c->id, 'nombre' => $c->name]),
         ]);
+    }
+
+    // Fase 47: una transferencia del extracto se vuelve recibo del cliente y queda conciliada.
+    public function recibo(Request $request, int $id, \App\Services\Comprobantes\TransferenciaClienteService $t)
+    {
+        abort_unless($request->user()->puede('clientes', 'crear'), 403, 'Tu rol no puede cargar cobros.');
+        $d = $request->validate(['contact_id' => 'required|integer']);
+        $cobro = $t->reciboDesdeExtracto(ExtractoItem::findOrFail($id), \App\Models\Contact::customers()->findOrFail($d['contact_id']));
+        return back()->with('success', "Recibo {$cobro->numeroFormateado()} hecho a {$cobro->contact->name} y conciliado con el banco.");
     }
 
     public function importar(Request $request, ConciliacionService $svc)

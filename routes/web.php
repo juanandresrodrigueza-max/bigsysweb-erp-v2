@@ -260,6 +260,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/',                       [ClientesController::class, 'guardar'])->middleware('permiso:clientes,crear');
         Route::get('/cobranzas',               [\App\Http\Controllers\Clientes\CobranzasController::class, 'index']);
         Route::post('/cobranzas/configurar',   [\App\Http\Controllers\Clientes\CobranzasController::class, 'configurar'])->middleware('permiso:clientes,editar');
+        Route::post('/cobranzas/leer-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'leerTransferencia'])->middleware(['permiso:clientes,crear', 'throttle:30,1']);
+        Route::post('/cobranzas/desde-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'desdeTransferencia'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/correr',       [\App\Http\Controllers\Clientes\CobranzasController::class, 'correr'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/{id}/recordar',    [\App\Http\Controllers\Clientes\CobranzasController::class, 'recordar'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/{id}/refinanciar', [\App\Http\Controllers\Clientes\CobranzasController::class, 'refinanciar'])->middleware('permiso:clientes,crear');
@@ -536,6 +538,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/conciliacion/{id}/ignorar',  [\App\Http\Controllers\Contable\ConciliacionController::class, 'ignorar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/registrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/clasificar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'clasificar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/{id}/recibo',   [\App\Http\Controllers\Contable\ConciliacionController::class, 'recibo'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/registrar-grupo', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrarGrupo'])->middleware('permiso:contable,crear');
         Route::get('/fiscal',                      [\App\Http\Controllers\Contable\FiscalController::class, 'index']);
         Route::get('/fiscal/exportar',             [\App\Http\Controllers\Contable\FiscalController::class, 'exportar'])->middleware('permiso:contable,exportar');

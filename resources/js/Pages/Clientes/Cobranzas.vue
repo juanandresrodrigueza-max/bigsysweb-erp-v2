@@ -1,5 +1,17 @@
 <template>
   <AppLayout titulo="Cobranzas">
+    <Modal :abierto="!!tr.datos" titulo="Recibo desde el comprobante de transferencia" @cerrar="tr.datos = null">
+      <div v-if="tr.datos" class="space-y-3 text-sm">
+        <p class="text-xs text-marca-muted">Leído con IA: {{ tr.datos.ordenante_nombre || 'sin nombre' }}{{ tr.datos.ordenante_cuit ? ' · CUIT ' + tr.datos.ordenante_cuit : '' }}{{ tr.datos.banco ? ' · ' + tr.datos.banco : '' }}. Revisá antes de confirmar.</p>
+        <p v-if="tr.repetido" class="rounded-lg bg-amber-50 text-amber-800 text-xs px-3 py-1.5">Ya hay un cobro con ese número de operación y ese importe. Fijate que no sea el mismo.</p>
+        <div><label class="label">Cliente <span v-if="tr.por" class="text-emerald-700 normal-case font-normal">· reconocido por {{ tr.por }}</span><span v-else class="text-amber-700 normal-case font-normal">· no lo reconocí, elegilo</span></label>
+          <select v-model="trf.contact_id" class="input" data-e2e="tr-cliente"><option :value="null">Elegí el cliente…</option><option v-for="c in clientesLista" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div>
+        <div class="grid grid-cols-2 gap-3"><div><label class="label">Importe</label><input v-model.number="trf.monto" type="number" step="0.01" class="input" /></div><div><label class="label">Fecha</label><input v-model="trf.fecha" type="date" class="input" /></div></div>
+        <div class="grid grid-cols-2 gap-3"><div><label class="label">Entró a</label><select v-model="trf.cuenta_fondos_id" class="input"><option v-for="b in bancos" :key="b.id" :value="b.id">{{ b.nombre }}</option></select></div><div><label class="label">N° de operación</label><input v-model="trf.referencia" class="input" /></div></div>
+        <p v-if="tr.imputaciones.length" class="text-xs text-marca-muted">Cancela: {{ tr.imputaciones.map(i => i.numero + ' ' + moneda(i.monto)).join(' · ') }}. Lo que sobre queda a cuenta.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="tr.datos = null">Cancelar</button><button class="btn-primary" :disabled="trf.processing || !trf.contact_id || !trf.cuenta_fondos_id" @click="trf.post('/clientes/cobranzas/desde-transferencia', { preserveScroll: true, onSuccess: () => (tr.datos = null) })" data-e2e="tr-confirmar">Hacer el recibo</button></template>
+    </Modal>
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
         <Link href="/clientes" class="text-xs text-marca-muted hover:text-carmin">← Clientes</Link>
@@ -8,6 +20,7 @@
       </div>
       <div class="flex gap-2">
         <Link href="/clientes/acopios" class="btn-secondary" data-ir-acopios>Acopios</Link>
+        <label v-if="puede('clientes','crear')" class="btn-primary cursor-pointer" data-e2e="subir-transferencia">{{ tr.leyendo ? 'Leyendo…' : 'Recibo desde comprobante' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerTransferencia" /></label>
         <button v-if="puede('clientes','crear')" @click="router.post('/clientes/cobranzas/correr', {}, { preserveScroll: true })" class="btn-secondary" :title="config.activo ? '' : 'Activá los avisos automáticos primero'">Enviar avisos de hoy</button>
         <button v-if="puede('clientes','editar')" @click="cfgAbierta = true" class="btn-violeta"><Icono nombre="settings" clase="w-4 h-4" /> Avisos automáticos {{ config.activo ? 'ON' : 'OFF' }}</button>
       </div>
@@ -99,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -107,10 +120,25 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean })
+const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean, bancos: { type: Array, default: () => [] }, clientesLista: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const page = usePage()
 const cfgAbierta = ref(false)
+// Fase 47: la foto o el PDF de la transferencia → la IA lo lee → recibo para confirmar.
+const tr = reactive({ leyendo: false, datos: null, por: null, imputaciones: [], repetido: false })
+const trf = useForm({ contact_id: null, monto: 0, fecha: '', cuenta_fondos_id: props.bancos?.[0]?.id ?? null, referencia: '' })
+async function leerTransferencia(ev) {
+  const file = ev.target.files?.[0]; ev.target.value = ''; if (!file) return
+  tr.leyendo = true
+  try {
+    const fd = new FormData(); fd.append('archivo', file)
+    const { data } = await window.axios.post('/clientes/cobranzas/leer-transferencia', fd)
+    if (!data.ok) { alertar(data.aviso); return }
+    Object.assign(tr, { datos: data.datos, por: data.por, imputaciones: data.imputaciones, repetido: data.repetido })
+    Object.assign(trf, { contact_id: data.contact_id, monto: data.datos.monto, fecha: data.datos.fecha || new Date().toISOString().slice(0, 10), referencia: data.datos.numero_operacion || '' })
+  } catch (e) { alertar('No pude leer el archivo.') } finally { tr.leyendo = false }
+}
+function alertar(t) { page.props.flash = { ...(page.props.flash ?? {}), error: t } }
 const cf = useForm({ activo: props.config.activo, canales: [...props.config.canales], texto: props.config.texto, whatsapp_token: props.whatsapp.token, whatsapp_phone_id: props.whatsapp.phone_id })
 const diasTexto = ref(props.config.dias.join(', '))
 function recordar(d, canal) { router.post(`/clientes/cobranzas/${d.id}/recordar`, { canal }, { preserveScroll: true, onSuccess: () => { const abrir = page.props.flash?.abrir; if (abrir) { window.open(abrir, '_blank'); const id = page.props.flash?.envio_id; if (id) window.axios.post(`/envios/${id}/marcar`).catch(() => {}) } } }) }

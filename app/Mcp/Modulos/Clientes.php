@@ -18,6 +18,32 @@ class Clientes
     public static function herramientas(): array
     {
         return [
+            // Fase 47: transferencias de clientes que están en el banco y no tienen recibo.
+            ['nombre' => 'transferencias_sin_recibo', 'titulo' => 'Transferencias que entraron sin recibo', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Plata que entró al banco según el último extracto importado y todavía no está en el sistema, con el cliente al que corresponde cuando se reconoce por CUIT, DNI o nombre completo.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $t = app(\App\Services\Comprobantes\TransferenciaClienteService::class); $out = [];
+                    foreach (\App\Models\CuentaFondos::whereIn('tipo', ['banco', 'billetera'])->where('activa', true)->get() as $cta) {
+                        $sug = $t->sugerencias($cta);
+                        foreach (\App\Models\ExtractoItem::where('cuenta_fondos_id', $cta->id)->where('estado', 'pendiente')->where('monto', '>', 0)->orderBy('fecha')->limit(50)->get() as $it)
+                            $out[] = ['id' => $it->id, 'banco' => $cta->nombre, 'fecha' => $it->fecha->format('d/m/Y'), 'descripcion' => $it->descripcion, 'monto' => (float) $it->monto, 'cliente' => $sug[$it->id]['cliente'] ?? null, 'reconocido_por' => $sug[$it->id]['por'] ?? null];
+                    }
+                    return ['transferencias' => $out, 'url' => Busca::url('/contable/conciliacion')];
+                }],
+            ['nombre' => 'recibo_de_transferencia', 'titulo' => 'Hacer el recibo de una transferencia del banco', 'modulo' => 'clientes', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Convierte una transferencia del extracto (id de transferencias_sin_recibo) en recibo del cliente, imputado a sus facturas más viejas, y la deja conciliada con el banco.',
+                'parametros' => ['transferencia_id' => ['type' => 'integer'], 'cliente' => ['type' => 'string', 'description' => 'Si no lo dice, el reconocido.']], 'requeridos' => ['transferencia_id'],
+                'proponer' => function (User $u, array $a) {
+                    $it = \App\Models\ExtractoItem::where('estado', 'pendiente')->find($a['transferencia_id']); if (! $it || $it->monto <= 0) return ['error' => 'No encuentro esa transferencia pendiente.'];
+                    $c = ! empty($a['cliente']) ? Busca::cliente($a['cliente']) : app(\App\Services\Comprobantes\TransferenciaClienteService::class)->cliente($it->descripcion . ' ' . $it->referencia)['contact'];
+                    if (! $c) return ['error' => 'No sé de qué cliente es. Decime el cliente.'];
+                    return ['titulo' => "Recibo a {$c->name} por " . Busca::pesos((float) $it->monto), 'detalle' => "Transferencia del {$it->fecha->format('d/m')} · {$it->descripcion}", 'datos' => ['it' => $it->id, 'c' => $c->id]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $cobro = app(\App\Services\Comprobantes\TransferenciaClienteService::class)->reciboDesdeExtracto(\App\Models\ExtractoItem::findOrFail($d['it']), Contact::findOrFail($d['c']));
+                    return ['texto' => "Recibo {$cobro->numeroFormateado()} hecho y conciliado con el banco.", 'url' => Busca::url("/clientes/{$d['c']}")];
+                }],
             ['nombre' => 'buscar_clientes', 'titulo' => 'Buscar clientes', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Busca clientes por nombre, CUIT, teléfono o email. Devuelve id, CUIT, condición de IVA, saldo y contacto.',
                 'parametros' => ['texto' => ['type' => 'string'], 'cantidad' => ['type' => 'integer']], 'requeridos' => ['texto'],
