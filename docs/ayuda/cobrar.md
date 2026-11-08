@@ -41,3 +41,11 @@ En **Configuración → Empresa → Avisos** se activan los recordatorios de ven
 - **Cobré en la caja equivocada**: anulá el cobro (queda en auditoría) y cargalo de nuevo.
 - **El saldo no cierra**: revisá cobros anulados y notas de crédito en el historial; cada movimiento tiene un link al comprobante.
 - **El cheque rebotó**: en Fondos → Cheques, "Rechazar": la deuda vuelve a la cuenta corriente del cliente.
+
+## Recibos desde las transferencias (Fase 47)
+
+**Desde el comprobante:** en Clientes → Cobranzas, tocá **Recibo desde comprobante** y subí la foto o el PDF de la transferencia que te mandó el cliente. La IA lee el importe, la fecha, quién la mandó, su CUIT y el número de operación. Si el CUIT, el DNI o el nombre completo coinciden con un cliente, ya aparece elegido. Si no, lo elegís vos: nunca se asigna por parecido. El recibo cancela las facturas de la más vieja a la más nueva, y lo que sobra queda a cuenta. Si ese número de operación ya se cargó, te avisa.
+
+**Desde el extracto:** en Contable → Conciliación, en «Está en el banco y no en el sistema», cada transferencia que entró tiene el botón **Recibo a [cliente]** cuando se lo reconoce. Si no se lo reconoce, aparece un selector para elegir el cliente. El recibo queda hecho y conciliado con ese renglón del banco.
+
+**Los dos caminos se cruzan:** si hiciste el recibo desde la foto, cuando importes el extracto ese renglón se concilia solo. También se lo podés pedir a Bigcito: «¿qué transferencias entraron sin recibo?», y después «hacele el recibo».

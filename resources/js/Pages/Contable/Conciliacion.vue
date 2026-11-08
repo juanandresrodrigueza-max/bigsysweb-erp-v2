@@ -74,6 +74,10 @@
           <div v-for="it in g.items" :key="it.id" class="flex justify-between gap-2 text-xs py-0.5 pl-3">
             <span>{{ it.fecha }} · {{ it.descripcion }}<span v-if="it.aprendido" class="text-violeta"> · aprendido</span></span>
             <span class="flex items-center gap-2"><span class="tabular-nums">{{ moneda(it.monto) }}</span>
+              <template v-if="it.monto > 0 && puede('clientes','crear')">
+                <button v-if="deClientes[it.id]" class="btn-primary !py-0.5 !px-2 text-[11px]" @click="hacerRecibo(it.id, deClientes[it.id].contact_id)" :data-recibo="it.id" :title="'Reconocido por ' + deClientes[it.id].por">Recibo a {{ deClientes[it.id].cliente }}</button>
+                <select v-else class="input !py-0 !text-[11px] !w-36" @change="$event.target.value && hacerRecibo(it.id, $event.target.value)" :data-recibo-elegir="it.id"><option value="">Recibo a…</option><option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.nombre }}</option></select>
+              </template>
               <select v-if="puede('contable','crear')" class="input !py-0 !text-[11px] !w-auto" :value="g.clase" @change="router.post(`/contable/conciliacion/${it.id}/clasificar`, { clase: $event.target.value }, { preserveScroll: true })"><option v-for="(l, k) in clases" :key="k" :value="k">{{ l }}</option></select></span>
           </div>
         </details>
@@ -132,7 +136,8 @@ import ContableTabs from '@/Components/ContableTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ bancos: Array, cuentaId: Number, estado: String, items: Array, sinConciliar: Array, resumen: Object, categorias: Array, cajones: Object, clases: Object })
+const props = defineProps({ bancos: Array, cuentaId: Number, estado: String, items: Array, sinConciliar: Array, resumen: Object, categorias: Array, cajones: Object, clases: Object, deClientes: { type: Object, default: () => ({}) }, clientes: { type: Array, default: () => [] } })
+function hacerRecibo(id, contactId) { router.post(`/contable/conciliacion/${id}/recibo`, { contact_id: contactId }, { preserveScroll: true }) }
 const { puede } = usePermisos()
 const impAbierto = ref(false), vincular = ref(null), registrar = ref(null)
 const imp = useForm({ cuenta_fondos_id: props.cuentaId, archivo: null })
