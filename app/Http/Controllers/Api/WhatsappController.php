@@ -31,6 +31,17 @@ class WhatsappController extends Controller
         $creados = [];
         foreach ($mensajes as $m) {
             if (trim($m['texto']) === '') continue;
+            // Fase 53.2: en un local gastronómico el pedido entra directo a Big Restó como comanda (delivery o para retirar).
+            if (\App\Services\Gastronomia\PedidoRestoService::activo($b)) {
+                $i = $wa->interpretar($b, $m['texto'], true);
+                $r = ($ws['auto_pedidos'] ?? true) && $i['items'] ? app(\App\Services\Gastronomia\PedidoRestoService::class)->desdeWhatsapp($b, $i, $m['de']) : null;
+                $c = $r['comanda'] ?? null;
+                if ($c) $creados[] = $c->numeroFormateado();
+                $faltan = $r ? collect($r['faltan'])->map(fn($f) => "¿{$f['plato']}: " . implode(', ', $f['opciones']) . '?')->implode(' ') : '';
+                if (($ws['auto_responder'] ?? true) && $m['de'] && (! empty($i['respuesta']) || $faltan)) $wa->responder($b, $m['de'], trim(($i['respuesta'] ?? '') . ($faltan ? "\n{$faltan}" : '') . ($c ? "\nTu pedido es el {$c->numeroFormateado()}. Te avisamos cuando esté listo." : '')));
+                if (! $c && $m['de']) \App\Models\Alerta::emitir(['business_id' => $b->id, 'modulo' => 'gastronomia', 'tipo' => 'whatsapp_sin_pedido', 'severidad' => 'info', 'titulo' => 'Mensaje de WhatsApp sin pedido: ' . $m['de'], 'detalle' => mb_substr($m['texto'], 0, 300), 'url' => '/gastronomia']);
+                continue;
+            }
             $i = $wa->interpretar($b, $m['texto']);
             $p = ($ws['auto_pedidos'] ?? true) && $i['items'] ? $wa->crearDesdeTexto($b, $m['texto'], $m['de'], $i) : null;
             if ($p) $creados[] = $p->numeroFormateado();

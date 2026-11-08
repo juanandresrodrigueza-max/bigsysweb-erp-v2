@@ -68,7 +68,8 @@ class AyudaService
     }
 
     private static function norm(string $t): string { return Str::lower(Str::ascii($t)); }
-    private static function contar(string $texto, string $raiz): int { return preg_match_all('/(?<![a-z0-9])' . preg_quote($raiz, '/') . '/', $texto); }
+    // Una palabra corta ("bi", "iva", "qr") se busca entera: "bi" no tiene que encontrar "Big".
+    private static function contar(string $texto, string $raiz, bool $entera = false): int { return preg_match_all('/(?<![a-z0-9])' . preg_quote($raiz, '/') . ($entera ? '(?![a-z0-9])' : '') . '/', $texto); }
     private static function raiz(string $p): string { return mb_strlen($p) >= 5 ? mb_substr($p, 0, mb_strlen($p) - 2) : $p; }
     private const VACIAS = ['como', 'para', 'que', 'una', 'uno', 'los', 'las', 'del', 'con', 'por', 'sin', 'mi', 'el', 'la', 'de', 'en', 'un', 'se', 'al', 'lo', 'es', 'hago', 'puedo', 'donde', 'cuando'];
 
@@ -86,10 +87,10 @@ class AyudaService
                 $tituloS = self::norm($sec['titulo']); $texto = self::norm($sec['texto']); $pts = 0; $hits = 0;
                 foreach ($palabras as $p) {
                     // La raíz cuenta solo al comienzo de una palabra: "anul" no tiene que encontrar "manual".
-                    $r = self::raiz($p); $n = self::contar($texto, $r);
-                    if (self::contar($tituloA, $r)) $pts += 4;
-                    if (self::contar($tituloS, $r)) $pts += 20; // el título de la sección pesa más que las menciones en el cuerpo
-                    if ($n) { $hits++; $pts += min(6, $n) + 2 * min(3, self::contar($texto, $p)); }
+                    $r = self::raiz($p); $entera = mb_strlen($p) <= 3; $n = self::contar($texto, $r, $entera);
+                    if (self::contar($tituloA, $r, $entera)) $pts += 4;
+                    if (self::contar($tituloS, $r, $entera)) $pts += 20; // el título de la sección pesa más que las menciones en el cuerpo
+                    if ($n) { $hits++; $pts += min(6, $n) + 2 * min(3, self::contar($texto, $p, $entera)); }
                 }
                 if ($pts === 0) continue;
                 if (count($palabras) > 1 && $hits === count($palabras)) $pts += 8; // todas las palabras en la misma sección

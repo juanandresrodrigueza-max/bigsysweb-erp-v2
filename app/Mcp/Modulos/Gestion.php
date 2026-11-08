@@ -77,6 +77,29 @@ class Gestion
                 'descripcion' => 'Los pases de mercadería entre sucursales: los que están en viaje, los que llegaron con diferencias, los pedidos de las sucursales sin armar y lo que está en un proveedor por cambio o devolución.',
                 'parametros' => [],
                 'ejecutar' => fn(User $u, array $a) => ['pases' => TransferenciaStock::with('origen', 'destino', 'items.product')->whereIn('estado', ['en_viaje', 'con_diferencias', 'pedido', 'en_proveedor'])->latest('id')->limit(20)->get()->map(fn($t) => app(\App\Services\Stock\PasesService::class)->resumen($t) + ['url' => Busca::url("/stock/pases/{$t->id}")])->map(fn($r) => collect($r)->except('token')->all())->all()]],
+            // Fase 53.2: el mozo le dicta a Bigcito ("mesa 4, dos bifes jugosos con papas y una coca").
+            ['nombre' => 'cargar_comanda', 'titulo' => 'Cargar una comanda de palabra', 'modulo' => 'gastronomia', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Carga platos en la comanda de una mesa (o un pedido de mostrador / delivery) con las opciones de cada plato (punto, guarnición, extras, "sin cebolla") y los manda a cocina. Si la mesa ya está abierta, agrega a esa comanda.',
+                'parametros' => ['mesa' => ['type' => 'string', 'description' => 'Nombre o número de la mesa; vacío = mostrador'], 'tipo' => ['type' => 'string', 'enum' => ['mesa', 'mostrador', 'delivery']], 'cliente' => ['type' => 'string'], 'direccion' => ['type' => 'string'], 'telefono' => ['type' => 'string'],
+                    'items' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => ['plato' => ['type' => 'string'], 'cantidad' => ['type' => 'number'], 'opciones' => ['type' => 'array', 'items' => ['type' => 'string']], 'nota' => ['type' => 'string']]]]], 'requeridos' => ['items'],
+                'proponer' => function (User $u, array $a) {
+                    $mesa = null;
+                    if (! empty($a['mesa'])) { $t = trim(preg_replace('/^mesa\s*/iu', '', $a['mesa'])); $mesa = \App\Models\Mesa::where('activa', true)->where(fn($w) => $w->where('nombre', $t)->orWhere('nombre', 'Mesa ' . $t))->first(); if (! $mesa) return ['error' => "No encontré la mesa \"{$a['mesa']}\"."]; }
+                    $items = []; $det = [];
+                    foreach ($a['items'] as $x) {
+                        $p = Busca::articulo($x['plato'] ?? ''); if (! $p) return ['error' => 'No encontré "' . ($x['plato'] ?? '') . '" en la carta.'];
+                        [$el, $sobra] = \App\Services\Gastronomia\PedidoRestoService::opciones($p, (array) ($x['opciones'] ?? []));
+                        foreach ($p->modificadores ?? [] as $g) if (! empty($g['obligatorio']) && empty($el[$g['nombre']])) return ['error' => "¿{$p->name}: " . implode(', ', array_column($g['opciones'] ?? [], 'nombre')) . '?'];
+                        $items[] = ['product_id' => $p->id, 'cantidad' => (float) ($x['cantidad'] ?? 1), 'opciones' => $x['opciones'] ?? [], 'nota' => $x['nota'] ?? null];
+                        $det[] = Busca::cant($x['cantidad'] ?? 1) . ' ' . $p->name . ($el ? ' (' . implode(', ', array_merge(...array_values($el))) . ')' : '') . ($sobra ? ' · ' . implode(', ', $sobra) : '');
+                    }
+                    $titulo = $mesa ? "Mesa {$mesa->nombre}" : (($a['tipo'] ?? 'mostrador') === 'delivery' ? 'Delivery' : 'Mostrador') . (! empty($a['cliente']) ? " · {$a['cliente']}" : '');
+                    return ['titulo' => "Cargar en {$titulo} y mandar a cocina", 'detalle' => implode(', ', $det), 'datos' => ['mesa_id' => $mesa?->id, 'tipo' => $a['tipo'] ?? 'mostrador', 'cliente' => $a['cliente'] ?? null, 'direccion' => $a['direccion'] ?? null, 'telefono' => $a['telefono'] ?? null, 'items' => $items]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $r = app(\App\Services\Gastronomia\PedidoRestoService::class)->crear($u->business, $d + ['user_id' => $u->id, 'enviar' => true]);
+                    return ['texto' => "Listo: {$r['comanda']->titulo()} con " . count($r['cargados']) . ' plato' . (count($r['cargados']) > 1 ? 's' : '') . ' en cocina.', 'url' => Busca::url("/gastronomia/comandas/{$r['comanda']->id}")];
+                }],
             // Fase 52: el salón en números, de palabra ("¿cómo vino el mozo Juan?", "¿qué plato sale más?", "¿cuánto tarda la parrilla?").
             ['nombre' => 'resumen_gastronomia', 'titulo' => 'Salón y cocina', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Ventas del salón por mozo y por hora, ticket promedio, cubiertos, propinas, platos más pedidos y tiempos de cocina por estación, en un período.',
