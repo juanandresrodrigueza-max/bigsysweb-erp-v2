@@ -119,6 +119,31 @@ class Clientes
                     $cobro = app(CobroService::class)->registrar($c, ['fecha' => today()->toDateString(), 'medios' => [['medio' => $d['medio'], 'monto' => $d['monto']]], 'imputaciones' => $d['imputaciones'] ?? [], 'notas' => 'Registrado por IA']);
                     return ['texto' => "Recibo {$cobro->numeroFormateado()} por " . Busca::pesos($d['monto']) . " a {$c->name}. Saldo ahora " . Busca::pesos($c->fresh()->balance) . '.', 'url' => Busca::url("/clientes/cobros/{$cobro->id}/imprimir")];
                 }],
+            // Fase 57: riesgo de mora y plan de pago propuesto.
+            ['nombre' => 'riesgo_de_mora', 'titulo' => 'Riesgo de mora de los clientes', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Puntaje de riesgo de mora (0 a 100) con los motivos: cómo pagó siempre, lo vencido hoy, planes incumplidos. Con un cliente, su detalle; sin cliente, los deudores de mayor riesgo y los que conviene llamar antes de que venza.',
+                'parametros' => ['cliente' => ['type' => 'string']],
+                'ejecutar' => function (User $u, array $a) {
+                    $r = app(\App\Services\Ventas\RiesgoMoraService::class);
+                    if (! empty($a['cliente'])) { $c = Busca::cliente($a['cliente']); if (! $c) return ['error' => "No encuentro el cliente \"{$a['cliente']}\"."]; return ['cliente' => $c->name] + $r->de($c); }
+                    $deud = app(CobranzasService::class)->deudores(60); $ev = $deud->isNotEmpty() ? $r->evaluar(Contact::whereIn('id', $deud->pluck('id'))->get(), $deud->keyBy('id')->map(fn($d) => ['saldo' => $d['saldo'], 'vencido' => $d['vencido'], 'dias' => $d['dias']])->all()) : [];
+                    return ['mayor_riesgo' => $deud->map(fn($d) => ['cliente' => $d['nombre'], 'saldo' => $d['saldo'], 'vencido' => $d['vencido']] + ($ev[$d['id']] ?? []))->sortByDesc('puntaje')->take(15)->values()->all(), 'llamar_antes' => $r->paraLlamarAntes($u->business), 'url' => Busca::url('/clientes/cobranzas')];
+                }],
+            ['nombre' => 'proponer_plan_pago', 'titulo' => 'Proponerle un plan de pago a un cliente', 'modulo' => 'clientes', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Arma el plan de pago que el cliente puede pagar (cuotas según lo que compra por mes y cómo venía pagando) y se lo manda por WhatsApp o mail para que lo acepte. No crea el plan todavía: eso se hace cuando el cliente dice que sí.',
+                'parametros' => ['cliente' => ['type' => 'string'], 'canal' => ['type' => 'string', 'enum' => ['whatsapp', 'mail']]], 'requeridos' => ['cliente'],
+                'proponer' => function (User $u, array $a) {
+                    $c = Busca::cliente($a['cliente']); if (! $c) return ['error' => "No encuentro el cliente \"{$a['cliente']}\"."];
+                    $s = app(\App\Services\Ventas\PlanSugeridoService::class)->sugerir($u->business, $c); if (! $s['ok']) return ['error' => $s['aviso']];
+                    $canal = ($a['canal'] ?? 'whatsapp') === 'mail' ? 'mail' : 'whatsapp'; $dest = $canal === 'mail' ? $c->email : ($c->mobile ?: $c->phone);
+                    if (! $dest) return ['error' => "{$c->name} no tiene " . ($canal === 'mail' ? 'email' : 'teléfono') . ' cargado.'];
+                    return ['titulo' => "Proponerle a {$c->name} " . Busca::pesos($s['deuda']) . " en {$s['cuotas']} cuotas de " . Busca::pesos($s['cuota']), 'detalle' => $s['texto'], 'datos' => ['c' => $c->id, 'canal' => $canal, 'texto' => $s['texto']]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $c = Contact::findOrFail($d['c']); $f = Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->firstOrFail();
+                    $e = app(\App\Services\Envios\EnvioService::class)->enviar($f, $d['canal'], $d['canal'] === 'mail' ? $c->email : ($c->mobile ?: $c->phone), 'recordatorio', $d['texto'], false);
+                    return ['texto' => $e->estado === 'error' ? "No se pudo mandar: {$e->error}" : ($e->estado === 'pendiente' ? 'La propuesta quedó lista para mandar por WhatsApp.' : "Propuesta enviada a {$e->destino}."), 'url' => $e->link ?: Busca::url('/clientes/cobranzas')];
+                }],
             ['nombre' => 'recordar_deuda', 'titulo' => 'Recordar una deuda', 'modulo' => 'clientes', 'permiso' => 'editar', 'tipo' => 'accion',
                 'descripcion' => 'Manda a un cliente el recordatorio de su factura vencida más vieja, por WhatsApp o mail, con el texto configurado en Cobranzas.',
                 'parametros' => ['cliente' => ['type' => 'string'], 'canal' => ['type' => 'string', 'enum' => ['whatsapp', 'mail']]], 'requeridos' => ['cliente'],
