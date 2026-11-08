@@ -307,6 +307,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/ordenes/nueva',            [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'create'])->middleware('permiso:proveedores,crear');
         Route::post('/ordenes',                 [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'store'])->middleware('permiso:proveedores,crear');
         Route::post('/ordenes/sugerir',         [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'sugerir'])->middleware('permiso:proveedores,crear');
+        Route::post('/ordenes/cotizaciones/leer',    [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'cotizacionesLeer'])->middleware(['permiso:proveedores,crear', 'throttle:10,1']);
+        Route::post('/ordenes/cotizaciones/pedidos', [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'cotizacionesPedidos'])->middleware('permiso:proveedores,crear');
         Route::get('/ordenes/{id}',             [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'show'])->whereNumber('id');
         Route::get('/ordenes/{id}/editar',      [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'edit'])->middleware('permiso:proveedores,editar');
         Route::get('/ordenes/{id}/imprimir',    [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'imprimir']);

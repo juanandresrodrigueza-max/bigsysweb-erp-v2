@@ -10,6 +10,14 @@ resumen: Órdenes de compra, carga de facturas (a mano, con IA o desde ARCA), cu
 
 Lo que le pediste a cada proveedor y qué falta recibir. Se arman a mano o desde **Stock → Informes → Armar órdenes de compra**, que sugiere cantidades por lo que se vende y lo que hay. Al recibir la mercadería, la factura de compra se arma sola desde la orden.
 
+### Comparar cotizaciones (Fase 62)
+
+Pediste precio a tres proveedores y cada uno te mandó lo suyo: una foto, un PDF, un mensaje de WhatsApp. En **Proveedores → Órdenes → ✦ Comparar cotizaciones** subís todo junto (o pegás los mensajes tal cual). La IA lee cada renglón, lo pasa a precio por unidad sin IVA (si decía "IVA incluido" lo descuenta; si cotizó por bulto, lo convierte y lo aclara), lo cruza con tus artículos y reconoce al proveedor por CUIT o nombre.
+
+Sale la tabla: un renglón por artículo, una columna por proveedor, el más barato de cada fila en verde, cuánto sale **todo en uno solo** y cuánto el **mixto** (cada cosa al más barato) con el ahorro. Podés cambiar a quién le comprás cada renglón o sacarlo. **Armar órdenes** crea una orden de compra en borrador por proveedor con lo que ganó cada uno; las condiciones que cotizaron (pago, envío, validez) quedan a la vista. Un proveedor que no tiene ficha se muestra igual pero no se le puede pedir hasta darlo de alta.
+
+A Bigcito se le pegan los mensajes: "compará estas cotizaciones: …" y te dice quién gana qué y cuánto ahorrás; después "armá la orden a Acindar con…" la crea.
+
 ## Cargar una factura de compra
 
 **Proveedores → Compras → Nueva**. Tres formas:
