@@ -45,7 +45,7 @@ class ComandaService
         $desc = $it['descripcion'] ?? $p?->name ?? 'Ítem';
         if ($mods && ! isset($it['descripcion'])) $desc .= ' (' . implode(', ', array_column($mods, 'nombre')) . ')';
         $item = $c->items()->create([
-            'product_id' => $p?->id, 'descripcion' => mb_substr($desc, 0, 250), 'cantidad' => $it['cantidad'] ?? 1, 'modificadores' => $mods ?: null,
+            'product_id' => $p?->id, 'estacion' => $p?->estacion ?: (Auth::user()->business->estacionesCocina()[0]['nombre'] ?? 'Cocina'), 'descripcion' => mb_substr($desc, 0, 250), 'cantidad' => $it['cantidad'] ?? 1, 'modificadores' => $mods ?: null,
             'precio_unit' => $precio,
             'alicuota_iva' => $al, 'notas' => $it['notas'] ?? null, 'va_cocina' => $p ? $p->va_cocina : true, 'ronda' => $enviados ? $ronda + 1 : max(1, $ronda), 'estado' => 'pedido',
         ]);

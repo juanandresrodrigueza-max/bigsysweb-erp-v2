@@ -10,6 +10,7 @@
       <div v-if="abierta" class="flex flex-wrap gap-2">
         <button v-if="comanda.tipo === 'mesa' && puede('gastronomia','crear')" @click="moverAbierto = true" class="btn-ghost text-xs">Mover de mesa</button>
         <button v-if="puede('gastronomia','editar')" @click="anular" class="btn-ghost text-xs text-carmin">Anular</button>
+        <span v-if="estacionesEnUso.length" class="flex items-center gap-1 text-xs text-marca-muted">Imprimir: <a v-for="e in estacionesEnUso" :key="e" :href="`/gastronomia/comandas/${comanda.id}/imprimir?estacion=${encodeURIComponent(e)}`" target="_blank" class="btn-ghost !px-2 text-xs" :data-imprimir="e">{{ e }}</a></span>
         <Link v-if="comanda.estado === 'abierta' && puede('gastronomia','crear')" :href="`/gastronomia/comandas/${comanda.id}/cuenta`" method="post" as="button" preserve-scroll class="btn-secondary">Pidió la cuenta</Link>
         <Link v-if="comanda.pendientes_envio && puede('gastronomia','crear')" :href="`/gastronomia/comandas/${comanda.id}/enviar`" method="post" as="button" preserve-scroll class="btn-violeta"><Icono nombre="send" clase="w-4 h-4" /> Enviar a cocina ({{ comanda.pendientes_envio }})</Link>
         <button v-if="puede('gastronomia','crear')" @click="abrirCierre" class="btn-primary" :disabled="!comanda.items.length">{{ comanda.pagos.length ? 'Cobrar lo que falta ' + moneda(comanda.pendiente, 0) : 'Cerrar y cobrar ' + moneda(comanda.total, 0) }}</button>
@@ -129,6 +130,7 @@ import { usePermisos } from '@/util/permisos'
 const props = defineProps({ comanda: Object, productos: Array, rubros: Array, medios: Object, cuentas: Array, clientes: Array, mesas: Array })
 const { puede } = usePermisos()
 const abierta = computed(() => ['abierta', 'cuenta'].includes(props.comanda.estado))
+const estacionesEnUso = computed(() => [...new Set(props.comanda.items.filter(i => i.va_cocina && ['cocina', 'listo'].includes(i.estado)).map(i => i.estacion).filter(Boolean))])
 const rondas = computed(() => [...new Set(props.comanda.items.map(i => i.ronda))].sort())
 const q = ref(''), rubroSel = ref(null)
 const norm = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')

@@ -34,7 +34,7 @@ class GastronomiaController extends Controller
             'mozo' => $c->mozo?->name, 'cubiertos' => $c->cubiertos, 'cliente' => $c->cliente, 'direccion' => $c->direccion, 'telefono' => $c->telefono, 'total' => (float) $c->total, 'descuento' => (float) $c->descuento, 'propina' => (float) $c->propina, 'notas' => $c->notas,
             'abierta' => $c->abierta_en?->format('H:i'), 'minutos' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0, 'comprobante_id' => $c->comprobante_id,
             'pagos' => $c->pagos ?? [], 'pendiente' => round($c->items->where('estado', '!=', 'anulado')->sum(fn($i) => ((float) $i->cantidad - (float) $i->pagado) * (float) $i->precio_unit), 2),
-            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
+            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'estacion' => $i->estacion, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
             'pendientes_envio' => $c->items->where('estado', 'pedido')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
         ];
     }
@@ -152,28 +152,58 @@ class GastronomiaController extends Controller
     // Pantalla de cocina: lo pendiente agrupado por comanda, más viejo primero. Se refresca sola.
     public function cocina(Request $request)
     {
-        $items = ComandaItem::with('comanda.mesa:id,nombre,sector', 'comanda.mozo:id,name')->whereIn('estado', ['cocina', 'listo'])->where('va_cocina', true)->whereHas('comanda', fn($q) => $q->abiertas())->orderBy('enviado_en')->get();
+        // Fase 50: cada estación ve lo suyo (?estacion=Barra); sin filtro, todo. La alerta de demora es la de cada estación.
+        $estaciones = $request->user()->business->estacionesCocina(); $primera = $estaciones[0]['nombre'];
+        $est = $request->estacion && collect($estaciones)->contains('nombre', $request->estacion) ? $request->estacion : null;
+        $alerta = collect($estaciones)->mapWithKeys(fn($e) => [$e['nombre'] => (int) $e['alerta']]);
+        $items = ComandaItem::with('comanda.mesa:id,nombre,sector', 'comanda.mozo:id,name')->whereIn('estado', ['cocina', 'listo'])->where('va_cocina', true)->whereHas('comanda', fn($q) => $q->abiertas())
+            ->when($est, fn($q) => $q->where(fn($w) => $w->where('estacion', $est)->when($est === $primera, fn($w) => $w->orWhereNull('estacion'))))->orderBy('enviado_en')->get();
         $grupos = $items->groupBy('comanda_id')->map(fn($its) => ['comanda_id' => $its->first()->comanda_id, 'titulo' => $its->first()->comanda->titulo(), 'mozo' => $its->first()->comanda->mozo?->name, 'enviado' => $its->min('enviado_en')?->format('H:i'), 'minutos' => (int) ($its->min('enviado_en')?->diffInMinutes(now()) ?? 0),
-            'items' => $its->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'notas' => $i->notas, 'estado' => $i->estado, 'ronda' => $i->ronda, 'minutos' => (int) ($i->enviado_en?->diffInMinutes(now()) ?? 0)])->values()])->values();
+            'items' => $its->map(fn($i) => ['id' => $i->id, 'estacion' => $i->estacion ?? $primera, 'alerta' => $alerta[$i->estacion ?? $primera] ?? 20, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'notas' => $i->notas, 'estado' => $i->estado, 'ronda' => $i->ronda, 'minutos' => (int) ($i->enviado_en?->diffInMinutes(now()) ?? 0)])->values()])->values();
         if ($request->wantsJson() || $request->boolean('json')) return response()->json($grupos);
-        return Inertia::render('Gastronomia/Cocina', ['grupos' => $grupos, 'terminados' => ComandaItem::where('estado', 'entregado')->where('va_cocina', true)->whereDate('updated_at', today())->count()]);
+        // Tiempo promedio de hoy (enviado → listo) por estación.
+        $hoy = ComandaItem::whereNotNull('listo_en')->whereNotNull('enviado_en')->where('va_cocina', true)->whereDate('listo_en', today())->get(['estacion', 'enviado_en', 'listo_en'])
+            ->groupBy(fn($i) => $i->estacion ?? $primera)->map(fn($g) => (int) round($g->avg(fn($i) => $i->enviado_en->diffInMinutes($i->listo_en))));
+        return Inertia::render('Gastronomia/Cocina', ['estaciones' => $estaciones, 'estacion' => $est, 'promedios' => $hoy, 'grupos' => $grupos, 'terminados' => ComandaItem::where('estado', 'entregado')->where('va_cocina', true)->whereDate('updated_at', today())->count()]);
     }
 
     // Fase 49 · Carta: qué va a cocina y los modificadores de cada plato (punto de la carne, guarnición, extras con precio).
     public function carta()
     {
         return Inertia::render('Gastronomia/Carta', [
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'modificadores' => $p->modificadores ?? []]),
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'modificadores' => $p->modificadores ?? []]),
+            'estaciones' => auth()->user()->business->estacionesCocina(),
         ]);
     }
 
     public function guardarCarta(Request $request, int $id)
     {
-        $d = $request->validate(['va_cocina' => 'boolean', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
+        $d = $request->validate(['va_cocina' => 'boolean', 'estacion' => 'nullable|string|max:30', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
             'modificadores.*.opciones' => 'required|array|min:1|max:30', 'modificadores.*.opciones.*.nombre' => 'required|string|max:40', 'modificadores.*.opciones.*.precio' => 'nullable|numeric|min:0']);
         $p = Product::findOrFail($id);
         $mods = collect($d['modificadores'] ?? [])->map(fn($g) => ['nombre' => trim($g['nombre']), 'obligatorio' => (bool) ($g['obligatorio'] ?? false), 'multiple' => (bool) ($g['multiple'] ?? false), 'opciones' => collect($g['opciones'])->map(fn($o) => ['nombre' => trim($o['nombre']), 'precio' => round((float) ($o['precio'] ?? 0), 2)])->values()->all()])->values()->all();
-        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []))->save();
+        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []))->save();
         return back()->with('success', "{$p->name}: carta guardada.");
+    }
+
+    // Fase 50: las estaciones y cuántos minutos espera cada una antes de marcar el plato en rojo.
+    public function guardarEstaciones(Request $request)
+    {
+        $d = $request->validate(['estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
+        $b = $request->user()->business; $cfg = $b->gastronomia_config ?? [];
+        $cfg['estaciones'] = collect($d['estaciones'])->map(fn($e) => ['nombre' => trim($e['nombre']), 'alerta' => (int) $e['alerta']])->values()->all();
+        $b->forceFill(['gastronomia_config' => $cfg])->save();
+        return back()->with('success', 'Estaciones guardadas.');
+    }
+
+    // Comanda impresa (ticket de 80 mm) de una estación: lo enviado de esa ronda o todo lo pendiente.
+    public function imprimir(Request $request, int $id)
+    {
+        $c = Comanda::with('mesa', 'mozo:id,name')->findOrFail($id);
+        $primera = $request->user()->business->estacionesCocina()[0]['nombre'];
+        $items = $c->items()->where('va_cocina', true)->whereIn('estado', ['cocina', 'listo'])
+            ->when($request->estacion, fn($q, $e) => $q->where(fn($w) => $w->where('estacion', $e)->when($e === $primera, fn($w) => $w->orWhereNull('estacion'))))
+            ->when($request->ronda, fn($q, $r) => $q->where('ronda', (int) $r))->orderBy('id')->get();
+        return response()->view('gastronomia.ticket-cocina', ['c' => $c, 'items' => $items, 'estacion' => $request->estacion ?: 'Cocina']);
     }
 }
