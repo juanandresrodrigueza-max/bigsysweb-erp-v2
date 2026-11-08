@@ -97,6 +97,15 @@
         <div><label class="label">Tipo</label><select v-model="lq.tipo" class="input"><option v-for="(l, k) in tiposLiq" :key="k" :value="k">{{ l }}</option></select></div>
         <div><label class="label">Fecha de pago</label><input v-model="lq.fecha" type="date" class="input" /></div>
       </div>
+      <!-- Fase 65: novedades por texto o dictadas -->
+      <div class="rounded-xl bg-marca-fondo p-3 mb-3" data-e2e="novedades-texto">
+        <div class="flex items-center justify-between gap-2 mb-1"><p class="text-xs font-semibold">✦ Contá las novedades como te salga y la tabla se completa sola</p><button type="button" class="btn-secondary !py-0.5 text-xs" :class="dictado.escuchando.value ? 'ring-2 ring-carmin' : ''" @click="dictado.escuchando.value ? dictado.parar() : dictado.empezar()" v-if="dictado.disponible">{{ dictado.escuchando.value ? '⏹ Parar' : '🎙 Dictar' }}</button></div>
+        <textarea v-model="novTexto" class="input text-sm" rows="2" placeholder="Ej: Juan hizo 6 horas extra al 50 y faltó 2 días. María 7 días de vacaciones y premio 20.000. Pedro no se liquida." data-e2e="novedades-textarea"></textarea>
+        <div class="flex flex-wrap items-center gap-2 mt-1.5">
+          <button type="button" class="btn-primary !py-1 text-xs" :disabled="novCargando || !novTexto.trim()" @click="completarNovedades" data-e2e="novedades-completar">{{ novCargando ? 'Leyendo…' : 'Completar la tabla' }}</button>
+          <span v-if="novNota" class="text-xs" :class="novError ? 'text-carmin' : 'text-violeta'">{{ novNota }}</span>
+        </div>
+      </div>
       <p class="text-xs text-marca-muted mb-2">Novedades del mes por empleado. Lo que no toques queda en 30 días y sin extras. Al cargar feriados o vacaciones, los días normales se ajustan solos (30 − feriados − vacaciones).</p>
       <div class="overflow-x-auto"><table class="table text-xs">
         <thead><tr><th></th><th>Empleado</th><th class="text-right">Días</th><th class="text-right">Feriados</th><th class="text-right">Vacac.</th><th class="text-right">HE 50%</th><th class="text-right">HE 100%</th><th class="text-right">Premios</th><th class="text-right">No rem.</th><th class="text-right">Anticipos</th></tr></thead>
@@ -253,11 +262,25 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
+import { useDictado } from '@/util/dictado'
 const props = defineProps({ empleados: Array, conceptos: Array, tiposConcepto: Object, tiposLiq: Object, estados: Object, liquidaciones: Array, periodo: String, tipo: String, enCurso: Object, cuentas: Array, kpis: Object, config: Object, modos: Object, cantidades: Object, grupos: Object, plantillas: Object, jornadas: Object })
 const fmt = iso => iso ? iso.split('-').reverse().join('/') : ''
 const liquidarAbierto = ref(false), importarAbierto = ref(false), pagarAbierto = ref(false), empleadoAbierto = ref(false), conceptosAbierto = ref(false), configAbierto = ref(false), plantillaConfirm = ref(null), detalle = ref(null), anticipo = ref(null)
 const nov = {}; props.empleados.forEach(e => { nov[e.id] = { dias: 30, feriados: 0, vacaciones: 0, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false } })
 const lq = useForm({ periodo: props.periodo, tipo: props.tipo, fecha: '', novedades: nov })
+// Fase 65: novedades por texto (pegado o dictado) → la tabla.
+const novTexto = ref(''), novCargando = ref(false), novNota = ref(''), novError = ref(false); let novBase = ''
+const dictado = useDictado((t, final) => { if (!novBase && !dictado.escuchando.value) novBase = novTexto.value; novTexto.value = (novBase ? novBase.trim() + ' ' : '') + t; if (final) novBase = novTexto.value }, { continuo: true })
+async function completarNovedades() {
+  novCargando.value = true; novNota.value = ''; novError.value = false
+  try {
+    const { data } = await window.axios.post('/sueldos/novedades-texto', { texto: novTexto.value })
+    if (!data.ok) { novError.value = true; novNota.value = data.aviso || 'No entendí el texto.'; return }
+    for (const [id, n] of Object.entries(data.novedades)) if (lq.novedades[id]) Object.assign(lq.novedades[id], { dias: n.dias, feriados: n.feriados, vacaciones: n.vacaciones, horas_extra_50: n.horas_extra_50, horas_extra_100: n.horas_extra_100, adicionales: n.adicionales, no_rem_extra: n.no_rem_extra, anticipos: n.anticipos || lq.novedades[id].anticipos, excluir: n.excluir })
+    novNota.value = `Cargué ${data.filas.length} empleado${data.filas.length === 1 ? '' : 's'}: ${data.filas.map(f => f.empleado).join(', ')}.` + (data.no_entendido.length ? ` No entendí: “${data.no_entendido.join('”, “')}”.` : '') + ' Revisá la tabla antes de calcular.'
+  } catch (e) { novError.value = true; novNota.value = e.response?.data?.message || 'No se pudo leer el texto.' }
+  finally { novCargando.value = false }
+}
 const im = useForm({ periodo: props.periodo, tipo: 'mensual', csv: '' })
 const pg = useForm({ cuenta_id: props.config?.cuenta_id ?? props.cuentas[0]?.id ?? null, fecha: hoyISO(), cargas: false })
 // Las novedades se arman al abrir: así incluyen a los empleados dados de alta después de cargar la pantalla.

@@ -97,6 +97,13 @@ class SueldosController extends Controller
         return back()->with('success', 'Configuración guardada.');
     }
 
+    // Fase 65: las novedades del mes dictadas o pegadas → la tabla de novedades por empleado.
+    public function novedadesTexto(Request $request)
+    {
+        $d = $request->validate(['texto' => 'required|string|max:8000']);
+        return response()->json(app(\App\Services\Sueldos\NovedadesTextoService::class)->interpretar($request->user()->business, $d['texto']));
+    }
+
     public function liquidar(Request $request, SueldosService $svc)
     {
         $d = $request->validate(['periodo' => 'required|date_format:Y-m', 'tipo' => 'required|in:mensual,sac,final', 'fecha' => 'nullable|date', 'novedades' => 'nullable|array']);

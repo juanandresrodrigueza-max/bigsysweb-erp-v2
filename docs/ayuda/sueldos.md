@@ -34,6 +34,12 @@ Las sumas del acuerdo y los básicos cambian con cada paritaria: actualizalos en
 
 Si el contador liquida afuera, **Importar** su planilla (CSV) y el sistema hace recibos, asiento y pago igual.
 
+### Las novedades contadas en castellano (Fase 65)
+
+Arriba de la tabla de **Liquidar** hay un recuadro: escribís o **dictás** las novedades como te salgan ("Juan hizo 6 horas extra al 50 y faltó 2 días; María 7 días de vacaciones y premio 20.000; Pedro no se liquida") y **Completar la tabla** las reparte en cada empleado: días (30 menos faltas, feriados y vacaciones), feriados, vacaciones, horas al 50 y al 100, premios, no remunerativos, anticipos y a quién excluir. Lo que no entendió te lo dice. Con clave de IA entiende apodos y frases sueltas ("la Mari se tomó dos semanas"); sin clave, por palabras. Siempre revisás la tabla antes de calcular.
+
+A Bigcito: "liquidá octubre: Juan faltó un día e hizo 4 extras, María de vacaciones dos semanas" → te muestra cómo quedó cada uno y, cuando confirmás, deja la liquidación en borrador.
+
 ## Recibos, pago y cargas
 
 - **Recibos**: el recibo legal (ley 20.744, art. 140) con los datos del empleador, legajo, CUIL, documento, categoría, jornada, ingreso y antigüedad, cada concepto con código, cantidad e importe (remunerativo o no), totales, neto en letras, el **último depósito de aportes** y el costo total del empleador por grupo. Sale con el logo y los colores de la empresa. Se imprimen todos o de a uno.
@@ -56,6 +62,10 @@ Al lado de cada recibo se ve el estado: enviado, lo vio, firmado o firmó discon
 **La firma del empleador** se carga una sola vez (Sueldos → Firmas y recibos → Firma del empleador) y sale en todos los recibos.
 
 **Historial**: en Firmas y recibos, quién lo recibió, cuándo lo vio y cuándo lo firmó, con la IP. Se baja a Excel.
+
+### El recibo explicado (Fase 65)
+
+En el link que recibe el empleado, debajo del recibo, hay un botón **"¿Qué significa cada renglón? Te lo explico"**: qué ganó, qué le descontaron y para qué sirve cada descuento (jubilación, obra social, PAMI, sindicato), cuánto cobra en mano y cuánto paga la empresa además. Con clave de IA es un texto a su medida; sin clave, con reglas. Vos también lo podés pedir: "Bigcito, explicame el recibo de Juan" y se lo mandás.
 
 ## Recibos que vienen de afuera
 
