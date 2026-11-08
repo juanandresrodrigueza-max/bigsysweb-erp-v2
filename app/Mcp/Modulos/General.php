@@ -71,7 +71,8 @@ class General
                 'ejecutar' => function (User $u, array $a) {
                     $r = app(\App\Services\Integraciones\CrmSaludService::class)->resumen($u->business);
                     return ['estado' => $r['estado'], 'resumen' => $r['texto'], 'ultimo_enviado' => $r['ultimo_enviado'], 'ultimo_recibido' => $r['ultimo_recibido'], 'en_cola' => $r['cola']['pendientes'], 'fallidos' => $r['cola']['fallidos'], 'errores_24h' => $r['errores_24h'],
-                        'ultimos' => array_slice($r['ultimos'], 0, 8), 'url' => Busca::url('/configuracion/crm'), 'nota' => $r['cola']['fallidos'] ? 'Hay envíos caídos: en Configuración → CRM está el botón Reintentar.' : null];
+                        'ultimos' => array_slice($r['ultimos'], 0, 8), 'url' => Busca::url('/configuracion/crm'), 'nota' => $r['cola']['fallidos'] ? 'Hay envíos caídos: en Configuración → CRM está el botón Reintentar.' : null,
+                        'plan' => \App\Services\Integraciones\CrmService::plan($u->business)]; // Fase 75
                 }],
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',

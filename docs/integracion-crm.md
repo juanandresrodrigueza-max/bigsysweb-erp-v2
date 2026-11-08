@@ -143,3 +143,19 @@ acepta **`vendedor_email`** (o `vendedor_id`) para decir quién cobró: ese cobr
 2. El módulo de **Comisiones del CRM**, con el ERP conectado, liquida sobre `GET /api/comisiones/base` del ERP (mismo período), identificando
    al vendedor por `email`; el valor de la oportunidad queda como estimado. Si no hay ERP, sigue como hoy.
 3. Al recibir `comprobante.emitido` / `cobro.registrado` con `vendedor`, la actividad del contacto en la ficha 360 dice quién lo vendió/cobró.
+
+## Fase 75 · Identidad completa y un solo plan
+
+**Lado ERP (hecho):** webhooks CRM → ERP **`user.created`**, **`user.updated`**, **`user.deactivated`**, **`user.deleted`** (`data.user` con `email`,
+`name`, `role` admin|supervisor|operator|viewer, `is_active`): el ERP da de alta (perfil según el rol, sucursal principal, clave aleatoria), cambia
+nombre/rol/estado o da de baja al usuario de la misma empresa por mail. Responde `{ok, user_id, accion}` o `{ok:false, error}` (dueño intocable,
+máximo de usuarios del plan). **`GET /api/plan`** → `{plan, plan_slug, estado, motivo, vence, incluye_crm, max_usuarios, usuarios_activos,
+url_suscripcion}`; y el aviso **`plan.cambiado`** (mismo cuerpo) en cada cambio de suscripción. Un plan incluye el CRM cuando tiene el extra
+"CRM BigSys" (Superadmin → Planes) o la empresa lo tiene contratado aparte.
+
+**Lo que el ERP espera del CRM:**
+1. Mandar los webhooks `user.*` cuando en el CRM se crea, edita (rol/nombre), desactiva o borra un usuario de una empresa con ERP conectado.
+2. Con el ERP conectado, la empresa del CRM **se habilita con el plan del ERP**: al recibir `plan.cambiado` (o leyendo `GET /api/plan` una vez
+   por día) guarda `incluye_crm`, `estado`, `vence`, `max_usuarios`; si `incluye_crm` es false o `estado` es `bloqueada`, el CRM muestra el
+   motivo y el link a `url_suscripcion` del ERP y no deja operar (sólo leer); no cobra una suscripción aparte.
+3. Al crear un usuario en el CRM con ERP conectado, si el ERP responde `ok:false` por el máximo del plan, el CRM lo dice con el mismo texto.

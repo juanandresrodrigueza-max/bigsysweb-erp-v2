@@ -21,6 +21,7 @@ class CrmController extends Controller
             'cuit' => $b->cuit, 'urlEntrada' => url('/integraciones/crm/entrar'), 'urlWebhook' => url('/api/crm/webhook/' . $b->id), 'listo' => CrmService::activo($b),
             'prueba' => session('crm_prueba'),
             'salud' => app(\App\Services\Integraciones\CrmSaludService::class)->resumen($b), // Fase 68
+            'plan' => CrmService::plan($b), // Fase 75: un solo plan
         ]);
     }
 

@@ -7,6 +7,20 @@
       <span class="badge text-sm px-3 py-1" :class="listo ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ listo ? 'Activa' : 'Inactiva' }}</span>
     </div>
 
+    <!-- Fase 75: un solo plan para los dos sistemas -->
+    <div class="card mb-4 border-l-4" :class="plan.incluye_crm ? 'border-l-emerald-500' : 'border-l-amber-400'" data-e2e="crm-plan">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 class="font-bold">Tu plan <span v-if="plan.plan">{{ plan.plan }}</span> {{ plan.incluye_crm ? 'incluye el CRM' : 'no incluye el CRM' }}</h3>
+          <p class="text-sm mt-1 text-marca-muted">
+            <template v-if="plan.incluye_crm">El CRM se habilita con el mismo plan del ERP: una sola suscripción, hasta {{ plan.max_usuarios < 0 ? 'usuarios ilimitados' : plan.max_usuarios + ' usuario(s)' }} en los dos sistemas ({{ plan.usuarios_activos }} activos){{ plan.vence ? ', vence el ' + plan.vence.split('-').reverse().join('/') : '' }}. El CRM lee este estado y se frena solo si la suscripción se corta.</template>
+            <template v-else>Para usar el CRM con esta empresa, contratá un plan que lo incluya desde Suscripción. El CRM queda a la espera: lo que configurás acá no se pierde.</template>
+          </p>
+        </div>
+        <Link v-if="!plan.incluye_crm" href="/suscripcion" class="btn-primary !py-1 text-xs">Ver planes</Link>
+      </div>
+    </div>
+
     <!-- Fase 68: salud de la conexión -->
     <div v-if="salud.estado !== 'inactiva'" class="card mb-4 border-l-4" :class="{ 'border-l-emerald-500': salud.estado === 'verde', 'border-l-amber-400': salud.estado === 'amarillo', 'border-l-carmin': salud.estado === 'rojo' }" data-e2e="crm-salud">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -74,10 +88,10 @@
 
 <script setup>
 import { computed } from 'vue'
-import { router, useForm, usePage } from '@inertiajs/vue3'
+import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
-const props = defineProps({ config: Object, cuit: String, urlEntrada: String, urlWebhook: String, listo: Boolean, prueba: Object, salud: Object })
+const props = defineProps({ config: Object, cuit: String, urlEntrada: String, urlWebhook: String, listo: Boolean, prueba: Object, salud: Object, plan: { type: Object, default: () => ({ incluye_crm: false }) } })
 const page = usePage()
 const secretoNuevo = computed(() => page.props.flash?.crm_secreto_nuevo)
 const form = useForm({ activo: props.config.activo, url: props.config.url, secreto: '', api_key: '', webhook_secreto: '', lista_precios: props.config.lista_precios, presupuesto_como: props.config.presupuesto_como, generar_secreto: false })
