@@ -7,6 +7,31 @@
       <span class="badge text-sm px-3 py-1" :class="listo ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ listo ? 'Activa' : 'Inactiva' }}</span>
     </div>
 
+    <!-- Fase 68: salud de la conexión -->
+    <div v-if="salud.estado !== 'inactiva'" class="card mb-4 border-l-4" :class="{ 'border-l-emerald-500': salud.estado === 'verde', 'border-l-amber-400': salud.estado === 'amarillo', 'border-l-carmin': salud.estado === 'rojo' }" data-e2e="crm-salud">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 class="font-bold flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full" :class="{ 'bg-emerald-500': salud.estado === 'verde', 'bg-amber-400': salud.estado === 'amarillo', 'bg-carmin': salud.estado === 'rojo' }"></span> Salud de la conexión</h3>
+          <p class="text-sm mt-1">{{ salud.texto }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button v-if="salud.cola.fallidos" type="button" class="btn-primary !py-1 text-xs" @click="router.post('/configuracion/crm/reintentar', {}, { preserveScroll: true })" data-e2e="crm-reintentar">Reintentar {{ salud.cola.fallidos }} fallido(s)</button>
+          <button type="button" class="btn-secondary !py-1 text-xs" title="Vuelve a mandar al CRM lo de las últimas 48 horas (clientes, artículos, comprobantes, cobros). Del otro lado no se duplica nada." @click="router.post('/configuracion/crm/reconciliar', {}, { preserveScroll: true })" data-e2e="crm-reconciliar">Reconciliar ahora</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-sm">
+        <div class="rounded-xl bg-marca-fondo p-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Último enviado</p><p v-if="salud.ultimo_enviado" class="font-semibold">{{ salud.ultimo_enviado.evento }}</p><p class="text-xs text-marca-muted">{{ salud.ultimo_enviado ? salud.ultimo_enviado.cuando : 'nada todavía' }}</p></div>
+        <div class="rounded-xl bg-marca-fondo p-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Último recibido</p><p v-if="salud.ultimo_recibido" class="font-semibold">{{ salud.ultimo_recibido.evento }}</p><p class="text-xs text-marca-muted">{{ salud.ultimo_recibido ? salud.ultimo_recibido.cuando : 'nada todavía' }}</p></div>
+        <div class="rounded-xl bg-marca-fondo p-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">En cola</p><p class="text-xl font-extrabold tabular-nums">{{ salud.cola.pendientes }}</p><p class="text-xs" :class="salud.cola.fallidos ? 'text-carmin' : 'text-marca-muted'">{{ salud.cola.fallidos }} fallidos</p></div>
+        <div class="rounded-xl bg-marca-fondo p-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Últimas 24 h</p><p class="text-xl font-extrabold tabular-nums">{{ salud.ok_24h }} <span class="text-sm font-normal text-marca-muted">OK</span></p><p class="text-xs" :class="salud.errores_24h ? 'text-amber-700' : 'text-marca-muted'">{{ salud.errores_24h }} con error</p></div>
+      </div>
+      <details v-if="salud.ultimos.length" class="mt-3 text-xs"><summary class="cursor-pointer text-violeta">Últimos {{ salud.ultimos.length }} eventos</summary>
+        <table class="table text-xs mt-2"><thead><tr><th>Cuándo</th><th>Sentido</th><th>Evento</th><th>Referencia</th><th>Estado</th><th class="text-right">ms</th><th>Detalle</th></tr></thead>
+          <tbody><tr v-for="(e, i) in salud.ultimos" :key="i"><td class="whitespace-nowrap">{{ e.cuando }}</td><td>{{ e.direccion === 'salida' ? 'ERP → CRM' : 'CRM → ERP' }}</td><td class="font-mono">{{ e.evento }}</td><td>{{ e.referencia }}</td><td><span class="badge" :class="e.estado === 'ok' ? 'bg-emerald-50 text-emerald-700' : e.estado === 'ignorado' ? 'bg-gris-light text-marca-muted' : 'bg-carmin-light text-carmin'">{{ e.estado }}{{ e.http ? ' · ' + e.http : '' }}</span></td><td class="text-right tabular-nums">{{ e.ms ?? '' }}</td><td class="text-marca-muted">{{ e.detalle }}</td></tr></tbody></table>
+      </details>
+      <p class="text-[11px] text-marca-muted mt-2">Se revisa cada 15 minutos: si el CRM deja de responder te llega una alerta, y todos los días a las 6:30 se vuelve a mandar lo de las últimas 48 horas por si algo no llegó.</p>
+    </div>
+
     <div class="grid lg:grid-cols-3 gap-4">
       <form @submit.prevent="guardar" class="card lg:col-span-2 space-y-4">
         <div class="grid sm:grid-cols-2 gap-3">
@@ -52,7 +77,7 @@ import { computed } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import ConfigTabs from '@/Components/ConfigTabs.vue'
-const props = defineProps({ config: Object, cuit: String, urlEntrada: String, urlWebhook: String, listo: Boolean, prueba: Object })
+const props = defineProps({ config: Object, cuit: String, urlEntrada: String, urlWebhook: String, listo: Boolean, prueba: Object, salud: Object })
 const page = usePage()
 const secretoNuevo = computed(() => page.props.flash?.crm_secreto_nuevo)
 const form = useForm({ activo: props.config.activo, url: props.config.url, secreto: '', api_key: '', webhook_secreto: '', lista_precios: props.config.lista_precios, presupuesto_como: props.config.presupuesto_como, generar_secreto: false })

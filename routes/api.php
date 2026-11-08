@@ -43,6 +43,7 @@ Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\Suscripci
 Route::middleware(['auth:sanctum', 'token.api'])->group(function () {
 
     Route::get('business', [BusinessController::class, 'show']);
+    Route::get('crm/salud', fn(\Illuminate\Http\Request $r) => response()->json(['data' => app(\App\Services\Integraciones\CrmSaludService::class)->resumen($r->user()->business)])); // Fase 68: lo que el ERP sabe de la conexión, para mostrarlo en el CRM
     Route::put('business', [BusinessController::class, 'update']);
 
     // Exportar tablas a otras plataformas (BI, contador, e-commerce)

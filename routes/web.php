@@ -864,6 +864,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/crm',                  [\App\Http\Controllers\Configuracion\CrmController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/crm/probar',           [\App\Http\Controllers\Configuracion\CrmController::class, 'probar'])->middleware('permiso:configuracion,editar');
         Route::post('/crm/sincronizar',      [\App\Http\Controllers\Configuracion\CrmController::class, 'sincronizar'])->middleware('permiso:configuracion,editar');
+        Route::post('/crm/reintentar',       [\App\Http\Controllers\Configuracion\CrmController::class, 'reintentar'])->middleware('permiso:configuracion,editar'); // Fase 68
+        Route::post('/crm/reconciliar',      [\App\Http\Controllers\Configuracion\CrmController::class, 'reconciliar'])->middleware(['permiso:configuracion,editar', 'throttle:5,1']);
         Route::get('/tienda',                [\App\Http\Controllers\Configuracion\TiendaController::class, 'index']);
         Route::post('/tienda',               [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardar'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/fidelizacion',  [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarFidelizacion'])->middleware('permiso:configuracion,editar');

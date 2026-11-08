@@ -56,6 +56,10 @@ Si tu empresa usa el ERP y el CRM de BigSys, se pasan de uno al otro con un bot�
 
 Los usuarios se dan de alta en el ERP; el CRM los espeja con el rol equivalente (dueño y administrador → admin; encargado y contador → supervisor; vendedor y cajero → operador; depósito, producción y solo lectura → consulta). El token que viaja dura 60 segundos y sirve una sola vez.
 
+### Salud de la conexión (Fase 68)
+
+Arriba de la configuración hay un semáforo: **verde** (el CRM responde y todo viajó), **amarillo** (hubo errores en las últimas 24 horas que se reintentan solos, o la cola está larga) o **rojo** (el CRM no responde, o hay envíos que agotaron los reintentos). Al lado, qué fue lo último que viajó en cada sentido, cuánto hay en la cola y la lista de los últimos eventos con su resultado. Si el CRM se cae te llega una **alerta** y lo que se genere mientras tanto queda en la cola; cuando vuelve, se manda solo y la alerta se resuelve. **Reintentar** vuelve a la cola lo que falló del todo; **Reconciliar ahora** vuelve a mandar lo de las últimas 48 horas (del lado del CRM no se duplica nada), y eso mismo pasa solo todos los días a las 6:30. A Bigcito: "¿anda la conexión con el CRM?".
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.

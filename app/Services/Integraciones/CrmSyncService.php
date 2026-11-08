@@ -70,8 +70,12 @@ class CrmSyncService
         };
         if (! $items) return ['total' => 0, 'created' => 0, 'updated' => 0, 'errors' => 0];
         $ruta = match ($tipo) { 'productos' => '/api/v1/products/sync', 'usuarios' => '/api/v1/users/sync', default => '/api/v1/contacts/sync' };
-        $r = Http::timeout(30)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, $ruta), ['items' => $items]);
-        if (! $r->successful()) { Log::warning("CRM sync {$tipo}: " . $r->status() . ' ' . mb_substr($r->body(), 0, 300)); throw new \RuntimeException("El CRM respondió {$r->status()} al sincronizar {$tipo}."); }
+        $t0 = microtime(true);
+        try { $r = Http::timeout(30)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, $ruta), ['items' => $items]); }
+        catch (\Throwable $e) { CrmSaludService::registrar($b->id, 'salida', "sync.{$tipo}", 'error', ['referencia' => count($items) . " {$tipo}", 'detalle' => 'Sin conexión: ' . $e->getMessage()]); throw $e; }
+        $ms = (int) ((microtime(true) - $t0) * 1000);
+        if (! $r->successful()) { CrmSaludService::registrar($b->id, 'salida', "sync.{$tipo}", 'error', ['referencia' => count($items) . " {$tipo}", 'http' => $r->status(), 'ms' => $ms, 'detalle' => mb_substr($r->body(), 0, 200)]); Log::warning("CRM sync {$tipo}: " . $r->status() . ' ' . mb_substr($r->body(), 0, 300)); throw new \RuntimeException("El CRM respondió {$r->status()} al sincronizar {$tipo}."); }
+        CrmSaludService::registrar($b->id, 'salida', "sync.{$tipo}", 'ok', ['referencia' => count($items) . " {$tipo}", 'http' => $r->status(), 'ms' => $ms]); // Fase 68
         $d = $r->json('data') ?? $r->json();
         if ($tipo === 'contactos') {
             foreach ($d['results'] ?? [] as $res) {
