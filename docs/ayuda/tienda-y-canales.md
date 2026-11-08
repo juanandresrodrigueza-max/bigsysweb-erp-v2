@@ -78,3 +78,18 @@ Si manejás varias empresas, el catálogo puede mostrar el stock de esta empresa
 ## Uber Eats
 
 Se conecta igual que PedidosYa y Rappi: en Configuración → Tienda agregás el canal **Uber Eats**, con el ID de tu tienda, y copiás la URL del webhook de entrada en tu integrador. Los pedidos entran a Pedidos web con el cliente, los ítems (cruzados por el código externo), las notas de cada plato y el total. Uber Eats manda los importes en centavos y el sistema los convierte solo.
+
+## Conectores directos de PedidosYa, Rappi y Uber Eats (Fase 54)
+
+Cada plataforma se conecta en Configuración → Tienda → Delivery. Hay dos modos:
+- **Con las claves de la API** (las da cada plataforma cuando te aprueba como integrador): el sistema **toma cada pedido solo** antes de que la app lo cancele (Rappi da 4 minutos, Uber 11), lo manda a **cocina de Big Restó** como comanda de delivery o para retirar, **avisa cuando está listo** para que pase el repartidor, **manda la carta** con precios, fotos y las opciones de cada plato («Mandar la carta»), y **pausa lo que se agotó** y lo reactiva cuando vuelve el stock. Rappi no avisa los pedidos: el sistema se los pregunta cada 10 minutos.
+- **Sin claves:** entra lo que tu integrador (Deliverect, Sinqro u otro) mande a la URL del webhook de entrada, como hasta ahora.
+
+Qué te pide cada una:
+| Plataforma | Claves | Trámite |
+|---|---|---|
+| PedidosYa | Usuario y clave de la API de integración, código de cadena e ID de local | Pedir acceso a la API de integraciones de Delivery Hero y hacer la prueba con su equipo |
+| Rappi | Client ID, client secret e ID de tienda | Alta como aliado en el portal de desarrolladores de Rappi |
+| Uber Eats | Client ID, client secret y Store UUID | Firmar el acuerdo de API y que Uber apruebe la app |
+
+En **Ajustes** de cada canal elegís si acepta los pedidos solo y cuántos minutos de preparación se informan. Si cancelás un pedido desde Pedidos web, se rechaza en la plataforma. Las direcciones de cada API salen de la documentación oficial; si tu integrador te indica otras, se cargan en las claves como `base_url` y `auth_url`.

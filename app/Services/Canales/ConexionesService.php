@@ -122,6 +122,7 @@ class ConexionesService
             'woocommerce' => parse_url($this->https($cred['url'] ?? ''), PHP_URL_HOST),
             'tiendanube' => (string) ($cred['store_id'] ?? ''),
             'mercadolibre' => (string) ($cred['user_id'] ?? ''),
+            'pedidosya' => (string) ($cred['vendor_id'] ?? ''), 'rappi', 'ubereats' => (string) ($cred['store_id'] ?? ''),
             default => null,
         };
         if ($tipo === 'shopify') {
@@ -133,7 +134,7 @@ class ConexionesService
         $prueba = $this->probar($tmp);
         if (! $prueba['ok']) throw ValidationException::withMessages(['credenciales' => $prueba['mensaje']]);
         $c = $this->canal($b, $tipo, Canal::TIPOS[$tipo]['label'] . ($prueba['nombre'] ? " · {$prueba['nombre']}" : ''), (string) $ext, $cred, 'claves');
-        if ($tipo !== 'mercadolibre') $this->registrarWebhooks($c);
+        if (! in_array($tipo, ['mercadolibre', 'pedidosya', 'rappi', 'ubereats'], true)) $this->registrarWebhooks($c);
         return $c;
     }
 
@@ -154,6 +155,8 @@ class ConexionesService
                 'woocommerce' => ($r = $this->woo($c)->get('system_status'))->ok() ? [true, $r->json('environment.site_url') ?? $r->json('settings.title'), null] : [false, null, "WooCommerce contestó {$r->status()}: revisá las claves y que la dirección sea la de la tienda"],
                 'shopify' => ($r = $this->shopify($c)->get('shop.json'))->ok() ? [true, $r->json('shop.name'), null] : [false, null, "Shopify contestó {$r->status()}: revisá el token y la dirección .myshopify.com"],
                 'tiendanube' => ($r = $this->tn($c)->get('store'))->ok() ? [true, $r->json('name.es') ?? $r->json('name'), null] : [false, null, "Tienda Nube contestó {$r->status()}: revisá el número de tienda y el token"],
+                // Fase 54: delivery con claves de API → se prueba el token; sin claves, queda en modo webhook (integrador).
+                'pedidosya', 'rappi', 'ubereats' => empty($c->credenciales['client_id'] ?? $c->credenciales['username'] ?? null) ? [true, null, null] : (($d = app(DeliveryApiService::class)->probar($c))['ok'] ? [true, $d['nombre'], null] : [false, null, $d['mensaje']]),
                 default => [true, null, null],
             };
         } catch (\Throwable $e) { [$ok, $nombre, $msg] = [false, null, 'No se pudo hablar con la tienda: ' . mb_substr($e->getMessage(), 0, 150)]; }

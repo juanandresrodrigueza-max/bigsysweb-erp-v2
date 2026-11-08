@@ -794,6 +794,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/empresa/logo', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'subirLogo'])->middleware('permiso:configuracion,editar');
         Route::delete('/empresa/logo', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'quitarLogo'])->middleware('permiso:configuracion,editar');
         Route::get('/empresa/muestra', [\App\Http\Controllers\Configuracion\EmpresaController::class, 'muestra']);
+        Route::post('/tienda/canales/{id}/carta', [\App\Http\Controllers\Configuracion\ConexionesController::class, 'carta'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/empresa/tarjetas',   [EmpresaController::class, 'guardarTarjetas'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/mercadopago', [EmpresaController::class, 'guardarMercadoPago'])->middleware('permiso:configuracion,editar');
         Route::get('/empresa/mercadopago/cajas',      [EmpresaController::class, 'mpCajas'])->middleware('permiso:configuracion,editar');

@@ -64,12 +64,22 @@ class ConexionesController extends Controller
     public function configurar(Request $request, int $id)
     {
         $c = Canal::findOrFail($id);
-        $d = $request->validate(['contact_id' => 'nullable|exists:contacts,id', 'colchon' => 'nullable|integer|min:0', 'colchon_modo' => 'nullable|in:fijo,minimo', 'lista' => 'nullable|integer|min:1|max:6', 'factura_por' => 'nullable|in:tienda,erp', 'fecha_corte' => 'nullable|date', 'automatico' => 'boolean', 'recargo_pct' => 'nullable|numeric|min:-50|max:200', 'campos' => 'nullable|array', 'campos.*' => 'in:precio,stock,nombre,descripcion,foto,categoria', 'claves_fiscales' => 'nullable|string|max:200', 'pausar_en_cero' => 'boolean', 'nombre' => 'nullable|string|max:80']);
+        $d = $request->validate(['contact_id' => 'nullable|exists:contacts,id', 'colchon' => 'nullable|integer|min:0', 'colchon_modo' => 'nullable|in:fijo,minimo', 'auto_aceptar' => 'boolean', 'tiempo_preparacion' => 'nullable|integer|min:5|max:180', 'lista' => 'nullable|integer|min:1|max:6', 'factura_por' => 'nullable|in:tienda,erp', 'fecha_corte' => 'nullable|date', 'automatico' => 'boolean', 'recargo_pct' => 'nullable|numeric|min:-50|max:200', 'campos' => 'nullable|array', 'campos.*' => 'in:precio,stock,nombre,descripcion,foto,categoria', 'claves_fiscales' => 'nullable|string|max:200', 'pausar_en_cero' => 'boolean', 'nombre' => 'nullable|string|max:80']);
         if (! empty($d['contact_id'])) Contact::customers()->findOrFail($d['contact_id']);
         $cfg = array_replace($c->cfg(), array_intersect_key($d, Canal::CONFIG));
         if (array_key_exists('campos', $d) && ! $d['campos']) $cfg['campos'] = ['precio', 'stock'];
         $c->fill(['config' => $cfg] + (! empty($d['nombre']) ? ['nombre' => $d['nombre']] : []))->save();
         AuditLog::registrar('editar', $c, "Ajustes de {$c->nombre}");
         return back()->with('success', 'Ajustes guardados.');
+    }
+
+    // Fase 54: mandar la carta (platos, precios, opciones, disponibilidad) a PedidosYa / Rappi / Uber Eats.
+    public function carta(int $id, \App\Services\Canales\DeliveryApiService $d)
+    {
+        $c = Canal::findOrFail($id);
+        abort_unless(\App\Services\Canales\DeliveryApiService::esDelivery($c->tipo), 404);
+        if (empty($c->credenciales['client_id'] ?? $c->credenciales['username'] ?? null)) return back()->with('error', 'Cargá las claves de la API de ' . $c->nombre . ' para mandar la carta.');
+        $r = $d->publicarCarta($c);
+        return back()->with($r['ok'] ? 'success' : 'error', $r['mensaje']);
     }
 }

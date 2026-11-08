@@ -45,6 +45,7 @@ class PedidosController extends Controller
         $this->tienda->cambiarEstado($p, $d['estado']);
         // Marcar como enviado avisa en la tienda con el seguimiento: la tienda le manda el mail al comprador.
         if ($d['estado'] === 'enviado') $this->ventas->marcarEnviado($p, $d['tracking'] ?? null);
+        app(\App\Services\Canales\DeliveryApiService::class)->estadoCambiado($p, $d['estado']); // Fase 54: PedidosYa / Rappi / Uber Eats
         return back()->with('success', "{$p->numeroFormateado()}: " . PedidoWeb::ESTADOS[$d['estado']] . '.');
     }
 

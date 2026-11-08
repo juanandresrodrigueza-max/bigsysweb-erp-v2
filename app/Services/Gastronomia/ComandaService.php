@@ -98,9 +98,16 @@ class ComandaService
     // Fase 53 · Llamador: cuando el último plato de un pedido de mostrador o delivery queda listo, se le avisa al cliente por WhatsApp (si dejó teléfono).
     public function avisarSiListo(Comanda $c): void
     {
-        if (! in_array($c->tipo, ['mostrador', 'delivery'], true) || $c->aviso_listo_en || ! $c->telefono) return;
+        if (! in_array($c->tipo, ['mostrador', 'delivery'], true) || $c->aviso_listo_en) return;
         $its = $c->items()->where('estado', '!=', 'anulado')->get();
         if ($its->isEmpty() || ! $its->every(fn($i) => in_array($i->estado, ['listo', 'entregado'], true))) return;
+        // Fase 54: si vino de PedidosYa / Rappi / Uber Eats, se le avisa a la plataforma que el repartidor ya puede pasar.
+        if ($pw = \App\Models\PedidoWeb::withoutGlobalScopes()->where('comanda_id', $c->id)->first()) {
+            app(\App\Services\Canales\DeliveryApiService::class)->listo($pw);
+            if (in_array($pw->estado, ['nuevo', 'confirmado', 'preparando'], true)) $pw->forceFill(['estado' => 'enviado'])->save();
+            if (\App\Services\Canales\DeliveryApiService::esDelivery($pw->canal)) { $c->update(['aviso_listo_en' => now()]); return; } // el WhatsApp lo manda la plataforma
+        }
+        if (! $c->telefono) return;
         $b = $c->business;
         $txt = $c->tipo === 'delivery' ? "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} ya salió. ¡Buen provecho!" : "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} está listo para retirar. ¡Te esperamos!";
         try { app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $c->telefono, $txt); } catch (\Throwable) {}

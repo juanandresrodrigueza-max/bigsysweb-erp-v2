@@ -23,6 +23,7 @@ class CanalesService
                 'shopify' => $this->shopifyPedidos($c),
                 'mercadolibre' => $this->mlPedidos($c),
                 'tiendanube' => $this->tnPedidos($c),
+                'rappi' => ! empty($c->credenciales['client_id']) ? app(DeliveryApiService::class)->pedidosRappi($c) : [],
                 default => [],
             };
             foreach ($pedidos as $p) {
@@ -52,7 +53,22 @@ class CanalesService
         if (! empty($p['pagos']) || ! empty($p['pack_id']) || ! empty($p['comprador_id'])) $pedido->forceFill(['cargos' => array_filter(['pack_id' => $p['pack_id'] ?? null, 'comprador_id' => $p['comprador_id'] ?? null, 'pagos' => $p['pagos'] ?? null])])->save();
         // Fase 30.4: lo que hay que mirar, y si la tienda está en modo automático, entra sola cuando tiene todo en orden.
         if (in_array($c->tipo, ['mercadolibre', 'woocommerce', 'tiendanube', 'shopify'], true)) { try { app(VentasTiendaService::class)->entradaAutomatica($pedido, $c); } catch (\Throwable) {} }
+        // Fase 54: un pedido de delivery en un local gastronómico va a cocina como comanda y se acepta en la plataforma antes de que lo cancele.
+        if (DeliveryApiService::esDelivery($c->tipo)) { try { $this->aBigResto($b, $c, $pedido); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('Delivery a Big Restó: ' . $e->getMessage()); } }
         return $pedido->fresh();
+    }
+
+    private function aBigResto(Business $b, Canal $c, PedidoWeb $pedido): void
+    {
+        if (\App\Services\Gastronomia\PedidoRestoService::activo($b)) {
+            $items = collect($pedido->items)->filter(fn($i) => ! empty($i['product_id']))->map(fn($i) => ['product_id' => $i['product_id'], 'cantidad' => $i['cantidad'], 'opciones' => $i['opciones'] ?? [], 'nota' => $i['notas'] ?? null])->values()->all();
+            if ($items) {
+                $r = app(\App\Services\Gastronomia\PedidoRestoService::class)->crear($b, ['tipo' => $pedido->entrega === 'retiro' ? 'mostrador' : 'delivery', 'cliente' => (Canal::TIPOS[$c->tipo]['label'] ?? $c->tipo) . ' · ' . ($pedido->cliente['nombre'] ?? ''), 'telefono' => $pedido->cliente['telefono'] ?? null, 'direccion' => $pedido->cliente['direccion'] ?? null, 'items' => $items, 'enviar' => true]);
+                if ($r['comanda']->items()->count()) $pedido->forceFill(['comanda_id' => $r['comanda']->id, 'estado' => 'preparando', 'confirmado_en' => now()])->save();
+                else $r['comanda']->delete();
+            }
+        }
+        if ($c->cfg('auto_aceptar', true) && ! empty($c->credenciales['client_id'] ?? $c->credenciales['username'] ?? null)) app(DeliveryApiService::class)->aceptar($pedido->fresh());
     }
 
     // Normaliza el JSON que manda cada plataforma (o un integrador) al webhook de entrada.
@@ -118,6 +134,8 @@ class CanalesService
         foreach (Canal::withoutGlobalScopes()->where('business_id', $p->business_id)->where('activo', true)->where('sync_stock', true)->whereNotIn('id', $conPub)->whereNotIn('tipo', ['tiendanube'])->get() as $c) {
             try {
                 $cr = $c->credenciales ?? [];
+                // Fase 54: en las apps de delivery lo que se agotó se pausa y lo que volvió se reactiva.
+                if (DeliveryApiService::esDelivery($c->tipo)) { if ($p->en_tienda && ! empty($cr['client_id'] ?? $cr['username'] ?? null)) app(DeliveryApiService::class)->disponibilidad($c, $p, ! $p->controla_stock || (float) $p->stock > 0); continue; }
                 match ($c->tipo) {
                     'woocommerce' => $this->woo($c)->get('products', ['sku' => $p->sku])->json()[0]['id'] ?? null ? $this->woo($c)->put('products/' . ($this->woo($c)->get('products', ['sku' => $p->sku])->json()[0]['id']), ['stock_quantity' => (int) $p->stock, 'manage_stock' => true] + ($c->sync_precios ? ['regular_price' => (string) $p->precioLista(1)] : [])) : null,
                     'shopify' => $this->shopifyStock($c, $p),

@@ -34,7 +34,13 @@ class CanalesWebhookController extends Controller
             $raw = $r->json();
         }
         // Uber Eats directo manda sólo el aviso (orders.notification): el pedido completo lo tiene que mandar el integrador.
-        if ($tipo === 'ubereats' && isset($raw['event_type']) && ! isset($raw['cart'])) return response()->json(['ok' => true, 'ignorado' => $raw['event_type'], 'aviso' => 'Mandá el pedido completo (con cart.items) desde tu integrador.'], 202);
+        if ($tipo === 'ubereats' && isset($raw['event_type']) && ! isset($raw['cart'])) {
+            $id = $raw['meta']['resource_id'] ?? null;
+            if (($raw['event_type'] ?? '') !== 'orders.notification' || ! $id) return response()->json(['ok' => true, 'ignorado' => $raw['event_type']]);
+            if (empty($c->credenciales['client_id'])) return response()->json(['ok' => true, 'ignorado' => $raw['event_type'], 'aviso' => 'Cargá las claves de la API de Uber Eats, o mandá el pedido completo (con cart.items) desde tu integrador.'], 202);
+            $raw = app(\App\Services\Canales\DeliveryApiService::class)->pedidoUber($c, (string) $id);
+            if (! $raw) return response()->json(['ok' => false, 'error' => 'No se pudo leer el pedido en Uber Eats'], 202);
+        }
         // MercadoLibre manda solo una notificación con el recurso: hay que ir a buscar el pedido.
         if ($tipo === 'mercadolibre' && isset($raw['resource']) && ! isset($raw['order_items'])) {
             if (! str_starts_with((string) $raw['resource'], '/orders/')) return response()->json(['ok' => true, 'ignorado' => $raw['topic'] ?? null]);
