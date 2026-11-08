@@ -582,6 +582,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:vendedores']);
     Route::get('/estadisticas/vendedores/relevamiento/{id}/foto', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'foto'])->middleware('permiso:clientes')->whereNumber('id');
     Route::get('/buscar/global', [\App\Http\Controllers\BuscarController::class, 'global']);
+    Route::get('/buscar/sugeridos', [\App\Http\Controllers\BuscarController::class, 'sugeridos']); // Fase 63
     Route::get('/buscar/{entidad}/{forma}', \App\Http\Controllers\BuscarController::class);
     Route::get('/estadisticas/rentabilidad', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:rentabilidad']);
     Route::get('/estadisticas/rentabilidad/dim', [\App\Http\Controllers\Estadisticas\RentabilidadController::class, 'dimension'])->middleware('permiso:estadisticas');
@@ -723,6 +724,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
             Route::get('/cliente/{id}', [\App\Http\Controllers\Comprobantes\VenderController::class, 'ficha'])->whereNumber('id');
             Route::post('/cliente/{id}/visita', [\App\Http\Controllers\Comprobantes\VenderController::class, 'visita'])->whereNumber('id');
             Route::get('/buscar',      [\App\Http\Controllers\Pos\PosController::class, 'buscar']);
+            Route::get('/sugeridos',   [\App\Http\Controllers\Pos\PosController::class, 'sugeridos']); // Fase 63
             Route::get('/serie',       [\App\Http\Controllers\Pos\PosController::class, 'serie']);
             Route::post('/vender',     [\App\Http\Controllers\Comprobantes\VenderController::class, 'vender'])->middleware("permiso:{$perm},crear");
             Route::post('/autorizar',  [\App\Http\Controllers\Comprobantes\VenderController::class, 'autorizar'])->middleware(["permiso:{$perm},crear", 'throttle:login']);

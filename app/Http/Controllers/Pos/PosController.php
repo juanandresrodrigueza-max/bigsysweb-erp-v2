@@ -73,6 +73,16 @@ class PosController extends Controller
         return response()->json(['producto' => $this->fila($l->product, $ri), 'serie' => $l->serie]);
     }
 
+    // Fase 63: venta cruzada en el mostrador, con el artículo en la forma del POS para sumarlo al ticket de un toque.
+    public function sugeridos(Request $request)
+    {
+        $ri = ($request->user()->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
+        $ids = array_filter(array_map('intval', explode(',', (string) $request->input('ids', ''))));
+        $s = app(\App\Services\Ventas\VentaCruzadaService::class)->sugerir($request->user()->business, $ids, $request->integer('contact_id') ?: null);
+        $prods = Product::whereIn('id', array_column($s, 'product_id'))->with('rubro:id,nombre,color')->get()->keyBy('id');
+        return response()->json(array_values(array_filter(array_map(fn($x) => $x + ['producto' => isset($prods[$x['product_id']]) ? $this->fila($prods[$x['product_id']], $ri) : null], $s), fn($x) => $x['producto'])));
+    }
+
     private function fila(Product $p, bool $ri): array
     {
         return ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'barcode' => $p->barcode, 'unit' => $p->unit, 'price' => $this->final($p, (float) $p->price, $ri), 'prices' => collect([1, 2, 3, 4, 5, 6])->mapWithKeys(fn($l) => [$l => $this->final($p, $p->precioLista($l), $ri)])->all(), 'iva' => (float) $p->iva, 'stock' => (float) $p->stock, 'controla' => $p->controla_stock, 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'favorito' => $p->favorito_pos, 'seriado' => (bool) $p->seriado, 'plu' => $p->plu];
