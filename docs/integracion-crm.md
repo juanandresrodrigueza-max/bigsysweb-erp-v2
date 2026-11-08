@@ -1,7 +1,7 @@
 # Integración ERP ↔ CRM: contrato entre los dos sistemas
 
 Los dos sistemas se venden juntos y conviven: el ERP (`bigsysweb-erp-v2`, Laravel) factura, cobra, maneja stock y plata; el CRM
-(`bigsysweb-saas`, Node/TS, crm.vixiweb.com) conversa, vende y agenda. Se hablan por API firmada; ninguno escribe en la base del otro.
+(`bigsysweb-saas`, Node/TS, crm.bigsysweb.com) conversa, vende y agenda. Se hablan por API firmada; ninguno escribe en la base del otro.
 Este archivo es el contrato: qué manda cada uno, qué espera recibir y qué tiene que exponer. Cada fase suma su sección.
 
 ## Lo que ya existe (fases anteriores)
