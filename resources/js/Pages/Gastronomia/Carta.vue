@@ -12,7 +12,8 @@
       <div class="flex flex-wrap items-center gap-2"><p class="font-bold text-sm mr-2">Estaciones</p>
         <span v-for="(e, i) in est" :key="i" class="flex items-center gap-1 rounded-full border border-marca-borde pl-2 pr-1 py-0.5 text-xs"><input v-model="e.nombre" class="w-20 bg-transparent font-semibold outline-none" /> avisa a los <input v-model.number="e.alerta" type="number" min="1" class="w-10 bg-transparent text-right outline-none" />' <button v-if="est.length > 1" class="text-marca-muted hover:text-carmin px-1" @click="est.splice(i, 1)">×</button></span>
         <button class="btn-ghost !px-2 text-xs" @click="est.push({ nombre: '', alerta: 15 })">+ Estación</button>
-        <button v-if="puede('gastronomia','editar')" class="btn-secondary !py-1 text-xs ml-auto" @click="router.post('/gastronomia/estaciones', { estaciones: est.filter(e => e.nombre.trim()), qr_confirma: qrc }, { preserveScroll: true })">Guardar estaciones</button></div>
+        <button v-if="puede('gastronomia','editar')" class="btn-secondary !py-1 text-xs ml-auto" @click="router.post('/gastronomia/estaciones', { estaciones: est.filter(e => e.nombre.trim()), qr_confirma: qrc, receta_al_vender: rav }, { preserveScroll: true })">Guardar estaciones</button></div>
+      <label class="flex items-center gap-2 text-xs mt-2"><input v-model="rav" type="checkbox" class="accent-carmin" /> <b>Cada venta descuenta los insumos de la receta del plato</b> (café, leche, vaso…). El costo del plato sale de la receta.</label>
       <label class="flex items-center gap-2 text-xs mt-2"><input v-model="qrc" type="checkbox" class="accent-carmin" /> Los pedidos que hacen desde el QR de la mesa los confirma el mozo antes de ir a cocina</label>
       <p class="text-xs text-marca-muted mt-1">Cada estación tiene su pantalla (Cocina → elegís la estación) y su comanda impresa. Si un plato pasa los minutos que pusiste, se marca en rojo.</p>
     </div>
@@ -32,7 +33,9 @@
     </div>
     <div class="card p-0">
       <div v-for="p in visibles" :key="p.id" class="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b border-marca-borde/60 text-sm">
-        <div class="flex-1 min-w-[180px]"><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted">{{ p.rubro ?? 'Sin rubro' }} · {{ moneda(p.price, 0) }}</p></div>
+        <div class="flex-1 min-w-[180px]"><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted">{{ p.rubro ?? 'Sin rubro' }} · {{ moneda(p.price, 0) }}</p>
+          <p class="text-xs" :data-margen="p.id"><span class="text-marca-muted">costo {{ moneda(p.costo, 0) }}{{ p.receta ? ' (receta)' : '' }} · margen </span><b :class="p.margen === null ? 'text-marca-muted' : p.margen < (p.margen_objetivo ?? 30) ? 'text-carmin' : 'text-emerald-700'">{{ p.margen === null ? '—' : p.margen + ' %' }}</b><span v-if="p.margen_objetivo !== null" class="text-marca-muted"> / objetivo {{ p.margen_objetivo }} %</span></p></div>
+        <button v-if="puede('gastronomia','editar')" class="btn-ghost !py-1 text-xs" @click="editarReceta(p)" :data-receta="p.id">{{ p.receta ? 'Receta' : '+ Receta' }}</button>
         <div class="flex flex-wrap gap-1 max-w-md"><span v-if="p.horario" class="badge bg-amber-50 text-amber-700">{{ p.horario.desde }}–{{ p.horario.hasta }}</span><span v-for="g in p.modificadores" :key="g.nombre" class="badge bg-lavanda-light text-violeta">{{ g.nombre }}{{ g.obligatorio ? ' *' : '' }} · {{ g.opciones.length }}</span></div>
         <label class="flex items-center gap-1.5 text-xs"><input type="checkbox" class="accent-carmin" :checked="p.va_cocina" :disabled="!puede('gastronomia','editar')" @change="router.post(`/gastronomia/carta/${p.id}`, { va_cocina: $event.target.checked, modificadores: p.modificadores }, { preserveScroll: true })" /> Se prepara</label>
         <select v-if="p.va_cocina" class="input !py-0.5 !text-xs !w-28" :value="p.estacion ?? estaciones[0].nombre" :disabled="!puede('gastronomia','editar')" @change="router.post(`/gastronomia/carta/${p.id}`, { estacion: $event.target.value, modificadores: p.modificadores }, { preserveScroll: true })" :data-estacion="p.id"><option v-for="e in estaciones" :key="e.nombre" :value="e.nombre">{{ e.nombre }}</option></select>
@@ -69,6 +72,26 @@
       </div>
       <template #pie><button class="btn-secondary" @click="ed = null">Cancelar</button><button class="btn-primary" @click="guardar" data-e2e="carta-guardar">Guardar</button></template>
     </Modal>
+
+    <!-- Fase 53: la receta del plato, con sugerencia de la IA -->
+    <Modal :abierto="!!rc" :titulo="rc ? `Receta de ${rc.name}` : ''" ancho="max-w-2xl" @cerrar="rc = null">
+      <div v-if="rc" class="space-y-3 text-sm">
+        <p class="text-xs text-marca-muted">Lo que lleva <b>una porción</b>. Con «Cada venta descuenta la receta» activado, cada plato vendido baja estos insumos del stock.</p>
+        <div v-for="(it, i) in rc.items" :key="i" class="grid grid-cols-[1fr_90px_60px_80px_24px] gap-2 items-center">
+          <select v-model="it.product_id" class="input !py-1 text-sm"><option :value="null">Insumo…</option><option v-for="x in insumos" :key="x.id" :value="x.id">{{ x.nombre }} ({{ x.unit }})</option></select>
+          <input v-model.number="it.quantity" type="number" min="0" step="any" class="input !py-1 text-sm text-right" />
+          <span class="text-xs text-marca-muted">{{ insumos.find(x => x.id === it.product_id)?.unit ?? '' }}</span>
+          <span class="text-xs text-right tabular-nums">{{ moneda((insumos.find(x => x.id === it.product_id)?.cost ?? 0) * (it.quantity || 0), 0) }}</span>
+          <button class="text-marca-muted hover:text-carmin" @click="rc.items.splice(i, 1)">×</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2"><button class="btn-ghost !px-2 text-xs" @click="rc.items.push({ product_id: null, quantity: 1 })">+ Insumo</button>
+          <button class="btn-secondary !py-1 text-xs" :disabled="rc.pensando" @click="sugerirReceta" data-e2e="receta-ia">{{ rc.pensando ? 'Pensando…' : '✦ Sugerir con IA' }}</button>
+          <span v-if="rc.nota" class="text-xs text-amber-700">{{ rc.nota }}</span><span v-if="rc.error" class="text-xs text-carmin">{{ rc.error }}</span></div>
+        <div class="rounded-xl bg-marca-fondo p-3 grid grid-cols-3 gap-2 text-center"><div><p class="text-[10px] uppercase text-marca-muted font-bold">Costo</p><p class="font-extrabold tabular-nums">{{ moneda(costoReceta, 0) }}</p></div><div><p class="text-[10px] uppercase text-marca-muted font-bold">Precio neto</p><p class="font-extrabold tabular-nums">{{ moneda(rc.precio_neto, 0) }}</p></div><div><p class="text-[10px] uppercase text-marca-muted font-bold">Margen</p><p class="font-extrabold tabular-nums" :class="margenReceta !== null && margenReceta < (rc.margen_objetivo ?? 30) ? 'text-carmin' : 'text-emerald-700'">{{ margenReceta === null ? '—' : margenReceta + ' %' }}</p></div></div>
+        <label class="flex items-center gap-2 text-xs">Margen objetivo <input v-model.number="rc.margen_objetivo" type="number" min="0" max="99" class="input !py-0.5 !w-16 text-right" /> % · si una compra lo deja por debajo, te avisa con el precio sugerido.</label>
+      </div>
+      <template #pie><button class="btn-secondary" @click="rc = null">Cancelar</button><button class="btn-primary" @click="guardarReceta" data-e2e="receta-guardar">Guardar receta</button></template>
+    </Modal>
   </AppLayout>
 </template>
 
@@ -79,9 +102,9 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
+const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
 const est = ref(JSON.parse(JSON.stringify(props.estaciones)))
-const qrc = ref(props.qrConfirma)
+const qrc = ref(props.qrConfirma), rav = ref(props.recetaAlVender)
 const { puede } = usePermisos()
 const q = ref('')
 const norm = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -92,7 +115,18 @@ const modelos = [
   { nombre: 'Extras', obligatorio: false, multiple: true, opciones: [{ nombre: '+ Queso', precio: 0 }, { nombre: '+ Huevo', precio: 0 }] },
   { nombre: 'Sin', obligatorio: false, multiple: true, opciones: [{ nombre: 'Sin sal', precio: 0 }, { nombre: 'Sin cebolla', precio: 0 }, { nombre: 'Sin TACC', precio: 0 }] },
 ]
-const ed = ref(null)
+const ed = ref(null), rc = ref(null)
+function editarReceta(p) { rc.value = { id: p.id, name: p.name, precio_neto: p.precio_neto, margen_objetivo: p.margen_objetivo, items: JSON.parse(JSON.stringify(p.receta?.items ?? [])), pensando: false, nota: '', error: '' } }
+const costoReceta = computed(() => (rc.value?.items ?? []).reduce((a, it) => a + (props.insumos.find(x => x.id === it.product_id)?.cost ?? 0) * (Number(it.quantity) || 0), 0))
+const margenReceta = computed(() => rc.value?.precio_neto > 0 ? Math.round((rc.value.precio_neto - costoReceta.value) / rc.value.precio_neto * 1000) / 10 : null)
+async function sugerirReceta() {
+  rc.value.pensando = true; rc.value.error = ''; rc.value.nota = ''
+  try { const { data } = await window.axios.post(`/gastronomia/carta/${rc.value.id}/sugerir-receta`); if (!data.ok) { rc.value.error = data.aviso; return } rc.value.items = data.items.map(i => ({ product_id: i.product_id, quantity: i.quantity })); rc.value.nota = data.nota ?? '' } catch (e) { rc.value.error = 'No pude consultar a la IA.' } finally { rc.value.pensando = false }
+}
+function guardarReceta() {
+  const items = rc.value.items.filter(i => i.product_id && Number(i.quantity) > 0)
+  router.post(`/gastronomia/carta/${rc.value.id}/receta`, { items }, { preserveScroll: true, onSuccess: () => { if (rc.value.margen_objetivo !== null && rc.value.margen_objetivo !== '') router.post(`/gastronomia/carta/${rc.value.id}`, { margen_objetivo: rc.value.margen_objetivo, modificadores: props.productos.find(p => p.id === rc.value.id)?.modificadores ?? [] }, { preserveScroll: true }); rc.value = null } })
+}
 function editar(p) { ed.value = { id: p.id, name: p.name, va_cocina: p.va_cocina, grupos: JSON.parse(JSON.stringify(p.modificadores ?? [])), conHorario: !!p.horario, horario: p.horario ? { ...p.horario, dias: [...(p.horario.dias ?? [])] } : { desde: '12:00', hasta: '16:00', dias: [1, 2, 3, 4, 5] } } }
 const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const hhs = ref(JSON.parse(JSON.stringify(props.happyHours ?? [])))
