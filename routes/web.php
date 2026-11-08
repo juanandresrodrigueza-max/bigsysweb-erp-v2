@@ -269,6 +269,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/cobranzas/desde-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'desdeTransferencia'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/correr',       [\App\Http\Controllers\Clientes\CobranzasController::class, 'correr'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/{id}/recordar',    [\App\Http\Controllers\Clientes\CobranzasController::class, 'recordar'])->middleware('permiso:clientes,crear');
+        Route::get('/cobranzas/{id}/plan-sugerido',  [\App\Http\Controllers\Clientes\CobranzasController::class, 'planSugerido'])->middleware('permiso:clientes,crear');
+        Route::post('/cobranzas/{id}/proponer-plan', [\App\Http\Controllers\Clientes\CobranzasController::class, 'proponerPlan'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/{id}/refinanciar', [\App\Http\Controllers\Clientes\CobranzasController::class, 'refinanciar'])->middleware('permiso:clientes,crear');
         Route::get('/vendedores',              [\App\Http\Controllers\Clientes\VendedoresController::class, 'index']);
         Route::post('/vendedores/calle',       [\App\Http\Controllers\Clientes\VendedoresController::class, 'configCalle'])->middleware('permiso:configuracion,editar');

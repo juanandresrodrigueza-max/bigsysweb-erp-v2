@@ -49,3 +49,10 @@ En **Configuración → Empresa → Avisos** se activan los recordatorios de ven
 **Desde el extracto:** en Contable → Conciliación, en «Está en el banco y no en el sistema», cada transferencia que entró tiene el botón **Recibo a [cliente]** cuando se lo reconoce. Si no se lo reconoce, aparece un selector para elegir el cliente. El recibo queda hecho y conciliado con ese renglón del banco.
 
 **Los dos caminos se cruzan:** si hiciste el recibo desde la foto, cuando importes el extracto ese renglón se concilia solo. También se lo podés pedir a Bigcito: «¿qué transferencias entraron sin recibo?», y después «hacele el recibo».
+
+## Cobranzas con cabeza: riesgo de mora, recordatorios a medida y plan de pago (Fase 57)
+
+- **Riesgo de mora:** en Cobranzas, cada deudor tiene un puntaje de 0 a 100 (bajo, medio, alto) con sus motivos a la vista: cuántos días tarda en pagar en promedio, cuántas veces pagó tarde, si viene empeorando, lo vencido hoy, si pasó su límite o si tiene un plan de pago con cuotas vencidas. No es una caja negra: siempre dice por qué.
+- **Para llamar antes de que venza:** los clientes que suelen atrasarse y tienen facturas que vencen en los próximos 7 días. Una llamada ahora ahorra el reclamo después. También por voz: «¿quién tiene riesgo de mora?».
+- **Recordatorios escritos a medida** (con la clave de IA): en vez de la misma plantilla para todos, cada aviso se escribe para ese cliente: cordial y liviano con el que siempre paga o en el primer aviso, claro y firme con el reincidente (pidiendo fecha concreta), nombrando todas sus facturas vencidas con el total, y ofreciendo un plan si la deuda es vieja o el riesgo es alto. Siempre con el link para pagar. Se apaga en «Avisos automáticos» y vuelve la plantilla.
+- **Plan de pago propuesto:** en Refinanciar, «✦ Sugerir plan según cómo paga» arma las cuotas que el cliente puede pagar (la mitad de lo que te compra por mes), con el interés de su ficha y la primera cuota a 10 o 20 días según el riesgo, y el mensaje listo para mandar por WhatsApp o mail. Cuando el cliente dice que sí, «Usar estos valores» y «Crear plan». Por voz: «proponele un plan a López».

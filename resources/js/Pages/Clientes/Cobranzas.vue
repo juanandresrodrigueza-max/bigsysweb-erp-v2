@@ -36,10 +36,11 @@
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 card p-0 overflow-x-auto">
         <table class="table">
-          <thead><tr><th>Cliente</th><th class="text-right">Saldo</th><th class="text-right">Vencido</th><th class="text-right">Atraso</th><th class="text-right">Mora</th><th>Último aviso</th><th></th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Riesgo</th><th class="text-right">Saldo</th><th class="text-right">Vencido</th><th class="text-right">Atraso</th><th class="text-right">Mora</th><th>Último aviso</th><th></th></tr></thead>
           <tbody>
             <tr v-for="d in deudores" :key="d.id">
               <td><Link :href="`/clientes/${d.id}`" class="font-semibold hover:text-carmin">{{ d.nombre }}</Link><p class="text-xs text-marca-muted">{{ [d.vendedor, d.email, d.telefono].filter(Boolean).join(' · ') }}<span v-if="d.plan" class="badge bg-violeta-light text-violeta ml-1">plan de pago</span></p></td>
+              <td><span v-if="d.riesgo" class="badge cursor-help" :class="{ bajo: 'bg-emerald-50 text-emerald-700', medio: 'bg-amber-50 text-amber-700', alto: 'bg-carmin-light text-carmin' }[d.riesgo.nivel]" :title="d.riesgo.motivos.join(' · ') || 'Sin motivos de riesgo'" :data-riesgo="d.id">{{ d.riesgo.nivel }} {{ d.riesgo.puntaje }}</span></td>
               <td class="text-right tabular-nums">{{ moneda(d.saldo, 0) }}</td>
               <td class="text-right tabular-nums" :class="d.vencido > 0 ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ moneda(d.vencido, 0) }}</td>
               <td class="text-right tabular-nums" :class="d.dias > 30 ? 'text-carmin' : d.dias > 0 ? 'text-amber-700' : 'text-marca-muted'">{{ d.dias ? d.dias + ' d' : '—' }}</td>
@@ -51,11 +52,16 @@
                 <button v-if="d.vencido > 0 && !d.plan && puede('clientes','crear')" @click="abrirRefi(d)" class="btn-ghost !px-2 text-xs text-violeta">Refinanciar</button>
               </td>
             </tr>
-            <tr v-if="!deudores.length"><td colspan="7" class="text-center text-marca-muted py-10">Nadie debe nada. 🎉</td></tr>
+            <tr v-if="!deudores.length"><td colspan="8" class="text-center text-marca-muted py-10">Nadie debe nada. 🎉</td></tr>
           </tbody>
         </table>
       </div>
       <div class="space-y-4">
+        <div v-if="llamarAntes.length" class="card text-sm border-amber-300" data-e2e="llamar-antes">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-amber-700 mb-1">Para llamar antes de que venza</p>
+          <p class="text-xs text-marca-muted mb-2">Vencen en 7 días y son clientes que suelen atrasarse. Una llamada ahora ahorra el reclamo después.</p>
+          <div v-for="l in llamarAntes" :key="l.id" class="py-1.5 border-t border-marca-borde/60"><div class="flex justify-between gap-2"><Link :href="`/clientes/${l.id}`" class="font-semibold">{{ l.nombre }}</Link><span class="tabular-nums">{{ moneda(l.importe, 0) }} · {{ l.vence }}</span></div><p class="text-xs text-marca-muted">{{ l.telefono || 'sin teléfono' }} · riesgo {{ l.nivel }} · {{ l.motivos[0] }}</p></div>
+        </div>
         <div class="card text-sm">
           <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted mb-2">Planes de pago</p>
           <div v-for="p in planes" :key="p.id" class="py-2 border-t border-marca-borde first:border-0">
@@ -79,6 +85,7 @@
     <!-- Configuración -->
     <Modal :abierto="cfgAbierta" titulo="Avisos automáticos de cobranza" ancho="max-w-2xl" @cerrar="cfgAbierta = false">
       <label class="flex items-center gap-2 text-sm mb-3"><input v-model="cf.activo" type="checkbox" class="accent-carmin" /> <b>Mandar recordatorios solos</b> (todos los días a las 9:30)</label>
+      <label v-if="ia" class="flex items-center gap-2 text-sm mb-3"><input v-model="cf.ia" type="checkbox" class="accent-carmin" /> <b>✦ Escribir cada recordatorio a medida</b>: suave con el que siempre paga, firme con el que se atrasa, con todas sus facturas y un plan si hace falta. Sin esto sale la plantilla de abajo.</label>
       <div class="grid sm:grid-cols-2 gap-3">
         <div><label class="label">Días respecto del vencimiento</label><input v-model="diasTexto" class="input" placeholder="-3, 0, 7, 30" /><p class="text-[10px] text-marca-muted mt-1">Negativo = antes de vencer. Ej: -3 avisa 3 días antes, 7 avisa a la semana de vencida.</p></div>
         <div><label class="label">Canales</label><div class="flex gap-3 mt-2"><label class="flex items-center gap-1.5 text-sm"><input v-model="cf.canales" value="mail" type="checkbox" class="accent-carmin" /> Mail</label><label class="flex items-center gap-1.5 text-sm"><input v-model="cf.canales" value="whatsapp" type="checkbox" class="accent-carmin" /> WhatsApp</label><label v-if="crmActivo" class="flex items-center gap-1.5 text-sm" title="Crea una tarea de cobranza en el CRM para que el vendedor la mande desde la conversación del cliente"><input v-model="cf.canales" value="crm" type="checkbox" class="accent-carmin" /> Por el CRM</label></div><p class="text-[10px] text-marca-muted mt-1">{{ mailConfigurado ? 'Mail configurado.' : 'Mail en modo prueba (se registra, no sale).' }} {{ whatsapp.configurado ? 'WhatsApp por API.' : 'WhatsApp sin API: quedan como pendientes para mandar a mano.' }}</p></div>
@@ -95,6 +102,10 @@
       <div v-else class="max-h-48 overflow-y-auto border border-marca-borde rounded-xl divide-y divide-marca-borde/60 mb-3">
         <label v-for="p in pendRefi" :key="p.id" class="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer"><input v-model="rf.comprobantes" :value="p.id" type="checkbox" class="accent-carmin" /><span class="flex-1">{{ p.nombre }} {{ p.numero }} <span class="text-xs text-marca-muted">vence {{ p.fecha_vto }}</span></span><b class="tabular-nums">{{ moneda(p.saldo) }}</b></label>
       </div>
+      <div v-if="sug" class="rounded-xl bg-lavanda-light/50 p-3 text-sm mb-3" data-e2e="plan-sugerido"><p class="text-[10px] font-bold uppercase text-violeta">✦ Plan sugerido</p><p>{{ moneda(sug.deuda, 0) }} en <b>{{ sug.cuotas }}</b> cuota{{ sug.cuotas > 1 ? 's' : '' }} de <b>{{ moneda(sug.cuota, 0) }}</b>, primera el {{ sug.primer_vencimiento.slice(8) }}/{{ sug.primer_vencimiento.slice(5, 7) }}. <span class="text-xs text-marca-muted">{{ sug.porque }}</span></p>
+        <p class="text-xs italic mt-1 bg-white rounded-lg px-2 py-1">“{{ sug.texto }}”</p>
+        <div class="flex flex-wrap gap-1.5 mt-2"><button class="btn-secondary !py-1 text-xs" @click="usarSugerido">Usar estos valores</button><button v-if="refi?.telefono" class="btn-secondary !py-1 text-xs" @click="proponer('whatsapp')">Mandar propuesta por WhatsApp</button><button v-if="refi?.email" class="btn-secondary !py-1 text-xs" @click="proponer('mail')">por mail</button></div></div>
+      <button v-else class="btn-ghost !px-2 text-xs mb-2" :disabled="sugCargando" @click="pedirSugerido" data-e2e="sugerir-plan">{{ sugCargando ? 'Pensando…' : '✦ Sugerir plan según cómo paga' }}</button>
       <div class="grid grid-cols-3 gap-3">
         <div><label class="label">Cuotas</label><input v-model.number="rf.cuotas" type="number" min="1" max="36" class="input" /></div>
         <div><label class="label">Interés total %</label><input v-model.number="rf.interes_pct" type="number" step="any" min="0" class="input" /></div>
@@ -120,7 +131,7 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean, bancos: { type: Array, default: () => [] }, clientesLista: { type: Array, default: () => [] } })
+const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean, llamarAntes: { type: Array, default: () => [] }, ia: Boolean, bancos: { type: Array, default: () => [] }, clientesLista: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const page = usePage()
 const cfgAbierta = ref(false)
@@ -139,14 +150,19 @@ async function leerTransferencia(ev) {
   } catch (e) { alertar('No pude leer el archivo.') } finally { tr.leyendo = false }
 }
 function alertar(t) { page.props.flash = { ...(page.props.flash ?? {}), error: t } }
-const cf = useForm({ activo: props.config.activo, canales: [...props.config.canales], texto: props.config.texto, whatsapp_token: props.whatsapp.token, whatsapp_phone_id: props.whatsapp.phone_id })
+const cf = useForm({ activo: props.config.activo, ia: props.config.ia ?? true, canales: [...props.config.canales], texto: props.config.texto, whatsapp_token: props.whatsapp.token, whatsapp_phone_id: props.whatsapp.phone_id })
 const diasTexto = ref(props.config.dias.join(', '))
 function recordar(d, canal) { router.post(`/clientes/cobranzas/${d.id}/recordar`, { canal }, { preserveScroll: true, onSuccess: () => { const abrir = page.props.flash?.abrir; if (abrir) { window.open(abrir, '_blank'); const id = page.props.flash?.envio_id; if (id) window.axios.post(`/envios/${id}/marcar`).catch(() => {}) } } }) }
 
 const refi = ref(null), pendRefi = ref([]), cargandoPend = ref(false)
+// Fase 57: el plan que le podés ofrecer, y mandárselo
+const sug = ref(null), sugCargando = ref(false)
+async function pedirSugerido() { sugCargando.value = true; try { const { data } = await window.axios.get(`/clientes/cobranzas/${refi.value.id}/plan-sugerido`); if (data.ok) sug.value = data; else alertar(data.aviso) } catch (e) {} finally { sugCargando.value = false } }
+function usarSugerido() { rf.comprobantes = [...sug.value.comprobantes]; rf.cuotas = sug.value.cuotas; rf.interes_pct = sug.value.interes_pct; rf.primer_vencimiento = sug.value.primer_vencimiento }
+function proponer(canal) { router.post(`/clientes/cobranzas/${refi.value.id}/proponer-plan`, { canal, texto: sug.value.texto }, { preserveScroll: true }) }
 const rf = useForm({ comprobantes: [], cuotas: 3, interes_pct: 0, primer_vencimiento: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10), notas: '' })
 async function abrirRefi(d) {
-  refi.value = d; rf.clearErrors(); rf.comprobantes = []; rf.interes_pct = d.interes_mora * 2 || 0; cargandoPend.value = true
+  refi.value = d; sug.value = null; rf.clearErrors(); rf.comprobantes = []; rf.interes_pct = d.interes_mora * 2 || 0; cargandoPend.value = true
   try { const { data } = await window.axios.get(`/clientes/${d.id}/pendientes`); pendRefi.value = data; rf.comprobantes = data.filter(p => p.vencido).map(p => p.id) } finally { cargandoPend.value = false }
 }
 const deudaRefi = computed(() => pendRefi.value.filter(p => rf.comprobantes.includes(p.id)).reduce((a, p) => a + p.saldo, 0))

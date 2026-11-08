@@ -20,8 +20,12 @@ class CobranzasController extends Controller
         $b = $request->user()->business;
         PlanPago::where('estado', 'vigente')->get()->each(fn($p) => $this->service->actualizarCuotas($p));
         $deudores = $this->service->deudores();
+        // Fase 57: riesgo de mora por deudor y los que conviene llamar antes de que venza.
+        $riesgo = app(\App\Services\Ventas\RiesgoMoraService::class);
+        $ev = $deudores->isNotEmpty() ? $riesgo->evaluar(Contact::whereIn('id', $deudores->pluck('id'))->get(), $deudores->keyBy('id')->map(fn($d) => ['saldo' => $d['saldo'], 'vencido' => $d['vencido'], 'dias' => $d['dias']])->all()) : [];
+        $deudores = $deudores->map(fn($d) => $d + ['riesgo' => $ev[$d['id']] ?? null]);
         return Inertia::render('Clientes/Cobranzas', [
-            'deudores' => $deudores,
+            'deudores' => $deudores, 'llamarAntes' => $riesgo->paraLlamarAntes($b), 'ia' => \App\Support\Ia::tiene($b),
             'kpis' => $this->service->resumenDeudores(),
             'config' => $this->service->config($b),
             'whatsapp' => ['token' => $b->whatsapp_settings['token'] ?? '', 'phone_id' => $b->whatsapp_settings['phone_id'] ?? '', 'configurado' => ! empty($b->whatsapp_settings['token'])],
@@ -36,9 +40,9 @@ class CobranzasController extends Controller
 
     public function configurar(Request $request)
     {
-        $d = $request->validate(['activo' => 'boolean', 'dias' => 'nullable|array', 'dias.*' => 'integer|min:-30|max:180', 'canales' => 'nullable|array', 'canales.*' => 'in:mail,whatsapp,crm', 'texto' => 'nullable|string|max:1000', 'whatsapp_token' => 'nullable|string|max:500', 'whatsapp_phone_id' => 'nullable|string|max:60']);
+        $d = $request->validate(['activo' => 'boolean', 'ia' => 'boolean', 'dias' => 'nullable|array', 'dias.*' => 'integer|min:-30|max:180', 'canales' => 'nullable|array', 'canales.*' => 'in:mail,whatsapp,crm', 'texto' => 'nullable|string|max:1000', 'whatsapp_token' => 'nullable|string|max:500', 'whatsapp_phone_id' => 'nullable|string|max:60']);
         $b = $request->user()->business;
-        $b->recordatorios = ['activo' => $d['activo'] ?? false, 'dias' => array_values(array_unique(array_map('intval', $d['dias'] ?? []))), 'canales' => $d['canales'] ?? ['mail'], 'texto' => $d['texto'] ?: CobranzasService::DEFAULT['texto']];
+        $b->recordatorios = ['activo' => $d['activo'] ?? false, 'ia' => $d['ia'] ?? true, 'dias' => array_values(array_unique(array_map('intval', $d['dias'] ?? []))), 'canales' => $d['canales'] ?? ['mail'], 'texto' => $d['texto'] ?: CobranzasService::DEFAULT['texto']];
         $b->whatsapp_settings = ['token' => $d['whatsapp_token'] ?? ($b->whatsapp_settings['token'] ?? ''), 'phone_id' => $d['whatsapp_phone_id'] ?? ($b->whatsapp_settings['phone_id'] ?? '')];
         $b->save();
         return back()->with('success', 'Configuración de cobranzas guardada.');
@@ -86,5 +90,22 @@ class CobranzasController extends Controller
         // Si el extracto ya estaba importado, se concilia en el acto.
         app(\App\Services\Contabilidad\ConciliacionService::class)->conciliarAutomatico($cuenta);
         return back()->with('success', "Recibo {$cobro->numeroFormateado()} hecho a {$c->name} por $ " . number_format($d['monto'], 2, ',', '.') . '.');
+    }
+
+    // Fase 57: el plan de pago que le podés ofrecer al cliente, y mandárselo por WhatsApp o mail.
+    public function planSugerido(Request $request, int $contactId, \App\Services\Ventas\PlanSugeridoService $s)
+    {
+        return response()->json($s->sugerir($request->user()->business, Contact::customers()->findOrFail($contactId)));
+    }
+
+    public function proponerPlan(Request $request, int $contactId, \App\Services\Envios\EnvioService $envios)
+    {
+        $d = $request->validate(['canal' => 'required|in:mail,whatsapp', 'texto' => 'required|string|max:1500']);
+        $c = Contact::customers()->findOrFail($contactId);
+        $f = Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->first(); abort_if(! $f, 422, 'El cliente no tiene comprobantes pendientes.');
+        $e = $envios->enviar($f, $d['canal'], $d['canal'] === 'mail' ? $c->email : ($c->mobile ?: $c->phone), 'recordatorio', $d['texto'], false);
+        if ($e->estado === 'error') return back()->with('error', 'No se pudo enviar: ' . $e->error);
+        if ($e->canal === 'whatsapp' && $e->estado === 'pendiente') return back()->with('success', 'Propuesta lista en WhatsApp.')->with('abrir', $e->link)->with('envio_id', $e->id);
+        return back()->with('success', "Propuesta de plan enviada a {$e->destino}.");
     }
 }

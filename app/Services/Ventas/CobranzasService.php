@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 // Cobranzas: recordatorios automáticos por vencimiento, mora y refinanciación en cuotas.
 class CobranzasService
 {
-    public const DEFAULT = ['activo' => false, 'dias' => [-3, 0, 7, 30], 'canales' => ['mail'], 'texto' => "Hola {cliente}, te recordamos que la {comprobante} por {importe} {estado}. Podés verla y pagarla acá: {link}. ¡Gracias!"];
+    public const DEFAULT = ['activo' => false, 'ia' => true, 'dias' => [-3, 0, 7, 30], 'canales' => ['mail'], 'texto' => "Hola {cliente}, te recordamos que la {comprobante} por {importe} {estado}. Podés verla y pagarla acá: {link}. ¡Gracias!"];
 
     public function __construct(private EnvioService $envios, private ComprobanteService $comprobantes) {}
 
@@ -58,6 +58,8 @@ class CobranzasService
         $dias = $c->fecha_vto ? $c->fecha_vto->diffInDays(today(), false) : 0;
         $estado = $dias > 0 ? "venció hace {$dias} días" : ($dias === 0 ? 'vence hoy' : 'vence en ' . abs($dias) . ' días');
         $texto = strtr($cfg['texto'], ['{cliente}' => $c->contact?->name, '{comprobante}' => "{$c->nombreTipo()} {$c->numeroFormateado()}", '{importe}' => '$ ' . number_format((float) $c->saldo, 2, ',', '.'), '{estado}' => $estado, '{link}' => $c->urlPublica(), '{empresa}' => $b->name]);
+        // Fase 57: con la IA activa, el texto se escribe para ese cliente (tono según su historial, todas sus facturas, plan si hace falta).
+        if (($cfg['ia'] ?? true) && $c->contact && \App\Support\Ia::tiene($b)) { $r = app(RiesgoMoraService::class)->de($c->contact); $texto = app(RecordatorioIaService::class)->texto($b, $c, $r, $canal) ?? $texto; }
         if ($canal === 'crm') {
             // Por el CRM: queda como tarea de cobranza para el vendedor, que la manda por la conversación del cliente (WhatsApp, mail) desde allá.
             $envio = Envio::create(['business_id' => $b->id, 'user_id' => Auth::id(), 'contact_id' => $c->contact_id, 'modelo' => 'Comprobante', 'modelo_id' => $c->id, 'canal' => 'crm', 'tipo' => 'recordatorio', 'destino' => 'CRM', 'asunto' => "Cobranza {$c->nombreTipo()} {$c->numeroFormateado()}", 'cuerpo' => $texto, 'estado' => 'pendiente']);
