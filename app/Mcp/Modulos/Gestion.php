@@ -100,6 +100,19 @@ class Gestion
                     $r = app(\App\Services\Gastronomia\PedidoRestoService::class)->crear($u->business, $d + ['user_id' => $u->id, 'enviar' => true]);
                     return ['texto' => "Listo: {$r['comanda']->titulo()} con " . count($r['cargados']) . ' plato' . (count($r['cargados']) > 1 ? 's' : '') . ' en cocina.', 'url' => Busca::url("/gastronomia/comandas/{$r['comanda']->id}")];
                 }],
+            // Fase 56: control del salón, opiniones de los clientes e ingeniería de menú.
+            ['nombre' => 'control_salon', 'titulo' => 'Control del salón por mozo', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Por mozo: comandas, venta, platos anulados después de salir de cocina, descuentos y propinas, con lo que se aparta de lo normal del equipo.',
+                'parametros' => ['desde' => ['type' => 'string'], 'hasta' => ['type' => 'string']],
+                'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\ControlSalonService::class)->datos($u->business, \Carbon\Carbon::parse($a['desde'] ?? now()->startOfMonth()), \Carbon\Carbon::parse($a['hasta'] ?? now())) + ['url' => Busca::url('/estadisticas/gastronomia')]],
+            ['nombre' => 'opiniones_clientes', 'titulo' => 'Qué dicen los clientes', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Las opiniones de la encuesta al pagar (último mes): promedio, por mozo, cuándo se concentran las malas, los comentarios y el resumen.',
+                'parametros' => ['dias' => ['type' => 'integer']],
+                'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\OpinionesService::class)->resumen($u->business, max(1, min(365, (int) ($a['dias'] ?? 30)))) + ['url' => Busca::url('/estadisticas/gastronomia')]],
+            ['nombre' => 'ingenieria_de_menu', 'titulo' => 'Ingeniería de menú', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Cada plato por popularidad y margen: estrellas, caballitos, rompecabezas y perros, con qué hacer con cada uno y tres acciones concretas para la semana.',
+                'parametros' => ['dias' => ['type' => 'integer']],
+                'ejecutar' => function (User $u, array $a) { $s = app(\App\Services\Gastronomia\IngenieriaMenuService::class); $m = $s->matriz($u->business, max(7, min(365, (int) ($a['dias'] ?? 30)))); return $m + ['acciones' => $s->acciones($u->business, $m), 'url' => Busca::url('/estadisticas/gastronomia')]; }],
             // Fase 55: compras y cocina que se adelantan.
             ['nombre' => 'que_comprar_resto', 'titulo' => 'Qué comprar para la semana (Big Restó)', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Lo que se espera vender cada día de la semana que viene (promedio por día de la semana) y los insumos que faltan para cubrirlo según las recetas, agrupados por proveedor con el costo estimado.',

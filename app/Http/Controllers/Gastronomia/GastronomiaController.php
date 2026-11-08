@@ -284,4 +284,12 @@ class GastronomiaController extends Controller
     {
         return response()->json($ia->sugerir($request->user()->business));
     }
+
+    // Fase 56: la carta traducida para el QR (inglés, portugués).
+    public function traducir(Request $request, \App\Services\Gastronomia\CartaQrService $q)
+    {
+        $d = $request->validate(['idioma' => 'required|in:' . implode(',', array_keys(\App\Services\Gastronomia\CartaQrService::IDIOMAS))]);
+        $r = $q->traducir($request->user()->business, $d['idioma']);
+        return back()->with($r['ok'] ? 'success' : 'error', $r['aviso']);
+    }
 }

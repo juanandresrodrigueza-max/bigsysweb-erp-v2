@@ -39,6 +39,8 @@ class AvisosDuenoService
         if ($vencido > 0) $t .= "⚠️ Vencido por cobrar: {$f($vencido)}\n";
         if ($pedidos) $t .= "🛒 {$pedidos} pedido/s web sin confirmar\n";
         foreach ($criticas as $a) $t .= "🔴 {$a->titulo}\n";
+        // Fase 56: el salón en el parte del dueño.
+        if (in_array('gastronomia', $b->verticalesPermitidos(), true)) { try { if ($r = app(\App\Services\Gastronomia\ReporteService::class)->parteDelDia($b, $dia)) $t .= "\n" . $r . "\n"; } catch (\Throwable) {} }
         return trim($t);
     }
 

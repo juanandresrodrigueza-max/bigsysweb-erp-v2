@@ -137,7 +137,13 @@ class EstadisticasController extends Controller
         $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
         $hasta = $request->hasta ? Carbon::parse($request->hasta) : now();
         $pron = app(\App\Services\Gastronomia\PronosticoRestoService::class); $b = $request->user()->business;
-        return Inertia::render('Estadisticas/Gastronomia', ['periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'semana' => $pron->semana($b), 'comprar' => $pron->queComprar($b)] + $r->datos($desde, $hasta));
+        return Inertia::render('Estadisticas/Gastronomia', ['periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'semana' => $pron->semana($b), 'comprar' => $pron->queComprar($b),
+            'control' => app(\App\Services\Gastronomia\ControlSalonService::class)->datos($b, $desde, $hasta), 'opiniones' => app(\App\Services\Gastronomia\OpinionesService::class)->resumen($b), 'ingenieria' => app(\App\Services\Gastronomia\IngenieriaMenuService::class)->matriz($b), 'ia' => \App\Support\Ia::tiene($b)] + $r->datos($desde, $hasta));
+    }
+
+    public function gastronomiaAcciones(Request $request)
+    {
+        return response()->json(['acciones' => app(\App\Services\Gastronomia\IngenieriaMenuService::class)->acciones($request->user()->business)]);
     }
 
     // Fase 33.5 · Plata: qué entra y cuándo, cartera por semana, cobranza por cobrador, IVA del mes.

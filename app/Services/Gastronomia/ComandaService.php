@@ -109,7 +109,7 @@ class ComandaService
         }
         if (! $c->telefono) return;
         $b = $c->business;
-        $txt = $c->tipo === 'delivery' ? "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} ya salió. ¡Buen provecho!" : "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} está listo para retirar. ¡Te esperamos!";
+        $txt = ($c->tipo === 'delivery' ? "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} ya salió. ¡Buen provecho!" : "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} está listo para retirar. ¡Te esperamos!") . (! empty($b->tienda['menu_activo']) ? "\n¿Cómo estuvo? Contanos en 10 segundos: " . OpinionesService::link($b, $c) . '&canal=wa' : '');
         try { app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $c->telefono, $txt); } catch (\Throwable) {}
         $c->update(['aviso_listo_en' => now()]);
     }
