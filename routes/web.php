@@ -143,6 +143,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/integraciones/crm/ir', [\App\Http\Controllers\Integraciones\CrmHandoffController::class, 'ir']);
     Route::get('/primeros-pasos',            [\App\Http\Controllers\OnboardingController::class, 'index']);
     Route::post('/primeros-pasos/marcar',    [\App\Http\Controllers\OnboardingController::class, 'marcar']);
+    Route::post('/primeros-pasos/induccion', [\App\Http\Controllers\OnboardingController::class, 'induccion']);
+    Route::post('/primeros-pasos/interpretar', [\App\Http\Controllers\OnboardingController::class, 'interpretar'])->middleware('throttle:20,1');
+    Route::post('/primeros-pasos/mostrar-modulo', [\App\Http\Controllers\OnboardingController::class, 'mostrarModulo']);
     Route::post('/primeros-pasos/completar', [\App\Http\Controllers\OnboardingController::class, 'completar']);
     Route::get('/soporte',                   [\App\Http\Controllers\SoporteController::class, 'index']);
     Route::post('/soporte',                  [\App\Http\Controllers\SoporteController::class, 'crear']);
