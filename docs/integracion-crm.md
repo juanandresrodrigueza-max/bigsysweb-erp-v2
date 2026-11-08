@@ -94,3 +94,22 @@ y "Ver en el CRM" (`a=/contacts/{id}`); los reclamos y pedidos de atención por 
 3. Las tareas que crea el ERP (reclamo, hablar con alguien, cobranza) le llegan al **vendedor asignado** al contacto; si no tiene, al admin.
 4. En `GET /conversations/:id/messages` cada mensaje trae `created_at`, `direction`, `content` y `message_type` (confirmar que para un adjunto
    `content` venga vacío y `message_type` diga el tipo).
+
+## Fase 72 · Bigcito compartido
+
+**Lado ERP (hecho):** herramientas de Bigcito que leen del CRM: `cliente_en_crm` (`GET /api/v1/contacts/{id}` + `deals?contact_id&status=open` +
+`tasks?contact_id&status=pending` + `appointments?contact_id&from`), `oportunidades_crm` (`GET /api/v1/deals?status=open`), `pendientes_crm`
+(`GET /api/v1/tasks?status=pending&to=hoy`), más `conversaciones_crm` (Fase 71). Caché 2 min; si el CRM no responde, Bigcito lo dice.
+El MCP del ERP (`POST {erp}/mcp`) acepta la cabecera **`X-BigSys-Usuario: <mail>`** en conexiones de modo *solo consultas*: si es un usuario
+activo de la misma empresa, responde con sus permisos y audita a su nombre; si no, con los del dueño de la conexión. El contexto que el ERP
+le da a su Bigcito (`instructions`) ya le cuenta que el CRM está conectado y qué herramientas usar.
+
+**Lo que el ERP espera del CRM:**
+1. El Bigcito del CRM puede usar, además de `ficha_cliente`, estas consultas del MCP del ERP (todas de lectura): `cuenta_corriente_cliente`,
+   `riesgo_de_mora`, `deudores`, `stock_articulo`, `buscar_articulos`, `presupuestos_abiertos`, `pendiente_de_entregar`, `ver_comprobante`,
+   `buscar_comprobantes`, `que_ofrecer_con`, `quien_dejo_de_comprar`. `tools/list` devuelve las que la conexión permite con su esquema.
+2. En cada llamada al MCP del ERP mandar **`X-BigSys-Usuario`** con el mail del usuario del CRM que pregunta.
+3. `GET /api/v1/contacts/{id}` incluye **`owner`** `{id, name, email}` (vendedor asignado) y `last_contact_at`.
+4. `GET /api/v1/deals` y `GET /api/v1/tasks` incluyen **`stage_name`**, **`assigned_to_name`** y **`contact_name`** (hoy sólo ids).
+5. `GET /api/v1/appointments` acepta `contact_id`.
+6. El SSO abre `/deals?id={id}` y `/tasks?id={id}`.

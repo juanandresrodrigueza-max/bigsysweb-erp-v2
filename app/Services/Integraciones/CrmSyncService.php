@@ -147,6 +147,77 @@ class CrmSyncService
     }
 
     // ── CRM → ERP ────────────────────────────────────────────────────────────
+    // ── Fase 72: lo que el CRM sabe, para Bigcito del ERP ────────────────────
+    // Una lectura GET a la API del CRM; null si no está conectado o no respondió (nunca rompe al que pregunta).
+    public static function leer(Business $b, string $path, array $query = []): ?array
+    {
+        if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '') return null;
+        try {
+            $r = Http::timeout(8)->withToken(CrmService::config($b)['api_key'])->acceptJson()->get(CrmService::url($b, $path), $query);
+            return $r->successful() ? (array) ($r->json('data') ?? []) : null;
+        } catch (\Throwable $e) { Log::warning("CRM leer {$path}: " . $e->getMessage()); return null; }
+    }
+
+    // Ficha del CRM de un cliente: quién lo atiende, en qué etapa está, oportunidades abiertas, tareas pendientes y próxima cita.
+    public static function fichaCrm(Business $b, Contact $cli): ?array
+    {
+        if (! $cli->crm_external_id) return null;
+        return Cache::remember("crm_ficha_{$b->id}_{$cli->id}", now()->addMinutes(2), function () use ($b, $cli) {
+            $ext = (int) $cli->crm_external_id;
+            $k = self::leer($b, "/api/v1/contacts/{$ext}"); if ($k === null) return null;
+            $deals = collect(self::leer($b, '/api/v1/deals', ['contact_id' => $ext, 'status' => 'open', 'limit' => 20]) ?? [])->filter(fn($d) => (int) ($d['contact_id'] ?? $ext) === $ext);
+            $tareas = collect(self::leer($b, '/api/v1/tasks', ['contact_id' => $ext, 'status' => 'pending', 'limit' => 20]) ?? [])->filter(fn($t) => (int) ($t['contact_id'] ?? $ext) === $ext && ($t['status'] ?? '') !== 'completed');
+            $citas = collect(self::leer($b, '/api/v1/appointments', ['contact_id' => $ext, 'from' => today()->toDateString(), 'to' => today()->addDays(60)->toDateString(), 'limit' => 20]) ?? [])
+                ->filter(fn($c) => (int) ($c['contact_id'] ?? $ext) === $ext && ! in_array($c['status'] ?? '', ['cancelled', 'no_show'], true) && ! empty($c['start_at']))->sortBy('start_at');
+            $prox = $citas->first();
+            return [
+                'vendedor' => $k['owner']['name'] ?? $k['owner_name'] ?? $k['assigned_to_name'] ?? null,
+                'etapa' => $k['lifecycle_stage'] ?? null, 'etiquetas' => array_values(array_map(fn($t) => is_array($t) ? ($t['name'] ?? '') : (string) $t, (array) ($k['tags'] ?? []))),
+                'ultimo_contacto' => ! empty($k['last_contact_at'] ?? $k['last_interaction_at'] ?? null) ? \Carbon\Carbon::parse($k['last_contact_at'] ?? $k['last_interaction_at'])->format('d/m/Y') : null,
+                'oportunidades' => $deals->map(fn($d) => self::dealItem($d))->values()->all(),
+                'tareas' => $tareas->map(fn($t) => self::tareaItem($t))->values()->all(),
+                'proxima_cita' => $prox ? ['cuando' => \Carbon\Carbon::parse($prox['start_at'])->format('d/m/Y H:i'), 'que' => $prox['service_name_snapshot'] ?? $prox['title'] ?? 'Turno', 'con' => $prox['assigned_to_name'] ?? null] : null,
+                'url' => '/integraciones/crm/ir?a=' . urlencode("/contacts/{$ext}"),
+            ];
+        });
+    }
+
+    // Oportunidades abiertas del CRM (el embudo), opcionalmente de un cliente.
+    public static function oportunidades(Business $b, ?Contact $cli = null): ?array
+    {
+        $q = ['status' => 'open', 'limit' => 100]; if ($cli) { if (! $cli->crm_external_id) return []; $q['contact_id'] = (int) $cli->crm_external_id; }
+        return Cache::remember("crm_deals_{$b->id}_" . ($cli?->id ?? 'todas'), now()->addMinutes(2), function () use ($b, $q) {
+            $d = self::leer($b, '/api/v1/deals', $q); if ($d === null) return null;
+            return collect($d)->filter(fn($x) => ! in_array($x['status'] ?? 'open', ['won', 'lost'], true))->map(fn($x) => self::dealItem($x))->values()->all();
+        });
+    }
+
+    // Tareas del CRM vencidas o de hoy (lo que el equipo de ventas tiene que atender).
+    public static function tareasPendientes(Business $b): ?array
+    {
+        return Cache::remember("crm_tareas_{$b->id}", now()->addMinutes(2), function () use ($b) {
+            $t = self::leer($b, '/api/v1/tasks', ['status' => 'pending', 'to' => today()->toDateString(), 'limit' => 100]); if ($t === null) return null;
+            return collect($t)->filter(fn($x) => ($x['status'] ?? '') !== 'completed')->map(fn($x) => self::tareaItem($x))->sortBy('vence')->values()->all();
+        });
+    }
+
+    private static function dealItem(array $d): array
+    {
+        $cli = ! empty($d['contact_id']) ? Contact::withoutGlobalScopes()->where('crm_external_id', (string) $d['contact_id'])->first() : null;
+        return ['id' => $d['id'] ?? null, 'titulo' => $d['title'] ?? '', 'monto' => (float) ($d['value'] ?? 0), 'etapa' => $d['stage_name'] ?? $d['stage']['name'] ?? (isset($d['stage_id']) ? "etapa #{$d['stage_id']}" : null),
+            'vendedor' => $d['assigned_to_name'] ?? $d['assigned_to']['name'] ?? null, 'prioridad' => $d['priority'] ?? null, 'vence' => ! empty($d['due_date']) ? substr((string) $d['due_date'], 0, 10) : null,
+            'cliente' => $cli?->name ?? $d['contact_name'] ?? null, 'cliente_id' => $cli?->id, 'url' => '/integraciones/crm/ir?a=' . urlencode('/deals?id=' . ($d['id'] ?? ''))];
+    }
+
+    private static function tareaItem(array $t): array
+    {
+        $cli = ! empty($t['contact_id']) ? Contact::withoutGlobalScopes()->where('crm_external_id', (string) $t['contact_id'])->first() : null;
+        $vence = ! empty($t['due_date']) ? substr((string) $t['due_date'], 0, 10) : null;
+        return ['id' => $t['id'] ?? null, 'titulo' => $t['title'] ?? '', 'vence' => $vence, 'vencida' => $vence !== null && $vence < today()->toDateString(), 'prioridad' => $t['priority'] ?? null,
+            'vendedor' => $t['assigned_to_name'] ?? $t['assigned_to']['name'] ?? null, 'cliente' => $cli?->name ?? $t['contact_name'] ?? null, 'cliente_id' => $cli?->id,
+            'url' => '/integraciones/crm/ir?a=' . urlencode('/tasks?id=' . ($t['id'] ?? ''))];
+    }
+
     public static function firmaValida(string $cuerpo, ?string $firma, string $secreto): bool
     {
         if (! $firma || $secreto === '') return false;

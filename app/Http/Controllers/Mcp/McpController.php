@@ -44,6 +44,14 @@ class McpController extends Controller
         $con = McpConexion::withoutGlobalScopes()->where('token_id', $t->id)->where('user_id', $u->id)->whereNull('revocada_en')->first();
         if (! $con || $con->business_id !== $u->business_id) return [null, null];
 
+        // Fase 72 (Bigcito compartido): el CRM consulta con una sola conexión de "solo consultas" pero dice qué persona pregunta
+        // (X-BigSys-Usuario: su mail). Si es un usuario activo de la misma empresa, el ERP responde con SUS permisos y lo audita a su
+        // nombre. Sólo en modo lectura: las acciones siguen siendo siempre del dueño del token.
+        if ($con->modo === 'lectura' && ($mail = strtolower(trim((string) $r->header('X-BigSys-Usuario')))) !== '') {
+            $otro = User::withoutGlobalScopes()->where('business_id', $u->business_id)->whereRaw('lower(email) = ?', [$mail])->where('status', 'active')->where('is_superadmin', false)->first();
+            if ($otro) $u = $otro;
+        }
+
         Auth::setUser($u->withAccessToken($t));
         $con->forceFill(['ultimo_uso' => now(), 'usos' => $con->usos + 1])->saveQuietly();
         $t->forceFill(['last_used_at' => now()])->saveQuietly();
