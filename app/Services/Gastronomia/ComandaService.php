@@ -39,14 +39,33 @@ class ComandaService
         $enviados = $c->items()->where('ronda', $ronda)->whereNotNull('enviado_en')->exists();
         $ri = (Auth::user()->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
         $al = $ri ? (float) ($p?->iva ?? 21) : 0;
+        // Fase 49: modificadores elegidos ("Jugoso", "+ Queso"): se validan contra la carta, suman su precio y viajan a cocina.
+        [$mods, $extra] = $p ? self::modificadores($p, $it['modificadores'] ?? null) : [null, 0];
+        $precio = $it['precio_unit'] ?? ($p ? round((float) $p->price * (1 + $al / 100), 2) + $extra : 0);   // precio final de carta
+        $desc = $it['descripcion'] ?? $p?->name ?? 'Ítem';
+        if ($mods && ! isset($it['descripcion'])) $desc .= ' (' . implode(', ', array_column($mods, 'nombre')) . ')';
         $item = $c->items()->create([
-            'product_id' => $p?->id, 'descripcion' => $it['descripcion'] ?? $p?->name ?? 'Ítem', 'cantidad' => $it['cantidad'] ?? 1,
-            'precio_unit' => $it['precio_unit'] ?? ($p ? round((float) $p->price * (1 + $al / 100), 2) : 0),   // precio final de carta
+            'product_id' => $p?->id, 'descripcion' => mb_substr($desc, 0, 250), 'cantidad' => $it['cantidad'] ?? 1, 'modificadores' => $mods ?: null,
+            'precio_unit' => $precio,
             'alicuota_iva' => $al, 'notas' => $it['notas'] ?? null, 'va_cocina' => $p ? $p->va_cocina : true, 'ronda' => $enviados ? $ronda + 1 : max(1, $ronda), 'estado' => 'pedido',
         ]);
         $c->recalcular();
         if ($c->estado === 'cuenta') $c->update(['estado' => 'abierta', 'cuenta_en' => null]);
         return $item;
+    }
+
+    // Valida lo elegido contra los grupos del plato. Devuelve [[{grupo, nombre, precio}], precio extra].
+    public static function modificadores(Product $p, ?array $elegidos): array
+    {
+        $grupos = $p->modificadores ?? []; if (! $grupos) return [null, 0];
+        $elegidos = $elegidos ?? []; $out = []; $extra = 0;
+        foreach ($grupos as $g) {
+            $sel = array_values(array_filter((array) ($elegidos[$g['nombre']] ?? []), fn($n) => collect($g['opciones'] ?? [])->contains('nombre', $n)));
+            if (! empty($g['obligatorio']) && ! $sel) throw ValidationException::withMessages(['modificadores' => "Elegí {$g['nombre']} para {$p->name}."]);
+            if (empty($g['multiple']) && count($sel) > 1) $sel = [$sel[0]];
+            foreach ($sel as $n) { $o = collect($g['opciones'])->firstWhere('nombre', $n); $out[] = ['grupo' => $g['nombre'], 'nombre' => $n, 'precio' => (float) ($o['precio'] ?? 0)]; $extra += (float) ($o['precio'] ?? 0); }
+        }
+        return [$out, round($extra, 2)];
     }
 
     public function quitar(ComandaItem $item): void
@@ -78,17 +97,35 @@ class ComandaService
         $c->update(['estado' => 'cuenta', 'cuenta_en' => now()]);
     }
 
-    // Cierra la comanda: factura + cobro con el POS, propina a caja como ingreso, mesa liberada.
+    // Cierra la comanda cobrando todo lo que falta pagar.
     public function cerrar(Comanda $c, array $d): array
     {
-        return DB::transaction(function () use ($c, $d) {
-            abort_if(! in_array($c->estado, ['abierta', 'cuenta'], true), 422, 'La comanda ya está cerrada.');
-            $items = $c->items()->where('estado', '!=', 'anulado')->get();
-            if ($items->isEmpty()) throw ValidationException::withMessages(['items' => 'La comanda no tiene ítems.']);
-            if (isset($d['descuento'])) $c->update(['descuento' => (float) $d['descuento']]);
-            $c->recalcular();
+        return $this->cobrar($c, $d, null);
+    }
 
-            $lineas = $items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'alicuota_iva' => (float) $i->alicuota_iva, 'descuento' => (float) $c->descuento > 0 ? round((float) $c->descuento / ($c->total + (float) $c->descuento) * 100, 4) : 0])->all();
+    // Fase 49 · Dividir la cuenta: cobra una parte con su factura y su cobro. $partes = [item_id => cantidad] (cada uno lo suyo)
+    // o ['_dividir' => N] (una de N partes iguales de lo que falta). null = todo lo que falta. Cuando no queda nada, la comanda se cierra.
+    public function cobrar(Comanda $c, array $d, ?array $partes): array
+    {
+        return DB::transaction(function () use ($c, $d, $partes) {
+            abort_if(! in_array($c->estado, ['abierta', 'cuenta'], true), 422, 'La comanda ya está cerrada.');
+            $items = $c->items()->where('estado', '!=', 'anulado')->get()->filter(fn($i) => (float) $i->cantidad - (float) $i->pagado > 0.0005);
+            if ($items->isEmpty()) throw ValidationException::withMessages(['items' => 'La comanda no tiene nada pendiente de cobrar.']);
+            if (isset($d['descuento']) && ! $c->pagos) $c->update(['descuento' => (float) $d['descuento']]);
+            $c->recalcular();
+            $bruto = $c->items()->where('estado', '!=', 'anulado')->get()->sum(fn($i) => (float) $i->cantidad * (float) $i->precio_unit);
+            $pctDesc = (float) $c->descuento > 0 && $bruto > 0 ? round((float) $c->descuento / $bruto * 100, 4) : 0;
+
+            $n = isset($partes['_dividir']) ? max(1, (int) $partes['_dividir']) : null;
+            $cobra = [];
+            foreach ($items as $i) {
+                $pend = round((float) $i->cantidad - (float) $i->pagado, 3);
+                $q = $partes === null ? $pend : ($n ? ($n === 1 ? $pend : round($pend / $n, 3)) : min($pend, round((float) ($partes[$i->id] ?? 0), 3)));
+                if ($q > 0.0005) $cobra[] = [$i, $q];
+            }
+            if (! $cobra) throw ValidationException::withMessages(['items' => 'Elegí qué se cobra en esta parte.']);
+
+            $lineas = array_map(fn($x) => ['product_id' => $x[0]->product_id, 'descripcion' => $x[0]->descripcion, 'cantidad' => $x[1], 'precio_unit' => (float) $x[0]->precio_unit, 'alicuota_iva' => (float) $x[0]->alicuota_iva, 'descuento' => $pctDesc], $cobra);
             $propina = (float) ($d['propina'] ?? 0);
             $medios = collect($d['medios'] ?? [])->map(fn($m) => $m)->all();
             // La propina se paga junto pero no es venta: se descuenta de los medios antes de cobrar la factura.
@@ -97,16 +134,23 @@ class ComandaService
                 foreach ($medios as &$m) { $q = min($resto, (float) $m['monto']); $m['monto'] = round((float) $m['monto'] - $q, 2); $resto -= $q; if ($resto <= 0) break; }
                 unset($m);
             }
-            $venta = $this->pos->vender(['items' => $lineas, 'contact_id' => $d['contact_id'] ?? null, 'medios' => $medios, 'notas' => $c->titulo() . ' · comanda ' . $c->numeroFormateado(), 'a_cuenta' => $d['a_cuenta'] ?? false]);
+            $nro = count($c->pagos ?? []) + 1;
+            $parcial = $partes !== null || $c->pagos;
+            $venta = $this->pos->vender(['items' => $lineas, 'contact_id' => $d['contact_id'] ?? null, 'medios' => $medios, 'notas' => $c->titulo() . ' · comanda ' . $c->numeroFormateado() . ($parcial ? " · parte {$nro}" : ''), 'a_cuenta' => $d['a_cuenta'] ?? false]);
 
             if ($propina > 0) {
                 $caja = $this->fondos->cuentaPara('efectivo', Auth::user());
                 if ($caja) $this->fondos->registrar($caja, ['origen' => 'ingreso', 'concepto' => "Propina {$c->titulo()}", 'ingreso' => $propina]);
             }
-            $c->update(['estado' => 'cerrada', 'cerrada_en' => now(), 'comprobante_id' => $venta['comprobante']->id, 'propina' => $propina]);
-            $c->items()->whereIn('estado', ['pedido', 'cocina', 'listo'])->update(['estado' => 'entregado']);
-            AuditLog::registrar('cerrar_comanda', $c, "Cerró {$c->titulo()} por $ " . number_format((float) $c->total, 2, ',', '.'));
-            return $venta + ['comanda' => $c->fresh()];
+            foreach ($cobra as [$i, $q]) $i->update(['pagado' => round((float) $i->pagado + $q, 3)]);
+            $pagos = $c->pagos ?? []; $pagos[] = ['comprobante_id' => $venta['comprobante']->id, 'total' => (float) $venta['comprobante']->total, 'propina' => $propina, 'hora' => now()->format('H:i')];
+            $falta = $c->items()->where('estado', '!=', 'anulado')->get()->contains(fn($i) => (float) $i->cantidad - (float) $i->pagado > 0.0005);
+            $c->update(['pagos' => $pagos, 'propina' => round((float) $c->propina + $propina, 2)] + ($falta ? [] : ['estado' => 'cerrada', 'cerrada_en' => now(), 'comprobante_id' => $pagos[0]['comprobante_id']]));
+            if (! $falta) {
+                $c->items()->whereIn('estado', ['pedido', 'cocina', 'listo'])->update(['estado' => 'entregado']);
+                AuditLog::registrar('cerrar_comanda', $c, "Cerró {$c->titulo()} por $ " . number_format((float) $c->total, 2, ',', '.') . (count($pagos) > 1 ? ' en ' . count($pagos) . ' partes' : ''));
+            }
+            return $venta + ['comanda' => $c->fresh(), 'cerrada' => ! $falta];
         });
     }
 

@@ -29,3 +29,14 @@ Cada mesa tiene su **código QR**: el cliente lo escanea, ve el menú y pide des
 ## Stock y recetas
 
 Los platos pueden tener **fórmula** (ver Producción): al vender, se descuentan los insumos y se calcula el costo del plato.
+
+## Opciones de cada plato y dividir la cuenta (Fase 49)
+
+**Carta (Gastronomía → Carta):** para cada plato elegís si va a cocina y armás sus opciones en grupos. Hay modelos listos para Punto, Guarnición, Extras y Sin. Un grupo puede ser **obligatorio**, y entonces el mozo no puede cargar el plato sin elegir, o de **varias opciones**. Cada opción puede tener precio extra, por ejemplo «+ Queso» a $ 1.200. Cuando el mozo toca el plato, elige las opciones: el precio se suma solo y la cocina las ve en la comanda.
+
+**Dividir la cuenta:** al cobrar, elegís cómo:
+- **Todo junto:** como siempre.
+- **Cada uno lo suyo:** marcás qué ítems paga esa persona; se puede pagar una parte de un ítem, como media pizza.
+- **Partes iguales:** dividís lo que falta en N partes.
+
+Cada parte sale con su factura y su cobro, con la propina que deje esa persona, y la mesa queda abierta mostrando «Falta cobrar». Cuando se paga lo último, la mesa se cierra sola.

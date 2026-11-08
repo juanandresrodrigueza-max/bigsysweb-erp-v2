@@ -33,7 +33,8 @@ class GastronomiaController extends Controller
             'id' => $c->id, 'numero' => $c->numeroFormateado(), 'titulo' => $c->titulo(), 'tipo' => $c->tipo, 'estado' => $c->estado, 'mesa_id' => $c->mesa_id, 'mesa' => $c->mesa?->nombre, 'sector' => $c->mesa?->sector,
             'mozo' => $c->mozo?->name, 'cubiertos' => $c->cubiertos, 'cliente' => $c->cliente, 'direccion' => $c->direccion, 'telefono' => $c->telefono, 'total' => (float) $c->total, 'descuento' => (float) $c->descuento, 'propina' => (float) $c->propina, 'notas' => $c->notas,
             'abierta' => $c->abierta_en?->format('H:i'), 'minutos' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0, 'comprobante_id' => $c->comprobante_id,
-            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
+            'pagos' => $c->pagos ?? [], 'pendiente' => round($c->items->where('estado', '!=', 'anulado')->sum(fn($i) => ((float) $i->cantidad - (float) $i->pagado) * (float) $i->precio_unit), 2),
+            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
             'pendientes_envio' => $c->items->where('estado', 'pedido')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
         ];
     }
@@ -80,7 +81,7 @@ class GastronomiaController extends Controller
         $c = Comanda::findOrFail($id);
         return Inertia::render('Gastronomia/Comanda', [
             'comanda' => $this->comandaArr($c),
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos]),
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color']),
             'medios' => Cobro::MEDIOS, 'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
             'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'cuit', 'condicion_iva']),
@@ -90,7 +91,7 @@ class GastronomiaController extends Controller
 
     public function agregar(Request $request, int $id, ComandaService $svc)
     {
-        $d = $request->validate(['product_id' => 'nullable|exists:products,id', 'descripcion' => 'nullable|string|max:150', 'cantidad' => 'nullable|numeric|min:0.001', 'precio_unit' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:150']);
+        $d = $request->validate(['product_id' => 'nullable|exists:products,id', 'descripcion' => 'nullable|string|max:150', 'cantidad' => 'nullable|numeric|min:0.001', 'precio_unit' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:150', 'modificadores' => 'nullable|array']);
         $svc->agregar(Comanda::findOrFail($id), $d);
         return back();
     }
@@ -132,8 +133,12 @@ class GastronomiaController extends Controller
     public function cerrar(Request $request, int $id, ComandaService $svc)
     {
         $d = $request->validate(['contact_id' => 'nullable|exists:contacts,id', 'descuento' => 'nullable|numeric|min:0', 'propina' => 'nullable|numeric|min:0', 'a_cuenta' => 'boolean', 'medios' => 'nullable|array', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120']);
-        $r = $svc->cerrar(Comanda::findOrFail($id), $d);
+        // Fase 49: cobrar una parte (cada uno lo suyo, o una de N partes iguales); si no queda nada, se cierra igual que siempre.
+        $p = $request->validate(['partes' => 'nullable|array', 'partes.*' => 'numeric|min:0', 'dividir' => 'nullable|integer|min:1|max:50']);
+        $partes = ! empty($p['dividir']) ? ['_dividir' => (int) $p['dividir']] : (! empty($p['partes']) ? $p['partes'] : null);
+        $r = $svc->cobrar(Comanda::findOrFail($id), $d, $partes);
         $c = $r['comprobante'];
+        if (! $r['cerrada']) return back()->with('success', "Parte cobrada: {$c->nombreTipo()} {$c->numeroFormateado()} por $ " . number_format((float) $c->total, 2, ',', '.') . '. Falta $ ' . number_format($this->comandaArr($r['comanda']->fresh())['pendiente'], 2, ',', '.') . '.')->with('pos', ['comprobante_id' => $c->id, 'vuelto' => $r['vuelto']]);
         return redirect('/gastronomia')->with('success', "{$r['comanda']->titulo()} cerrada: {$c->nombreTipo()} {$c->numeroFormateado()} por $ " . number_format((float) $c->total, 2, ',', '.') . ($r['vuelto'] > 0 ? ' · vuelto $ ' . number_format($r['vuelto'], 2, ',', '.') : ''))->with('pos', ['comprobante_id' => $c->id, 'vuelto' => $r['vuelto']]);
     }
 
@@ -152,5 +157,23 @@ class GastronomiaController extends Controller
             'items' => $its->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'notas' => $i->notas, 'estado' => $i->estado, 'ronda' => $i->ronda, 'minutos' => (int) ($i->enviado_en?->diffInMinutes(now()) ?? 0)])->values()])->values();
         if ($request->wantsJson() || $request->boolean('json')) return response()->json($grupos);
         return Inertia::render('Gastronomia/Cocina', ['grupos' => $grupos, 'terminados' => ComandaItem::where('estado', 'entregado')->where('va_cocina', true)->whereDate('updated_at', today())->count()]);
+    }
+
+    // Fase 49 · Carta: qué va a cocina y los modificadores de cada plato (punto de la carne, guarnición, extras con precio).
+    public function carta()
+    {
+        return Inertia::render('Gastronomia/Carta', [
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'modificadores' => $p->modificadores ?? []]),
+        ]);
+    }
+
+    public function guardarCarta(Request $request, int $id)
+    {
+        $d = $request->validate(['va_cocina' => 'boolean', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
+            'modificadores.*.opciones' => 'required|array|min:1|max:30', 'modificadores.*.opciones.*.nombre' => 'required|string|max:40', 'modificadores.*.opciones.*.precio' => 'nullable|numeric|min:0']);
+        $p = Product::findOrFail($id);
+        $mods = collect($d['modificadores'] ?? [])->map(fn($g) => ['nombre' => trim($g['nombre']), 'obligatorio' => (bool) ($g['obligatorio'] ?? false), 'multiple' => (bool) ($g['multiple'] ?? false), 'opciones' => collect($g['opciones'])->map(fn($o) => ['nombre' => trim($o['nombre']), 'precio' => round((float) ($o['precio'] ?? 0), 2)])->values()->all()])->values()->all();
+        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []))->save();
+        return back()->with('success', "{$p->name}: carta guardada.");
     }
 }

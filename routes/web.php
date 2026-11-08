@@ -756,6 +756,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/comandas/{id}/anular',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'anular'])->middleware('permiso:gastronomia,editar');
         Route::post('/items/{item}/estado',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'itemEstado'])->middleware('permiso:gastronomia,editar');
         Route::get('/cocina',                         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cocina']);
+        Route::get('/carta',                          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'carta']);
+        Route::post('/carta/{id}',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarCarta'])->middleware('permiso:gastronomia,editar');
         Route::get('/reservas',                       [\App\Http\Controllers\Gastronomia\ReservasController::class, 'index']);
         Route::post('/reservas',                      [\App\Http\Controllers\Gastronomia\ReservasController::class, 'guardar'])->middleware('permiso:gastronomia,crear');
         Route::post('/reservas/{id}/estado',          [\App\Http\Controllers\Gastronomia\ReservasController::class, 'estado'])->middleware('permiso:gastronomia,editar');
