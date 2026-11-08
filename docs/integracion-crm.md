@@ -59,3 +59,22 @@ texto, ping: {ok, detalle, ms, cuando}, cola: {pendientes, fallidos}, errores_24
    mandarlo primero al ERP (ya existe el sync).
 3. En Cobranzas del CRM, cuando el contacto tiene `external_id`, la deuda se lee del ERP (`saldo`/`vencido`) en vez de la propia.
 4. Bigcito del CRM: la herramienta `ficha_cliente` del MCP ya trae esto; sumar la pregunta "¿cuánto debe X?" al vendedor.
+
+## Fase 70 · Stock y precio en vivo al presupuestar en el CRM
+
+**Lado ERP (hecho):**
+- `GET /api/products/para-presupuestar?q=caño&contact_id=12&cantidad=10&solo_con_stock=1&limit=30` (también `ids=1,2,3`) → por artículo:
+  `{ id, nombre, sku, codigo_barras, unidad, iva, rubro, marca, imagen, en_tienda, stock: {controla, total, hay, poco, minimo, por_deposito:[{deposito, cantidad}],
+  alcanza}, precio: {lista_1, lista, precio_lista, descuento, origen: lista|rubro|pactado|ultimo|cantidad, final, final_con_iva, moneda}, descuento_por_cantidad }`
+  más `cliente: {id, nombre, lista, descuento}` y `actualizado`. El precio es **el que el ERP le cobraría a ese cliente hoy**: su lista, sus
+  precios pactados, el descuento del rubro o el general y el descuento por cantidad.
+- `GET /api/products/{id}/para-presupuestar?contact_id=&cantidad=` → lo mismo para uno.
+
+**Lo que el ERP espera del CRM:**
+1. En el **presupuesto** del CRM, al buscar un artículo, consultar `para-presupuestar` con el `external_id` del contacto (si lo tiene) y usar
+   `precio.final` (o `final_con_iva` según cómo cotice la empresa); mostrar al lado el stock (`hay` / `poco` / `total`) y marcar en rojo si
+   `alcanza` es falso para la cantidad pedida.
+2. Los artículos siguen sincronizándose como hasta ahora (catálogo local para buscar rápido); el ERP es la verdad en el momento de cotizar.
+3. Si el ERP no responde, usar el precio local sincronizado y avisar "precio sin confirmar con el ERP".
+4. Bigcito del CRM: "¿hay stock de caño de 4 m?" y "¿a cuánto le sale el cemento a López?" con estos endpoints (o con `stock_articulo` /
+   `ficha_cliente` del MCP del ERP).

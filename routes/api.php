@@ -54,6 +54,8 @@ Route::middleware(['auth:sanctum', 'token.api'])->group(function () {
     Route::get('contacts/{contact}/cuenta',  [\App\Http\Controllers\Api\CrmClientesController::class, 'cuenta']);  // Fase 69: saldo, vencido, límite, riesgo y pendientes en vivo (para el CRM)
     Route::post('contacts/{contact}/cobros', [\App\Http\Controllers\Api\CrmClientesController::class, 'cobrar']); // Fase 69: cobrar desde el CRM
     Route::apiResource('customers',       CustomerController::class);
+    Route::get('products/para-presupuestar',           [\App\Http\Controllers\Api\CrmArticulosController::class, 'buscar']); // Fase 70: stock y precio del cliente en vivo (para el CRM)
+    Route::get('products/{product}/para-presupuestar', [\App\Http\Controllers\Api\CrmArticulosController::class, 'uno']);
     Route::apiResource('products',        ProductController::class);
     Route::apiResource('sales',           SaleController::class);
     Route::apiResource('purchases',       PurchaseController::class);
