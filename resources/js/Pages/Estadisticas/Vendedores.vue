@@ -31,6 +31,8 @@
       </div>
     </div>
 
+    <EmbudoCrm v-if="crm" :crm="crm" class="mb-4" />
+
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card" data-e2e="ruta">
         <h2 class="font-bold mb-1">Cumplimiento de ruta</h2>
@@ -70,7 +72,8 @@ import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
+import EmbudoCrm from '@/Components/EmbudoCrm.vue'
 import { moneda } from '@/util/formato'
-const props = defineProps({ periodo: Object, ranking: Array, por_dia: Array, motivos: Object, donde: Array, relevamientos: Array })
+const props = defineProps({ periodo: Object, ranking: Array, por_dia: Array, motivos: Object, donde: Array, relevamientos: Array, crm: { type: Object, default: null } })
 const maxDia = computed(() => Math.max(1, ...props.por_dia.map(d => Math.abs(d.monto))))
 </script>

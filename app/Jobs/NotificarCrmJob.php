@@ -26,7 +26,8 @@ class NotificarCrmJob implements ShouldQueue
     public static function datosCobro(\App\Models\Cobro $cobro): array
     {
         $contact = $cobro->contact ?? \App\Models\Contact::withoutGlobalScopes()->find($cobro->contact_id);
-        return ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'cliente' => ['id' => $contact?->id, 'nombre' => $contact?->name], 'total' => (float) $cobro->total, 'saldo' => 0, 'estado' => 'registrado'];
+        return ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'cliente' => ['id' => $contact?->id, 'nombre' => $contact?->name], 'total' => (float) $cobro->total, 'saldo' => 0, 'estado' => 'registrado',
+            'vendedor' => ($v = ($cobro->cobrador_id ? $cobro->cobrador : null) ?? ($cobro->vendedor_id ? $cobro->vendedor : null)) ? ['id' => $v->id, 'nombre' => $v->nombre, 'email' => $v->email ?: $v->user?->email] : null]; // Fase 74
     }
 
     public static function avisar(?int $businessId, string $evento, array $datos): void

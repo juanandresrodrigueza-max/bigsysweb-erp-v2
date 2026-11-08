@@ -76,6 +76,11 @@ Con el CRM conectado, **el Bigcito del ERP contesta con datos del CRM** y **el d
 
 Con el CRM conectado, **lo crítico del ERP le llega al vendedor que atiende al cliente** como tarea del CRM, sin que nadie se lo tenga que contar: un **cheque rechazado** (al instante), **deuda vencida hace más de 30 días**, **pasó su límite de crédito** y **dejó de comprar** (una pasada por día, a las 7:40; un aviso por cliente y motivo cada 30 días). Sólo para clientes que están en el CRM. Y al revés: las **tareas vencidas del CRM** aparecen en la **campana** del ERP (módulo Clientes; las de prioridad alta como críticas, con el nombre del cliente y del vendedor) y se resuelven solas cuando el vendedor las cierra en el CRM. A Bigcito: "¿qué tareas del CRM están vencidas?" (`pendientes_crm`), y `alertas_activas` las incluye.
 
+### Tablero y comisiones cruzados (Fase 74)
+
+- **El embudo del CRM en Estadísticas → Vendedores**: oportunidades abiertas por etapa, ganadas y perdidas en el período con la tasa de cierre, tareas vencidas, y una tabla por vendedor que cruza lo que tiene en el CRM (abiertas, ganadas) con lo que vendió de verdad en el ERP. Sólo con el CRM conectado.
+- **Comisiones con lo real**: la base de comisiones de cada vendedor sale del ERP (facturado menos notas de crédito, y cobrado, con sus porcentajes de Clientes → Vendedores). El CRM la lee por la API (`GET /api/comisiones/base`) y liquida sobre eso, no sobre el valor que el vendedor cargó en la oportunidad. Los avisos de factura emitida y cobro registrado al CRM ya dicen de qué vendedor son. A Bigcito: "¿cuánto le toca a Juan este mes?" (`comisiones_vendedores`).
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.

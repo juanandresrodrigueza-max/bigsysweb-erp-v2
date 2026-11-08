@@ -33,6 +33,6 @@ class WebhookService
 
     public static function comprobante(\App\Models\Comprobante $c): array
     {
-        return ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha?->toDateString(), 'cliente' => $c->contact ? ['id' => $c->contact->id, 'nombre' => $c->contact->name, 'cuit' => $c->contact->cuit] : null, 'neto' => (float) $c->neto, 'iva' => (float) $c->iva, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'estado' => $c->estado, 'cae' => $c->cae, 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'total' => (float) $i->total])->all()];
+        return ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha?->toDateString(), 'cliente' => $c->contact ? ['id' => $c->contact->id, 'nombre' => $c->contact->name, 'cuit' => $c->contact->cuit] : null, 'neto' => (float) $c->neto, 'iva' => (float) $c->iva, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'estado' => $c->estado, 'cae' => $c->cae, 'vendedor' => $c->vendedor_id && ($v = $c->vendedor) ? ['id' => $v->id, 'nombre' => $v->nombre, 'email' => $v->email ?: $v->user?->email] : null, 'items' => $c->items->map(fn($i) => ['product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'total' => (float) $i->total])->all()];
     }
 }
