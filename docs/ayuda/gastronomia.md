@@ -40,3 +40,7 @@ Los platos pueden tener **fórmula** (ver Producción): al vender, se descuentan
 - **Partes iguales:** dividís lo que falta en N partes.
 
 Cada parte sale con su factura y su cobro, con la propina que deje esa persona, y la mesa queda abierta mostrando «Falta cobrar». Cuando se paga lo último, la mesa se cierra sola.
+
+## Estaciones de cocina (Fase 50)
+
+En Gastronomía → Carta armás las **estaciones** (por ejemplo Cocina, Parrilla, Barra y Postres) y para cada una ponés a los cuántos minutos avisa. A cada plato le elegís a qué estación va. En la pantalla de cocina, arriba, elegís la estación: cada una ve solo lo suyo, con el tiempo de cada plato. Cuando un plato pasa los minutos de su estación se pone en rojo y dice «demorado». Al lado de cada estación figura el tiempo promedio de hoy. Desde la comanda, **Imprimir: Parrilla / Barra…** saca el ticket de 80 mm de esa estación.
