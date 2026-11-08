@@ -16,6 +16,18 @@ También salen de acá el link del **menú QR** (gastronomía) y el de **reserva
 
 Con la API de WhatsApp Cloud cargada, los mensajes de tus clientes llegan al sistema y se interpretan solos (con IA si está activa). Sin API, pegás el mensaje en Pedidos → "Pedido por WhatsApp".
 
+### Bigcito atiende a tus clientes por WhatsApp (Fase 60)
+
+Con la API conectada, además de tomar pedidos, Bigcito contesta las consultas de siempre sin que nadie esté mirando el teléfono:
+
+- **"¿Cuánto debo?"**: reconoce al cliente por el número (o por el CUIT/DNI que escriba) y le pasa el saldo, qué facturas están pendientes y cuál vencida, y el CBU/alias para transferir si está cargado. A un número desconocido no le dice nada: le pide el CUIT.
+- **"¿Dónde está mi pedido?"**: el estado del último pedido web y el link para seguirlo.
+- **"¿Tenés caño de 4 m? ¿A cuánto?"**: busca en la lista, dice el precio y si hay stock (sin la cantidad exacta), o si quedan pocas unidades.
+- **Reclamos** ("llegó roto", "me faltó una caja"): quedan anotados en la ficha del cliente (Notas) y sale un aviso al dueño en Inicio → Avisos; al cliente le dice que una persona lo contacta.
+- **"Quiero hablar con alguien"**: aviso al equipo y respuesta cordial.
+
+Lo que no es consulta (un pedido de mercadería, un saludo) sigue como hasta ahora. Se apaga en **Configuración → Tienda y canales → Pedidos por WhatsApp → "Bigcito atiende consultas de clientes"**. A Bigcito (el tuyo) le podés preguntar "¿hay reclamos de clientes por WhatsApp?".
+
 ## Marketplaces y delivery
 
 **Conectar canal**: Mercado Libre, Tiendanube, WooCommerce, Shopify, PedidosYa, Rappi. Cada uno pide sus credenciales (la pantalla explica dónde conseguirlas). Se importan los pedidos, se empuja stock y precio si lo activás, y los pedidos entran como los demás. Los artículos se cruzan por SKU: usá el mismo código en ambos lados.

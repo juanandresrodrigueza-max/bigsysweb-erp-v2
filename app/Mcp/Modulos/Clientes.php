@@ -52,6 +52,15 @@ class Clientes
                     return ['clientes' => Contact::customers()->where(fn($w) => $w->where('name', $like, "%{$t}%")->orWhere('cuit', $like, "%{$t}%")->orWhere('email', $like, "%{$t}%")->orWhere('phone', $like, "%{$t}%")->orWhere('mobile', $like, "%{$t}%"))
                         ->orderByRaw('LENGTH(name)')->limit(min(50, (int) ($a['cantidad'] ?? 10)))->get()->map(fn($c) => self::fila($c))->all()];
                 }],
+            // Fase 60: lo que los clientes pidieron por WhatsApp y nadie atendió todavía (reclamos y pedidos de hablar con alguien).
+            ['nombre' => 'reclamos_whatsapp', 'titulo' => 'Reclamos por WhatsApp', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Reclamos y pedidos de atención que los clientes mandaron por WhatsApp y Bigcito tomó; los que todavía no resolvió nadie.',
+                'parametros' => [], 'requeridos' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $al = \App\Models\Alerta::activas()->whereIn('tipo', ['reclamo_whatsapp', 'whatsapp_persona'])->latest()->limit(20)->get();
+                    return ['pendientes' => $al->count(), 'reclamos' => $al->map(fn($x) => ['cuando' => $x->created_at->format('d/m H:i'), 'tipo' => $x->tipo === 'reclamo_whatsapp' ? 'reclamo' : 'quiere hablar con alguien', 'quien' => $x->titulo, 'mensaje' => $x->detalle, 'url' => Busca::url($x->url ?? '/clientes')])->all(),
+                        'nota' => $al->isEmpty() ? 'No hay reclamos de clientes sin atender.' : 'Cuando se resuelva, marcar la alerta como resuelta en Inicio → Avisos.'];
+                }],
             ['nombre' => 'ficha_cliente', 'titulo' => 'Ficha del cliente', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Todo de un cliente: datos, saldo, lo vencido, facturas pendientes, últimas compras, contactos y condiciones (lista de precios, descuento, días de pago).',
                 'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Nombre, CUIT o id.']], 'requeridos' => ['cliente'],

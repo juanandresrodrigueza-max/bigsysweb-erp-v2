@@ -28,7 +28,7 @@ class TiendaController extends Controller
             'oauth' => ['mercadolibre' => (bool) \App\Models\SistemaConfig::get('ml_app_id'), 'tiendanube' => (bool) \App\Models\SistemaConfig::get('tn_app_id'), 'woocommerce' => true],
             'clientes' => \App\Models\Contact::customers()->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'name', 'condicion_iva']),
             'tiposCanal' => Canal::TIPOS,
-            'whatsapp' => ['configurado' => ! empty($b->whatsapp_settings['token']) && ! empty($b->whatsapp_settings['phone_id']), 'phone_id' => $b->whatsapp_settings['phone_id'] ?? null, 'url_entrada' => url('/api/whatsapp/entrante/' . $b->id), 'verify_token' => $b->whatsapp_settings['verify_token'] ?? null, 'ia' => (bool) config('services.anthropic.api_key')],
+            'whatsapp' => ['configurado' => ! empty($b->whatsapp_settings['token']) && ! empty($b->whatsapp_settings['phone_id']), 'phone_id' => $b->whatsapp_settings['phone_id'] ?? null, 'url_entrada' => url('/api/whatsapp/entrante/' . $b->id), 'verify_token' => $b->whatsapp_settings['verify_token'] ?? null, 'ia' => (bool) config('services.anthropic.api_key'), 'atencion_clientes' => (bool) ($b->whatsapp_settings['atencion_clientes'] ?? true)],
         ]);
     }
 
@@ -62,7 +62,7 @@ class TiendaController extends Controller
 
     public function guardarWhatsapp(Request $request)
     {
-        $d = $request->validate(['token' => 'nullable|string|max:400', 'phone_id' => 'nullable|string|max:60', 'verify_token' => 'nullable|string|max:60', 'auto_pedidos' => 'boolean', 'auto_responder' => 'boolean']);
+        $d = $request->validate(['token' => 'nullable|string|max:400', 'phone_id' => 'nullable|string|max:60', 'verify_token' => 'nullable|string|max:60', 'auto_pedidos' => 'boolean', 'auto_responder' => 'boolean', 'atencion_clientes' => 'boolean']);
         $b = $request->user()->business;
         $ws = $b->whatsapp_settings ?? [];
         if (empty($d['token'])) unset($d['token']);

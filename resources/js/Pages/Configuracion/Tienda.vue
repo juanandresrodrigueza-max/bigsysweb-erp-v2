@@ -111,6 +111,7 @@
           <div class="text-[11px] text-marca-muted">Webhook: <code class="select-all break-all">{{ whatsapp.url_entrada }}</code><br>Verify token: <code class="select-all">{{ whatsapp.verify_token ?? '(se genera al guardar)' }}</code></div>
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_pedidos" type="checkbox" class="accent-carmin" /> Crear el pedido automáticamente</label>
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_responder" type="checkbox" class="accent-carmin" /> Responder automáticamente</label>
+          <label class="flex items-center gap-2 text-sm" title="Saldo, estado del pedido, si hay un artículo y a cuánto; los reclamos quedan en la ficha del cliente con aviso."><input v-model="fw.atencion_clientes" type="checkbox" class="accent-carmin" data-e2e="wa-atencion" /> Bigcito atiende consultas de clientes (saldo, pedido, stock, reclamos)</label>
           <button class="btn-primary w-full" :disabled="fw.processing">Guardar</button>
         </form>
       </div>
@@ -206,7 +207,7 @@ const tab = ref(location.hash === '#canales' ? 'canales' : location.hash === '#p
 const base = location.origin
 const ft = useForm({ tienda: JSON.parse(JSON.stringify({ ...props.config, rubros: props.config.rubros ?? [] })) })
 const ff = useForm({ ...props.fidelizacion })
-const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: true, auto_responder: true })
+const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: true, auto_responder: true, atencion_clientes: props.whatsapp.atencion_clientes ?? true })
 const qr = ref(null)
 onMounted(() => { if (qr.value) QRCode.toCanvas(qr.value, props.urlTienda, { width: 140, margin: 1 }).catch(() => {}) })
 const canalAbierto = ref(false)
