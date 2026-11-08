@@ -64,6 +64,19 @@ class Ventas
                     $p = Product::whereIn('id', $r->pluck('product_id'))->pluck('name', 'id');
                     return ['periodo' => $l, 'articulos' => $r->map(fn($x) => ['articulo' => $p[$x->product_id] ?? '?', 'cantidad' => round((float) $x->cant, 3), 'neto' => round((float) $x->neto, 2)])->all()];
                 }],
+            // Fase 63: qué ofrecer con lo que el cliente ya lleva.
+            ['nombre' => 'que_ofrecer_con', 'titulo' => 'Qué ofrecer con esto', 'modulo' => 'comprobantes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Venta cruzada: con los artículos que el cliente ya lleva (y el cliente, si se sabe), qué conviene ofrecerle: lo que se suele llevar junto, lo que ese cliente lleva seguido, o lo que complementa según la IA.',
+                'parametros' => ['articulos' => ['type' => 'array', 'items' => ['type' => 'string']], 'cliente' => ['type' => 'string']], 'requeridos' => ['articulos'],
+                'ejecutar' => function (User $u, array $a) {
+                    $ids = []; $noEncontrados = [];
+                    foreach ((array) $a['articulos'] as $t) { if ($p = Busca::articulo($t)) $ids[] = $p->id; else $noEncontrados[] = $t; }
+                    if (! $ids) return ['error' => 'No encuentro esos artículos: ' . implode(', ', $noEncontrados)];
+                    $c = ! empty($a['cliente']) ? Busca::cliente($a['cliente']) : null;
+                    $s = app(\App\Services\Ventas\VentaCruzadaService::class)->sugerir($u->business, $ids, $c?->id);
+                    return ['sugeridos' => array_map(fn($x) => ['articulo' => $x['nombre'], 'precio' => $x['precio'], 'motivo' => $x['motivo'], 'url' => Busca::url("/stock?buscar=" . urlencode($x['nombre']))], $s), 'no_encontrados' => $noEncontrados,
+                        'nota' => $s ? 'Ofrecelo como lo haría un buen vendedor: corto, con el motivo.' : 'Todavía no hay historia de ventas para sugerir algo (y sin clave de IA no se puede adivinar).'];
+                }],
             ['nombre' => 'crear_presupuesto', 'titulo' => 'Armar un presupuesto', 'modulo' => 'comprobantes', 'permiso' => 'crear', 'tipo' => 'accion',
                 'descripcion' => 'Arma un presupuesto en borrador para un cliente con los precios que le corresponden (pactado, lista o descuentos).',
                 'parametros' => ['cliente' => ['type' => 'string'], 'items' => self::ITEMS, 'notas' => ['type' => 'string']], 'requeridos' => ['cliente', 'items'],

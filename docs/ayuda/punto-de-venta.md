@@ -46,6 +46,8 @@ Escaneá o buscá el artículo (F2), ajustá cantidades, **Cobrar** (F9). Elegí
 - **Pago mixto**: parte efectivo y parte tarjeta.
 - **Queda a cuenta**: si falta cobrar y el cliente tiene cuenta corriente.
 
+**✦ Ofrecé** (Fase 63): mientras cargás el ticket, debajo aparecen hasta cuatro artículos que conviene ofrecer, con el motivo al pasar el mouse: lo que ese cliente lleva seguido, lo que se vende junto con lo que ya está en el ticket, o lo que la IA elige como complemento si todavía no hay historia. Un toque y va al ticket.
+
 ## Tarjeta en cuotas
 
 Al elegir tarjeta se elige plan (Visa 3 cuotas, 6, 12…). El recargo del plan entra como ítem de la factura, así el ticket cierra con lo que paga el cliente. Los planes se configuran en **Configuración → Empresa → Tarjetas y planes de cuotas**.

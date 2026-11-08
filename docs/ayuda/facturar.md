@@ -16,6 +16,10 @@ resumen: Cómo hacer una factura, un presupuesto o un remito, cargar una factura
 
 Atajos: **Ctrl+Enter** emite, **Ctrl+S** guarda el borrador, Enter en cantidad y precio pasa a la fila siguiente. "Repetir la última factura de este cliente" carga sus ítems con los precios de hoy.
 
+### Venta cruzada: qué ofrecer (Fase 63)
+
+Debajo de los ítems aparece **"✦ Sumale:"** con hasta cuatro artículos para ofrecer, un toque y entran a la venta o al presupuesto. Salen de tres lugares, en este orden: lo que **este cliente lleva seguido** y hoy no pidió; lo que **se llevó junto** con lo que ya cargaste en los últimos seis meses ("los que llevan cemento también llevan hierro, 12 veces"); y, si todavía no hay historia, lo que la **IA** elige del catálogo como complemento (el consumible, el accesorio, lo que hace falta para instalarlo). Lo agotado nunca se ofrece. Lo mismo en **Vender → mostrador** ("✦ Ofrecé:") y preguntándole a Bigcito: "¿qué le ofrezco al que lleva un taladro?".
+
 ## Cliente nuevo desde la factura
 
 Si el cliente no está cargado, no hace falta salir de la factura: tocá **+ Cliente nuevo o consumidor final con datos** debajo del buscador de clientes y completá nombre, **CUIT o DNI**, condición de IVA, domicilio, email y teléfono. Con un CUIT, el botón **ARCA** trae la razón social, la condición de IVA y el domicilio del padrón.

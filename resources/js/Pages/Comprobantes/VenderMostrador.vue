@@ -65,6 +65,11 @@
           </div>
           <p v-if="!ticket.length" class="text-center text-marca-muted text-sm py-16">Ticket vacío. Escaneá o tocá un artículo.</p>
         </div>
+        <!-- Fase 63: venta cruzada, un toque y va al ticket -->
+        <div v-if="sugeridos.length" class="px-4 py-2 border-t border-marca-borde/60 flex items-center gap-2 overflow-x-auto text-xs" data-e2e="venta-cruzada">
+          <span class="text-marca-muted whitespace-nowrap">✦ Ofrecé:</span>
+          <button v-for="s in sugeridos" :key="s.product_id" class="badge bg-lavanda-light text-violeta hover:bg-violeta hover:text-white !py-1 whitespace-nowrap" :title="s.motivo" @click="agregarSugerido(s)">+ {{ s.nombre }} · {{ moneda(s.precio) }}</button>
+        </div>
         <div class="px-4 py-3 border-t border-marca-borde space-y-2">
           <div class="flex items-center justify-between text-sm"><span class="text-marca-muted">{{ ticket.reduce((a, i) => a + i.cantidad, 0) }} ítems</span><span class="flex gap-3"><button v-if="ticket.length && espera.length < 3" @click="dejarEnEspera" class="text-xs text-amber-700 font-semibold" data-e2e="dejar-espera">Dejar en espera</button><button v-if="ticket.length" @click="ticket = []" class="text-xs text-carmin">Vaciar</button></span></div>
           <div class="flex items-baseline justify-between"><span class="font-bold">TOTAL</span><span class="font-black tabular-nums" :class="caja ? 'text-5xl' : 'text-3xl'" data-e2e="total">{{ moneda(totalFinal) }}</span></div>
@@ -336,6 +341,13 @@ async function confirmarDevolucion() {
 let canalCliente = null
 try { canalCliente = new BroadcastChannel(`pos-cliente-${props.vertical}`) } catch (e) {}
 const ultimoAgregado = ref(null)
+// Fase 63: venta cruzada en el mostrador.
+const sugeridos = ref([]); let tSug = null
+watch(() => [ticket.value.map(i => i.product_id).filter(Boolean).join(','), contactId.value], ([ids, cid]) => {
+  clearTimeout(tSug); if (!ids) { sugeridos.value = []; return }
+  tSug = setTimeout(async () => { try { const r = await fetch(`${base()}/sugeridos?ids=${ids}${cid ? '&contact_id=' + cid : ''}`, { headers: { Accept: 'application/json' } }); sugeridos.value = r.ok ? await r.json() : [] } catch (e) { sugeridos.value = [] } }, 500)
+})
+function agregarSugerido(s) { if (s.producto) sumarRemotos([s.producto]); const p = catalogo.value.find(x => x.id === s.product_id); if (p) agregar(p); sugeridos.value = sugeridos.value.filter(x => x.product_id !== s.product_id) }
 function avisarCliente(extra = {}) {
   if (!canalCliente) return
   const ult = ultimoAgregado.value

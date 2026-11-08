@@ -15,6 +15,15 @@ class BuscarController extends Controller
         return response()->json(Catalogo::buscar($entidad, $forma, (string) $request->input('q', ''), $ids, $request->integer('contact_id') ?: null));
     }
 
+    // Fase 63: venta cruzada para la factura/presupuesto: qué ofrecer con lo que ya está cargado, con el artículo en la forma del buscador.
+    public function sugeridos(Request $request)
+    {
+        $ids = array_filter(array_map('intval', explode(',', (string) $request->input('ids', ''))));
+        $s = app(\App\Services\Ventas\VentaCruzadaService::class)->sugerir($request->user()->business, $ids, $request->integer('contact_id') ?: null);
+        $prods = $s ? Catalogo::buscar('articulos', 'venta', '', array_column($s, 'product_id'), $request->integer('contact_id') ?: null)->keyBy('id') : collect();
+        return response()->json(array_values(array_filter(array_map(fn($x) => $x + ['producto' => $prods[$x['product_id']] ?? null], $s), fn($x) => $x['producto'])));
+    }
+
     public function global(Request $request)
     {
         return response()->json(Catalogo::global((string) $request->input('q', '')));

@@ -122,6 +122,12 @@
               </tbody>
             </table>
           </div>
+          <!-- Fase 63: venta cruzada, con lo que ya está en la venta -->
+          <div v-if="sugeridos.length" class="px-4 pb-3 flex flex-wrap items-center gap-2 text-xs" data-e2e="venta-cruzada">
+            <span class="text-marca-muted">✦ Sumale:</span>
+            <button v-for="s in sugeridos" :key="s.product_id" type="button" class="badge bg-lavanda-light text-violeta hover:bg-violeta hover:text-white !py-1" :title="s.motivo" @click="agregarSugerido(s)">+ {{ s.nombre }} · {{ moneda(s.precio) }}</button>
+            <span v-if="sugeridos[0]" class="text-marca-muted hidden sm:inline">· {{ sugeridos[0].motivo }}</span>
+          </div>
           <p v-if="form.errors.items" class="text-carmin text-xs px-4 pb-3">{{ form.errors.items }}</p>
         </div>
 
@@ -350,6 +356,19 @@ function teclasForm(e) {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!form.processing) guardar(false) }
 }
 onMounted(() => window.addEventListener('keydown', teclasForm)); onBeforeUnmount(() => window.removeEventListener('keydown', teclasForm))
+// Fase 63: venta cruzada. Cada vez que cambian los artículos, se pide qué ofrecer (lo que se llevó junto, lo que este cliente suele llevar).
+const sugeridos = ref([]); let tSug = null
+watch(() => [form.items.map(i => i.product_id).filter(Boolean).join(','), form.contact_id], ([ids, cid]) => {
+  clearTimeout(tSug); if (!ids) { sugeridos.value = []; return }
+  tSug = setTimeout(async () => { try { sugeridos.value = (await window.axios.get('/buscar/sugeridos', { params: { ids, contact_id: cid || undefined } })).data } catch (e) { sugeridos.value = [] } }, 500)
+})
+function agregarSugerido(s) {
+  if (s.producto) sumar(productosCat, [s.producto])
+  const vacia = form.items.find(i => !i.product_id && !i.descripcion)
+  const it = vacia ?? (agregar(), form.items[form.items.length - 1])
+  it.product_id = s.product_id; alElegirProducto(it, opcionesProductos.value.find(o => o.id === s.product_id))
+  sugeridos.value = sugeridos.value.filter(x => x.product_id !== s.product_id)
+}
 const repitiendo = ref(false), repetida = ref('')
 async function repetirUltima() {
   repitiendo.value = true; repetida.value = ''
