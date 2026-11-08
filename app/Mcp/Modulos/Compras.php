@@ -48,6 +48,23 @@ class Compras
                     $r = app(OrdenCompraService::class)->sugerir(['contact_id' => $p?->id, 'modo' => $a['modo'] ?? 'faltantes']);
                     return ['proveedor' => $p?->name, 'items' => array_slice($r, 0, 80), 'total' => round(array_sum(array_map(fn($i) => $i['cantidad'] * $i['precio_unit'], $r)), 2)];
                 }],
+            // Fase 62: los mensajes de varios proveedores → qué conviene comprar a cada uno.
+            ['nombre' => 'comparar_cotizaciones', 'titulo' => 'Comparar cotizaciones', 'modulo' => 'proveedores', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Compara cotizaciones de varios proveedores a partir de los mensajes o listas que mandaron (texto tal cual, uno por proveedor): quién gana cada artículo, cuánto sale todo en uno solo y cuánto el mixto. Después, con crear_orden_compra se arma una orden por proveedor.',
+                'parametros' => ['textos' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Un texto por proveedor, tal cual lo mandó.']], 'requeridos' => ['textos'],
+                'ejecutar' => function (User $u, array $a) {
+                    $textos = array_values(array_filter(array_map('strval', (array) ($a['textos'] ?? [])), fn($t) => trim($t) !== ''));
+                    if (count($textos) < 1) return ['error' => 'Pasame el texto de al menos una cotización.'];
+                    $r = app(\App\Services\Compras\CotizacionesService::class)->leer($u->business, array_map(fn($t, $i) => ['texto' => $t, 'nombre' => 'Mensaje ' . ($i + 1)], $textos, array_keys($textos)));
+                    if (! $r['ok']) return ['error' => $r['aviso'] ?? 'No pude leer las cotizaciones.', 'avisos' => $r['avisos'] ?? []];
+                    $c = $r['comparacion'];
+                    return ['proveedores' => count($c['proveedores']), 'resumen' => $c['texto'], 'avisos' => $r['avisos'],
+                        'filas' => collect($c['filas'])->map(fn($f) => ['articulo' => $f['descripcion'], 'en_stock' => (bool) $f['product_id'], 'cantidad' => $f['cantidad'], 'precios' => collect($f['precios'])->map(fn($p, $i) => [$c['proveedores'][$i]['proveedor'] => $p])->collapse()->all(), 'gana' => $f['gana'] === null ? null : $c['proveedores'][$f['gana']]['proveedor'], 'diferencia_pct' => $f['diferencia_pct']])->all(),
+                        'totales' => collect($c['resumen'])->map(fn($x) => ['proveedor' => $x['proveedor'], 'todo_ahi' => $x['cotiza_todo'] ? $x['total_todo'] : null, 'renglones_que_gana' => $x['renglones_que_gana'], 'condiciones' => $x['condiciones'], 'tiene_ficha' => (bool) $x['proveedor_id']])->all(),
+                        'mixto' => $c['mixto'], 'ahorro_mixto' => $c['ahorro_mixto'],
+                        'reparto' => collect($c['reparto'])->map(fn($x) => ['proveedor' => $x['proveedor'], 'total' => $x['total'], 'items' => collect($x['items'])->map(fn($i) => "{$i['cantidad']} × {$i['descripcion']} a " . Busca::pesos($i['precio_unit']))->all()])->all(),
+                        'nota' => 'Para pedir, usá crear_orden_compra una vez por proveedor con los items del reparto (artículo, cantidad, precio).'];
+                }],
             ['nombre' => 'crear_orden_compra', 'titulo' => 'Crear orden de compra', 'modulo' => 'proveedores', 'permiso' => 'crear', 'tipo' => 'accion',
                 'descripcion' => 'Arma una orden de compra en borrador a un proveedor. Si no pasás artículos, usa el pedido sugerido de faltantes.',
                 'parametros' => ['proveedor' => ['type' => 'string'], 'items' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number'], 'precio' => ['type' => 'number']], 'required' => ['articulo', 'cantidad']]], 'notas' => ['type' => 'string']],

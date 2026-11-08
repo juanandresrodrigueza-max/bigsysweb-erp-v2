@@ -39,6 +39,32 @@ class OrdenesCompraController extends Controller
         return Inertia::render('Proveedores/OrdenForm', $this->datosForm($request, $oc));
     }
 
+    // Fase 62: cotizaciones de varios proveedores (fotos, PDF o el mensaje pegado) → tabla comparada.
+    public function cotizacionesLeer(Request $request, \App\Services\Compras\CotizacionesService $svc)
+    {
+        $d = $request->validate(['archivos' => 'nullable|array|max:8', 'archivos.*' => 'file|mimes:jpg,jpeg,png,webp,pdf|max:12288', 'textos' => 'nullable|array|max:8', 'textos.*' => 'nullable|string|max:8000']);
+        abort_unless(\App\Support\Ia::tiene($request->user()->business), 422, 'Cargá la clave de IA en Configuración → IA para leer cotizaciones.');
+        $entradas = [];
+        foreach ($request->file('archivos', []) as $f) {
+            $mime = (string) $f->getMimeType(); if ($mime !== 'application/pdf' && ! str_starts_with($mime, 'image/')) $mime = strtolower($f->getClientOriginalExtension()) === 'pdf' ? 'application/pdf' : 'image/jpeg';
+            $entradas[] = ['base64' => base64_encode(file_get_contents($f->getRealPath())), 'mime' => $mime, 'nombre' => $f->getClientOriginalName()];
+        }
+        foreach (array_filter($d['textos'] ?? [], fn($t) => trim((string) $t) !== '') as $i => $t) $entradas[] = ['texto' => $t, 'nombre' => 'Mensaje ' . ($i + 1)];
+        abort_if(! $entradas, 422, 'Subí al menos una cotización o pegá un mensaje.');
+        $r = $svc->leer($request->user()->business, $entradas);
+        return response()->json($r, $r['ok'] ? 200 : 422);
+    }
+
+    // Fase 62: una orden de compra en borrador por proveedor, con lo que ganó cada uno.
+    public function cotizacionesPedidos(Request $request, \App\Services\Compras\CotizacionesService $svc)
+    {
+        $d = $request->validate(['reparto' => 'required|array|min:1', 'reparto.*.proveedor_id' => 'nullable|integer', 'reparto.*.items' => 'required|array|min:1', 'reparto.*.items.*.product_id' => 'nullable|integer|exists:products,id',
+            'reparto.*.items.*.descripcion' => 'nullable|string|max:150', 'reparto.*.items.*.cantidad' => 'required|numeric|min:0.001', 'reparto.*.items.*.precio_unit' => 'required|numeric|min:0', 'notas' => 'nullable|string|max:300']);
+        $ocs = $svc->pedidos($d['reparto'], $d['notas'] ?? null);
+        $sin = collect($d['reparto'])->filter(fn($r) => empty($r['proveedor_id']))->count();
+        return redirect('/proveedores/ordenes?estado=abiertas')->with('success', count($ocs) . ' ' . (count($ocs) === 1 ? 'orden creada' : 'órdenes creadas') . ' en borrador: ' . collect($ocs)->map(fn($o) => $o->numeroFormateado() . ' a ' . $o->contact->name)->implode(', ') . '.' . ($sin ? " {$sin} proveedor(es) sin ficha quedaron afuera: dalos de alta y volvé a comparar." : ''));
+    }
+
     public function store(Request $request, ?int $id = null)
     {
         $d = $request->validate([
