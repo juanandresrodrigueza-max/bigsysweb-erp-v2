@@ -113,14 +113,37 @@ class CrmSyncService
     }
 
     // Recordatorio de cobranza como tarea del CRM (el vendedor lo ve en su día y lo manda por la conversación del cliente).
-    public static function tareaCobranza(Business $b, Contact $cli, string $titulo, string $texto): ?int
+    public static function tareaCobranza(Business $b, Contact $cli, string $titulo, string $texto): ?int { return self::tarea($b, $cli, $titulo, $texto); }
+
+    // Fase 71: cualquier tarea para el equipo del CRM (reclamo de WhatsApp, pedido de hablar con alguien, cobranza). null si no hay CRM.
+    public static function tarea(Business $b, ?Contact $cli, string $titulo, string $texto, string $tipo = 'call', string $prioridad = 'high'): ?int
     {
         if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '') return null;
         $c = CrmService::config($b);
-        if (! $cli->crm_external_id) { try { self::enviar($b, 'contactos', [$cli->id]); $cli->refresh(); } catch (\Throwable $e) {} }
-        $r = Http::timeout(10)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, '/api/v1/tasks'), array_filter(['title' => $titulo, 'description' => $texto, 'due_date' => today()->toDateString(), 'priority' => 'high', 'task_type' => 'call', 'contact_id' => $cli->crm_external_id ? (int) $cli->crm_external_id : null]));
+        if ($cli && ! $cli->crm_external_id) { try { self::enviar($b, 'contactos', [$cli->id]); $cli->refresh(); } catch (\Throwable $e) {} }
+        $r = Http::timeout(10)->withToken($c['api_key'])->acceptJson()->post(CrmService::url($b, '/api/v1/tasks'), array_filter(['title' => $titulo, 'description' => $texto, 'due_date' => today()->toDateString(), 'priority' => $prioridad, 'task_type' => $tipo, 'contact_id' => $cli?->crm_external_id ? (int) $cli->crm_external_id : null]));
         if (! $r->successful()) throw new \RuntimeException("El CRM respondió {$r->status()} al crear la tarea de cobranza.");
         return (int) ($r->json('data.id') ?? 0) ?: null;
+    }
+
+    // Fase 71: las conversaciones del CRM con un cliente (en lectura, caché de 2 minutos). La más reciente trae sus últimos mensajes.
+    public static function conversaciones(Business $b, Contact $cli, int $max = 10): array
+    {
+        if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '' || ! $cli->crm_external_id) return [];
+        return Cache::remember("crm_convs_{$b->id}_{$cli->id}", now()->addMinutes(2), function () use ($b, $cli, $max) {
+            $c = CrmService::config($b); $canales = ['whatsapp' => 'WhatsApp', 'email' => 'Mail', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'telegram' => 'Telegram', 'sms' => 'SMS', 'webchat' => 'Web'];
+            try {
+                $r = Http::timeout(8)->withToken($c['api_key'])->acceptJson()->get(CrmService::url($b, '/api/v1/conversations'), ['contact_id' => (int) $cli->crm_external_id, 'limit' => $max]);
+                $out = [];
+                foreach ((array) ($r->json('data') ?? []) as $i => $k) {
+                    if ((string) ($k['contact_id'] ?? '') !== (string) $cli->crm_external_id) continue; // por si el CRM todavía no filtra
+                    $msgs = [];
+                    if ($i === 0) { $m = Http::timeout(8)->withToken($c['api_key'])->acceptJson()->get(CrmService::url($b, "/api/v1/conversations/{$k['id']}/messages"), ['limit' => 6]); $msgs = collect((array) ($m->json('data') ?? []))->reverse()->map(fn($x) => ['direccion' => $x['direction'] ?? 'inbound', 'texto' => mb_substr((string) ($x['content'] ?? ('[' . ($x['message_type'] ?? 'adjunto') . ']')), 0, 500), 'cuando' => ! empty($x['created_at']) ? \Carbon\Carbon::parse($x['created_at'])->format('d/m H:i') : ''])->values()->all(); }
+                    $out[] = ['id' => $k['id'], 'canal' => $canales[$k['channel_type'] ?? ''] ?? ucfirst((string) ($k['channel_type'] ?? 'canal')), 'estado' => $k['status'] ?? '', 'no_leidos' => (int) ($k['unread_count'] ?? 0), 'ultimo' => ! empty($k['last_message_at']) ? \Carbon\Carbon::parse($k['last_message_at'])->diffForHumans() : '', 'mensajes' => $msgs, 'url' => '/integraciones/crm/ir?a=' . urlencode("/conversations?id={$k['id']}")];
+                }
+                return $out;
+            } catch (\Throwable $e) { Log::warning('CRM conversaciones: ' . $e->getMessage()); return []; }
+        });
     }
 
     // ── CRM → ERP ────────────────────────────────────────────────────────────

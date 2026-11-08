@@ -89,6 +89,7 @@ class ClientesController extends Controller
             'cuentas' => \App\Models\CuentaFondos::where('activa', true)->orderBy('tipo')->orderBy('nombre')->get(['id', 'tipo', 'nombre', 'saldo', 'moneda']), 'cotizacionUsd' => \App\Models\Cotizacion::valor($request->user()->business_id),
             'vendedores' => \App\Models\Vendedor::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'notasCalle' => app(\App\Services\Ventas\EquipoVentasService::class)->notas($c, true),
+            'crm' => ($crmActivo = \App\Services\Integraciones\CrmService::activo($request->user()->business)) ? ['activo' => true, 'external_id' => $c->crm_external_id, 'url_escribir' => $c->crm_external_id ? '/integraciones/crm/ir?a=' . urlencode("/conversations?contact={$c->crm_external_id}") : null, 'url_ficha' => $c->crm_external_id ? '/integraciones/crm/ir?a=' . urlencode("/contacts/{$c->crm_external_id}") : null] : ['activo' => false, 'external_id' => null, 'url_escribir' => null, 'url_ficha' => null], // Fase 71
             'relevamientos' => \App\Models\Relevamiento::with('user:id,name')->where('contact_id', $c->id)->orderByDesc('id')->limit(30)->get()->map(fn($r) => ['id' => $r->id, 'cuando' => $r->created_at->format('d/m/Y H:i'), 'quien' => $r->user?->name, 'tipo' => \App\Models\Relevamiento::TIPOS[$r->tipo] ?? $r->tipo, 'nota' => $r->nota]),
         ]);
     }
@@ -165,5 +166,12 @@ class ClientesController extends Controller
         }
         $t->delete();
         return back()->with('success', 'Tipo eliminado.');
+    }
+
+    // Fase 71: las conversaciones del CRM con este cliente (en lectura).
+    public function crm(Request $request, int $id)
+    {
+        $c = Contact::customers()->findOrFail($id);
+        return response()->json(\App\Services\Integraciones\CrmSyncService::conversaciones($request->user()->business, $c));
     }
 }

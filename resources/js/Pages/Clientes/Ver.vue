@@ -131,6 +131,7 @@
     <!-- Precios pactados (Fase 25.1) -->
     <ContactosPersonas v-if="tab === 'contactos'" :contacto-id="cliente.id" />
     <DocumentosAdjuntos v-if="tab === 'documentos'" tipo="contacto" :id="cliente.id" />
+    <CrmCliente v-if="tab === 'crm'" :cliente-id="cliente.id" :crm="crm" />
     <CondicionesCliente v-if="tab === 'precios'" :cliente-id="cliente.id" :lista="cliente.lista_precios" :descuento="Number(cliente.descuento)" :rubros="rubros" />
 
     <!-- Datos -->
@@ -273,11 +274,12 @@ import EnviarModal from '@/Components/EnviarModal.vue'
 import CondicionesCliente from '@/Components/CondicionesCliente.vue'
 import ContactosPersonas from '@/Components/ContactosPersonas.vue'
 import DocumentosAdjuntos from '@/Components/DocumentosAdjuntos.vue'
+import CrmCliente from '@/Components/CrmCliente.vue'
 import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util/formato'
 
 const dias = [{ k: 'lun', t: 'Lun' }, { k: 'mar', t: 'Mar' }, { k: 'mie', t: 'Mié' }, { k: 'jue', t: 'Jue' }, { k: 'vie', t: 'Vie' }, { k: 'sab', t: 'Sáb' }, { k: 'dom', t: 'Dom' }]
 const agendaOpciones = { dia: 'Todo el día', man: 'A la mañana', tar: 'A la tarde', '1er': '1ª semana', '2do': '2ª semana', '3er': '3ª semana', ult: 'Última semana' }
-const props = defineProps({ paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
+const props = defineProps({ crm: { type: Object, default: () => ({ activo: false }) }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : (m.medio === 'retencion' ? { impuesto: 'iibb', jurisdiccion: '', certificado: '' } : {})) }
 const envio = ref(null)
@@ -287,7 +289,7 @@ const agenda = reactive(Object.fromEntries(dias.map(d => [d.k, props.cliente.vis
 function guardarAgenda() { router.post(`/clientes/${props.cliente.id}/agenda`, { visitas: { ...agenda } }, { preserveScroll: true, preserveState: true }) }
 const tabs = computed(() => [
   { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },
-  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'contactos', label: 'Contactos' }, { key: 'documentos', label: 'Documentos' }, { key: 'datos', label: 'Datos' },
+  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'contactos', label: 'Contactos' }, { key: 'documentos', label: 'Documentos' }, ...(props.crm?.activo ? [{ key: 'crm', label: 'CRM' }] : []), { key: 'datos', label: 'Datos' },
 ])
 const totalAnt = computed(() => Object.values(props.antiguedad).reduce((a, b) => a + b, 0))
 const pct = v => totalAnt.value ? v / totalAnt.value * 100 : 0
