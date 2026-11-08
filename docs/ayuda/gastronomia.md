@@ -44,3 +44,11 @@ Cada parte sale con su factura y su cobro, con la propina que deje esa persona, 
 ## Estaciones de cocina (Fase 50)
 
 En Gastronomía → Carta armás las **estaciones** (por ejemplo Cocina, Parrilla, Barra y Postres) y para cada una ponés a los cuántos minutos avisa. A cada plato le elegís a qué estación va. En la pantalla de cocina, arriba, elegís la estación: cada una ve solo lo suyo, con el tiempo de cada plato. Cuando un plato pasa los minutos de su estación se pone en rojo y dice «demorado». Al lado de cada estación figura el tiempo promedio de hoy. Desde la comanda, **Imprimir: Parrilla / Barra…** saca el ticket de 80 mm de esa estación.
+
+## Carta QR: opciones, llamar al mozo y pedir la cuenta (Fase 51)
+
+El QR de cada mesa, que se imprime en Gastronomía → Reservas y QR, abre la carta en el celular del cliente:
+- **Opciones del plato:** si un plato tiene opciones (el punto, la guarnición, los extras), el cliente las elige igual que el mozo, con las obligatorias y los precios extra.
+- **Estaciones:** el pedido va a la estación de cada plato.
+- **Llamar al mozo y pedir la cuenta:** cada uno tiene su botón. En el salón, la mesa muestra «🙋 Llama al mozo» o «🧾 Pide la cuenta», con los minutos que lleva esperando, y además llega un aviso. Cuando el mozo abre la comanda, el llamado se borra.
+- **Confirmación del mozo:** en Gastronomía → Carta podés tildar que los pedidos del QR los confirme el mozo antes de ir a cocina. Así quedan «sin enviar» hasta que él los mande.

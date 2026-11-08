@@ -16,8 +16,8 @@ class Comanda extends Model
     public const TIPOS = ['mesa' => 'Mesa', 'mostrador' => 'Mostrador', 'delivery' => 'Delivery'];
     public const ESTADOS = ['abierta' => 'Abierta', 'cuenta' => 'Pidió la cuenta', 'cerrada' => 'Cerrada', 'anulada' => 'Anulada'];
 
-    protected $fillable = ['pagos', 'business_id', 'business_location_id', 'mesa_id', 'user_id', 'comprobante_id', 'numero', 'tipo', 'estado', 'cubiertos', 'cliente', 'direccion', 'telefono', 'total', 'propina', 'descuento', 'notas', 'abierta_en', 'cuenta_en', 'cerrada_en'];
-    protected $casts = ['pagos' => 'array', 'total' => 'decimal:2', 'propina' => 'decimal:2', 'descuento' => 'decimal:2', 'abierta_en' => 'datetime', 'cuenta_en' => 'datetime', 'cerrada_en' => 'datetime'];
+    protected $fillable = ['pagos', 'llamado', 'llamado_en', 'business_id', 'business_location_id', 'mesa_id', 'user_id', 'comprobante_id', 'numero', 'tipo', 'estado', 'cubiertos', 'cliente', 'direccion', 'telefono', 'total', 'propina', 'descuento', 'notas', 'abierta_en', 'cuenta_en', 'cerrada_en'];
+    protected $casts = ['pagos' => 'array', 'llamado_en' => 'datetime', 'total' => 'decimal:2', 'propina' => 'decimal:2', 'descuento' => 'decimal:2', 'abierta_en' => 'datetime', 'cuenta_en' => 'datetime', 'cerrada_en' => 'datetime'];
 
     public function mesa(): BelongsTo { return $this->belongsTo(Mesa::class); }
     public function mozo(): BelongsTo { return $this->belongsTo(User::class, 'user_id'); }

@@ -29,7 +29,8 @@
           <div v-if="m.comanda" class="text-xs leading-tight">
             <p class="font-bold tabular-nums text-sm">{{ moneda(m.comanda.total, 0) }}</p>
             <p class="opacity-80">{{ m.comanda.minutos }} min · {{ m.comanda.cubiertos }} cub.</p>
-            <p v-if="m.comanda.estado === 'cuenta'" class="font-bold">Pidió la cuenta</p>
+            <p v-if="m.comanda.llamado" class="font-black animate-pulse" data-llamado>{{ m.comanda.llamado === 'cuenta' ? '🧾 Pide la cuenta' : '🙋 Llama al mozo' }} · {{ m.comanda.llamado_min }}'</p>
+            <p v-else-if="m.comanda.estado === 'cuenta'" class="font-bold">Pidió la cuenta</p>
             <p v-else-if="m.comanda.listos" class="font-bold">{{ m.comanda.listos }} listo{{ m.comanda.listos > 1 ? 's' : '' }} 🔔</p>
             <p v-else-if="m.comanda.sin_enviar" class="font-bold">{{ m.comanda.sin_enviar }} sin enviar</p>
           </div>
