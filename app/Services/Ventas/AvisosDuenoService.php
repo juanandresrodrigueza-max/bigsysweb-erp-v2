@@ -41,6 +41,8 @@ class AvisosDuenoService
         foreach ($criticas as $a) $t .= "🔴 {$a->titulo}\n";
         // Fase 56: el salón en el parte del dueño.
         if (in_array('gastronomia', $b->verticalesPermitidos(), true)) { try { if ($r = app(\App\Services\Gastronomia\ReporteService::class)->parteDelDia($b, $dia)) $t .= "\n" . $r . "\n"; } catch (\Throwable) {} }
+        // Fase 64: lo que se salió de lo normal ese día, comparado con los mismos días de semana anteriores.
+        if ($raro = app(\App\Services\IA\AnomaliasDiaService::class)->paraElParte($b, $dia)) $t .= "\n" . $raro . "\n";
         return trim($t);
     }
 

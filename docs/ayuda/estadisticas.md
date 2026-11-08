@@ -20,6 +20,12 @@ Los gastos se clasifican una vez (fijo/variable, directo/indirecto) y el sistema
 
 Hacele preguntas en criollo: "¿qué rubro cayó este mes?", "¿a qué clientes les vendí menos que el año pasado?". Y todas las noches deja un informe con lo que cambió.
 
+### Lo raro de ayer (Fase 64)
+
+Arriba de todo en **Estadísticas → Analista** hay un recuadro con lo que **se salió de lo normal ayer**, comparando con los mismos días de semana de las últimas 8 semanas de tu propio negocio (un martes se compara con tus martes): ventas y cantidad de tickets muy distintos, ticket promedio raro, margen del día que se achicó, descuentos de más, muchas anulaciones, cobros o gastos fuera de lo común (y cuál fue el gasto grande), cierres de caja con diferencia, ajustes de stock para abajo, artículos que "volaron" (riesgo de quedarte sin) y renglones vendidos muy por debajo de la lista. Cada punto lleva a la pantalla donde se mira. Con clave de IA lo cuenta en un párrafo, como un analista en la puerta; sin clave, con reglas. Si no pasó nada, lo dice y listo.
+
+Lo mismo llega en el **parte de la mañana** al celular ("🔎 Lo raro de ayer", hasta tres renglones) y Bigcito lo responde: "¿qué pasó raro ayer?" o "¿cómo venimos hoy?".
+
 ## Mi negocio (celular)
 
 La pantalla del dueño: ventas de hoy contra ayer, cobrado, caja y bancos, por cobrar y por pagar, pedidos web, alertas. Con acciones a un toque.
