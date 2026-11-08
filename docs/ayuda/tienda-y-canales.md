@@ -74,3 +74,7 @@ En los ajustes de cada tienda, el colchón de stock tiene dos modos:
 ## Catálogos con stock de otra empresa
 
 Si manejás varias empresas, el catálogo puede mostrar el stock de esta empresa, el de otra empresa del grupo o la suma de todas. Los artículos se cruzan por código.
+
+## Uber Eats
+
+Se conecta igual que PedidosYa y Rappi: en Configuración → Tienda agregás el canal **Uber Eats**, con el ID de tu tienda, y copiás la URL del webhook de entrada en tu integrador. Los pedidos entran a Pedidos web con el cliente, los ítems (cruzados por el código externo), las notas de cada plato y el total. Uber Eats manda los importes en centavos y el sistema los convierte solo.
