@@ -31,6 +31,10 @@ class ChequeService
             }
             $c->update(['estado' => 'rechazado', 'fecha_estado' => today(), 'notas' => trim(($c->notas ?? '') . "\nRechazado: {$motivo}")]);
             AuditLog::registrar('editar', $c, "Cheque {$c->numero} rechazado: {$motivo}");
+            // Fase 73: el vendedor del cliente se entera en el CRM.
+            if ($c->contact_id && $c->tipo !== 'propio' && ($cli = $c->contact) && ($b = $cli->business ?? null)) {
+                \App\Services\Integraciones\CrmAvisosService::criticoAlCrm($b, $cli, "cheque_rechazado_{$c->id}", "Cheque rechazado: {$cli->name}", "El cheque {$c->numero} del {$c->banco} por $ " . number_format((float) $c->monto, 2, ',', '.') . " fue rechazado" . ($motivo ? " ({$motivo})" : '') . '. Hablá con el cliente para reemplazarlo.');
+            }
             return $c;
         });
     }

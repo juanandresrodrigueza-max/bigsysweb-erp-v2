@@ -72,6 +72,10 @@ Con el CRM conectado, **el Bigcito del ERP contesta con datos del CRM** y **el d
 - En el CRM: "¿cuánto debe López?", "¿hay stock del hierro del 8?", "¿qué le facturamos el mes pasado?" los responde el Bigcito del CRM consultando al ERP por su conexión MCP de **solo consultas** (Configuración → Conexiones IA).
 - **Cada uno con sus permisos**: cuando el CRM pregunta, dice qué persona está preguntando y el ERP responde con lo que esa persona puede ver en el ERP (un vendedor sin acceso a costos no los ve tampoco desde el CRM) y lo audita a su nombre. Si esa persona no es usuaria del ERP, responde con los permisos del usuario dueño de la conexión.
 
+### Avisos cruzados (Fase 73)
+
+Con el CRM conectado, **lo crítico del ERP le llega al vendedor que atiende al cliente** como tarea del CRM, sin que nadie se lo tenga que contar: un **cheque rechazado** (al instante), **deuda vencida hace más de 30 días**, **pasó su límite de crédito** y **dejó de comprar** (una pasada por día, a las 7:40; un aviso por cliente y motivo cada 30 días). Sólo para clientes que están en el CRM. Y al revés: las **tareas vencidas del CRM** aparecen en la **campana** del ERP (módulo Clientes; las de prioridad alta como críticas, con el nombre del cliente y del vendedor) y se resuelven solas cuando el vendedor las cierra en el CRM. A Bigcito: "¿qué tareas del CRM están vencidas?" (`pendientes_crm`), y `alertas_activas` las incluye.
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.
