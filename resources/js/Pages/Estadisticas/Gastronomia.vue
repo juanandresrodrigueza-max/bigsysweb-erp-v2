@@ -25,6 +25,21 @@
       </div>
     </div>
 
+    <div class="grid lg:grid-cols-2 gap-4 mb-4">
+      <div class="card" data-e2e="semana">
+        <h2 class="font-bold mb-1">La semana que viene <span class="cursor-help text-marca-muted font-normal text-sm" :title="semana.como">ⓘ</span></h2>
+        <p class="text-xs text-marca-muted mb-2">~{{ semana.total }} platos en 7 días, según lo que vendés cada día de la semana.</p>
+        <div v-for="d in semana.dias" :key="d.fecha" class="flex items-start justify-between gap-3 text-sm py-1 border-t border-marca-borde/60"><div><b>{{ d.dia }}</b> <span class="text-xs text-marca-muted">{{ d.fecha.slice(8) }}/{{ d.fecha.slice(5, 7) }}</span><p class="text-xs text-marca-muted">{{ d.top.map(t => t.plato + ' ×' + t.unidades).join(' · ') || (d.base ? 'sin ventas ese día' : 'sin datos todavía') }}</p></div><b class="tabular-nums">{{ d.platos }}</b></div>
+      </div>
+      <div class="card" data-e2e="comprar">
+        <h2 class="font-bold mb-1">Qué comprar para cubrirla <span class="cursor-help text-marca-muted font-normal text-sm" :title="comprar.como">ⓘ</span></h2>
+        <p class="text-xs text-marca-muted mb-2">Insumos que faltan según las recetas, por proveedor. Estimado: <b>{{ moneda(comprar.total, 0) }}</b></p>
+        <details v-for="p in comprar.proveedores" :key="p.proveedor" class="text-sm py-1 border-t border-marca-borde/60"><summary class="cursor-pointer flex justify-between"><span><b>{{ p.proveedor }}</b> <span class="text-xs text-marca-muted">· {{ p.renglones }}</span></span><span class="tabular-nums">{{ moneda(p.costo, 0) }}</span></summary>
+          <div v-for="it in p.items" :key="it.id" class="flex justify-between text-xs py-0.5 pl-3"><span>{{ it.insumo }} · necesita {{ cantidad(it.necesita) }} {{ it.unit }}, hay {{ cantidad(it.stock) }}</span><b>falta {{ cantidad(it.falta) }}</b></div></details>
+        <p v-if="!comprar.proveedores.length" class="text-sm text-emerald-700 py-3 text-center">Con el stock que hay alcanza para la semana.</p>
+      </div>
+    </div>
+
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="card lg:col-span-2">
         <h2 class="font-bold mb-2">Platos más pedidos</h2>
@@ -46,7 +61,7 @@ import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda, cantidad } from '@/util/formato'
-const props = defineProps({ periodo: Object, kpis: Object, por_mozo: Array, por_hora: Array, por_tipo: Array, platos: Array, cocina: Array, como: String })
+const props = defineProps({ semana: { type: Object, default: () => ({ dias: [], total: 0 }) }, comprar: { type: Object, default: () => ({ proveedores: [], total: 0 }) }, periodo: Object, kpis: Object, por_mozo: Array, por_hora: Array, por_tipo: Array, platos: Array, cocina: Array, como: String })
 const f = reactive({ ...props.periodo })
 const maxHora = computed(() => Math.max(1, ...props.por_hora.map(h => h.total)))
 const tarjetas = computed(() => [['Vendido', moneda(props.kpis.total, 0)], ['Mesas / pedidos', props.kpis.comandas], ['Ticket promedio', moneda(props.kpis.ticket, 0)], ['Cubiertos', props.kpis.cubiertos], ['Por cubierto', moneda(props.kpis.por_cubierto, 0)], ['Propinas', moneda(props.kpis.propinas, 0)], ['Permanencia', props.kpis.permanencia + ' min']])

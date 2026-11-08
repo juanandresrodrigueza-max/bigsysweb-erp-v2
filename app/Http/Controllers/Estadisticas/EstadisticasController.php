@@ -136,7 +136,8 @@ class EstadisticasController extends Controller
         abort_unless(in_array('gastronomia', $request->user()->modulosVisibles(), true), 404);
         $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
         $hasta = $request->hasta ? Carbon::parse($request->hasta) : now();
-        return Inertia::render('Estadisticas/Gastronomia', ['periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()]] + $r->datos($desde, $hasta));
+        $pron = app(\App\Services\Gastronomia\PronosticoRestoService::class); $b = $request->user()->business;
+        return Inertia::render('Estadisticas/Gastronomia', ['periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()], 'semana' => $pron->semana($b), 'comprar' => $pron->queComprar($b)] + $r->datos($desde, $hasta));
     }
 
     // Fase 33.5 · Plata: qué entra y cuándo, cartera por semana, cobranza por cobrador, IVA del mes.
