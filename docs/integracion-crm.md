@@ -21,7 +21,7 @@ semáforo en Configuración → CRM; alerta `crm_conexion` al dueño cuando el C
 botón **Reintentar** (vuelve a la cola lo que agotó los reintentos) y **Reconciliar** (vuelve a mandar lo de las últimas 48 h);
 comando `crm:salud` cada 15 min y `crm:salud --reconciliar` a las 6:30; Bigcito `estado_crm`.
 
-**Lo que el ERP expone para el CRM:** `GET /api/v1/crm/salud` (con la API key del ERP) → `{ data: { estado: verde|amarillo|rojo|inactiva,
+**Lo que el ERP expone para el CRM:** `GET /api/crm/salud` (con la API key del ERP) → `{ data: { estado: verde|amarillo|rojo|inactiva,
 texto, ping: {ok, detalle, ms, cuando}, cola: {pendientes, fallidos}, errores_24h, ok_24h, ultimo_enviado, ultimo_recibido, ultimos[] } }`.
 
 **Lo que el ERP espera del CRM (a hacer del lado CRM):**
@@ -36,3 +36,26 @@ texto, ping: {ok, detalle, ms, cuando}, cola: {pendientes, fallidos}, errores_24
 5. Un trabajo programado cada 15 min: si el ERP no responde, **notificación al admin** del CRM; se resuelve sola cuando vuelve. Y a las
    6:30 la reconciliación.
 6. El ERP manda ahora en cada aviso `datos.reconciliacion: true` cuando es un reenvío: el CRM lo trata igual (upsert), sólo lo marca.
+
+## Fase 69 · Saldo y riesgo en el CRM, cobrar desde el CRM
+
+**Lado ERP (hecho):**
+- `GET /api/contacts/{id}/cuenta` (API key del ERP; `id` = el `external_id` que el CRM ya guarda del contacto) → `{ data: { saldo,
+  vencido, a_vencer, limite_credito, disponible, excede_limite, dias_pago, lista_precios, descuento, riesgo: {puntaje 0-100, nivel, motivos[]},
+  pendientes: [{id, tipo, numero, fecha, vence, total, saldo, vencida, dias_vencida, url}], ultimo_cobro, ultimas_facturas[], medios_de_cobro,
+  actualizado } }`.
+- `POST /api/contacts/{id}/cobros` → crea el recibo en el ERP (cuenta corriente, caja/banco y asiento). Cuerpo:
+  `{ fecha?, medios: [{medio: efectivo|transferencia|cheque|mercadopago|billetera|tarjeta|retencion, monto, referencia?, cuenta_fondos_id?, moneda?, cotizacion?}],
+  imputaciones?: [{comprobante_id, monto}], descuento?, interes?, notas?, crm_ref? }` → `201 { data: { id, numero, fecha, total, a_cuenta,
+  saldo_cliente, url_imprimir } }`. Sin imputaciones el cobro queda a cuenta y el ERP lo imputa a lo más viejo según su regla. El recibo
+  vuelve al CRM por el aviso `cobro.registrado` (ya existente), así `erp_documents` se actualiza solo.
+
+**Lo que el ERP espera del CRM:**
+1. En la **ficha 360** del contacto y en el **panel lateral de la conversación**, un bloque "Cuenta en el ERP" que consulte `GET .../cuenta`
+   (caché de 60 s; si el ERP no responde, mostrar el último dato con la hora): saldo, vencido en rojo, límite y disponible, semáforo de riesgo
+   con los motivos, y las facturas pendientes con link al ERP (`/api/erp/ir?a=/comprobantes/{id}`).
+2. Botón **"Registrar cobro en el ERP"** en ese bloque y en Cobranzas: medio, importe, referencia, qué facturas imputar (prellenado con las
+   vencidas más viejas) → `POST .../cobros`; mostrar número de recibo y link para imprimir. Si el contacto no tiene `external_id`, ofrecer
+   mandarlo primero al ERP (ya existe el sync).
+3. En Cobranzas del CRM, cuando el contacto tiene `external_id`, la deuda se lee del ERP (`saldo`/`vencido`) en vez de la propia.
+4. Bigcito del CRM: la herramienta `ficha_cliente` del MCP ya trae esto; sumar la pregunta "¿cuánto debe X?" al vendedor.
