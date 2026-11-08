@@ -55,6 +55,7 @@ Route::get('/t/{slug}',                    [\App\Http\Controllers\TiendaPublicaC
 Route::post('/t/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedir'])->middleware('throttle:publico');
 Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaController::class, 'pedido'])->middleware('throttle:publico');
 Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu'])->middleware('throttle:publico');
+Route::match(['get', 'post'], '/m/{slug}/opinion', [\App\Http\Controllers\TiendaPublicaController::class, 'opinion'])->middleware('throttle:publico');
 Route::post('/m/{slug}/llamar',            [\App\Http\Controllers\TiendaPublicaController::class, 'llamarMozo'])->middleware('throttle:10,1');
 Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa'])->middleware('throttle:publico');
 Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar'])->middleware('throttle:publico');
@@ -569,6 +570,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/ventas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'ventas'])->middleware(['permiso:estadisticas', 'parte:ventas']);
     Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:analista']);
+    Route::post('/estadisticas/gastronomia/acciones', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'gastronomiaAcciones'])->middleware(['permiso:estadisticas', 'parte:gastronomia', 'throttle:10,1']);
     Route::get('/estadisticas/gastronomia', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'gastronomia'])->middleware(['permiso:estadisticas', 'parte:gastronomia']);
     Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:vendedores']);
     Route::get('/estadisticas/vendedores/relevamiento/{id}/foto', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'foto'])->middleware('permiso:clientes')->whereNumber('id');
@@ -767,6 +769,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/carta/{id}/sugerir-receta',     [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'sugerirReceta'])->middleware(['permiso:gastronomia,editar', 'throttle:20,1']);
         Route::post('/carta/leer',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'leerCarta'])->middleware(['permiso:gastronomia,editar', 'throttle:10,1']);
         Route::post('/carta/importar',                [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'importarCarta'])->middleware('permiso:gastronomia,editar');
+        Route::post('/carta/traducir',                 [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'traducir'])->middleware(['permiso:gastronomia,editar', 'throttle:6,1']);
         Route::post('/carta/menu-del-dia',             [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'menuDelDia'])->middleware(['permiso:gastronomia,editar', 'throttle:10,1']);
         Route::get('/carta',                          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'carta']);
         Route::post('/carta/{id}',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarCarta'])->middleware('permiso:gastronomia,editar');

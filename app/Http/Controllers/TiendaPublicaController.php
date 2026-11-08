@@ -63,7 +63,15 @@ class TiendaPublicaController extends Controller
                 ->map(function ($i) use ($prods, $b) { $hh = isset($prods[$i['id']]) ? \App\Services\Gastronomia\HorariosService::happyHour($b, $prods[$i['id']]) : null; if ($hh) { $i['precio_antes'] = $i['precio']; $i['precio'] = \App\Services\Gastronomia\HorariosService::aplicar((float) $i['precio'], $hh); $i['hh'] = $hh['nombre']; } return $i; })->values()->all();
             return $r;
         })->filter(fn($r) => $r['items'])->values()->all();
-        return view('tienda.menu', ['b' => $b, 'cfg' => $cfg, 'cat' => $cat, 'mesa' => $mesa]);
+        // Fase 56: carta traducida (?lang=en|pt), el agregado que más se pide con cada plato y la encuesta al pedir la cuenta.
+        $lang = in_array($request->lang, array_keys(\App\Services\Gastronomia\CartaQrService::IDIOMAS), true) ? $request->lang : 'es';
+        $prods = \App\Models\Product::withoutGlobalScopes()->where('business_id', $b->id)->where('en_tienda', true)->get(['id', 'traducciones'])->keyBy('id');
+        $idiomas = collect(\App\Services\Gastronomia\CartaQrService::IDIOMAS)->filter(fn($n, $k) => $prods->contains(fn($p) => ! empty($p->traducciones[$k]['nombre'])))->all();
+        if ($lang !== 'es') $cat['rubros'] = collect($cat['rubros'])->map(function ($r) use ($prods, $lang) { $r['items'] = collect($r['items'])->map(function ($i) use ($prods, $lang) { $t = $prods[$i['id']]->traducciones[$lang] ?? null; if ($t) { $i['nombre'] = $t['nombre']; $i['descripcion'] = $t['descripcion'] ?? $i['descripcion']; } return $i; })->all(); return $r; })->all();
+        $nombres = collect($cat['rubros'])->flatMap(fn($r) => $r['items'])->keyBy('id');
+        $sug = $mesa ? collect(app(\App\Services\Gastronomia\CartaQrService::class)->acompanantes($b))->filter(fn($s) => isset($nombres[$s['id']]))->map(fn($s) => ['id' => $s['id'], 'nombre' => $nombres[$s['id']]['nombre'], 'precio' => $nombres[$s['id']]['precio']])->all() : [];
+        $cab = $mesa?->comandaAbierta; $opinion = $cab && $cab->items()->exists() ? ['url' => \App\Services\Gastronomia\OpinionesService::link($b, $cab), 'hecha' => \App\Models\RestoOpinion::withoutGlobalScopes()->where('comanda_id', $cab->id)->exists()] : null;
+        return view('tienda.menu', ['b' => $b, 'cfg' => $cfg, 'cat' => $cat, 'mesa' => $mesa, 'lang' => $lang, 't' => \App\Services\Gastronomia\CartaQrService::textos($lang), 'idiomas' => $idiomas, 'sug' => $sug, 'opinion' => $opinion]);
     }
 
     public function pedirMesa(string $slug, Request $request)
@@ -99,6 +107,23 @@ class TiendaPublicaController extends Controller
         if ($c) $c->update(['llamado' => $d['motivo'], 'llamado_en' => now()] + ($d['motivo'] === 'cuenta' ? ['estado' => 'cuenta', 'cuenta_en' => now()] : []));
         \App\Models\Alerta::emitir(['business_id' => $b->id, 'business_location_id' => $mesa->business_location_id, 'modulo' => 'gastronomia', 'tipo' => 'llamado_mesa', 'severidad' => 'aviso', 'titulo' => ($d['motivo'] === 'cuenta' ? 'Piden la cuenta en ' : 'Llaman al mozo en ') . $mesa->nombre, 'detalle' => 'Desde el QR de la mesa.', 'url' => $c ? "/gastronomia/comandas/{$c->id}" : '/gastronomia']);
         return back()->with('llamado', $d['motivo']);
+    }
+
+    // Fase 56: la encuesta de 10 segundos. Llega desde el QR de la mesa o desde el WhatsApp de "pedido listo"; el link viene firmado.
+    public function opinion(string $slug, Request $request)
+    {
+        [$b, $cfg] = $this->negocio($slug, 'menu_activo');
+        $c = Comanda::withoutGlobalScopes()->where('business_id', $b->id)->find((int) $request->c);
+        abort_unless($c && hash_equals(\App\Services\Gastronomia\OpinionesService::firma($c), (string) $request->f), 404);
+        $lang = in_array($request->lang, array_keys(\App\Services\Gastronomia\CartaQrService::IDIOMAS), true) ? $request->lang : 'es';
+        $hecha = \App\Models\RestoOpinion::withoutGlobalScopes()->where('comanda_id', $c->id)->exists();
+        if ($request->isMethod('post') && ! $hecha) {
+            $d = $request->validate(['puntaje' => 'required|integer|min:1|max:5', 'comentario' => 'nullable|string|max:500']);
+            app(\App\Services\Gastronomia\OpinionesService::class)->guardar($b, $c, (int) $d['puntaje'], $d['comentario'] ?? null, $request->canal === 'wa' ? 'whatsapp' : 'qr');
+            if ((int) $d['puntaje'] <= 2) \App\Models\Alerta::emitir(['business_id' => $b->id, 'modulo' => 'gastronomia', 'tipo' => 'opinion_mala', 'modelo' => 'Comanda', 'modelo_id' => $c->id, 'severidad' => 'aviso', 'titulo' => "Opinión de {$d['puntaje']} estrellas en {$c->titulo()}", 'detalle' => mb_substr((string) ($d['comentario'] ?? 'Sin comentario'), 0, 300), 'url' => '/estadisticas/gastronomia']);
+            $hecha = true;
+        }
+        return view('tienda.opinion', ['b' => $b, 'cfg' => $cfg, 'c' => $c, 'hecha' => $hecha, 'lang' => $lang, 't' => \App\Services\Gastronomia\CartaQrService::textos($lang), 'slug' => $slug, 'f' => $request->f, 'canal' => $request->canal]);
     }
 
     public function reservar(string $slug)

@@ -29,4 +29,25 @@ class ReporteService
             'como' => 'Comandas cerradas en el período (fecha de cierre). Ticket promedio = total / comandas; por cubierto = total / cubiertos. Tiempo de cocina = de que se envió a que se marcó listo. Permanencia = de que se abrió la mesa a que se cerró.',
         ];
     }
+
+    // Fase 56: el bloque de Big Restó para el parte del dueño (lo de ayer) y, con IA, una línea con qué conviene cambiar.
+    public function parteDelDia(\App\Models\Business $b, Carbon $dia): ?string
+    {
+        $d = $this->datos($dia, $dia); if (! $d['kpis']['comandas']) return null;
+        $f = fn($v) => '$ ' . number_format($v, 0, ',', '.'); $k = $d['kpis'];
+        $t = "🍽️ *Big Restó*: {$f($k['total'])} en {$k['comandas']} mesas/pedidos · ticket {$f($k['ticket'])} · {$k['cubiertos']} cubiertos · propinas {$f($k['propinas'])}\n";
+        if ($d['platos']) $t .= '⭐ Plato estrella: ' . $d['platos'][0]['plato'] . ' (' . rtrim(rtrim(number_format($d['platos'][0]['unidades'], 1, ',', '.'), '0'), ',') . ")\n";
+        if ($d['cocina']) { $lenta = collect($d['cocina'])->sortByDesc('promedio')->first(); $t .= "⏱️ Cocina: {$lenta['estacion']} tardó {$lenta['promedio']}' en promedio (máx {$lenta['maximo']}')\n"; }
+        $ops = \App\Models\RestoOpinion::withoutGlobalScopes()->where('business_id', $b->id)->whereDate('created_at', $dia)->get();
+        if ($ops->count()) $t .= '💬 Opiniones: ' . round($ops->avg('puntaje'), 1) . "★ en {$ops->count()}" . ($ops->where('puntaje', '<=', 2)->count() ? ' · ' . $ops->where('puntaje', '<=', 2)->count() . ' mala/s' : '') . "\n";
+        if (config('services.anthropic.api_key')) {
+            try {
+                $res = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => config('services.anthropic.api_key'), 'anthropic-version' => '2023-06-01'])->timeout(20)->post('https://api.anthropic.com/v1/messages', ['model' => config('services.anthropic.model'), 'max_tokens' => 120,
+                    'system' => 'Sos el encargado de un restaurante argentino. Con los números del día, decile al dueño en UNA sola frase (máximo 25 palabras, español rioplatense, sin emojis) qué conviene cambiar o cuidar mañana. Sin inventar datos.', 'messages' => [['role' => 'user', 'content' => $t . "\nPor hora: " . collect($d['por_hora'])->map(fn($h) => "{$h['hora']}h {$h['comandas']}")->implode(', ') . "\nPor mozo: " . collect($d['por_mozo'])->map(fn($m) => "{$m['mozo']} {$f($m['total'])}")->implode(', ')]]]);
+                $linea = trim(collect($res->json('content', []))->where('type', 'text')->pluck('text')->implode(''));
+                if ($linea) $t .= '💡 ' . mb_substr($linea, 0, 200) . "\n";
+            } catch (\Throwable) {}
+        }
+        return trim($t);
+    }
 }

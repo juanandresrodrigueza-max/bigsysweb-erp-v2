@@ -6,7 +6,7 @@
         <h1 class="page-title">Carta</h1>
         <p class="page-subtitle">Qué va a cocina y las opciones de cada plato: el punto de la carne, la guarnición, los extras con precio. El mozo las elige al pedir y salen en la comanda.</p>
       </div>
-      <div class="flex items-center gap-2"><button v-if="puede('gastronomia','editar')" class="btn-secondary" :disabled="mdCargando" @click="menuDelDia" data-e2e="menu-del-dia">{{ mdCargando ? 'Pensando…' : '✦ Menú del día' }}</button><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
+      <div class="flex items-center gap-2"><button v-if="puede('gastronomia','editar') && ia" class="btn-secondary" @click="traducir" data-e2e="traducir">🌐 Traducir carta</button><button v-if="puede('gastronomia','editar')" class="btn-secondary" :disabled="mdCargando" @click="menuDelDia" data-e2e="menu-del-dia">{{ mdCargando ? 'Pensando…' : '✦ Menú del día' }}</button><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
     </div>
     <div class="card mb-4" data-e2e="config-estaciones">
       <div class="flex flex-wrap items-center gap-2"><p class="font-bold text-sm mr-2">Estaciones</p>
@@ -139,6 +139,8 @@ import { usePermisos } from '@/util/permisos'
 const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, whatsappAResto: Boolean, ia: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
 const est = ref(JSON.parse(JSON.stringify(props.estaciones)))
 const qrc = ref(props.qrConfirma), rav = ref(props.recetaAlVender), war = ref(props.whatsappAResto)
+// Fase 56: carta traducida para el QR
+function traducir() { const idioma = window.prompt('¿A qué idioma? en = inglés, pt = portugués', 'en'); if (idioma && ['en', 'pt'].includes(idioma.trim())) router.post('/gastronomia/carta/traducir', { idioma: idioma.trim() }, { preserveScroll: true }) }
 // Fase 55: menú del día sugerido
 const md = ref(null), mdCargando = ref(false)
 async function menuDelDia() { mdCargando.value = true; try { const { data } = await window.axios.post('/gastronomia/carta/menu-del-dia'); md.value = data } catch (e) { md.value = { usar: [], menus: [], aviso: 'No pude consultar.' } } finally { mdCargando.value = false } }

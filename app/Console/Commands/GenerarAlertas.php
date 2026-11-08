@@ -65,7 +65,7 @@ class GenerarAlertas extends Command
             else Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'condicion_iva')->whereNull('resuelta_en')->update(['resuelta_en' => now()]);
 
             // Fase 55 · Big Restó: si la próxima hora viene pesada en alguna estación, avisa antes.
-            if (in_array('gastronomia', $b->verticalesPermitidos(), true)) { try { app(\App\Services\Gastronomia\PronosticoRestoService::class)->alertarPicos($b); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('cocina_pico: ' . $e->getMessage()); } }
+            if (in_array('gastronomia', $b->verticalesPermitidos(), true)) { try { app(\App\Services\Gastronomia\PronosticoRestoService::class)->alertarPicos($b); app(\App\Services\Gastronomia\ControlSalonService::class)->alertarSemanal($b); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('big resto alertas: ' . $e->getMessage()); } }
 
             // Producción atrasada: órdenes abiertas cuya fecha programada ya pasó
             $atrasadas = \App\Models\ProductionOrder::withoutGlobalScopes()->where('business_id', $id)->whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->with('product:id,name,unit')->get();
