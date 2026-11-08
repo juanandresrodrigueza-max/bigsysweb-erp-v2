@@ -100,6 +100,19 @@ class Gestion
                     $r = app(\App\Services\Gastronomia\PedidoRestoService::class)->crear($u->business, $d + ['user_id' => $u->id, 'enviar' => true]);
                     return ['texto' => "Listo: {$r['comanda']->titulo()} con " . count($r['cargados']) . ' plato' . (count($r['cargados']) > 1 ? 's' : '') . ' en cocina.', 'url' => Busca::url("/gastronomia/comandas/{$r['comanda']->id}")];
                 }],
+            // Fase 55: compras y cocina que se adelantan.
+            ['nombre' => 'que_comprar_resto', 'titulo' => 'Qué comprar para la semana (Big Restó)', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Lo que se espera vender cada día de la semana que viene (promedio por día de la semana) y los insumos que faltan para cubrirlo según las recetas, agrupados por proveedor con el costo estimado.',
+                'parametros' => ['dias' => ['type' => 'integer', 'description' => 'Días a cubrir, 7 por defecto']],
+                'ejecutar' => function (User $u, array $a) { $p = app(\App\Services\Gastronomia\PronosticoRestoService::class); return ['semana' => $p->semana($u->business), 'comprar' => $p->queComprar($u->business, max(1, min(30, (int) ($a['dias'] ?? 7)))), 'url' => Busca::url('/estadisticas/gastronomia')]; }],
+            ['nombre' => 'menu_del_dia_sugerido', 'titulo' => 'Menú del día con lo que está por vencer', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Insumos que conviene usar primero (por vencer o quietos) y tres menús del día propuestos con ellos, con texto para la pizarra.',
+                'parametros' => [],
+                'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\MenuDelDiaIaService::class)->sugerir($u->business) + ['url' => Busca::url('/gastronomia/carta')]],
+            ['nombre' => 'cocina_proxima_hora', 'titulo' => 'Cómo viene la cocina la próxima hora', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Platos esperados por estación en la próxima hora, contra lo normal de esa estación, para saber si se viene un pico.',
+                'parametros' => [],
+                'ejecutar' => fn(User $u, array $a) => ['estaciones' => app(\App\Services\Gastronomia\PronosticoRestoService::class)->proximaHora($u->business), 'url' => Busca::url('/gastronomia/cocina')]],
             // Fase 52: el salón en números, de palabra ("¿cómo vino el mozo Juan?", "¿qué plato sale más?", "¿cuánto tarda la parrilla?").
             ['nombre' => 'resumen_gastronomia', 'titulo' => 'Salón y cocina', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Ventas del salón por mozo y por hora, ticket promedio, cubiertos, propinas, platos más pedidos y tiempos de cocina por estación, en un período.',

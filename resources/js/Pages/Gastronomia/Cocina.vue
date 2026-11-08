@@ -5,6 +5,7 @@
       <div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="text-2xl font-extrabold">{{ estacion ?? 'Cocina' }}</h1><span class="text-white/60 text-sm">{{ grupos.length }} comanda{{ grupos.length === 1 ? '' : 's' }} · {{ totalItems }} platos · {{ terminados }} entregados hoy</span></div>
       <div class="flex items-center gap-3 text-sm"><span class="text-white/50">{{ hora }}</span><Link href="/gastronomia" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold">Volver al salón</Link></div>
     </div>
+    <div v-if="picos.length" class="rounded-2xl px-4 py-3 mb-4 bg-amber-500/20 border border-amber-400/40 text-sm" data-e2e="pico"><b>Se viene movida la próxima hora:</b> <span v-for="(p, i) in picos" :key="p.estacion">{{ i ? ' · ' : '' }}{{ p.estacion }} ~{{ p.esperado }} platos a las {{ p.hora }} (lo normal son {{ p.normal }})</span>. Adelantá mise en place.</div>
     <div class="flex flex-wrap items-center gap-2 mb-4" data-e2e="estaciones">
       <Link href="/gastronomia/cocina" class="px-3 py-1.5 rounded-full text-sm font-semibold" :class="!estacion ? 'bg-white text-marca-texto' : 'bg-white/10 hover:bg-white/20'">Todas</Link>
       <Link v-for="e in estaciones" :key="e.nombre" :href="`/gastronomia/cocina?estacion=${encodeURIComponent(e.nombre)}`" class="px-3 py-1.5 rounded-full text-sm font-semibold" :class="estacion === e.nombre ? 'bg-white text-marca-texto' : 'bg-white/10 hover:bg-white/20'">{{ e.nombre }}<span v-if="promedios[e.nombre] !== undefined" class="opacity-60 font-normal"> · prom. {{ promedios[e.nombre] }}'</span></Link>
@@ -35,7 +36,8 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 import { cantidad } from '@/util/formato'
-const props = defineProps({ grupos: Array, terminados: Number, estaciones: { type: Array, default: () => [] }, estacion: { type: String, default: null }, promedios: { type: Object, default: () => ({}) } })
+const props = defineProps({ grupos: Array, terminados: Number, estaciones: { type: Array, default: () => [] }, estacion: { type: String, default: null }, promedios: { type: Object, default: () => ({}) }, proximaHora: { type: Array, default: () => [] } })
+const picos = computed(() => props.proximaHora.filter(p => p.pico && (!props.estacion || p.estacion === props.estacion)))
 const totalItems = computed(() => props.grupos.reduce((a, g) => a + g.items.filter(i => i.estado === 'cocina').length, 0))
 const hora = ref(new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }))
 const demorado = g => g.items.some(i => i.estado === 'cocina' && i.minutos >= i.alerta)

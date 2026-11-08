@@ -165,7 +165,7 @@ class GastronomiaController extends Controller
         // Tiempo promedio de hoy (enviado → listo) por estación.
         $hoy = ComandaItem::whereNotNull('listo_en')->whereNotNull('enviado_en')->where('va_cocina', true)->whereDate('listo_en', today())->get(['estacion', 'enviado_en', 'listo_en'])
             ->groupBy(fn($i) => $i->estacion ?? $primera)->map(fn($g) => (int) round($g->avg(fn($i) => $i->enviado_en->diffInMinutes($i->listo_en))));
-        return Inertia::render('Gastronomia/Cocina', ['estaciones' => $estaciones, 'estacion' => $est, 'promedios' => $hoy, 'grupos' => $grupos, 'terminados' => ComandaItem::where('estado', 'entregado')->where('va_cocina', true)->whereDate('updated_at', today())->count()]);
+        return Inertia::render('Gastronomia/Cocina', ['estaciones' => $estaciones, 'estacion' => $est, 'promedios' => $hoy, 'proximaHora' => app(\App\Services\Gastronomia\PronosticoRestoService::class)->proximaHora($request->user()->business), 'grupos' => $grupos, 'terminados' => ComandaItem::where('estado', 'entregado')->where('va_cocina', true)->whereDate('updated_at', today())->count()]);
     }
 
     // Fase 49 · Carta: qué va a cocina y los modificadores de cada plato (punto de la carne, guarnición, extras con precio).
@@ -277,5 +277,11 @@ class GastronomiaController extends Controller
         $d = $request->validate(['rubros' => 'required|array|min:1', 'rubros.*.nombre' => 'required|string|max:60', 'rubros.*.platos' => 'required|array', 'rubros.*.platos.*.nombre' => 'required|string|max:120', 'rubros.*.platos.*.precio' => 'nullable|numeric|min:0', 'rubros.*.platos.*.descripcion' => 'nullable|string|max:300', 'rubros.*.platos.*.existe_id' => 'nullable|integer', 'rubros.*.platos.*.cargar' => 'boolean', 'rubros.*.platos.*.opciones' => 'nullable|array']);
         $r = $ia->importar($request->user()->business, $d['rubros'], $request->user()->current_location_id);
         return back()->with('success', "Carta cargada: {$r['nuevos']} platos nuevos" . ($r['actualizados'] ? ", {$r['actualizados']} con precio actualizado" : '') . '. Revisá las recetas y qué va a cocina.');
+    }
+
+    // Fase 55: el menú del día sugerido con lo que está por vencer o sobra.
+    public function menuDelDia(Request $request, \App\Services\Gastronomia\MenuDelDiaIaService $ia)
+    {
+        return response()->json($ia->sugerir($request->user()->business));
     }
 }

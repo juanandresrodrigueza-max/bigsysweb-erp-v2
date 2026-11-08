@@ -6,7 +6,7 @@
         <h1 class="page-title">Carta</h1>
         <p class="page-subtitle">Qué va a cocina y las opciones de cada plato: el punto de la carne, la guarnición, los extras con precio. El mozo las elige al pedir y salen en la comanda.</p>
       </div>
-      <div class="flex items-center gap-2"><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
+      <div class="flex items-center gap-2"><button v-if="puede('gastronomia','editar')" class="btn-secondary" :disabled="mdCargando" @click="menuDelDia" data-e2e="menu-del-dia">{{ mdCargando ? 'Pensando…' : '✦ Menú del día' }}</button><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
     </div>
     <div class="card mb-4" data-e2e="config-estaciones">
       <div class="flex flex-wrap items-center gap-2"><p class="font-bold text-sm mr-2">Estaciones</p>
@@ -74,6 +74,21 @@
       <template #pie><button class="btn-secondary" @click="ed = null">Cancelar</button><button class="btn-primary" @click="guardar" data-e2e="carta-guardar">Guardar</button></template>
     </Modal>
 
+    <!-- Fase 55: menú del día con lo que está por vencer -->
+    <Modal :abierto="!!md" titulo="Menú del día sugerido" ancho="max-w-2xl" @cerrar="md = null">
+      <div v-if="md" class="space-y-3 text-sm">
+        <p v-if="md.aviso" class="text-xs text-amber-700">{{ md.aviso }}</p>
+        <div v-if="md.usar.length"><p class="label">Conviene usar primero</p><div class="flex flex-wrap gap-1.5"><span v-for="u in md.usar" :key="u.id" class="badge bg-amber-50 text-amber-800" :title="u.platos?.length ? 'Lo usan: ' + u.platos.join(', ') : ''">{{ u.insumo }} · {{ u.cantidad }} {{ u.unit }} · {{ u.motivo }}</span></div></div>
+        <div v-for="(m, i) in md.menus" :key="i" class="rounded-xl border border-marca-borde p-3">
+          <div class="flex items-start justify-between gap-2"><div><p class="font-bold">{{ m.nombre }} <span v-if="m.precio_sugerido" class="text-marca-muted font-normal">· {{ moneda(m.precio_sugerido, 0) }}</span></p><p>{{ m.platos.join(' + ') }}</p><p class="text-xs text-marca-muted">Usa: {{ m.usa.join(', ') }}</p></div>
+            <button class="btn-secondary !py-1 text-xs whitespace-nowrap" @click="copiar(m)">Copiar para la pizarra</button></div>
+          <p v-if="m.pizarra" class="mt-2 text-xs italic bg-marca-fondo rounded-lg px-3 py-2">“{{ m.pizarra }}”</p>
+        </div>
+        <p class="text-xs text-marca-muted">Para venderlo, creá el plato en la carta con «Sólo se sirve en un horario» (mediodía) y su receta.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="md = null">Cerrar</button></template>
+    </Modal>
+
     <!-- Fase 53.2: vista previa de la carta leída -->
     <Modal :abierto="!!lc" titulo="Tu carta, leída por Bigcito" ancho="max-w-3xl" @cerrar="lc = null">
       <div v-if="lc" class="space-y-3 text-sm">
@@ -124,6 +139,10 @@ import { usePermisos } from '@/util/permisos'
 const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, whatsappAResto: Boolean, ia: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
 const est = ref(JSON.parse(JSON.stringify(props.estaciones)))
 const qrc = ref(props.qrConfirma), rav = ref(props.recetaAlVender), war = ref(props.whatsappAResto)
+// Fase 55: menú del día sugerido
+const md = ref(null), mdCargando = ref(false)
+async function menuDelDia() { mdCargando.value = true; try { const { data } = await window.axios.post('/gastronomia/carta/menu-del-dia'); md.value = data } catch (e) { md.value = { usar: [], menus: [], aviso: 'No pude consultar.' } } finally { mdCargando.value = false } }
+function copiar(m) { const t = `${m.nombre}${m.precio_sugerido ? ' · $ ' + Math.round(m.precio_sugerido) : ''}\n${m.platos.join(' + ')}\n${m.pizarra ?? ''}`; try { navigator.clipboard.writeText(t) } catch (e) {} }
 // Fase 53.2: la carta desde una foto
 const leyendo = ref(false), lc = ref(null)
 async function leerCarta(ev) {
