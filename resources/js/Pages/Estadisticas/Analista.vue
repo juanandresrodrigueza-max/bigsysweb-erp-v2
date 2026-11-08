@@ -13,6 +13,19 @@
     </div>
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 space-y-4">
+        <!-- Fase 64: lo raro de ayer -->
+        <div class="card border-l-4" :class="ayer.anomalias.some(a => a.sev === 'critica') ? 'border-l-carmin' : ayer.anomalias.length ? 'border-l-amber-400' : 'border-l-emerald-400'" data-e2e="lo-raro-de-ayer">
+          <div class="flex items-center justify-between mb-2"><h2 class="font-bold">🔎 Lo raro de ayer <span class="text-marca-muted font-normal text-sm">· {{ ayer.dia }}</span></h2><span class="badge" :class="ayer.texto.modo === 'ia' ? 'bg-violeta/10 text-violeta' : 'bg-gris-light text-marca-muted'">{{ ayer.texto.modo === 'ia' ? 'Redactado por IA' : 'Con reglas' }}</span></div>
+          <p class="text-sm leading-relaxed">{{ ayer.texto.texto }}</p>
+          <ul v-if="ayer.anomalias.length" class="mt-3 divide-y divide-marca-borde/60 text-sm">
+            <li v-for="(a, i) in ayer.anomalias" :key="i" class="py-2 flex items-start gap-2">
+              <span class="badge shrink-0" :class="a.sev === 'critica' ? 'bg-carmin-light text-carmin' : a.sev === 'aviso' ? 'bg-amber-50 text-amber-700' : 'bg-gris-light text-marca-muted'">{{ a.cat }}</span>
+              <div class="flex-1 min-w-0"><Link :href="a.url" class="font-medium hover:text-carmin">{{ a.titulo }}</Link><p class="text-xs text-marca-muted">{{ a.detalle }}</p></div>
+              <span v-if="a.desvio_pct !== null" class="text-xs tabular-nums shrink-0" :class="a.desvio_pct < 0 ? 'text-carmin' : 'text-emerald-700'">{{ a.desvio_pct > 0 ? '+' : '' }}{{ a.desvio_pct }}%</span>
+            </li>
+          </ul>
+          <p class="text-[11px] text-marca-muted mt-2">Comparado con los últimos {{ ayer.base_dias }} {{ ayer.dia.split(' ')[0] }}s de tu propio negocio. Lo mismo llega en el parte de la mañana al celular.</p>
+        </div>
         <div class="card border-l-4" :class="informe.modo === 'ia' ? 'border-l-violeta' : 'border-l-marca-borde'">
           <div class="flex items-center justify-between mb-2"><h2 class="font-bold">Informe de la semana</h2><span class="badge" :class="informe.modo === 'ia' ? 'bg-violeta/10 text-violeta' : 'bg-gris-light text-marca-muted'">{{ informe.modo === 'ia' ? 'Redactado con IA' : 'Redactado por reglas' }}</span></div>
           <div class="text-sm leading-relaxed whitespace-pre-line">{{ informe.texto }}</div>
@@ -52,7 +65,7 @@ import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda } from '@/util/formato'
-const props = defineProps({ hallazgos: Array, informe: Object, ia: Boolean, resumen: Object, compra: Object })
+const props = defineProps({ hallazgos: Array, informe: Object, ia: Boolean, resumen: Object, compra: Object, ayer: Object })
 const peso = { critica: 0, aviso: 1, info: 2, ok: 3 }
 const ordenados = computed(() => [...props.hallazgos].sort((a, b) => (peso[a.sev] ?? 9) - (peso[b.sev] ?? 9) || (b.impacto || 0) - (a.impacto || 0)))
 </script>

@@ -176,6 +176,17 @@ class Consejos
                     return ['cantidad' => $h['numero'], 'texto' => $h['texto'], 'clientes' => $h['items'], 'criterio' => '3 facturas o más en los 6 meses anteriores y ninguna en los últimos 60 días (sin consumidor final).',
                         '_tabla' => ['columnas' => ['Cliente', 'Teléfono', 'Facturas antes', 'Última compra'], 'filas' => collect($h['items'])->map(fn($i) => [$i['nombre'] ?? '', $i['telefono'] ?? '', $i['facturas'] ?? '', $i['desde'] ?? $i['ultima'] ?? ''])->all()]];
                 }],
+            // Fase 64: lo que se salió de lo normal en un día, contra los mismos días de semana anteriores.
+            ['nombre' => 'anomalias_del_dia', 'titulo' => 'Lo raro del día', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Qué se salió de lo normal un día (ayer por defecto): ventas, tickets, margen, descuentos, anulaciones, cobros, gastos, diferencias de caja, ajustes de stock, artículos que volaron y precios muy abajo de la lista, comparado con los mismos días de semana de las 8 semanas anteriores.',
+                'parametros' => ['dia' => ['type' => 'string', 'description' => "'ayer' (por defecto), 'hoy' o una fecha YYYY-MM-DD"]],
+                'ejecutar' => function (User $u, array $a) {
+                    $d = trim((string) ($a['dia'] ?? 'ayer'));
+                    $dia = $d === 'hoy' ? today() : ($d === '' || $d === 'ayer' ? today()->subDay() : Carbon::parse($d));
+                    $svc = app(\App\Services\IA\AnomaliasDiaService::class); $r = $svc->anomalias($u->business, $dia);
+                    return ['fecha' => $r['fecha'], 'dia' => $r['dia'], 'comparado_con' => "{$r['base_dias']} días iguales anteriores", 'resumen' => $svc->texto($u->business, $r)['texto'],
+                        'anomalias' => array_map(fn($x) => ['gravedad' => $x['sev'], 'que' => $x['titulo'], 'detalle' => $x['detalle'], 'valor' => $x['valor'], 'esperado' => $x['esperado'], 'url' => Busca::url($x['url'])], $r['anomalias'])];
+                }],
             ['nombre' => 'resumen_del_dia', 'titulo' => 'Resumen del día', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Cómo va el día: ventas hasta ahora contra la semana pasada, lo cobrado, los gastos, lo vencido por cobrar y lo que hay que mirar.',
                 'parametros' => [],
