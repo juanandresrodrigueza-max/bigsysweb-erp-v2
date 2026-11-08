@@ -201,6 +201,29 @@ class CrmSyncService
         });
     }
 
+    // Fase 74: el embudo del CRM para Estadísticas → Vendedores: abiertas por etapa, ganadas/perdidas en el período y por vendedor,
+    // cruzado con lo vendido en el ERP (por nombre o mail del vendedor). null si el CRM no está o no respondió.
+    public static function embudo(Business $b, \Carbon\Carbon $d, \Carbon\Carbon $h, array $vendidoErp = []): ?array
+    {
+        if (! CrmService::activo($b)) return null;
+        $abiertas = self::oportunidades($b); if ($abiertas === null) return null;
+        $enPeriodo = fn(array $x) => ($f = $x['won_at'] ?? $x['closed_at'] ?? $x['updated_at'] ?? null) ? \Carbon\Carbon::parse($f)->between($d->copy()->startOfDay(), $h->copy()->endOfDay()) : true;
+        $ganadas = collect(Cache::remember("crm_deals_won_{$b->id}_{$d->toDateString()}_{$h->toDateString()}", now()->addMinutes(5), fn() => self::leer($b, '/api/v1/deals', ['status' => 'won', 'from' => $d->toDateString(), 'to' => $h->toDateString(), 'limit' => 200]) ?? []))->filter($enPeriodo)->map(fn($x) => self::dealItem($x));
+        $perdidas = collect(Cache::remember("crm_deals_lost_{$b->id}_{$d->toDateString()}_{$h->toDateString()}", now()->addMinutes(5), fn() => self::leer($b, '/api/v1/deals', ['status' => 'lost', 'from' => $d->toDateString(), 'to' => $h->toDateString(), 'limit' => 200]) ?? []))->filter($enPeriodo);
+        $tareas = collect(self::tareasPendientes($b) ?? [])->where('vencida', true);
+        $ab = collect($abiertas);
+        $etapas = $ab->groupBy(fn($x) => $x['etapa'] ?? 'Sin etapa')->map(fn($g, $k) => ['etapa' => $k, 'cantidad' => $g->count(), 'total' => round($g->sum('monto'), 2)])->sortByDesc('total')->values()->all();
+        $norm = fn($s) => mb_strtolower(trim((string) $s));
+        $erp = []; foreach ($vendidoErp as $v) { if (! empty($v['nombre'])) $erp[$norm($v['nombre'])] = (float) $v['total']; if (! empty($v['email'])) $erp[$norm($v['email'])] = (float) $v['total']; }
+        $nombres = $ab->pluck('vendedor')->merge($ganadas->pluck('vendedor'))->merge($tareas->pluck('vendedor'))->filter()->unique()->values();
+        $porVendedor = $nombres->map(fn($n) => ['vendedor' => $n, 'abiertas' => $ab->where('vendedor', $n)->count(), 'abiertas_total' => round($ab->where('vendedor', $n)->sum('monto'), 2),
+            'ganadas' => $ganadas->where('vendedor', $n)->count(), 'ganadas_total' => round($ganadas->where('vendedor', $n)->sum('monto'), 2), 'tareas_vencidas' => $tareas->where('vendedor', $n)->count(),
+            'vendido_erp' => $erp[$norm($n)] ?? null])->sortByDesc('abiertas_total')->values()->all();
+        $cerradas = $ganadas->count() + $perdidas->count();
+        return ['abiertas' => ['cantidad' => $ab->count(), 'total' => round($ab->sum('monto'), 2)], 'ganadas' => ['cantidad' => $ganadas->count(), 'total' => round($ganadas->sum('monto'), 2)], 'perdidas' => ['cantidad' => $perdidas->count()],
+            'tasa_cierre' => $cerradas ? (int) round($ganadas->count() / $cerradas * 100) : null, 'tareas_vencidas' => $tareas->count(), 'etapas' => $etapas, 'por_vendedor' => $porVendedor, 'url' => '/integraciones/crm/ir?a=' . urlencode('/deals')];
+    }
+
     private static function dealItem(array $d): array
     {
         $cli = ! empty($d['contact_id']) ? Contact::withoutGlobalScopes()->where('crm_external_id', (string) $d['contact_id'])->first() : null;

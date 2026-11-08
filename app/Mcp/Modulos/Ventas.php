@@ -53,6 +53,17 @@ class Ventas
                 'descripcion' => 'Presupuestos emitidos que todavía no se facturaron, del más viejo al más nuevo.',
                 'parametros' => ['cantidad' => ['type' => 'integer']],
                 'ejecutar' => fn(User $u, array $a) => ['presupuestos' => Comprobante::ventas()->emitidos()->where('tipo', 'PRE')->whereDoesntHave('derivados')->with('contact:id,name')->orderBy('fecha')->limit(min(100, (int) ($a['cantidad'] ?? 20)))->get()->map(fn($c) => Busca::comp($c) + ['dias' => (int) $c->fecha->diffInDays(today())])->all()]],
+            // Fase 74: comisiones con lo real.
+            ['nombre' => 'comisiones_vendedores', 'titulo' => 'Comisiones de los vendedores', 'modulo' => 'estadisticas', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Cuánto le corresponde a cada vendedor en el período, con lo facturado (menos notas de crédito) y lo cobrado de verdad en el ERP, según su porcentaje por ventas y por cobros. "¿Cuánto le toca a Juan este mes?". Si la empresa usa el CRM, su módulo de comisiones liquida sobre esta misma base.',
+                'parametros' => ['periodo' => ['type' => 'string', 'description' => 'hoy, semana, mes, mes_anterior, o desde/hasta'], 'desde' => ['type' => 'string'], 'hasta' => ['type' => 'string'], 'vendedor' => ['type' => 'string']],
+                'ejecutar' => function (User $u, array $a) {
+                    [$d, $h] = Busca::periodo($a);
+                    $r = app(\App\Services\Ventas\ComisionesService::class)->base($u->business, \Illuminate\Support\Carbon::instance($d), \Illuminate\Support\Carbon::instance($h), false);
+                    if (! empty($a['vendedor'])) { $v = mb_strtolower($a['vendedor']); $r['vendedores'] = array_values(array_filter($r['vendedores'], fn($x) => str_contains(mb_strtolower($x['nombre']), $v) || str_contains(mb_strtolower((string) $x['email']), $v))); if (! $r['vendedores']) return ['error' => "No encuentro un vendedor parecido a \"{$a['vendedor']}\"."]; $r['total_comisiones'] = round(array_sum(array_column($r['vendedores'], 'comision_total')), 2); }
+                    if ($r['facturas_sin_vendedor']) $r['nota'] = "{$r['facturas_sin_vendedor']} factura(s) del período no tienen vendedor: no comisionan. Se asigna en el comprobante o en la ficha del cliente.";
+                    return $r + ['url' => Busca::url('/clientes/vendedores')];
+                }],
             // Fase 72: el embudo y las tareas del CRM, por voz desde el ERP.
             ['nombre' => 'oportunidades_crm', 'titulo' => 'Oportunidades abiertas en el CRM', 'modulo' => 'comprobantes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'El embudo de ventas del CRM: oportunidades abiertas con monto, etapa, vendedor y vencimiento, y el total. Opcionalmente las de un cliente o de un vendedor. "¿Qué tenemos por cerrar?", "¿qué tiene Juan en el embudo?". Sólo con el CRM conectado.',

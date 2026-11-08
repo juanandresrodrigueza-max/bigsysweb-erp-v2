@@ -42,7 +42,11 @@ class CrmClientesController extends Controller
             'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.moneda' => 'nullable|in:ARS,USD', 'medios.*.cotizacion' => 'nullable|numeric',
             'imputaciones' => 'nullable|array', 'imputaciones.*.comprobante_id' => 'required|integer', 'imputaciones.*.monto' => 'required|numeric|min:0.01',
             'descuento' => 'nullable|numeric|min:0', 'interes' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:300', 'crm_ref' => 'nullable|string|max:80',
+            'vendedor_id' => 'nullable|integer', 'vendedor_email' => 'nullable|email', // Fase 74: quién cobró (para la comisión); por id del ERP o por mail
         ]);
+        if (! empty($d['vendedor_email']) && empty($d['vendedor_id'])) $d['vendedor_id'] = \App\Models\Vendedor::where('activo', true)->whereRaw('lower(email) = ?', [strtolower($d['vendedor_email'])])->value('id') ?? \App\Models\Vendedor::deUsuario(\App\Models\User::where('business_id', $contact->business_id)->whereRaw('lower(email) = ?', [strtolower($d['vendedor_email'])])->value('id'))?->id;
+        if (! empty($d['vendedor_id'])) { abort_unless(\App\Models\Vendedor::where('id', $d['vendedor_id'])->exists(), 422, 'Ese vendedor no existe en el ERP.'); $d['cobrador_id'] = $d['vendedor_id']; }
+        unset($d['vendedor_email']);
         foreach ($d['imputaciones'] ?? [] as $i) abort_unless(Comprobante::where('contact_id', $contact->id)->where('id', $i['comprobante_id'])->exists(), 422, "El comprobante {$i['comprobante_id']} no es de este cliente.");
         $d['notas'] = trim('Cobrado desde el CRM' . (! empty($d['crm_ref']) ? " ({$d['crm_ref']})" : '') . (! empty($d['notas']) ? ' · ' . $d['notas'] : ''));
         $cobro = $svc->registrar($contact, $d);

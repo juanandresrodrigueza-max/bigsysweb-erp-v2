@@ -128,3 +128,18 @@ de estar pendientes; además acepta los webhooks **`task.overdue`** y **`task.co
 2. Mostrarlas con una marca "Del ERP" (reconocibles por la descripción) y, en la ficha 360, como actividad del contacto.
 3. Mandar los webhooks `task.overdue` (cuando una tarea pasa a vencida) y `task.completed` (cuando la cierran) a `POST /api/crm/webhook/{business}`
    firmados como los demás (`X-BigSysweb-Signature`).
+
+## Fase 74 · Tablero y comisiones cruzados
+
+**Lado ERP (hecho):** Estadísticas → Vendedores muestra el embudo del CRM (`GET /api/v1/deals?status=open`, `status=won|lost&from&to`,
+`tasks?status=pending`) cruzado con lo vendido en el ERP por nombre o mail del vendedor. Nueva API para el CRM: **`GET /api/comisiones/base?desde&hasta&detalle=1`**
+→ por vendedor (`email`, `nombre`, `comision_venta_pct`, `comision_cobro_pct`, `facturado`, `notas_credito`, `vendido`, `cobrado`,
+`comision_por_ventas`, `comision_por_cobros`, `comision_total`, y el detalle de comprobantes y cobros con `crm_contact_id` y `crm_quote_id`).
+Los avisos `comprobante.emitido` y `cobro.registrado` ahora traen **`vendedor`** `{id, nombre, email}`. `POST /api/contacts/{id}/cobros` (Fase 69)
+acepta **`vendedor_email`** (o `vendedor_id`) para decir quién cobró: ese cobro le comisiona a él. Bigcito: `comisiones_vendedores`.
+
+**Lo que el ERP espera del CRM:**
+1. `GET /api/v1/deals` acepta `from`/`to` para `status=won|lost` (filtra por fecha de cierre) y devuelve **`won_at`**/`closed_at`.
+2. El módulo de **Comisiones del CRM**, con el ERP conectado, liquida sobre `GET /api/comisiones/base` del ERP (mismo período), identificando
+   al vendedor por `email`; el valor de la oportunidad queda como estimado. Si no hay ERP, sigue como hoy.
+3. Al recibir `comprobante.emitido` / `cobro.registrado` con `vendedor`, la actividad del contacto en la ficha 360 dice quién lo vendió/cobró.
