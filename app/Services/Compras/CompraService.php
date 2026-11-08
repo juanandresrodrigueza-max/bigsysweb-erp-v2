@@ -120,11 +120,13 @@ class CompraService
                     if (! $it->product_id || ! ($p = Product::find($it->product_id))) continue;
                     $costo = (float) $it->precio_unit * (1 - (float) $it->descuento / 100);
                     if ($sentido > 0 && ! $c->solo_stock && $it->actualiza_costo) {
+                        $anterior = (float) $p->cost;
                         $p->precio_compra = (float) $it->precio_unit;
                         $p->descuento_proveedor = (float) $it->descuento;
                         $p->cost = $costo;
                         $p->recalcularDesdeCosto();
                         $p->save();
+                        app(\App\Services\Gastronomia\RecetaVentaService::class)->insumoCambio($p, $anterior, (float) $p->cost); // Fase 53: avisa el margen de los platos que lo llevan
                     }
                     // Si se controló con la pistola, entra lo contado (lo pendiente no entra hasta que se aclare).
                     $mov = $this->stock->mover($p, $sentido * (float) ($it->cantidad_recibida ?? $it->cantidad), $deposito, $sentido > 0 ? 'in' : 'out', "Compra {$c->nombreTipo()} {$c->numeroFormateado()}", $c, $costo, $c->business_location_id, ['lote' => $it->lote, 'vencimiento' => $it->vencimiento, 'serie' => $it->serie]);

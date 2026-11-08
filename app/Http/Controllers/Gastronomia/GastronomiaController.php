@@ -172,7 +172,12 @@ class GastronomiaController extends Controller
     public function carta()
     {
         return Inertia::render('Gastronomia/Carta', [
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'horario' => $p->horario, 'modificadores' => $p->modificadores ?? []]),
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'horario' => $p->horario, 'modificadores' => $p->modificadores ?? [],
+                // Fase 53: costo (de la receta si tiene), margen sobre el precio neto y la receta para editarla acá mismo.
+                'precio_neto' => (float) $p->price, 'costo' => \App\Services\Gastronomia\RecetaVentaService::costo($p), 'margen' => \App\Services\Gastronomia\RecetaVentaService::margen($p), 'margen_objetivo' => $p->margen_objetivo !== null ? (float) $p->margen_objetivo : null,
+                'receta' => ($r = \App\Services\Gastronomia\RecetaVentaService::receta($p)) ? ['id' => $r->id, 'yield' => (float) $r->yield_quantity, 'items' => $r->items->map(fn($i) => ['product_id' => $i->product_id, 'nombre' => $i->product?->name, 'quantity' => (float) $i->quantity, 'unit' => $i->unit, 'costo' => round((float) $i->quantity * (float) ($i->product?->cost ?? 0), 2)])->values()] : null]),
+            'insumos' => Product::where('active', true)->whereIn('tipo', ['insumo', 'producto'])->orderBy('name')->limit(600)->get(['id', 'name', 'unit', 'cost'])->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'unit' => $p->unit, 'cost' => (float) $p->cost]),
+            'recetaAlVender' => \App\Services\Gastronomia\RecetaVentaService::activo(auth()->user()->business),
             'happyHours' => auth()->user()->business->gastronomia_config['happy_hours'] ?? [], 'rubros' => \App\Models\Rubro::orderBy('nombre')->get(['id', 'nombre']),
             'estaciones' => auth()->user()->business->estacionesCocina(), 'qrConfirma' => (bool) (auth()->user()->business->gastronomia_config['qr_confirma'] ?? false),
         ]);
@@ -180,20 +185,21 @@ class GastronomiaController extends Controller
 
     public function guardarCarta(Request $request, int $id)
     {
-        $d = $request->validate(['horario' => 'nullable|array', 'horario.dias' => 'nullable|array', 'horario.dias.*' => 'integer|between:1,7', 'horario.desde' => 'nullable|date_format:H:i', 'horario.hasta' => 'nullable|date_format:H:i', 'va_cocina' => 'boolean', 'estacion' => 'nullable|string|max:30', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
+        $d = $request->validate(['margen_objetivo' => 'nullable|numeric|min:0|max:99', 'horario' => 'nullable|array', 'horario.dias' => 'nullable|array', 'horario.dias.*' => 'integer|between:1,7', 'horario.desde' => 'nullable|date_format:H:i', 'horario.hasta' => 'nullable|date_format:H:i', 'va_cocina' => 'boolean', 'estacion' => 'nullable|string|max:30', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
             'modificadores.*.opciones' => 'required|array|min:1|max:30', 'modificadores.*.opciones.*.nombre' => 'required|string|max:40', 'modificadores.*.opciones.*.precio' => 'nullable|numeric|min:0']);
         $p = Product::findOrFail($id);
         $mods = collect($d['modificadores'] ?? [])->map(fn($g) => ['nombre' => trim($g['nombre']), 'obligatorio' => (bool) ($g['obligatorio'] ?? false), 'multiple' => (bool) ($g['multiple'] ?? false), 'opciones' => collect($g['opciones'])->map(fn($o) => ['nombre' => trim($o['nombre']), 'precio' => round((float) ($o['precio'] ?? 0), 2)])->values()->all()])->values()->all();
-        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []) + (array_key_exists('horario', $d) ? ['horario' => ! empty($d['horario']['desde']) && ! empty($d['horario']['hasta']) ? ['dias' => array_values(array_map('intval', $d['horario']['dias'] ?? [])), 'desde' => $d['horario']['desde'], 'hasta' => $d['horario']['hasta']] : null] : []))->save();
+        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('margen_objetivo', $d) ? ['margen_objetivo' => $d['margen_objetivo']] : []) + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []) + (array_key_exists('horario', $d) ? ['horario' => ! empty($d['horario']['desde']) && ! empty($d['horario']['hasta']) ? ['dias' => array_values(array_map('intval', $d['horario']['dias'] ?? [])), 'desde' => $d['horario']['desde'], 'hasta' => $d['horario']['hasta']] : null] : []))->save();
         return back()->with('success', "{$p->name}: carta guardada.");
     }
 
     // Fase 50: las estaciones y cuántos minutos espera cada una antes de marcar el plato en rojo.
     public function guardarEstaciones(Request $request)
     {
-        $d = $request->validate(['qr_confirma' => 'boolean', 'estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
+        $d = $request->validate(['receta_al_vender' => 'boolean', 'qr_confirma' => 'boolean', 'estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
         $b = $request->user()->business; $cfg = $b->gastronomia_config ?? [];
         if (array_key_exists('qr_confirma', $d)) $cfg['qr_confirma'] = (bool) $d['qr_confirma'];
+        if (array_key_exists('receta_al_vender', $d)) $cfg['receta_al_vender'] = (bool) $d['receta_al_vender'];
         $cfg['estaciones'] = collect($d['estaciones'])->map(fn($e) => ['nombre' => trim($e['nombre']), 'alerta' => (int) $e['alerta']])->values()->all();
         $b->forceFill(['gastronomia_config' => $cfg])->save();
         return back()->with('success', 'Estaciones guardadas.');
@@ -219,5 +225,41 @@ class GastronomiaController extends Controller
         $cfg['happy_hours'] = collect($d['happy_hours'])->map(fn($r) => ['nombre' => trim($r['nombre']), 'activo' => (bool) ($r['activo'] ?? true), 'pct' => (float) $r['pct'], 'desde' => $r['desde'], 'hasta' => $r['hasta'], 'dias' => array_values(array_map('intval', $r['dias'] ?? [])), 'rubros' => array_values(array_map('intval', $r['rubros'] ?? []))])->values()->all();
         $b->forceFill(['gastronomia_config' => $cfg])->save();
         return back()->with('success', 'Happy hour guardado.');
+    }
+
+    // Fase 53: la receta del plato desde la Carta (lo que descuenta cada venta). Guarda con la misma lógica de Producción → Fórmulas.
+    public function guardarReceta(Request $request, int $id, \App\Services\Produccion\ProduccionService $prod)
+    {
+        $d = $request->validate(['items' => 'present|array|max:40', 'items.*.product_id' => 'required|integer', 'items.*.quantity' => 'required|numeric|min:0', 'items.*.unit' => 'nullable|string|max:10']);
+        $p = Product::findOrFail($id);
+        $r = \App\Services\Gastronomia\RecetaVentaService::receta($p);
+        $items = collect($d['items'])->filter(fn($i) => (float) $i['quantity'] > 0)->values()->all();
+        if (! $items) { if ($r) { $r->items()->delete(); $r->delete(); } return back()->with('success', "{$p->name}: receta quitada."); }
+        $prod->guardarFormula(['product_id' => $p->id, 'name' => $p->name, 'yield_quantity' => 1, 'yield_unit' => $p->unit ?: 'un', 'items' => $items], $r);
+        return back()->with('success', "{$p->name}: receta guardada. Costo $ " . number_format(\App\Services\Gastronomia\RecetaVentaService::costo($p->fresh()), 2, ',', '.') . '.');
+    }
+
+    public function sugerirReceta(Request $request, int $id, \App\Services\Gastronomia\RecetaIaService $ia)
+    {
+        return response()->json($ia->sugerir($request->user()->business, Product::findOrFail($id)));
+    }
+
+    // Fase 53 · Llamador: los pedidos de mostrador que se están preparando y los que están listos para retirar. Pantalla para la tele del local.
+    public function llamador(Request $request)
+    {
+        $cs = Comanda::abiertas()->whereIn('tipo', ['mostrador', 'delivery'])->with('items')->orderBy('abierta_en')->get()->map(function ($c) {
+            $its = $c->items->where('estado', '!=', 'anulado'); $listo = $its->isNotEmpty() && $its->every(fn($i) => in_array($i->estado, ['listo', 'entregado'], true));
+            return ['id' => $c->id, 'numero' => $c->numeroFormateado(), 'corto' => (string) ((int) $c->numero % 1000), 'cliente' => $c->cliente, 'tipo' => $c->tipo, 'listo' => $listo, 'avisado' => (bool) $c->aviso_listo_en, 'telefono' => (bool) $c->telefono, 'minutos' => (int) $c->abierta_en->diffInMinutes(now())];
+        });
+        if ($request->wantsJson()) return response()->json($cs);
+        return Inertia::render('Gastronomia/Llamador', ['pedidos' => $cs]);
+    }
+
+    // Marcar un pedido de mostrador como entregado (lo retiró el cliente): queda listo para cobrar o ya cobrado.
+    public function retirado(int $id)
+    {
+        $c = Comanda::findOrFail($id);
+        $c->items()->whereIn('estado', ['listo'])->update(['estado' => 'entregado']);
+        return back();
     }
 }

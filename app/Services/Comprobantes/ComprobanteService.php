@@ -402,6 +402,7 @@ class ComprobanteService
             if ($sentido < 0 && $p->seriado) $this->validarSeries($p, $deposito, $series, (float) $it->cantidad, (bool) $cfgL['exigir_serie']);
             $lote = $sentido < 0 ? ['lote_id' => $it->lote_id, 'series' => $series, 'estricto' => $estricto || ($p->seriado && $series)] : ($c->origen ? ['devolver_de' => $c->origen] : []);
             $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "{$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id, $lote);
+            app(\App\Services\Gastronomia\RecetaVentaService::class)->mover($c, $p, (float) $it->cantidad, $sentido, $deposito); // Fase 53: el plato descuenta su receta
             if ($p->seriado) $this->marcarSeries($c, $p, $sentido);
         }
         $c->forceFill(['stock_impactado' => true])->save();
@@ -440,6 +441,7 @@ class ComprobanteService
             // Anular una venta devuelve a los mismos lotes; anular una nota de crédito los vuelve a sacar (sin frenar por vencidos).
             $lote = $sentido > 0 ? ['devolver_de' => $c] : ['permitir_vencidos' => true, 'incluir_bloqueados' => true];
             $this->stock->mover($p, $sentido * (float) $it->cantidad, $deposito, $sentido > 0 ? 'in' : 'out', "Anulación {$c->nombreTipo()} {$c->numeroFormateado()}", $c, null, $c->business_location_id, $lote);
+            app(\App\Services\Gastronomia\RecetaVentaService::class)->mover($c, $p, (float) $it->cantidad, $sentido, $deposito);
             if ($p->seriado && $sentido > 0) \App\Models\Lote::where('comprobante_venta_id', $c->id)->where('product_id', $p->id)->update(['cliente_id' => null, 'comprobante_venta_id' => null, 'vendido_en' => null, 'garantia_hasta' => null]);
         }
         $c->forceFill(['stock_impactado' => false])->save();

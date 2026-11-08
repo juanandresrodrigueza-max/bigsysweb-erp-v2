@@ -92,6 +92,19 @@ class ComandaService
     {
         abort_unless(array_key_exists($estado, ComandaItem::ESTADOS), 422);
         $item->update(['estado' => $estado] + ($estado === 'listo' ? ['listo_en' => now()] : []));
+        if ($estado === 'listo') $this->avisarSiListo($item->comanda);
+    }
+
+    // Fase 53 · Llamador: cuando el último plato de un pedido de mostrador o delivery queda listo, se le avisa al cliente por WhatsApp (si dejó teléfono).
+    public function avisarSiListo(Comanda $c): void
+    {
+        if (! in_array($c->tipo, ['mostrador', 'delivery'], true) || $c->aviso_listo_en || ! $c->telefono) return;
+        $its = $c->items()->where('estado', '!=', 'anulado')->get();
+        if ($its->isEmpty() || ! $its->every(fn($i) => in_array($i->estado, ['listo', 'entregado'], true))) return;
+        $b = $c->business;
+        $txt = $c->tipo === 'delivery' ? "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} ya salió. ¡Buen provecho!" : "¡Hola! Tu pedido {$c->numeroFormateado()} de {$b->name} está listo para retirar. ¡Te esperamos!";
+        try { app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $c->telefono, $txt); } catch (\Throwable) {}
+        $c->update(['aviso_listo_en' => now()]);
     }
 
     public function pedirCuenta(Comanda $c): void
