@@ -49,6 +49,23 @@ class CrmSaludService
         return Cache::remember("crm_ping_{$b->id}", now()->addMinutes(self::PING_CACHE), $f);
     }
 
+    // Ajustes post Fase 75: la mirada del CRM (su cola hacia el ERP, sus errores), GET /api/v1/erp/salud, misma forma que la nuestra. null si no se puede leer.
+    public function desdeElCrm(Business $b, bool $enVivo = false): ?array
+    {
+        if (! CrmService::activo($b) || CrmService::config($b)['api_key'] === '') return null;
+        $f = function () use ($b) {
+            try {
+                $r = \Illuminate\Support\Facades\Http::timeout(6)->withToken(CrmService::config($b)['api_key'])->acceptJson()->get(CrmService::url($b, '/api/v1/erp/salud'));
+                $d = $r->successful() ? $r->json('data') : null;
+                if (! is_array($d) || ! isset($d['estado'])) return null;
+                return ['estado' => (string) $d['estado'], 'texto' => (string) ($d['texto'] ?? ''), 'cola' => ['pendientes' => (int) ($d['cola']['pendientes'] ?? 0), 'fallidos' => (int) ($d['cola']['fallidos'] ?? 0)],
+                    'errores_24h' => (int) ($d['errores_24h'] ?? 0), 'ok_24h' => (int) ($d['ok_24h'] ?? 0), 'ultimo_enviado' => $d['ultimo_enviado'] ?? null, 'ultimo_recibido' => $d['ultimo_recibido'] ?? null];
+            } catch (\Throwable $e) { return null; }
+        };
+        if ($enVivo) { $r = $f(); Cache::put("crm_salud_crm_{$b->id}", $r, now()->addMinutes(5)); return $r; }
+        return Cache::remember("crm_salud_crm_{$b->id}", now()->addMinutes(5), $f);
+    }
+
     public function resumen(Business $b, bool $pingEnVivo = false): array
     {
         $q = fn() => CrmEvento::where('business_id', $b->id);
@@ -65,7 +82,10 @@ class CrmSaludService
             'amarillo' => ($err24 ? "{$err24} error(es) en las últimas 24 horas (se reintentan solos). " : '') . ($cola['pendientes'] > 20 ? "{$cola['pendientes']} envíos esperando en la cola." : ''),
             default => 'Todo en orden: el CRM responde' . (isset($ping['ms']) ? " en {$ping['ms']} ms" : '') . ", {$ok24} eventos OK en las últimas 24 horas.",
         };
-        return ['estado' => $estado, 'texto' => trim($texto), 'ping' => $ping, 'cola' => $cola, 'errores_24h' => $err24, 'ok_24h' => $ok24,
+        // Las dos miradas: si de nuestro lado está todo bien pero el CRM tiene envíos hacia acá caídos, acá también se ve.
+        $crm = CrmService::activo($b) ? $this->desdeElCrm($b, $pingEnVivo) : null;
+        if ($crm && $estado === 'verde' && in_array($crm['estado'], ['rojo', 'amarillo'], true)) { $estado = 'amarillo'; $texto .= " Del lado del CRM: {$crm['texto']}"; }
+        return ['estado' => $estado, 'texto' => trim($texto), 'ping' => $ping, 'cola' => $cola, 'errores_24h' => $err24, 'ok_24h' => $ok24, 'crm' => $crm,
             'ultimo_enviado' => $ultSalida ? ['cuando' => $ultSalida->created_at->diffForHumans(), 'evento' => $ultSalida->evento, 'referencia' => $ultSalida->referencia] : null,
             'ultimo_recibido' => $ultEntrada ? ['cuando' => $ultEntrada->created_at->diffForHumans(), 'evento' => $ultEntrada->evento, 'referencia' => $ultEntrada->referencia] : null,
             'ultimos' => $ultimos];

@@ -43,6 +43,11 @@
         <table class="table text-xs mt-2"><thead><tr><th>Cuándo</th><th>Sentido</th><th>Evento</th><th>Referencia</th><th>Estado</th><th class="text-right">ms</th><th>Detalle</th></tr></thead>
           <tbody><tr v-for="(e, i) in salud.ultimos" :key="i"><td class="whitespace-nowrap">{{ e.cuando }}</td><td>{{ e.direccion === 'salida' ? 'ERP → CRM' : 'CRM → ERP' }}</td><td class="font-mono">{{ e.evento }}</td><td>{{ e.referencia }}</td><td><span class="badge" :class="e.estado === 'ok' ? 'bg-emerald-50 text-emerald-700' : e.estado === 'ignorado' ? 'bg-gris-light text-marca-muted' : 'bg-carmin-light text-carmin'">{{ e.estado }}{{ e.http ? ' · ' + e.http : '' }}</span></td><td class="text-right tabular-nums">{{ e.ms ?? '' }}</td><td class="text-marca-muted">{{ e.detalle }}</td></tr></tbody></table>
       </details>
+      <div v-if="salud.crm" class="mt-3 rounded-xl border border-marca-borde p-3 text-sm flex flex-wrap items-center gap-2" data-e2e="crm-salud-crm">
+        <span class="inline-block w-2.5 h-2.5 rounded-full" :class="{ 'bg-emerald-500': salud.crm.estado === 'verde', 'bg-amber-400': salud.crm.estado === 'amarillo', 'bg-carmin': salud.crm.estado === 'rojo' }"></span>
+        <b>Lo que ve el CRM:</b><span>{{ salud.crm.texto }}</span>
+        <span class="text-xs text-marca-muted">· {{ salud.crm.cola.pendientes }} en cola hacia el ERP, {{ salud.crm.cola.fallidos }} caídos, {{ salud.crm.ok_24h }} OK en 24 h</span>
+      </div>
       <p class="text-[11px] text-marca-muted mt-2">Se revisa cada 15 minutos: si el CRM deja de responder te llega una alerta, y todos los días a las 6:30 se vuelve a mandar lo de las últimas 48 horas por si algo no llegó.</p>
     </div>
 
