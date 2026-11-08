@@ -62,7 +62,7 @@ class TiendaPublicaController extends Controller
     public function pedirMesa(string $slug, Request $request)
     {
         [$b, $cfg] = $this->negocio($slug, 'menu_activo');
-        $d = $request->validate(['mesa_id' => 'required|integer', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|min:1', 'items.*.notas' => 'nullable|string|max:120', 'nombre' => 'nullable|string|max:60']);
+        $d = $request->validate(['mesa_id' => 'required|integer', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|integer', 'items.*.cantidad' => 'required|numeric|min:1', 'items.*.notas' => 'nullable|string|max:120', 'items.*.modificadores' => 'nullable|array', 'nombre' => 'nullable|string|max:60']);
         $mesa = Mesa::withoutGlobalScopes()->where('business_id', $b->id)->findOrFail($d['mesa_id']);
         $comanda = $mesa->comandaAbierta ?? Comanda::create(['business_id' => $b->id, 'business_location_id' => $mesa->business_location_id, 'mesa_id' => $mesa->id, 'user_id' => $b->owner_id, 'numero' => (Comanda::withoutGlobalScopes()->where('business_id', $b->id)->max('numero') ?? 0) + 1, 'tipo' => 'mesa', 'estado' => 'abierta', 'cubiertos' => 2, 'cliente' => $d['nombre'] ?? null, 'total' => 0, 'propina' => 0, 'descuento' => 0, 'abierta_en' => now()]);
         $ri = ($b->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';
@@ -70,11 +70,28 @@ class TiendaPublicaController extends Controller
         foreach ($d['items'] as $it) {
             $p = Product::withoutGlobalScopes()->where('business_id', $b->id)->find($it['product_id']); if (! $p) continue;
             $al = $ri ? (float) $p->iva : 0;
-            $comanda->items()->create(['product_id' => $p->id, 'descripcion' => $p->name, 'cantidad' => $it['cantidad'], 'precio_unit' => round((float) $p->price * (1 + $al / 100), 2), 'alicuota_iva' => $al, 'notas' => trim(($d['nombre'] ?? '') . ' ' . ($it['notas'] ?? '')) ?: null, 'va_cocina' => $p->va_cocina, 'ronda' => $ronda, 'estado' => $p->va_cocina ? 'cocina' : 'listo', 'enviado_en' => now()]);
+            // Fase 51: el pedido del QR respeta las opciones del plato (obligatorias y con precio) y va a la estación que corresponde.
+            [$mods, $extra] = \App\Services\Gastronomia\ComandaService::modificadores($p, $it['modificadores'] ?? null);
+            $confirma = ! empty($b->gastronomia_config['qr_confirma']);
+            $comanda->items()->create(['product_id' => $p->id, 'descripcion' => mb_substr($p->name . ($mods ? ' (' . implode(', ', array_column($mods, 'nombre')) . ')' : ''), 0, 250), 'modificadores' => $mods ?: null, 'estacion' => $p->estacion ?: ($b->estacionesCocina()[0]['nombre'] ?? 'Cocina'),
+                'cantidad' => $it['cantidad'], 'precio_unit' => round((float) $p->price * (1 + $al / 100), 2) + $extra, 'alicuota_iva' => $al, 'notas' => trim(($d['nombre'] ?? '') . ' ' . ($it['notas'] ?? '')) ?: null, 'va_cocina' => $p->va_cocina, 'ronda' => $ronda,
+                'estado' => $confirma ? 'pedido' : ($p->va_cocina ? 'cocina' : 'listo'), 'enviado_en' => $confirma ? null : now()]);
         }
         $comanda->recalcular();
         \App\Models\Alerta::emitir(['business_id' => $b->id, 'business_location_id' => $mesa->business_location_id, 'modulo' => 'gastronomia', 'tipo' => 'pedido_qr', 'severidad' => 'info', 'titulo' => "Pedido desde el QR de {$mesa->nombre}", 'detalle' => count($d['items']) . ' ítem/s ya en cocina.', 'url' => "/gastronomia/comandas/{$comanda->id}"]);
         return view('tienda.menu_ok', ['b' => $b, 'cfg' => $cfg, 'mesa' => $mesa, 'items' => $d['items'], 'slug' => $slug]);
+    }
+
+    // Fase 51: desde el QR, "Llamar al mozo" o "Pedir la cuenta". Aparece en el salón y como aviso.
+    public function llamarMozo(string $slug, Request $request)
+    {
+        [$b] = $this->negocio($slug, 'menu_activo');
+        $d = $request->validate(['mesa_id' => 'required|integer', 'motivo' => 'required|in:mozo,cuenta']);
+        $mesa = Mesa::withoutGlobalScopes()->where('business_id', $b->id)->where('activa', true)->findOrFail($d['mesa_id']);
+        $c = $mesa->comandaAbierta;
+        if ($c) $c->update(['llamado' => $d['motivo'], 'llamado_en' => now()] + ($d['motivo'] === 'cuenta' ? ['estado' => 'cuenta', 'cuenta_en' => now()] : []));
+        \App\Models\Alerta::emitir(['business_id' => $b->id, 'business_location_id' => $mesa->business_location_id, 'modulo' => 'gastronomia', 'tipo' => 'llamado_mesa', 'severidad' => 'aviso', 'titulo' => ($d['motivo'] === 'cuenta' ? 'Piden la cuenta en ' : 'Llaman al mozo en ') . $mesa->nombre, 'detalle' => 'Desde el QR de la mesa.', 'url' => $c ? "/gastronomia/comandas/{$c->id}" : '/gastronomia']);
+        return back()->with('llamado', $d['motivo']);
     }
 
     public function reservar(string $slug)

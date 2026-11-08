@@ -55,6 +55,7 @@ Route::get('/t/{slug}',                    [\App\Http\Controllers\TiendaPublicaC
 Route::post('/t/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedir'])->middleware('throttle:publico');
 Route::get('/t/{slug}/pedido/{token}',     [\App\Http\Controllers\TiendaPublicaController::class, 'pedido'])->middleware('throttle:publico');
 Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'menu'])->middleware('throttle:publico');
+Route::post('/m/{slug}/llamar',            [\App\Http\Controllers\TiendaPublicaController::class, 'llamarMozo'])->middleware('throttle:10,1');
 Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa'])->middleware('throttle:publico');
 Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar'])->middleware('throttle:publico');
 // Fase 37: el chofer y el cliente siguen el viaje sin usuario; el pase entre sucursales en PDF por link.

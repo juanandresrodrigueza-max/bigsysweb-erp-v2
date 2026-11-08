@@ -46,7 +46,7 @@ class GastronomiaController extends Controller
         $hoy = Comanda::where('estado', 'cerrada')->whereDate('cerrada_en', today());
         return Inertia::render('Gastronomia/Mesas', [
             'mesas' => $mesas->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'capacidad' => $m->capacidad, 'activa' => $m->activa, 'orden' => $m->orden,
-                'comanda' => $m->comandaAbierta ? ['id' => $m->comandaAbierta->id, 'estado' => $m->comandaAbierta->estado, 'total' => (float) $m->comandaAbierta->total, 'minutos' => (int) $m->comandaAbierta->abierta_en->diffInMinutes(now()), 'mozo' => $m->comandaAbierta->mozo?->name, 'cubiertos' => $m->comandaAbierta->cubiertos, 'listos' => $m->comandaAbierta->items->where('estado', 'listo')->count(), 'sin_enviar' => $m->comandaAbierta->items->where('estado', 'pedido')->count()] : null]),
+                'comanda' => $m->comandaAbierta ? ['id' => $m->comandaAbierta->id, 'llamado' => $m->comandaAbierta->llamado, 'llamado_min' => $m->comandaAbierta->llamado_en ? (int) $m->comandaAbierta->llamado_en->diffInMinutes(now()) : null, 'estado' => $m->comandaAbierta->estado, 'total' => (float) $m->comandaAbierta->total, 'minutos' => (int) $m->comandaAbierta->abierta_en->diffInMinutes(now()), 'mozo' => $m->comandaAbierta->mozo?->name, 'cubiertos' => $m->comandaAbierta->cubiertos, 'listos' => $m->comandaAbierta->items->where('estado', 'listo')->count(), 'sin_enviar' => $m->comandaAbierta->items->where('estado', 'pedido')->count()] : null]),
             'otras' => Comanda::abiertas()->whereNull('mesa_id')->with('items', 'mozo:id,name')->orderBy('abierta_en')->get()->map(fn($c) => $this->comandaArr($c)),
             'kpis' => ['abiertas' => Comanda::abiertas()->count(), 'ocupadas' => $mesas->filter(fn($m) => $m->comandaAbierta)->count(), 'mesas' => $mesas->where('activa', true)->count(), 'ventas_hoy' => (float) (clone $hoy)->sum('total'), 'cubiertos_hoy' => (int) (clone $hoy)->sum('cubiertos'), 'comandas_hoy' => (clone $hoy)->count(), 'propinas_hoy' => (float) (clone $hoy)->sum('propina'), 'en_cocina' => ComandaItem::where('estado', 'cocina')->whereHas('comanda', fn($q) => $q->abiertas())->count()],
             'listaSucursales' => $user->business->locations()->where('is_active', true)->get(['id', 'name']),
@@ -79,6 +79,7 @@ class GastronomiaController extends Controller
     public function comanda(int $id)
     {
         $c = Comanda::findOrFail($id);
+        if ($c->llamado) $c->update(['llamado' => null, 'llamado_en' => null]); // el mozo ya la atendió
         return Inertia::render('Gastronomia/Comanda', [
             'comanda' => $this->comandaArr($c),
             'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
@@ -172,7 +173,7 @@ class GastronomiaController extends Controller
     {
         return Inertia::render('Gastronomia/Carta', [
             'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'modificadores' => $p->modificadores ?? []]),
-            'estaciones' => auth()->user()->business->estacionesCocina(),
+            'estaciones' => auth()->user()->business->estacionesCocina(), 'qrConfirma' => (bool) (auth()->user()->business->gastronomia_config['qr_confirma'] ?? false),
         ]);
     }
 
@@ -189,8 +190,9 @@ class GastronomiaController extends Controller
     // Fase 50: las estaciones y cuántos minutos espera cada una antes de marcar el plato en rojo.
     public function guardarEstaciones(Request $request)
     {
-        $d = $request->validate(['estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
+        $d = $request->validate(['qr_confirma' => 'boolean', 'estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
         $b = $request->user()->business; $cfg = $b->gastronomia_config ?? [];
+        if (array_key_exists('qr_confirma', $d)) $cfg['qr_confirma'] = (bool) $d['qr_confirma'];
         $cfg['estaciones'] = collect($d['estaciones'])->map(fn($e) => ['nombre' => trim($e['nombre']), 'alerta' => (int) $e['alerta']])->values()->all();
         $b->forceFill(['gastronomia_config' => $cfg])->save();
         return back()->with('success', 'Estaciones guardadas.');
