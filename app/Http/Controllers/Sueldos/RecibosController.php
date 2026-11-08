@@ -85,6 +85,15 @@ class RecibosController extends Controller
         return view('sueldos.firmar', ['r' => $r, 'b' => $b, 'token' => $token, 'externo' => $r instanceof ReciboExterno, 'empleado' => $r->empleado, 'periodo' => $r instanceof ReciboExterno ? $r->periodo : $r->liquidacion?->periodo]);
     }
 
+    // Fase 65: el recibo explicado en castellano, desde el link del empleado.
+    public function explicar(string $token)
+    {
+        [$r, $b] = $this->svc->porToken($token);
+        if (! $r instanceof LiquidacionItem) return response()->json(['texto' => 'Este recibo vino de afuera del sistema: si tenés dudas, preguntale a quien liquida los sueldos.', 'modo' => 'basico']);
+        $r->setRelation('liquidacion', Liquidacion::withoutGlobalScopes()->find($r->liquidacion_id));
+        return response()->json(app(\App\Services\Sueldos\NovedadesTextoService::class)->explicarRecibo($b, $r));
+    }
+
     public function ver(string $token)
     {
         [$r, $b] = $this->svc->porToken($token);

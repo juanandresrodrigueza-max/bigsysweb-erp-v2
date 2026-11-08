@@ -70,6 +70,7 @@ Route::get('/pase/{token}',                          [\App\Http\Controllers\Stoc
 // Fase 38: el empleado mira y firma su recibo de sueldo desde el link.
 Route::get('/recibo/{token}',        [\App\Http\Controllers\Sueldos\RecibosController::class, 'publico'])->middleware('throttle:publico');
 Route::get('/recibo/{token}/ver',    [\App\Http\Controllers\Sueldos\RecibosController::class, 'ver'])->middleware('throttle:publico');
+Route::get('/recibo/{token}/explicar', [\App\Http\Controllers\Sueldos\RecibosController::class, 'explicar'])->middleware('throttle:publico'); // Fase 65
 Route::post('/recibo/{token}',       [\App\Http\Controllers\Sueldos\RecibosController::class, 'firmar'])->middleware('throttle:publico');
 Route::get('/ot/{token}',                  [\App\Http\Controllers\Servicios\OrdenesController::class, 'publico'])->middleware('throttle:publico');
 Route::post('/ot/{token}',                 [\App\Http\Controllers\Servicios\OrdenesController::class, 'responder'])->middleware('throttle:publico');
@@ -636,6 +637,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/plantilla/{plantilla}', [$c, 'plantilla'])->middleware('permiso:sueldos,editar');
         Route::post('/{id}/deposito', [$c, 'deposito'])->middleware('permiso:sueldos,crear');
         Route::post('/liquidar', [$c, 'liquidar'])->middleware('permiso:sueldos,crear');
+        Route::post('/novedades-texto', [$c, 'novedadesTexto'])->middleware(['permiso:sueldos,crear', 'throttle:20,1']); // Fase 65
         Route::post('/importar', [$c, 'importar'])->middleware('permiso:sueldos,crear');
         Route::post('/{id}/confirmar', [$c, 'confirmar'])->middleware('permiso:sueldos,crear');
         Route::post('/{id}/reabrir', [$c, 'reabrir'])->middleware('permiso:sueldos,anular');

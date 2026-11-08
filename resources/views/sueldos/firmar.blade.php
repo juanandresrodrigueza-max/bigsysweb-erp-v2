@@ -9,7 +9,10 @@
 </style></head><body>
 <div class="top"><h1>{{ $b->name }}</h1><div style="opacity:.9;font-size:13px">Recibo de sueldo {{ $per }} · {{ $empleado?->nombre }}</div></div>
 <div class="wrap">
-  <div class="card"><iframe src="/recibo/{{ $token }}/ver" title="Recibo"></iframe><p class="muted"><a href="/recibo/{{ $token }}/ver" target="_blank">Abrir el recibo en otra pestaña</a></p></div>
+  <div class="card"><iframe src="/recibo/{{ $token }}/ver" title="Recibo"></iframe><p class="muted"><a href="/recibo/{{ $token }}/ver" target="_blank">Abrir el recibo en otra pestaña</a>
+    @if(!$externo) · <a href="#" id="exp-btn" onclick="explicar();return false">¿Qué significa cada renglón? Te lo explico</a>@endif</p>
+    <div id="exp" class="muted" style="display:none;white-space:pre-line;font-size:14px;color:#2b2a27;background:#f6f3ee;border-radius:10px;padding:10px 12px;margin-top:8px"></div></div>
+  <script>function explicar(){var e=document.getElementById('exp');e.style.display='block';e.textContent='Un momento…';fetch('/recibo/{{ $token }}/explicar',{headers:{Accept:'application/json'}}).then(function(r){return r.json()}).then(function(d){e.textContent=d.texto||'No pude armar la explicación.';document.getElementById('exp-btn').style.display='none'}).catch(function(){e.textContent='No pude armar la explicación. Probá de nuevo.'})}</script>
   @if($r->firmado_en)
     <div class="card ok"><b>Firmado</b> el {{ $r->firmado_en->format('d/m/Y H:i') }}{{ $r->conformidad === 'disconforme' ? ' en disconformidad' : '' }}. Gracias.</div>
   @else
