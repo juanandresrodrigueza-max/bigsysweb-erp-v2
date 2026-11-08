@@ -41,8 +41,10 @@ class ComandaService
         $al = $ri ? (float) ($p?->iva ?? 21) : 0;
         // Fase 49: modificadores elegidos ("Jugoso", "+ Queso"): se validan contra la carta, suman su precio y viajan a cocina.
         [$mods, $extra] = $p ? self::modificadores($p, $it['modificadores'] ?? null) : [null, 0];
-        $precio = $it['precio_unit'] ?? ($p ? round((float) $p->price * (1 + $al / 100), 2) + $extra : 0);   // precio final de carta
-        $desc = $it['descripcion'] ?? $p?->name ?? 'Ítem';
+        // Fase 52: happy hour (descuento por franja) sobre el precio de carta.
+        $hh = $p && ! isset($it['precio_unit']) ? HorariosService::happyHour(Auth::user()->business, $p) : null;
+        $precio = $it['precio_unit'] ?? ($p ? HorariosService::aplicar(round((float) $p->price * (1 + $al / 100), 2), $hh) + $extra : 0);   // precio final de carta
+        $desc = $it['descripcion'] ?? ($p ? $p->name . ($hh ? " [{$hh['nombre']}]" : '') : 'Ítem');
         if ($mods && ! isset($it['descripcion'])) $desc .= ' (' . implode(', ', array_column($mods, 'nombre')) . ')';
         $item = $c->items()->create([
             'product_id' => $p?->id, 'estacion' => $p?->estacion ?: (Auth::user()->business->estacionesCocina()[0]['nombre'] ?? 'Cocina'), 'descripcion' => mb_substr($desc, 0, 250), 'cantidad' => $it['cantidad'] ?? 1, 'modificadores' => $mods ?: null,

@@ -77,6 +77,11 @@ class Gestion
                 'descripcion' => 'Los pases de mercadería entre sucursales: los que están en viaje, los que llegaron con diferencias, los pedidos de las sucursales sin armar y lo que está en un proveedor por cambio o devolución.',
                 'parametros' => [],
                 'ejecutar' => fn(User $u, array $a) => ['pases' => TransferenciaStock::with('origen', 'destino', 'items.product')->whereIn('estado', ['en_viaje', 'con_diferencias', 'pedido', 'en_proveedor'])->latest('id')->limit(20)->get()->map(fn($t) => app(\App\Services\Stock\PasesService::class)->resumen($t) + ['url' => Busca::url("/stock/pases/{$t->id}")])->map(fn($r) => collect($r)->except('token')->all())->all()]],
+            // Fase 52: el salón en números, de palabra ("¿cómo vino el mozo Juan?", "¿qué plato sale más?", "¿cuánto tarda la parrilla?").
+            ['nombre' => 'resumen_gastronomia', 'titulo' => 'Salón y cocina', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Ventas del salón por mozo y por hora, ticket promedio, cubiertos, propinas, platos más pedidos y tiempos de cocina por estación, en un período.',
+                'parametros' => ['desde' => ['type' => 'string', 'description' => 'YYYY-MM-DD; por defecto el 1 del mes'], 'hasta' => ['type' => 'string']],
+                'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\ReporteService::class)->datos(\Carbon\Carbon::parse($a['desde'] ?? now()->startOfMonth()), \Carbon\Carbon::parse($a['hasta'] ?? now())) + ['url' => Busca::url('/estadisticas/gastronomia')]],
             // Fase 48: el inductor. Bigcito sabe cómo trabaja la empresa, qué dijo que iba a usar y qué no arrancó.
             ['nombre' => 'como_trabaja_la_empresa', 'titulo' => 'Cómo trabaja la empresa y qué le falta arrancar', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Lo que la empresa contestó en la entrevista de bienvenida (rubro, cómo vende, stock, reparto, tienda, sueldos...), lo que dijo que iba a usar y todavía no usa, y las preguntas pendientes. Usala con usuarios nuevos para guiarlos paso a paso.',

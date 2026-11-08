@@ -569,6 +569,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/estadisticas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'index'])->middleware('permiso:estadisticas');
     Route::get('/estadisticas/ventas', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'ventas'])->middleware(['permiso:estadisticas', 'parte:ventas']);
     Route::get('/estadisticas/analista', [\App\Http\Controllers\Estadisticas\AnalistaController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:analista']);
+    Route::get('/estadisticas/gastronomia', [\App\Http\Controllers\Estadisticas\EstadisticasController::class, 'gastronomia'])->middleware(['permiso:estadisticas', 'parte:gastronomia']);
     Route::get('/estadisticas/vendedores', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'index'])->middleware(['permiso:estadisticas', 'parte:vendedores']);
     Route::get('/estadisticas/vendedores/relevamiento/{id}/foto', [\App\Http\Controllers\Estadisticas\VendedoresController::class, 'foto'])->middleware('permiso:clientes')->whereNumber('id');
     Route::get('/buscar/global', [\App\Http\Controllers\BuscarController::class, 'global']);
@@ -757,6 +758,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/comandas/{id}/anular',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'anular'])->middleware('permiso:gastronomia,editar');
         Route::post('/items/{item}/estado',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'itemEstado'])->middleware('permiso:gastronomia,editar');
         Route::get('/cocina',                         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cocina']);
+        Route::post('/happy-hours',                   [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarHappyHours'])->middleware('permiso:gastronomia,editar');
         Route::post('/estaciones',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarEstaciones'])->middleware('permiso:gastronomia,editar');
         Route::get('/comandas/{id}/imprimir',         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'imprimir']);
         Route::get('/carta',                          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'carta']);

@@ -10,7 +10,7 @@
         <div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #f2efea">
           @if ($p['imagen']) <img src="{{ $p['imagen'] }}" style="width:56px;height:56px;border-radius:10px;object-fit:cover" alt=""> @endif
           <div style="flex:1;min-width:0"><div style="font-weight:700">{{ $p['nombre'] }}</div>@if ($p['descripcion'])<div class="muted">{{ $p['descripcion'] }}</div>@endif</div>
-          <div style="font-weight:800;color:var(--c);white-space:nowrap">{{ $fmt($p['precio']) }}</div>
+          <div style="font-weight:800;color:var(--c);white-space:nowrap;text-align:right">@if (! empty($p['hh']))<div style="font-size:11px;color:#888;text-decoration:line-through;font-weight:400">{{ $fmt($p['precio_antes']) }}</div>@endif{{ $fmt($p['precio']) }}@if (! empty($p['hh']))<div style="font-size:10px;font-weight:700">{{ $p['hh'] }}</div>@endif</div>
           @if ($mesa) <div class="qty" style="margin:0"><button type="button" onclick="cambiar({{ $p['id'] }}, -1)">−</button><span id="q{{ $p['id'] }}">0</span><button type="button" onclick="sumar({{ $p['id'] }})">+</button></div> @endif
         </div>
       @endforeach

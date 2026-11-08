@@ -56,6 +56,13 @@ class TiendaPublicaController extends Controller
         [$b, $cfg] = $this->negocio($slug, 'menu_activo');
         $mesa = $request->mesa ? Mesa::withoutGlobalScopes()->where('business_id', $b->id)->where('activa', true)->find($request->mesa) : null;
         $cat = $this->tienda->catalogo($b);
+        // Fase 52: sólo lo que se sirve a esta hora, con el precio de happy hour si corresponde.
+        $prods = \App\Models\Product::withoutGlobalScopes()->where('business_id', $b->id)->get(['id', 'horario', 'rubro_id'])->keyBy('id');
+        $cat['rubros'] = collect($cat['rubros'])->map(function ($r) use ($prods, $b) {
+            $r['items'] = collect($r['items'])->filter(fn($i) => ! isset($prods[$i['id']]) || \App\Services\Gastronomia\HorariosService::disponible($prods[$i['id']]))
+                ->map(function ($i) use ($prods, $b) { $hh = isset($prods[$i['id']]) ? \App\Services\Gastronomia\HorariosService::happyHour($b, $prods[$i['id']]) : null; if ($hh) { $i['precio_antes'] = $i['precio']; $i['precio'] = \App\Services\Gastronomia\HorariosService::aplicar((float) $i['precio'], $hh); $i['hh'] = $hh['nombre']; } return $i; })->values()->all();
+            return $r;
+        })->filter(fn($r) => $r['items'])->values()->all();
         return view('tienda.menu', ['b' => $b, 'cfg' => $cfg, 'cat' => $cat, 'mesa' => $mesa]);
     }
 
@@ -74,7 +81,7 @@ class TiendaPublicaController extends Controller
             [$mods, $extra] = \App\Services\Gastronomia\ComandaService::modificadores($p, $it['modificadores'] ?? null);
             $confirma = ! empty($b->gastronomia_config['qr_confirma']);
             $comanda->items()->create(['product_id' => $p->id, 'descripcion' => mb_substr($p->name . ($mods ? ' (' . implode(', ', array_column($mods, 'nombre')) . ')' : ''), 0, 250), 'modificadores' => $mods ?: null, 'estacion' => $p->estacion ?: ($b->estacionesCocina()[0]['nombre'] ?? 'Cocina'),
-                'cantidad' => $it['cantidad'], 'precio_unit' => round((float) $p->price * (1 + $al / 100), 2) + $extra, 'alicuota_iva' => $al, 'notas' => trim(($d['nombre'] ?? '') . ' ' . ($it['notas'] ?? '')) ?: null, 'va_cocina' => $p->va_cocina, 'ronda' => $ronda,
+                'cantidad' => $it['cantidad'], 'precio_unit' => \App\Services\Gastronomia\HorariosService::aplicar(round((float) $p->price * (1 + $al / 100), 2), \App\Services\Gastronomia\HorariosService::happyHour($b, $p)) + $extra, 'alicuota_iva' => $al, 'notas' => trim(($d['nombre'] ?? '') . ' ' . ($it['notas'] ?? '')) ?: null, 'va_cocina' => $p->va_cocina, 'ronda' => $ronda,
                 'estado' => $confirma ? 'pedido' : ($p->va_cocina ? 'cocina' : 'listo'), 'enviado_en' => $confirma ? null : now()]);
         }
         $comanda->recalcular();
