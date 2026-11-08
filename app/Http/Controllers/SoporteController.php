@@ -24,7 +24,8 @@ class SoporteController extends Controller
 
     private function fila(Ticket $t): array
     {
-        return ['id' => $t->id, 'numero' => $t->numero(), 'asunto' => $t->asunto, 'categoria' => Ticket::CATEGORIAS[$t->categoria] ?? $t->categoria, 'prioridad' => $t->prioridad, 'estado' => $t->estado, 'usuario' => $t->user?->name, 'empresa' => $t->relationLoaded('business') ? $t->business?->name : null, 'business_id' => $t->business_id, 'creado' => $t->created_at->format('d/m/Y H:i'), 'ultimo' => $t->ultimo_mensaje_en?->diffForHumans(), 'mensajes' => collect($t->mensajes)->map(fn($m) => $m + ['fecha_f' => \Carbon\Carbon::parse($m['fecha'])->format('d/m/Y H:i')])->all()];
+        return ['id' => $t->id, 'numero' => $t->numero(), 'asunto' => $t->asunto, 'categoria' => Ticket::CATEGORIAS[$t->categoria] ?? $t->categoria, 'prioridad' => $t->prioridad, 'estado' => $t->estado, 'usuario' => $t->user?->name, 'empresa' => $t->relationLoaded('business') ? $t->business?->name : null, 'business_id' => $t->business_id, 'creado' => $t->created_at->format('d/m/Y H:i'), 'ultimo' => $t->ultimo_mensaje_en?->diffForHumans(), 'mensajes' => collect($t->mensajes)->map(fn($m) => $m + ['fecha_f' => \Carbon\Carbon::parse($m['fecha'])->format('d/m/Y H:i')])->all(),
+            'ultimo_de' => collect($t->mensajes)->last()['de'] ?? null, 'bigcito_espera' => $t->estado === 'abierto' && (collect($t->mensajes)->last()['de'] ?? '') === 'bigcito' && empty(collect($t->mensajes)->last()['escalado'])];
     }
 
     public function crear(Request $request)
@@ -33,7 +34,8 @@ class SoporteController extends Controller
         $t = Ticket::create(['business_id' => $request->user()->business_id, 'user_id' => $request->user()->id, 'asunto' => $d['asunto'], 'categoria' => $d['categoria'], 'prioridad' => $d['prioridad'], 'estado' => 'abierto', 'mensajes' => []]);
         $t->agregar('empresa', $request->user(), $d['mensaje']);
         AuditLog::registrar('crear', $t, "Abrió el ticket {$t->numero()}: {$t->asunto}");
-        return back()->with('success', "Ticket {$t->numero()} enviado. Te respondemos acá y por mail.");
+        $bc = app(\App\Services\IA\SoporteIaService::class)->atender($t, $d['asunto'] . ". " . $d['mensaje']); // Fase 67: Bigcito responde primero con las guías
+        return redirect("/soporte?abrir={$t->id}")->with('success', "Ticket {$t->numero()} enviado. " . ($bc['escalado'] ? 'Lo ve el equipo de BigSys: te responden acá y por mail.' : 'Bigcito ya te dejó una respuesta; si no te sirve, te responde una persona.'));
     }
 
     public function responder(Request $request, int $id)
@@ -41,6 +43,7 @@ class SoporteController extends Controller
         $d = $request->validate(['mensaje' => 'required|string|max:4000']);
         $t = Ticket::findOrFail($id);
         $t->agregar('empresa', $request->user(), $d['mensaje']);
+        app(\App\Services\IA\SoporteIaService::class)->seguimiento($t, $d['mensaje']); // Fase 67: "no me sirvió" → una persona
         return back()->with('success', 'Respuesta enviada.');
     }
 
@@ -57,7 +60,7 @@ class SoporteController extends Controller
         $q = Ticket::withoutGlobalScopes()->with(['user:id,name', 'business:id,name'])->when($request->estado, fn($q, $e) => $q->where('estado', $e), fn($q) => $q->where('estado', '!=', 'cerrado'))->orderByRaw("CASE prioridad WHEN 'alta' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END")->latest('ultimo_mensaje_en');
         return Inertia::render('Superadmin/Soporte', [
             'tickets' => $q->get()->map(fn($t) => $this->fila($t)), 'filtros' => $request->only('estado'),
-            'kpis' => ['abiertos' => Ticket::withoutGlobalScopes()->where('estado', 'abierto')->count(), 'respondidos' => Ticket::withoutGlobalScopes()->where('estado', 'respondido')->count(), 'cerrados_mes' => Ticket::withoutGlobalScopes()->where('estado', 'cerrado')->where('cerrado_en', '>=', now()->startOfMonth())->count()],
+            'kpis' => ['bigcito' => \App\Services\IA\SoporteIaService::esperandoConfirmacion(Ticket::withoutGlobalScopes()->where('estado', 'abierto')->get()), 'abiertos' => Ticket::withoutGlobalScopes()->where('estado', 'abierto')->count(), 'respondidos' => Ticket::withoutGlobalScopes()->where('estado', 'respondido')->count(), 'cerrados_mes' => Ticket::withoutGlobalScopes()->where('estado', 'cerrado')->where('cerrado_en', '>=', now()->startOfMonth())->count()],
             'abrirId' => (int) $request->abrir ?: null,
         ]);
     }

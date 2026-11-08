@@ -5,6 +5,7 @@
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1"><Link v-for="e in [['', 'Pendientes'], ['abierto', 'Sin responder'], ['respondido', 'Respondidos'], ['cerrado', 'Cerrados']]" :key="e[0]" :href="`/admin/soporte${e[0] ? '?estado=' + e[0] : ''}`" class="px-3 py-1 rounded-full text-xs font-semibold" :class="(filtros.estado ?? '') === e[0] ? 'bg-carmin text-white' : 'text-marca-muted'">{{ e[1] }}</Link></div>
     </div>
     <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="card py-3" title="Bigcito ya respondió con las guías y la empresa todavía no dijo si le sirvió"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">✦ Atendidos por Bigcito</p><p class="text-xl font-extrabold tabular-nums text-violeta">{{ kpis.bigcito }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Sin responder</p><p class="text-xl font-extrabold tabular-nums" :class="kpis.abiertos ? 'text-carmin' : ''">{{ kpis.abiertos }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Esperando a la empresa</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.respondidos }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Cerrados este mes</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.cerrados_mes }}</p></div>
@@ -24,7 +25,7 @@
         <p class="text-xs text-marca-muted">{{ sel.numero }} · <Link :href="`/admin/empresas/${sel.business_id}`" class="underline">{{ sel.empresa }}</Link> · {{ sel.categoria }} · {{ sel.usuario }} · {{ sel.creado }}</p>
         <h2 class="font-bold text-lg mb-3">{{ sel.asunto }}</h2>
         <div class="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
-          <div v-for="(m, i) in sel.mensajes" :key="i" class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm" :class="m.de === 'soporte' ? 'bg-lavanda-light ml-auto' : 'bg-marca-fondo'"><p class="text-[11px] font-bold text-marca-muted">{{ m.de === 'soporte' ? 'Soporte · ' + m.usuario : m.usuario }} · {{ m.fecha_f }}</p><p class="whitespace-pre-wrap">{{ m.texto }}</p></div>
+          <div v-for="(m, i) in sel.mensajes" :key="i" class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm" :class="m.de === 'soporte' ? 'bg-lavanda-light ml-auto' : m.de === 'bigcito' ? 'bg-violeta/10 border border-violeta/20' : 'bg-marca-fondo'"><p class="text-[11px] font-bold text-marca-muted">{{ m.de === 'soporte' ? 'Soporte · ' + m.usuario : m.de === 'bigcito' ? '✦ Bigcito' + (m.escalado ? ' · derivó al equipo' : ' · respondió con las guías') : m.usuario }} · {{ m.fecha_f }}</p><p class="whitespace-pre-wrap">{{ m.texto }}</p></div>
         </div>
         <form @submit.prevent="enviar(false)" class="mt-3 space-y-2">
           <textarea v-model="resp.mensaje" rows="3" class="input" placeholder="Respuesta para la empresa…"></textarea>
