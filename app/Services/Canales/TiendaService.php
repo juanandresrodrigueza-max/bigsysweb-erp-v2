@@ -72,7 +72,7 @@ class TiendaService
                     if ($dl['descuento'] !== null) $precio = round($precio * (1 - $dl['descuento'] / 100), 2);
                 } elseif (($dq = $p->descuentoPorCantidad($cant)) > 0) $precio = round($precio * (1 - $dq / 100), 2);
             } else { $precio = (float) ($it['precio_unit'] ?? 0); }
-            if (isset($it['precio_unit']) && in_array($canal, ['mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'pedidosya', 'rappi'], true)) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
+            if (isset($it['precio_unit']) && in_array($canal, ['mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'pedidosya', 'rappi', 'ubereats'], true)) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
             $items[] = ['product_id' => $p?->id, 'descripcion' => $p?->name ?? ($it['descripcion'] ?? 'Ítem'), 'cantidad' => $cant, 'precio_unit' => $precio, 'total' => round($cant * $precio, 2), 'unit' => $p?->unit] + array_filter(['external_item' => $it['external_item'] ?? null, 'variante' => $it['variante'] ?? null]);
             $subtotal += round($cant * $precio, 2);
         }

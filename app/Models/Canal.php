@@ -29,6 +29,7 @@ class Canal extends Model
         'shopify' => ['label' => 'Shopify', 'campos' => ['tienda' => 'Dirección .myshopify.com', 'access_token' => 'Token de acceso de la Admin API (shpat_…)', 'secret' => 'Clave secreta de la API'], 'ayuda' => 'Configuración → Apps y canales de venta → Desarrollar apps → Crear una app con lectura y escritura de productos, inventario, pedidos, preparación y ubicaciones. El token se ve una sola vez. La clave secreta es obligatoria: con ella se verifica cada aviso de venta.'],
         'empretienda' => ['label' => 'Empretienda', 'campos' => [], 'ayuda' => 'Empretienda no tiene API: se arma la planilla que su panel importa (Stock → Tienda online) y las fotos en un ZIP. Los precios y el stock se actualizan cada vez que subís la planilla.'],
         'pedidosya' => ['label' => 'PedidosYa', 'campos' => ['vendor_id' => 'ID de local'], 'ayuda' => 'Los pedidos entran por el webhook de entrada (pegá la URL en el panel de PedidosYa o en tu integrador).'],
+        'ubereats' => ['label' => 'Uber Eats', 'campos' => ['store_id' => 'ID de tienda (Store UUID)'], 'ayuda' => 'Los pedidos entran por el webhook de entrada (pegá la URL en tu integrador de Uber Eats o en el panel de Uber Eats Manager si tenés la API habilitada).'],
         'rappi' => ['label' => 'Rappi', 'campos' => ['store_id' => 'ID de tienda'], 'ayuda' => 'Los pedidos entran por el webhook de entrada (pegá la URL en el panel de Rappi o en tu integrador).'],
     ];
 

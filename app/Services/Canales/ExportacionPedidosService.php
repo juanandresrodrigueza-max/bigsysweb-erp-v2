@@ -19,7 +19,7 @@ class ExportacionPedidosService
         // El día es el argentino: un pedido de las 22:00 es de ese día.
         return PedidoWeb::with('comprobante', 'contact')->whereBetween('created_at', [Carbon::parse($desde)->startOfDay(), Carbon::parse($hasta)->endOfDay()])
             ->whereNotIn('canal', ['pos', 'calle'])
-            ->when($plataforma === 'otros', fn($q) => $q->whereNotIn('canal', ['tienda', 'portal', 'whatsapp', 'mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'pedidosya', 'rappi', 'menu_qr']))
+            ->when($plataforma === 'otros', fn($q) => $q->whereNotIn('canal', ['tienda', 'portal', 'whatsapp', 'mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'pedidosya', 'rappi', 'ubereats', 'menu_qr']))
             ->when($plataforma && $plataforma !== 'otros', fn($q) => $q->where('canal', $plataforma))
             ->when($estado, fn($q) => $q->where('estado', $estado))->orderBy('created_at')->get();
     }
