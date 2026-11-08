@@ -362,6 +362,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::delete('/previsiones/{id}',     [\App\Http\Controllers\Fondos\PrevisionesController::class, 'eliminar'])->middleware('permiso:fondos,editar');
         Route::post('/previsiones/{id?}',      [\App\Http\Controllers\Fondos\PrevisionesController::class, 'guardar'])->middleware('permiso:fondos,crear');
         Route::post('/cuentas/{id?}',          [FondosController::class, 'guardarCuenta'])->middleware('permiso:fondos,editar');
+        Route::get('/sugerir-categoria', [\App\Http\Controllers\Fondos\FondosController::class, 'sugerirCategoria']);
         Route::post('/movimiento',             [FondosController::class, 'movimiento'])->middleware('permiso:fondos,crear');
         Route::post('/transferir',             [FondosController::class, 'transferir'])->middleware('permiso:fondos,crear');
         Route::post('/categorias',             [FondosController::class, 'guardarCategoria'])->middleware('permiso:fondos,crear');
@@ -546,6 +547,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/conciliacion/{id}/registrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/clasificar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'clasificar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/recibo',   [\App\Http\Controllers\Contable\ConciliacionController::class, 'recibo'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/clasificar-ia',  [\App\Http\Controllers\Contable\ConciliacionController::class, 'clasificarIa'])->middleware(['permiso:contable,crear', 'throttle:10,1']);
         Route::post('/conciliacion/registrar-grupo', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrarGrupo'])->middleware('permiso:contable,crear');
         Route::get('/fiscal',                      [\App\Http\Controllers\Contable\FiscalController::class, 'index']);
         Route::get('/fiscal/exportar',             [\App\Http\Controllers\Contable\FiscalController::class, 'exportar'])->middleware('permiso:contable,exportar');

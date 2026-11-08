@@ -71,9 +71,19 @@ class FondosController extends Controller
     {
         $data = $request->validate(['cuenta_fondos_id' => 'required|integer', 'fecha' => 'required|date', 'tipo' => 'required|in:ingreso,egreso', 'monto' => 'required|numeric|gt:0', 'concepto' => 'required|string|max:255', 'expense_category_id' => 'nullable|integer', 'referencia' => 'nullable|string|max:120']);
         $cuenta = CuentaFondos::findOrFail($data['cuenta_fondos_id']);
+        // Fase 58: si no eligió categoría, se clasifica sola; si eligió, el sistema aprende para la próxima.
+        $auto = null; $clas = app(\App\Services\Contabilidad\ClasificadorGastosService::class);
+        if ($data['tipo'] === 'egreso') { if (empty($data['expense_category_id'])) { $auto = $clas->sugerir($request->user()->business, $data['concepto']); $data['expense_category_id'] = $auto['expense_category_id'] ?? null; } else $clas->aprender($request->user()->business, $data['concepto'], (int) $data['expense_category_id']); }
         $m = $this->service->registrar($cuenta, ['fecha' => $data['fecha'], 'origen' => $data['tipo'] === 'egreso' ? 'gasto' : 'ingreso', 'expense_category_id' => $data['expense_category_id'] ?? null, 'concepto' => $data['concepto'], $data['tipo'] => $data['monto'], 'referencia' => $data['referencia'] ?? null]);
         AuditLog::registrar('crear', $m, ucfirst($data['tipo']) . " manual en {$cuenta->nombre}: {$data['concepto']} $ " . number_format((float) $data['monto'], 2, ',', '.'));
-        return back()->with('success', 'Movimiento registrado.');
+        return back()->with('success', 'Movimiento registrado.' . ($auto ? " Categoría: {$auto['nombre']} (puesta sola; si no es, cambiala y lo aprende)." : ''));
+    }
+
+    // Fase 58: mientras escribe el concepto, la categoría sugerida.
+    public function sugerirCategoria(Request $request)
+    {
+        $d = $request->validate(['concepto' => 'required|string|max:255', 'ia' => 'boolean']);
+        return response()->json(app(\App\Services\Contabilidad\ClasificadorGastosService::class)->sugerir($request->user()->business, $d['concepto'], (bool) ($d['ia'] ?? false)) ?? ['expense_category_id' => null]);
     }
 
     public function transferir(Request $request)

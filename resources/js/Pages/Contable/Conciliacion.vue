@@ -38,7 +38,7 @@
                   <template v-if="puede('contable','crear')">
                     <template v-if="it.estado === 'pendiente'">
                       <button @click="vincular = it" class="btn-ghost !px-2 text-xs">Vincular</button>
-                      <button @click="registrar = { ...it, expense_category_id: null, concepto: it.descripcion }" class="btn-ghost !px-2 text-xs text-violeta">Registrar</button>
+                      <button @click="registrar = { ...it, expense_category_id: it.categoria?.id ?? null, concepto: it.descripcion }" class="btn-ghost !px-2 text-xs text-violeta">Registrar</button>
                       <Link :href="`/contable/conciliacion/${it.id}/ignorar`" method="post" as="button" preserve-scroll class="btn-ghost !px-2 text-xs">Ignorar</Link>
                     </template>
                     <Link v-else-if="it.estado === 'conciliado'" :href="`/contable/conciliacion/${it.id}/desvincular`" method="post" as="button" preserve-scroll class="btn-ghost !px-2 text-xs text-carmin">Deshacer</Link>
@@ -65,6 +65,7 @@
       <div class="card lg:col-span-2">
         <h2 class="font-bold mb-1">Está en el banco y no en el sistema</h2>
         <p class="text-xs text-marca-muted mb-2">La lista para cargar, por concepto. Las acreditaciones de tarjetas van aparte: en el sistema son cupones, se concilian en Fondos → Conciliar.</p>
+        <button v-if="puede('contable','crear') && $page.props.auth?.ia" class="btn-secondary !py-1 text-xs mb-2" @click="router.post('/contable/conciliacion/clasificar-ia', { cuenta: cuentaId }, { preserveScroll: true })" data-e2e="clasificar-ia">✦ Clasificar con IA lo que no tiene categoría</button>
         <p v-if="cajones.aviso_centralizadora" class="rounded-lg bg-amber-50 text-amber-800 text-xs px-3 py-1.5 mb-2">{{ cajones.aviso_centralizadora }}</p>
         <details v-for="g in cajones.solo_banco.grupos" :key="g.clase" class="border-t border-marca-borde py-1.5 text-sm" :data-grupo="g.clase">
           <summary class="flex items-center justify-between gap-2 cursor-pointer"><span><b>{{ g.nombre }}</b> <span class="text-xs text-marca-muted">· {{ g.cantidad }}</span></span>
@@ -72,7 +73,7 @@
               <button v-if="g.es_gasto && puede('contable','crear')" class="btn-primary !py-0.5 !px-2 text-xs" @click.prevent="router.post('/contable/conciliacion/registrar-grupo', { cuenta: cuentaId, clase: g.clase }, { preserveScroll: true })" :data-registrar="g.clase">Registrar todos</button>
               <Link v-else-if="g.clase === 'tarjeta'" href="/fondos/conciliar" class="text-xs text-violeta font-semibold">Conciliar tarjetas →</Link></span></summary>
           <div v-for="it in g.items" :key="it.id" class="flex justify-between gap-2 text-xs py-0.5 pl-3">
-            <span>{{ it.fecha }} · {{ it.descripcion }}<span v-if="it.aprendido" class="text-violeta"> · aprendido</span></span>
+            <span>{{ it.fecha }} · {{ it.descripcion }}<span v-if="it.aprendido" class="text-violeta"> · aprendido</span><span v-if="it.categoria" class="badge bg-marca-fondo text-marca-muted ml-1" :title="'Categoría sugerida (' + it.categoria.origen + ')'">{{ it.categoria.nombre }}</span></span>
             <span class="flex items-center gap-2"><span class="tabular-nums">{{ moneda(it.monto) }}</span>
               <template v-if="it.monto > 0 && puede('clientes','crear')">
                 <button v-if="deClientes[it.id]" class="btn-primary !py-0.5 !px-2 text-[11px]" @click="hacerRecibo(it.id, deClientes[it.id].contact_id)" :data-recibo="it.id" :title="'Reconocido por ' + deClientes[it.id].por">Recibo a {{ deClientes[it.id].cliente }}</button>

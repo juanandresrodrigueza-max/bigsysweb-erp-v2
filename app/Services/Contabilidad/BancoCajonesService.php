@@ -78,9 +78,11 @@ class BancoCajonesService
         $pend = ExtractoItem::where('cuenta_fondos_id', $cuenta->id)->where('estado', 'pendiente')->orderBy('fecha')->get();
         $soloSistema = MovimientoFondos::where('cuenta_fondos_id', $cuenta->id)->where('conciliado', false)->orderBy('fecha')->get();
         $grupos = [];
+        $clas = app(ClasificadorGastosService::class); $b = $cuenta->business;
         foreach ($pend as $it) {
             $c = $this->clasificar($it->descripcion, $aprendidos);
-            $grupos[$c['clase']]['items'][] = ['id' => $it->id, 'fecha' => $it->fecha->format('d/m/Y'), 'descripcion' => $it->descripcion, 'monto' => (float) $it->monto, 'aprendido' => $c['aprendido']];
+            $cat = (float) $it->monto < 0 ? $clas->sugerir($b, $it->descripcion, false) : null; // Fase 58: la categoría de gasto sugerida (sin IA acá; la IA va con el botón)
+            $grupos[$c['clase']]['items'][] = ['id' => $it->id, 'fecha' => $it->fecha->format('d/m/Y'), 'descripcion' => $it->descripcion, 'monto' => (float) $it->monto, 'aprendido' => $c['aprendido'], 'categoria' => $cat ? ['id' => $cat['expense_category_id'], 'nombre' => $cat['nombre'], 'origen' => $cat['origen']] : null];
         }
         $orden = array_keys(self::CLASES);
         $grupos = collect($grupos)->map(fn($g, $k) => ['clase' => $k, 'nombre' => self::CLASES[$k], 'es_gasto' => in_array($k, self::SON_GASTO, true), 'cantidad' => count($g['items']), 'monto' => round(array_sum(array_column($g['items'], 'monto')), 2), 'items' => $g['items']])->sortBy(fn($g) => array_search($g['clase'], $orden))->values()->all();
