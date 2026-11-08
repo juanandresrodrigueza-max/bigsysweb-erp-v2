@@ -15,29 +15,31 @@ class WhatsappPedidosService
 {
     public function __construct(private TiendaService $tienda) {}
 
-    public function interpretar(Business $b, string $texto): array
+    public function interpretar(Business $b, string $texto, bool $resto = false): array
     {
-        $catalogo = Product::withoutGlobalScopes()->where('business_id', $b->id)->where('active', true)->where('en_tienda', true)->whereIn('tipo', ['producto', 'elaborado', 'servicio'])->get(['id', 'name', 'sku', 'unit', 'price']);
-        $res = config('services.anthropic.api_key') ? $this->conIa($b, $texto, $catalogo) : null;
+        // Big Restó: toda la carta (no sólo lo publicado en la tienda) y las opciones de cada plato.
+        $catalogo = Product::withoutGlobalScopes()->where('business_id', $b->id)->where('active', true)->when(! $resto, fn($q) => $q->where('en_tienda', true))->whereIn('tipo', ['producto', 'elaborado', 'servicio'])->get(['id', 'name', 'sku', 'unit', 'price', 'modificadores']);
+        $res = config('services.anthropic.api_key') ? $this->conIa($b, $texto, $catalogo, $resto) : null;
         $res ??= $this->heuristico($texto, $catalogo);
         $res['texto'] = $texto;
         return $res;
     }
 
-    private function conIa(Business $b, string $texto, $catalogo): ?array
+    private function conIa(Business $b, string $texto, $catalogo, bool $resto = false): ?array
     {
         try {
-            $lista = $catalogo->map(fn($p) => "{$p->id}|{$p->name}|{$p->unit}")->implode("\n");
+            $lista = $catalogo->map(fn($p) => "{$p->id}|{$p->name}|{$p->unit}" . ($resto && $p->modificadores ? ' | opciones: ' . collect($p->modificadores)->map(fn($g) => $g['nombre'] . ' (' . implode('/', array_column($g['opciones'] ?? [], 'nombre')) . ')')->implode('; ') : ''))->implode("\n");
+            $extraResto = $resto ? ' Es un local gastronómico: cada item lleva además "opciones" (lista de textos con lo que pidió para ese plato: punto, guarnición, extras, "sin cebolla") y "nota" (algo que no sea una opción). Si piden algo que no está en la carta, no lo inventes: decilo en respuesta.' : '';
             $r = Http::withHeaders(['x-api-key' => config('services.anthropic.api_key'), 'anthropic-version' => '2023-06-01'])->timeout(30)->post('https://api.anthropic.com/v1/messages', [
                 'model' => config('services.anthropic.model'), 'max_tokens' => 800,
-                'system' => "Sos el tomador de pedidos de {$b->name}. Recibís un mensaje de WhatsApp de un cliente y devolvés SOLO un JSON con: items (lista de {id, cantidad}) usando ÚNICAMENTE ids del catálogo, direccion (string o null), entrega ('envio' si menciona dirección o que se lo lleven, si no 'retiro'), nombre (si se presenta), notas (lo que no pudiste mapear), respuesta (un mensaje corto y amable en español rioplatense confirmando lo entendido y pidiendo lo que falte). Catálogo (id|nombre|unidad):\n{$lista}",
+                'system' => "Sos el tomador de pedidos de {$b->name}. Recibís un mensaje de WhatsApp de un cliente y devolvés SOLO un JSON con: items (lista de {id, cantidad" . ($resto ? ', opciones, nota' : '') . "}) usando ÚNICAMENTE ids del catálogo, direccion (string o null), entrega ('envio' si menciona dirección o que se lo lleven, si no 'retiro'), nombre (si se presenta), notas (lo que no pudiste mapear), respuesta (un mensaje corto y amable en español rioplatense confirmando lo entendido y pidiendo lo que falte).{$extraResto} Catálogo (id|nombre|unidad):\n{$lista}",
                 'messages' => [['role' => 'user', 'content' => $texto]],
             ]);
             if (! $r->successful()) return null;
             $t = collect($r->json('content', []))->where('type', 'text')->pluck('text')->implode('');
             $j = json_decode(trim(preg_replace('/^```(json)?|```$/m', '', $t)), true);
             if (! is_array($j) || ! isset($j['items'])) return null;
-            $items = collect($j['items'])->map(function ($i) use ($catalogo) { $p = $catalogo->firstWhere('id', (int) ($i['id'] ?? 0)); return $p ? ['product_id' => $p->id, 'descripcion' => $p->name, 'cantidad' => max(0.001, (float) ($i['cantidad'] ?? 1)), 'unit' => $p->unit] : null; })->filter()->values()->all();
+            $items = collect($j['items'])->map(function ($i) use ($catalogo) { $p = $catalogo->firstWhere('id', (int) ($i['id'] ?? 0)); return $p ? ['product_id' => $p->id, 'descripcion' => $p->name, 'cantidad' => max(0.001, (float) ($i['cantidad'] ?? 1)), 'opciones' => array_values(array_filter((array) ($i['opciones'] ?? []), 'is_string')), 'nota' => isset($i['nota']) && is_string($i['nota']) ? $i['nota'] : null, 'unit' => $p->unit] : null; })->filter()->values()->all();
             return ['items' => $items, 'direccion' => $j['direccion'] ?? null, 'entrega' => $j['entrega'] ?? ($j['direccion'] ?? null ? 'envio' : 'retiro'), 'nombre' => $j['nombre'] ?? null, 'notas' => $j['notas'] ?? null, 'respuesta' => $j['respuesta'] ?? null, 'modo' => 'ia'];
         } catch (\Throwable $e) { Log::warning('WhatsApp IA: ' . $e->getMessage()); return null; }
     }

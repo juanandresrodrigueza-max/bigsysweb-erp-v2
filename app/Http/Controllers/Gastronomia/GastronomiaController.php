@@ -177,7 +177,7 @@ class GastronomiaController extends Controller
                 'precio_neto' => (float) $p->price, 'costo' => \App\Services\Gastronomia\RecetaVentaService::costo($p), 'margen' => \App\Services\Gastronomia\RecetaVentaService::margen($p), 'margen_objetivo' => $p->margen_objetivo !== null ? (float) $p->margen_objetivo : null,
                 'receta' => ($r = \App\Services\Gastronomia\RecetaVentaService::receta($p)) ? ['id' => $r->id, 'yield' => (float) $r->yield_quantity, 'items' => $r->items->map(fn($i) => ['product_id' => $i->product_id, 'nombre' => $i->product?->name, 'quantity' => (float) $i->quantity, 'unit' => $i->unit, 'costo' => round((float) $i->quantity * (float) ($i->product?->cost ?? 0), 2)])->values()] : null]),
             'insumos' => Product::where('active', true)->whereIn('tipo', ['insumo', 'producto'])->orderBy('name')->limit(600)->get(['id', 'name', 'unit', 'cost'])->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'unit' => $p->unit, 'cost' => (float) $p->cost]),
-            'recetaAlVender' => \App\Services\Gastronomia\RecetaVentaService::activo(auth()->user()->business),
+            'recetaAlVender' => \App\Services\Gastronomia\RecetaVentaService::activo(auth()->user()->business), 'whatsappAResto' => (bool) (auth()->user()->business->gastronomia_config['whatsapp_a_resto'] ?? true), 'ia' => \App\Support\Ia::tiene(auth()->user()->business),
             'happyHours' => auth()->user()->business->gastronomia_config['happy_hours'] ?? [], 'rubros' => \App\Models\Rubro::orderBy('nombre')->get(['id', 'nombre']),
             'estaciones' => auth()->user()->business->estacionesCocina(), 'qrConfirma' => (bool) (auth()->user()->business->gastronomia_config['qr_confirma'] ?? false),
         ]);
@@ -196,10 +196,11 @@ class GastronomiaController extends Controller
     // Fase 50: las estaciones y cuántos minutos espera cada una antes de marcar el plato en rojo.
     public function guardarEstaciones(Request $request)
     {
-        $d = $request->validate(['receta_al_vender' => 'boolean', 'qr_confirma' => 'boolean', 'estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
+        $d = $request->validate(['whatsapp_a_resto' => 'boolean', 'receta_al_vender' => 'boolean', 'qr_confirma' => 'boolean', 'estaciones' => 'required|array|min:1|max:8', 'estaciones.*.nombre' => 'required|string|max:30|distinct', 'estaciones.*.alerta' => 'required|integer|min:1|max:180']);
         $b = $request->user()->business; $cfg = $b->gastronomia_config ?? [];
         if (array_key_exists('qr_confirma', $d)) $cfg['qr_confirma'] = (bool) $d['qr_confirma'];
         if (array_key_exists('receta_al_vender', $d)) $cfg['receta_al_vender'] = (bool) $d['receta_al_vender'];
+        if (array_key_exists('whatsapp_a_resto', $d)) $cfg['whatsapp_a_resto'] = (bool) $d['whatsapp_a_resto'];
         $cfg['estaciones'] = collect($d['estaciones'])->map(fn($e) => ['nombre' => trim($e['nombre']), 'alerta' => (int) $e['alerta']])->values()->all();
         $b->forceFill(['gastronomia_config' => $cfg])->save();
         return back()->with('success', 'Estaciones guardadas.');
@@ -261,5 +262,20 @@ class GastronomiaController extends Controller
         $c = Comanda::findOrFail($id);
         $c->items()->whereIn('estado', ['listo'])->update(['estado' => 'entregado']);
         return back();
+    }
+
+    // Fase 53.2: la carta desde una foto, la pizarra o un PDF. Primero se lee (vista previa editable), después se carga.
+    public function leerCarta(Request $request, \App\Services\Gastronomia\CartaIaService $ia)
+    {
+        $request->validate(['archivo' => 'required|file|max:12288|mimes:jpg,jpeg,png,webp,pdf']);
+        $f = $request->file('archivo'); $mime = $f->getMimeType() === 'application/pdf' ? 'application/pdf' : ($f->getMimeType() ?: 'image/jpeg');
+        return response()->json($ia->leer(file_get_contents($f->getRealPath()), $mime));
+    }
+
+    public function importarCarta(Request $request, \App\Services\Gastronomia\CartaIaService $ia)
+    {
+        $d = $request->validate(['rubros' => 'required|array|min:1', 'rubros.*.nombre' => 'required|string|max:60', 'rubros.*.platos' => 'required|array', 'rubros.*.platos.*.nombre' => 'required|string|max:120', 'rubros.*.platos.*.precio' => 'nullable|numeric|min:0', 'rubros.*.platos.*.descripcion' => 'nullable|string|max:300', 'rubros.*.platos.*.existe_id' => 'nullable|integer', 'rubros.*.platos.*.cargar' => 'boolean', 'rubros.*.platos.*.opciones' => 'nullable|array']);
+        $r = $ia->importar($request->user()->business, $d['rubros'], $request->user()->current_location_id);
+        return back()->with('success', "Carta cargada: {$r['nuevos']} platos nuevos" . ($r['actualizados'] ? ", {$r['actualizados']} con precio actualizado" : '') . '. Revisá las recetas y qué va a cocina.');
     }
 }

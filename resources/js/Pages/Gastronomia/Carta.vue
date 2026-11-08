@@ -6,14 +6,15 @@
         <h1 class="page-title">Carta</h1>
         <p class="page-subtitle">Qué va a cocina y las opciones de cada plato: el punto de la carne, la guarnición, los extras con precio. El mozo las elige al pedir y salen en la comanda.</p>
       </div>
-      <input v-model="q" class="input w-60" placeholder="Buscar plato…" />
+      <div class="flex items-center gap-2"><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
     </div>
     <div class="card mb-4" data-e2e="config-estaciones">
       <div class="flex flex-wrap items-center gap-2"><p class="font-bold text-sm mr-2">Estaciones</p>
         <span v-for="(e, i) in est" :key="i" class="flex items-center gap-1 rounded-full border border-marca-borde pl-2 pr-1 py-0.5 text-xs"><input v-model="e.nombre" class="w-20 bg-transparent font-semibold outline-none" /> avisa a los <input v-model.number="e.alerta" type="number" min="1" class="w-10 bg-transparent text-right outline-none" />' <button v-if="est.length > 1" class="text-marca-muted hover:text-carmin px-1" @click="est.splice(i, 1)">×</button></span>
         <button class="btn-ghost !px-2 text-xs" @click="est.push({ nombre: '', alerta: 15 })">+ Estación</button>
-        <button v-if="puede('gastronomia','editar')" class="btn-secondary !py-1 text-xs ml-auto" @click="router.post('/gastronomia/estaciones', { estaciones: est.filter(e => e.nombre.trim()), qr_confirma: qrc, receta_al_vender: rav }, { preserveScroll: true })">Guardar estaciones</button></div>
+        <button v-if="puede('gastronomia','editar')" class="btn-secondary !py-1 text-xs ml-auto" @click="router.post('/gastronomia/estaciones', { estaciones: est.filter(e => e.nombre.trim()), qr_confirma: qrc, receta_al_vender: rav, whatsapp_a_resto: war }, { preserveScroll: true })">Guardar estaciones</button></div>
       <label class="flex items-center gap-2 text-xs mt-2"><input v-model="rav" type="checkbox" class="accent-carmin" /> <b>Cada venta descuenta los insumos de la receta del plato</b> (café, leche, vaso…). El costo del plato sale de la receta.</label>
+      <label class="flex items-center gap-2 text-xs mt-2"><input v-model="war" type="checkbox" class="accent-carmin" /> Los pedidos por <b>WhatsApp</b> entran directo como comanda de Big Restó (delivery o para retirar), con las opciones de cada plato</label>
       <label class="flex items-center gap-2 text-xs mt-2"><input v-model="qrc" type="checkbox" class="accent-carmin" /> Los pedidos que hacen desde el QR de la mesa los confirma el mozo antes de ir a cocina</label>
       <p class="text-xs text-marca-muted mt-1">Cada estación tiene su pantalla (Cocina → elegís la estación) y su comanda impresa. Si un plato pasa los minutos que pusiste, se marca en rojo.</p>
     </div>
@@ -73,6 +74,24 @@
       <template #pie><button class="btn-secondary" @click="ed = null">Cancelar</button><button class="btn-primary" @click="guardar" data-e2e="carta-guardar">Guardar</button></template>
     </Modal>
 
+    <!-- Fase 53.2: vista previa de la carta leída -->
+    <Modal :abierto="!!lc" titulo="Tu carta, leída por Bigcito" ancho="max-w-3xl" @cerrar="lc = null">
+      <div v-if="lc" class="space-y-3 text-sm">
+        <p v-if="lc.error" class="text-carmin">{{ lc.error }}</p>
+        <p v-else class="text-xs text-marca-muted">Revisá nombres y precios antes de cargar. Lo que ya existe en tu carta aparece marcado y sólo se le actualiza el precio. Destildá lo que no quieras cargar.</p>
+        <div v-for="(r, ri) in lc.rubros" :key="ri" class="rounded-xl border border-marca-borde p-3">
+          <input v-model="r.nombre" class="font-bold bg-transparent outline-none mb-1" />
+          <div v-for="(p, pi) in r.platos" :key="pi" class="grid grid-cols-[20px_1fr_110px_auto] gap-2 items-center py-1 border-t border-marca-borde/60">
+            <input v-model="p.cargar" type="checkbox" class="accent-carmin" />
+            <div><input v-model="p.nombre" class="w-full bg-transparent outline-none" /><p v-if="p.opciones?.length" class="text-[11px] text-violeta">{{ p.opciones.map(g => g.grupo + ': ' + g.opciones.map(o => o.nombre).join('/')).join(' · ') }}</p></div>
+            <input v-model.number="p.precio" type="number" min="0" class="input !py-0.5 text-right" placeholder="precio" />
+            <span class="text-[11px]" :class="p.existe_id ? 'text-amber-700' : 'text-emerald-700'">{{ p.existe_id ? 'ya existe' : 'nuevo' }}</span>
+          </div>
+        </div>
+      </div>
+      <template #pie><button class="btn-secondary" @click="lc = null">Cancelar</button><button v-if="lc && !lc.error" class="btn-primary" :disabled="!aCargar" @click="router.post('/gastronomia/carta/importar', { rubros: lc.rubros }, { preserveScroll: true, onSuccess: () => (lc = null) })" data-e2e="carta-importar">Cargar {{ aCargar }} platos</button></template>
+    </Modal>
+
     <!-- Fase 53: la receta del plato, con sugerencia de la IA -->
     <Modal :abierto="!!rc" :titulo="rc ? `Receta de ${rc.name}` : ''" ancho="max-w-2xl" @cerrar="rc = null">
       <div v-if="rc" class="space-y-3 text-sm">
@@ -102,9 +121,17 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
+const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, whatsappAResto: Boolean, ia: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
 const est = ref(JSON.parse(JSON.stringify(props.estaciones)))
-const qrc = ref(props.qrConfirma), rav = ref(props.recetaAlVender)
+const qrc = ref(props.qrConfirma), rav = ref(props.recetaAlVender), war = ref(props.whatsappAResto)
+// Fase 53.2: la carta desde una foto
+const leyendo = ref(false), lc = ref(null)
+async function leerCarta(ev) {
+  const file = ev.target.files?.[0]; ev.target.value = ''; if (!file) return
+  leyendo.value = true
+  try { const fd = new FormData(); fd.append('archivo', file); const { data } = await window.axios.post('/gastronomia/carta/leer', fd); if (!data.ok) { lc.value = { error: data.aviso, rubros: [] }; return } lc.value = { rubros: data.rubros, error: '' } } catch (e) { lc.value = { error: 'No pude leer el archivo.', rubros: [] } } finally { leyendo.value = false }
+}
+const aCargar = computed(() => (lc.value?.rubros ?? []).reduce((a, r) => a + r.platos.filter(p => p.cargar).length, 0))
 const { puede } = usePermisos()
 const q = ref('')
 const norm = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
