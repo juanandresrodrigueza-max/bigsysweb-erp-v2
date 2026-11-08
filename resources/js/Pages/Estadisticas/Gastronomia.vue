@@ -1,5 +1,5 @@
 <template>
-  <AppLayout titulo="Estadísticas · Gastronomía">
+  <AppLayout titulo="Estadísticas · Big Restó">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div><h1 class="page-title">Salón y cocina</h1><p class="page-subtitle">Cuánto vendió cada mozo, a qué hora se llena, qué platos salen más y cuánto tarda la cocina. <span class="cursor-help" :title="como">ⓘ</span></p></div>
       <form class="flex items-center gap-2 text-sm" @submit.prevent="router.get('/estadisticas/gastronomia', f, { preserveState: true })"><input v-model="f.desde" type="date" class="input !py-1 !w-auto" /><span>a</span><input v-model="f.hasta" type="date" class="input !py-1 !w-auto" /><button class="btn-secondary !py-1 text-xs">Ver</button></form>

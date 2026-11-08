@@ -37,7 +37,7 @@
         </div>
         <div><label class="label">Rubros que se muestran (vacío = todos)</label><div class="flex flex-wrap gap-2"><label v-for="r in rubros" :key="r.id" class="flex items-center gap-1 text-sm px-2 py-1 rounded-full border border-marca-borde"><input type="checkbox" :value="r.id" v-model="ft.tienda.rubros" class="accent-carmin" /> {{ r.nombre }}</label></div></div>
         <div class="grid sm:grid-cols-2 gap-3 p-3 rounded-xl bg-marca-fondo">
-          <p class="sm:col-span-2 text-[11px] font-bold uppercase tracking-widest text-marca-muted">Gastronomía</p>
+          <p class="sm:col-span-2 text-[11px] font-bold uppercase tracking-widest text-marca-muted">Big Restó</p>
           <label class="flex items-center gap-2 text-sm"><input v-model="ft.tienda.menu_activo" type="checkbox" class="accent-carmin" /> Menú QR activo (<a :href="urlMenu" target="_blank" class="underline">ver</a>)</label>
           <label class="flex items-center gap-2 text-sm"><input v-model="ft.tienda.reservas_activas" type="checkbox" class="accent-carmin" /> Reservas online activas (<a :href="urlReservas" target="_blank" class="underline">ver</a>)</label>
           <div v-if="ft.tienda.reservas_activas"><label class="label">Horarios (texto)</label><input v-model="ft.tienda.reservas_horario" class="input" /></div>

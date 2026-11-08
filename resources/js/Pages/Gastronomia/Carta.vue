@@ -1,5 +1,5 @@
 <template>
-  <AppLayout titulo="Carta">
+  <AppLayout titulo="Big Restó · Carta">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
         <Link href="/gastronomia" class="text-xs text-marca-muted hover:text-carmin">← Salón</Link>

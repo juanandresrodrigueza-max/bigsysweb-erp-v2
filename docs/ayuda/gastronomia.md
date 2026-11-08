@@ -1,14 +1,17 @@
 ---
-titulo: Gastronomía: salón, cocina, reservas y menú QR
+titulo: Big Restó: salón, cocina, reservas y menú QR
 modulo: gastronomia
 rutas: /gastronomia
 orden: 6
 resumen: Mesas y comandas, pantalla de cocina, cuenta y cobro, reservas por la web y pedidos desde el QR de la mesa.
 ---
 
+**Big Restó** es el sistema de gastronomía de BigSys web ERP, para bares, restaurantes, cafeterías y rotiserías. Vive en el menú como «Big Restó» y usa el mismo stock, la misma caja, la misma facturación y la misma contabilidad que el resto del sistema.
+
+
 ## Salón
 
-**Gastronomía → Salón** muestra las mesas; tocás una para abrirla o ver su comanda. Se cargan los ítems (con observaciones: "sin cebolla"), se **envía a cocina** y se pueden mover comensales de mesa o juntar mesas.
+**Big Restó → Salón** muestra las mesas; tocás una para abrirla o ver su comanda. Se cargan los ítems (con observaciones: "sin cebolla"), se **envía a cocina** y se pueden mover comensales de mesa o juntar mesas.
 
 ## Cocina
 
@@ -32,7 +35,7 @@ Los platos pueden tener **fórmula** (ver Producción): al vender, se descuentan
 
 ## Opciones de cada plato y dividir la cuenta (Fase 49)
 
-**Carta (Gastronomía → Carta):** para cada plato elegís si va a cocina y armás sus opciones en grupos. Hay modelos listos para Punto, Guarnición, Extras y Sin. Un grupo puede ser **obligatorio**, y entonces el mozo no puede cargar el plato sin elegir, o de **varias opciones**. Cada opción puede tener precio extra, por ejemplo «+ Queso» a $ 1.200. Cuando el mozo toca el plato, elige las opciones: el precio se suma solo y la cocina las ve en la comanda.
+**Carta (Big Restó → Carta):** para cada plato elegís si va a cocina y armás sus opciones en grupos. Hay modelos listos para Punto, Guarnición, Extras y Sin. Un grupo puede ser **obligatorio**, y entonces el mozo no puede cargar el plato sin elegir, o de **varias opciones**. Cada opción puede tener precio extra, por ejemplo «+ Queso» a $ 1.200. Cuando el mozo toca el plato, elige las opciones: el precio se suma solo y la cocina las ve en la comanda.
 
 **Dividir la cuenta:** al cobrar, elegís cómo:
 - **Todo junto:** como siempre.
@@ -43,18 +46,18 @@ Cada parte sale con su factura y su cobro, con la propina que deje esa persona, 
 
 ## Estaciones de cocina (Fase 50)
 
-En Gastronomía → Carta armás las **estaciones** (por ejemplo Cocina, Parrilla, Barra y Postres) y para cada una ponés a los cuántos minutos avisa. A cada plato le elegís a qué estación va. En la pantalla de cocina, arriba, elegís la estación: cada una ve solo lo suyo, con el tiempo de cada plato. Cuando un plato pasa los minutos de su estación se pone en rojo y dice «demorado». Al lado de cada estación figura el tiempo promedio de hoy. Desde la comanda, **Imprimir: Parrilla / Barra…** saca el ticket de 80 mm de esa estación.
+En Big Restó → Carta armás las **estaciones** (por ejemplo Cocina, Parrilla, Barra y Postres) y para cada una ponés a los cuántos minutos avisa. A cada plato le elegís a qué estación va. En la pantalla de cocina, arriba, elegís la estación: cada una ve solo lo suyo, con el tiempo de cada plato. Cuando un plato pasa los minutos de su estación se pone en rojo y dice «demorado». Al lado de cada estación figura el tiempo promedio de hoy. Desde la comanda, **Imprimir: Parrilla / Barra…** saca el ticket de 80 mm de esa estación.
 
 ## Carta QR: opciones, llamar al mozo y pedir la cuenta (Fase 51)
 
-El QR de cada mesa, que se imprime en Gastronomía → Reservas y QR, abre la carta en el celular del cliente:
+El QR de cada mesa, que se imprime en Big Restó → Reservas y QR, abre la carta en el celular del cliente:
 - **Opciones del plato:** si un plato tiene opciones (el punto, la guarnición, los extras), el cliente las elige igual que el mozo, con las obligatorias y los precios extra.
 - **Estaciones:** el pedido va a la estación de cada plato.
 - **Llamar al mozo y pedir la cuenta:** cada uno tiene su botón. En el salón, la mesa muestra «🙋 Llama al mozo» o «🧾 Pide la cuenta», con los minutos que lleva esperando, y además llega un aviso. Cuando el mozo abre la comanda, el llamado se borra.
-- **Confirmación del mozo:** en Gastronomía → Carta podés tildar que los pedidos del QR los confirme el mozo antes de ir a cocina. Así quedan «sin enviar» hasta que él los mande.
+- **Confirmación del mozo:** en Big Restó → Carta podés tildar que los pedidos del QR los confirme el mozo antes de ir a cocina. Así quedan «sin enviar» hasta que él los mande.
 
 ## Happy hour, menú del día y números del salón (Fase 52)
 
-- **Happy hour:** en Gastronomía → Carta armás franjas con su nombre, el % de descuento, el horario (puede cruzar la medianoche), los días y los rubros. Por ejemplo: Happy hour, 50 % en Tragos, de lunes a viernes de 18 a 20. En esa franja el precio baja solo, en el salón y en el QR, y la comanda lo marca «[Happy hour]».
+- **Happy hour:** en Big Restó → Carta armás franjas con su nombre, el % de descuento, el horario (puede cruzar la medianoche), los días y los rubros. Por ejemplo: Happy hour, 50 % en Tragos, de lunes a viernes de 18 a 20. En esa franja el precio baja solo, en el salón y en el QR, y la comanda lo marca «[Happy hour]».
 - **Menú del día y combos:** en las opciones del plato tildás «Sólo se sirve en un horario» (por ejemplo, de lunes a viernes de 12 a 16). Fuera de ese horario no aparece. Para un combo de entrada, principal y postre, armá un grupo obligatorio por paso.
-- **Estadísticas → Gastronomía:** lo vendido, las mesas, el ticket promedio, los cubiertos, lo vendido por cubierto, las propinas y el tiempo de permanencia. Además, la venta por mozo, a qué hora se vende, salón contra mostrador o delivery, los platos más pedidos y los tiempos de cocina por estación. A Bigcito se lo podés preguntar: «¿qué plato sale más?», «¿cuánto tarda la parrilla?».
+- **Estadísticas → Big Restó:** lo vendido, las mesas, el ticket promedio, los cubiertos, lo vendido por cubierto, las propinas y el tiempo de permanencia. Además, la venta por mozo, a qué hora se vende, salón contra mostrador o delivery, los platos más pedidos y los tiempos de cocina por estación. A Bigcito se lo podés preguntar: «¿qué plato sale más?», «¿cuánto tarda la parrilla?».
