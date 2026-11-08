@@ -4,7 +4,7 @@
       <div v-if="abierto" class="absolute bottom-16 right-0 w-[360px] max-w-[calc(100vw-2.5rem)] h-[520px] max-h-[calc(100vh-7rem)] bg-white rounded-2xl shadow-2xl border border-marca-borde flex flex-col overflow-hidden">
         <div class="px-4 py-3 text-white flex items-center justify-between bg-violeta-grad">
           <div class="flex items-center gap-2">
-            <span class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center"><Icono nombre="sparkles" clase="w-4 h-4" /></span>
+            <img src="/img/bigcito-cara.webp" alt="Bigcito" class="w-9 h-9 rounded-full bg-white object-cover ring-2 ring-white/40" />
             <div>
               <p class="text-sm font-bold leading-tight">Bigcito</p>
               <p class="text-[11px] text-white/80 leading-tight">{{ modo === 'ia' ? 'Con IA · conoce tu negocio' : 'Modo básico' }}</p>
@@ -54,8 +54,9 @@
       </div>
     </transition>
 
-    <button @click="abierto = !abierto" class="w-14 h-14 rounded-full text-white shadow-pop flex items-center justify-center hover:scale-105 transition bg-violeta-grad" aria-label="Asistente">
-      <Icono :nombre="abierto ? 'x' : 'sparkles'" clase="w-6 h-6" />
+    <button @click="abierto = !abierto" class="w-16 h-16 rounded-full text-white shadow-pop flex items-center justify-center hover:scale-105 transition overflow-hidden ring-4 ring-white" :class="abierto ? 'bg-violeta-grad' : 'bg-white'" aria-label="Bigcito" title="Hablá con Bigcito">
+      <Icono v-if="abierto" nombre="x" clase="w-6 h-6" />
+      <img v-else src="/img/bigcito-cara.webp" alt="Bigcito" class="w-full h-full object-cover" />
     </button>
   </div>
 </template>

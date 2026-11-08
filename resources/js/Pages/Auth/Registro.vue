@@ -2,12 +2,12 @@
   <Head title="Registrate gratis · BigSys web ERP" />
   <div class="min-h-screen grid lg:grid-cols-[1fr_1fr] bg-marca-fondo">
     <section class="relative overflow-hidden text-white px-6 py-8 sm:px-12 lg:p-14 flex flex-col gap-6 lg:justify-center" style="background: linear-gradient(150deg,#e4003f 0%,#a42785 58%,#4f3089 100%)">
-      <Logo negativo clase="h-14 sm:h-16" />
+      <div class="flex items-center justify-between gap-4"><Logo negativo clase="h-14 sm:h-16" /><img src="/img/bigcito.webp" alt="Bigcito, tu asistente" class="hidden sm:block w-28 lg:w-44 h-auto drop-shadow-2xl -my-4" /></div>
       <div class="max-w-lg">
         <h1 class="font-marca text-3xl sm:text-4xl font-extrabold leading-tight text-balance">Probalo {{ dias }} días con todo activado.</h1>
         <p class="mt-3 text-white/90">Sin tarjeta. Al terminar la prueba seguís gratis (1 usuario, 10 facturas por mes) o elegís un plan y pagás con Mercado Pago.</p>
         <ul class="mt-6 space-y-2 text-[15px]">
-          <li>✓ Factura electrónica con ARCA</li><li>✓ Stock, compras, clientes y caja</li><li>✓ Contabilidad e IVA automáticos</li><li>✓ Bigcito: manejalo hablando</li>
+          <li>✓ Bigcito te pregunta cómo trabajás y te deja el sistema a medida</li><li>✓ Factura electrónica con ARCA</li><li>✓ Stock, compras, clientes y caja</li><li>✓ Contabilidad e IVA automáticos</li><li>✓ Bigcito: manejalo hablando</li>
         </ul>
       </div>
     </section>
