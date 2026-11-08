@@ -30,6 +30,9 @@ class OnboardingController extends Controller
             ['key' => 'plan', 'titulo' => 'Elegí tu plan', 'desc' => 'Durante la prueba tenés todo. Al terminar seguís gratis o pagás un plan con Mercado Pago.', 'url' => '/suscripcion', 'hecho' => \App\Models\Subscription::where('business_id', $b->id)->where('status', 'active')->exists(), 'opcional' => true, 'ayuda' => 'primeros-pasos'],
             ['key' => 'seguridad', 'titulo' => 'Seguridad y copias', 'desc' => 'Activá la verificación en dos pasos y dejá la copia automática encendida.', 'url' => '/configuracion/seguridad', 'hecho' => (bool) $b->backup_auto, 'opcional' => true, 'ayuda' => 'configuracion'],
         ];
+        // Fase 48: lo que Bigcito dedujo en la entrevista suma pasos a medida (antes del plan y la seguridad, que son opcionales).
+        $extra = app(\App\Services\Empresas\InductorService::class)->pasosExtra($b);
+        if ($extra) array_splice($pasos, max(0, count($pasos) - 2), 0, $extra);
         foreach ($pasos as &$p) if (! empty($manual[$p['key']])) $p['hecho'] = true;
         return $pasos;
     }
@@ -38,7 +41,11 @@ class OnboardingController extends Controller
     {
         $b = $request->user()->business;
         $pasos = self::pasos($b);
-        return Inertia::render('Onboarding', ['pasos' => $pasos, 'completado' => (bool) $b->onboarding_completado_en, 'hechos' => count(array_filter($pasos, fn($p) => $p['hecho'])), 'total' => count($pasos), 'soporte' => ['whatsapp' => \App\Models\SistemaConfig::get('soporte_whatsapp'), 'email' => \App\Models\SistemaConfig::get('soporte_email')]]);
+        $ind = app(\App\Services\Empresas\InductorService::class);
+        $mods = config('erp.modulos');
+        return Inertia::render('Onboarding', ['induccion' => ['hecha' => ! empty($b->induccion['respuestas']), 'respuestas' => $b->induccion['respuestas'] ?? ($b->vertical && $b->vertical !== 'otro' ? ['rubro' => $b->vertical] : (object) []), 'preguntas' => $ind::preguntas(), 'seguimiento' => $ind->seguimiento($b),
+                'ocultos' => collect($b->modulos_ocultos ?? [])->map(fn($m) => ['key' => $m, 'label' => $mods[$m]['label'] ?? $m])->values(), 'ia' => \App\Support\Ia::tiene($b), 'puede' => $request->user()->puede('configuracion', 'editar')],
+            'pasos' => $pasos, 'completado' => (bool) $b->onboarding_completado_en, 'hechos' => count(array_filter($pasos, fn($p) => $p['hecho'])), 'total' => count($pasos), 'soporte' => ['whatsapp' => \App\Models\SistemaConfig::get('soporte_whatsapp'), 'email' => \App\Models\SistemaConfig::get('soporte_email')]]);
     }
 
     public function marcar(Request $request)
@@ -56,5 +63,30 @@ class OnboardingController extends Controller
         $b->update(['onboarding_completado_en' => now()]);
         AuditLog::registrar('editar', $b, 'Completó los primeros pasos');
         return redirect('/dashboard')->with('success', '¡Listo! La empresa quedó configurada. Cualquier cosa, Soporte está en el menú.');
+    }
+
+    // Fase 48: el inductor de Bigcito. Guarda las respuestas y deja el sistema a medida.
+    public function induccion(Request $request, \App\Services\Empresas\InductorService $ind)
+    {
+        abort_unless($request->user()->puede('configuracion', 'editar'), 403, 'Sólo el dueño o un administrador configura la empresa.');
+        $d = $request->validate(['respuestas' => 'required|array', 'respuestas.*' => 'string|max:30']);
+        $p = $ind->aplicar($request->user()->business, $d['respuestas']);
+        return back()->with('success', 'Listo, te dejé el sistema a medida' . ($p['ocultos'] ? ': saqué del menú lo que no vas a usar (lo volvés a mostrar cuando quieras).' : '.') . ' Abajo tenés los pasos para tu negocio.');
+    }
+
+    // "Contame tu negocio" en tus palabras: la IA lo pasa a respuestas; lo que no queda claro, Bigcito lo pregunta.
+    public function interpretar(Request $request, \App\Services\Empresas\InductorService $ind)
+    {
+        $d = $request->validate(['texto' => 'required|string|max:2000']);
+        return response()->json(['respuestas' => (object) $ind->interpretar($d['texto'])]);
+    }
+
+    // Volver a mostrar un módulo que se ocultó.
+    public function mostrarModulo(Request $request)
+    {
+        abort_unless($request->user()->puede('configuracion', 'editar'), 403);
+        $d = $request->validate(['modulo' => 'required|string|max:30']);
+        $b = $request->user()->business; $b->forceFill(['modulos_ocultos' => array_values(array_diff($b->modulos_ocultos ?? [], [$d['modulo']]))])->save();
+        return back()->with('success', 'Listo, ya aparece en el menú.');
     }
 }

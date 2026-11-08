@@ -77,6 +77,25 @@ class Gestion
                 'descripcion' => 'Los pases de mercadería entre sucursales: los que están en viaje, los que llegaron con diferencias, los pedidos de las sucursales sin armar y lo que está en un proveedor por cambio o devolución.',
                 'parametros' => [],
                 'ejecutar' => fn(User $u, array $a) => ['pases' => TransferenciaStock::with('origen', 'destino', 'items.product')->whereIn('estado', ['en_viaje', 'con_diferencias', 'pedido', 'en_proveedor'])->latest('id')->limit(20)->get()->map(fn($t) => app(\App\Services\Stock\PasesService::class)->resumen($t) + ['url' => Busca::url("/stock/pases/{$t->id}")])->map(fn($r) => collect($r)->except('token')->all())->all()]],
+            // Fase 48: el inductor. Bigcito sabe cómo trabaja la empresa, qué dijo que iba a usar y qué no arrancó.
+            ['nombre' => 'como_trabaja_la_empresa', 'titulo' => 'Cómo trabaja la empresa y qué le falta arrancar', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Lo que la empresa contestó en la entrevista de bienvenida (rubro, cómo vende, stock, reparto, tienda, sueldos...), lo que dijo que iba a usar y todavía no usa, y las preguntas pendientes. Usala con usuarios nuevos para guiarlos paso a paso.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $i = app(\App\Services\Empresas\InductorService::class); $b = $u->business; $r = $b->induccion['respuestas'] ?? [];
+                    $pend = collect($i->paraRubro($r['rubro'] ?? $b->vertical))->except(array_keys($r))->map(fn($p, $k) => ['clave' => $k, 'pregunta' => $p['texto'], 'opciones' => $p['opciones']])->values()->all();
+                    return ['hizo_la_entrevista' => (bool) $r, 'como_trabaja' => $i->resumen($b), 'sin_arrancar' => $i->seguimiento($b), 'preguntas_pendientes' => $pend, 'ocultos_del_menu' => $b->modulos_ocultos ?? [], 'url' => Busca::url('/primeros-pasos')];
+                }],
+            ['nombre' => 'dejar_a_medida', 'titulo' => 'Dejar el sistema a medida del negocio', 'modulo' => 'configuracion', 'permiso' => 'editar', 'tipo' => 'accion',
+                'descripcion' => 'Guarda las respuestas de la entrevista de bienvenida (claves y valores de como_trabaja_la_empresa) y deja el sistema a medida: rubro, módulos que no usa fuera del menú y primeros pasos de lo que sí usa. Hacé las preguntas de a una, en charla, antes de llamarla.',
+                'parametros' => ['respuestas' => ['type' => 'object', 'description' => 'Ej. {"rubro":"corralon","reparto":"si","tienda":"no"}']], 'requeridos' => ['respuestas'],
+                'proponer' => function (User $u, array $a) {
+                    $p = \App\Services\Empresas\InductorService::preguntas(); $r = array_filter((array) $a['respuestas'], fn($v, $k) => isset($p[$k]['opciones'][$v]), ARRAY_FILTER_USE_BOTH);
+                    if (! $r) return ['error' => 'No entendí las respuestas. Usá las claves y valores de como_trabaja_la_empresa.'];
+                    $r = array_merge($u->business->induccion['respuestas'] ?? [], $r); $perf = app(\App\Services\Empresas\InductorService::class)->perfil($r);
+                    return ['titulo' => 'Dejar el sistema a medida', 'detalle' => 'Usa: ' . (implode(', ', $perf['usos']) ?: 'lo básico') . ($perf['ocultos'] ? ' · Saco del menú: ' . implode(', ', $perf['ocultos']) : ''), 'datos' => ['r' => $r]];
+                },
+                'confirmar' => function (User $u, array $d) { app(\App\Services\Empresas\InductorService::class)->aplicar($u->business, $d['r']); return ['texto' => 'Listo, quedó a medida. En Primeros pasos tenés lo que sigue para tu negocio.', 'url' => Busca::url('/primeros-pasos')]; }],
             // Fase 44.2: cuántas unidades salieron de cada artículo, sin plata.
             ['nombre' => 'lo_que_salio', 'titulo' => 'Lo que salió de cada artículo', 'modulo' => 'estadisticas', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Unidades que salieron de cada artículo (ventas, pases, consumos, ajustes) en los últimos días, sin importes. Sirve para "cuánto salió de tal cosa este mes".',

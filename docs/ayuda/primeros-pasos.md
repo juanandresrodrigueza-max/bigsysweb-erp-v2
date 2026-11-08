@@ -51,3 +51,15 @@ Desde **Soporte** (menú) abrís un ticket y el equipo de BigSys te responde ah�
 ## Registrate gratis (Fase 46)
 
 Entrás en **erp.bigsysweb.com/registro** y completás el nombre de tu empresa, tu nombre, tu email y una contraseña. En un minuto tenés la empresa armada, con sucursal, caja, depósito y plan de cuentas. Tenés **15 días de prueba con todo activado**, sin tarjeta. Al terminar seguís en el plan **Gratis** (1 usuario y 10 facturas por mes), salvo que elijas un plan en **Mi suscripción** y lo pagues con Mercado Pago. Después del registro entrás directo a **Primeros pasos**.
+
+## Bigcito te deja el sistema a medida (Fase 48)
+
+Arriba de Primeros pasos, Bigcito te hace unas preguntas cortas, que cambian según tu rubro: cómo vendés, si hacés factura electrónica, si controlás stock, si tenés reparto, tienda online, producción, obras, turnos, empleados y contabilidad. Un servicio técnico no ve la pregunta del reparto y un corralón no ve la de turnos. Si tenés cargada la clave de IA, también se lo podés contar con tus palabras («corralón con dos camiones, vendo en Mercado Libre») y Bigcito completa lo que entiende. Lo que no queda claro te lo pregunta.
+
+Con tus respuestas:
+- **Saca del menú lo que no vas a usar**, como Producción, Obras, Agenda, Sueldos o Contable. Los módulos base no se tocan nunca. Para volver a mostrar uno, lo tocás en «Oculto del menú».
+- **Te suma pasos a medida**, marcados «para tu negocio». Por ejemplo, cargar camiones si tenés reparto, conectar la tienda o darle acceso al contador. Se tildan solos cuando los hacés.
+- **Te sigue:** si dijiste que ibas a usar algo y no arrancaste, aparece en «Bigcito te sugiere».
+- **Bigcito en el chat sabe cómo trabaja tu empresa** y te guía con eso. También podés hacer la entrevista charlando con él.
+
+Las respuestas las podés cambiar cuando quieras desde «Cambiar respuestas».

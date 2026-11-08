@@ -147,6 +147,7 @@ class AgenteController extends Controller
             'resultado_mes'  => $user->business_id ? app(\App\Services\Contabilidad\ContabilidadService::class)->resultado($user->business_id, $hoy->copy()->startOfMonth()->toDateString(), $hoy->copy()->endOfMonth()->toDateString()) : null,
             'alertas'        => Alerta::visiblesPara($user)->activas()->latest()->limit(5)->pluck('titulo')->all(),
             'modulos'        => $user->modulosVisibles(),
+            'induccion'      => ($user->business ? app(\App\Services\Empresas\InductorService::class)->resumen($user->business) : null) ?? 'todavía no hizo la entrevista; si es nueva, sugerile hacerla en Primeros pasos',
         ];
     }
 
@@ -172,6 +173,7 @@ Tenés herramientas: para consultar (saldo de un cliente, stock de un artículo,
 Usuario: {$user->name}, rol {$c['rol']}, empresa {$c['empresa']}, sucursal {$c['sucursal']}.
 Pantalla actual: {$pantalla}.
 Módulos habilitados: {$modulos}.
+Cómo trabaja esta empresa (lo que contó en la entrevista de bienvenida): {$c['induccion']}.
 
 Datos del negocio (sucursal y empresa del usuario):
 - Ventas de hoy: {$fmt($c['ventas_hoy'])}
