@@ -22,6 +22,10 @@ class CanalesSincronizar extends Command
                 if ($this->option('pedidos') && $c->importar_pedidos) { $i = $canales->importarPedidos($c); $this->line("  pedidos: {$i['importados']}" . ($i['error'] ? " · {$i['error']}" : '')); }
             } catch (\Throwable $e) { $this->error("{$c->nombre}: {$e->getMessage()}"); }
         }
+        // Fase 54: Rappi no avisa los pedidos, hay que preguntarle.
+        if ($this->option('pedidos')) foreach (Canal::withoutGlobalScopes()->where('activo', true)->where('tipo', 'rappi')->where('importar_pedidos', true)->get() as $c) {
+            try { $i = $canales->importarPedidos($c); $this->line("{$c->nombre}: pedidos {$i['importados']}" . ($i['error'] ? " · {$i['error']}" : '')); } catch (\Throwable $e) { $this->error("{$c->nombre}: {$e->getMessage()}"); }
+        }
         return self::SUCCESS;
     }
 }
