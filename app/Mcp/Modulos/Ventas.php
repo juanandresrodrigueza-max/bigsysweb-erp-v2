@@ -53,6 +53,31 @@ class Ventas
                 'descripcion' => 'Presupuestos emitidos que todavía no se facturaron, del más viejo al más nuevo.',
                 'parametros' => ['cantidad' => ['type' => 'integer']],
                 'ejecutar' => fn(User $u, array $a) => ['presupuestos' => Comprobante::ventas()->emitidos()->where('tipo', 'PRE')->whereDoesntHave('derivados')->with('contact:id,name')->orderBy('fecha')->limit(min(100, (int) ($a['cantidad'] ?? 20)))->get()->map(fn($c) => Busca::comp($c) + ['dias' => (int) $c->fecha->diffInDays(today())])->all()]],
+            // Fase 72: el embudo y las tareas del CRM, por voz desde el ERP.
+            ['nombre' => 'oportunidades_crm', 'titulo' => 'Oportunidades abiertas en el CRM', 'modulo' => 'comprobantes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'El embudo de ventas del CRM: oportunidades abiertas con monto, etapa, vendedor y vencimiento, y el total. Opcionalmente las de un cliente o de un vendedor. "¿Qué tenemos por cerrar?", "¿qué tiene Juan en el embudo?". Sólo con el CRM conectado.',
+                'parametros' => ['cliente' => ['type' => 'string'], 'vendedor' => ['type' => 'string', 'description' => 'Nombre del vendedor para filtrar']],
+                'ejecutar' => function (User $u, array $a) {
+                    if (! \App\Services\Integraciones\CrmService::activo($u->business)) return ['error' => 'Esta empresa no tiene el CRM conectado (Configuración → CRM).'];
+                    $c = null; if (! empty($a['cliente'])) { $c = Busca::cliente($a['cliente']); if (! $c) return ['error' => "No encuentro el cliente \"{$a['cliente']}\"."]; }
+                    $o = \App\Services\Integraciones\CrmSyncService::oportunidades($u->business, $c);
+                    if ($o === null) return ['error' => 'El CRM no respondió. Probá en un rato (estado_crm dice cómo está la conexión).'];
+                    if (! empty($a['vendedor'])) { $v = mb_strtolower($a['vendedor']); $o = array_values(array_filter($o, fn($x) => str_contains(mb_strtolower((string) $x['vendedor']), $v))); }
+                    $o = array_map(fn($x) => ['url' => Busca::url($x['url'])] + $x, $o);
+                    return ['cantidad' => count($o), 'total' => round(array_sum(array_column($o, 'monto')), 2), 'por_etapa' => collect($o)->groupBy(fn($x) => $x['etapa'] ?? 'sin etapa')->map(fn($g) => ['cantidad' => $g->count(), 'total' => round($g->sum('monto'), 2)])->all(),
+                        'oportunidades' => $o, 'nota' => 'Montos como los cargó el vendedor en el CRM. Para cotizar con stock y precio de lista del ERP, el vendedor presupuesta desde el CRM.'];
+                }],
+            ['nombre' => 'pendientes_crm', 'titulo' => 'Tareas pendientes del CRM', 'modulo' => 'comprobantes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Tareas del CRM vencidas o para hoy (llamados, seguimientos, cobranzas) con cliente, vendedor y prioridad. "¿Qué tiene pendiente ventas?". Sólo con el CRM conectado.',
+                'parametros' => ['vendedor' => ['type' => 'string'], 'solo_vencidas' => ['type' => 'boolean']],
+                'ejecutar' => function (User $u, array $a) {
+                    if (! \App\Services\Integraciones\CrmService::activo($u->business)) return ['error' => 'Esta empresa no tiene el CRM conectado (Configuración → CRM).'];
+                    $t = \App\Services\Integraciones\CrmSyncService::tareasPendientes($u->business);
+                    if ($t === null) return ['error' => 'El CRM no respondió. Probá en un rato (estado_crm dice cómo está la conexión).'];
+                    if (! empty($a['vendedor'])) { $v = mb_strtolower($a['vendedor']); $t = array_values(array_filter($t, fn($x) => str_contains(mb_strtolower((string) $x['vendedor']), $v))); }
+                    if (! empty($a['solo_vencidas'])) $t = array_values(array_filter($t, fn($x) => $x['vencida']));
+                    return ['cantidad' => count($t), 'vencidas' => count(array_filter($t, fn($x) => $x['vencida'])), 'tareas' => array_map(fn($x) => ['url' => Busca::url($x['url'])] + $x, $t)];
+                }],
             ['nombre' => 'mas_vendidos', 'titulo' => 'Más vendidos', 'modulo' => 'estadisticas', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Ranking de artículos más vendidos de un período, por importe y cantidad.',
                 'parametros' => Busca::PERIODO + ['cantidad' => ['type' => 'integer']],

@@ -64,6 +64,14 @@ Arriba de la configuración hay un semáforo: **verde** (el CRM responde y todo 
 
 Con el CRM conectado, cada cliente tiene la solapa **CRM**: las conversaciones que el equipo de ventas tuvo con él por WhatsApp, mail o redes (la más reciente con sus últimos mensajes) y los botones **Escribirle por el CRM** y **Ver en el CRM**, que abren el CRM ya logueado. Es sólo lectura: se escribe desde el CRM. Además, los **reclamos por WhatsApp** y los "quiero hablar con alguien" que atiende Bigcito (Fase 60) quedan también como **tarea del CRM** para el vendedor, con prioridad alta, y la alerta del ERP dice el número de tarea. A Bigcito: "¿qué habló el vendedor con López?".
 
+### Bigcito compartido (Fase 72)
+
+Con el CRM conectado, **el Bigcito del ERP contesta con datos del CRM** y **el del CRM con datos del ERP**, sin que el usuario cambie de sistema:
+
+- En el ERP: "¿quién atiende a López y en qué anda?" (`cliente_en_crm`: vendedor, etapa, oportunidades abiertas, tareas, próxima cita), "¿qué habló el vendedor con López?" (`conversaciones_crm`), "¿qué tenemos por cerrar?" / "¿qué tiene Juan en el embudo?" (`oportunidades_crm`) y "¿qué tiene pendiente ventas?" (`pendientes_crm`).
+- En el CRM: "¿cuánto debe López?", "¿hay stock del hierro del 8?", "¿qué le facturamos el mes pasado?" los responde el Bigcito del CRM consultando al ERP por su conexión MCP de **solo consultas** (Configuración → Conexiones IA).
+- **Cada uno con sus permisos**: cuando el CRM pregunta, dice qué persona está preguntando y el ERP responde con lo que esa persona puede ver en el ERP (un vendedor sin acceso a costos no los ve tampoco desde el CRM) y lo audita a su nombre. Si esa persona no es usuaria del ERP, responde con los permisos del usuario dueño de la conexión.
+
 ## Importar datos
 
 Artículos, clientes, proveedores y saldos desde Excel o CSV, con vista previa y detección de duplicados.
