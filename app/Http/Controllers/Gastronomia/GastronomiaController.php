@@ -82,7 +82,7 @@ class GastronomiaController extends Controller
         if ($c->llamado) $c->update(['llamado' => null, 'llamado_en' => null]); // el mozo ya la atendió
         return Inertia::render('Gastronomia/Comanda', [
             'comanda' => $this->comandaArr($c),
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->filter(fn($p) => \App\Services\Gastronomia\HorariosService::disponible($p))->values()->map(fn($p) => ['id' => $p->id, 'hh' => \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)['nombre'] ?? null, 'name' => $p->name, 'price' => \App\Services\Gastronomia\HorariosService::aplicar($this->precioFinal($p), \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color']),
             'medios' => Cobro::MEDIOS, 'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
             'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'cuit', 'condicion_iva']),
@@ -172,18 +172,19 @@ class GastronomiaController extends Controller
     public function carta()
     {
         return Inertia::render('Gastronomia/Carta', [
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'modificadores' => $p->modificadores ?? []]),
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'horario' => $p->horario, 'modificadores' => $p->modificadores ?? []]),
+            'happyHours' => auth()->user()->business->gastronomia_config['happy_hours'] ?? [], 'rubros' => \App\Models\Rubro::orderBy('nombre')->get(['id', 'nombre']),
             'estaciones' => auth()->user()->business->estacionesCocina(), 'qrConfirma' => (bool) (auth()->user()->business->gastronomia_config['qr_confirma'] ?? false),
         ]);
     }
 
     public function guardarCarta(Request $request, int $id)
     {
-        $d = $request->validate(['va_cocina' => 'boolean', 'estacion' => 'nullable|string|max:30', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
+        $d = $request->validate(['horario' => 'nullable|array', 'horario.dias' => 'nullable|array', 'horario.dias.*' => 'integer|between:1,7', 'horario.desde' => 'nullable|date_format:H:i', 'horario.hasta' => 'nullable|date_format:H:i', 'va_cocina' => 'boolean', 'estacion' => 'nullable|string|max:30', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
             'modificadores.*.opciones' => 'required|array|min:1|max:30', 'modificadores.*.opciones.*.nombre' => 'required|string|max:40', 'modificadores.*.opciones.*.precio' => 'nullable|numeric|min:0']);
         $p = Product::findOrFail($id);
         $mods = collect($d['modificadores'] ?? [])->map(fn($g) => ['nombre' => trim($g['nombre']), 'obligatorio' => (bool) ($g['obligatorio'] ?? false), 'multiple' => (bool) ($g['multiple'] ?? false), 'opciones' => collect($g['opciones'])->map(fn($o) => ['nombre' => trim($o['nombre']), 'precio' => round((float) ($o['precio'] ?? 0), 2)])->values()->all()])->values()->all();
-        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []))->save();
+        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []) + (array_key_exists('horario', $d) ? ['horario' => ! empty($d['horario']['desde']) && ! empty($d['horario']['hasta']) ? ['dias' => array_values(array_map('intval', $d['horario']['dias'] ?? [])), 'desde' => $d['horario']['desde'], 'hasta' => $d['horario']['hasta']] : null] : []))->save();
         return back()->with('success', "{$p->name}: carta guardada.");
     }
 
@@ -207,5 +208,16 @@ class GastronomiaController extends Controller
             ->when($request->estacion, fn($q, $e) => $q->where(fn($w) => $w->where('estacion', $e)->when($e === $primera, fn($w) => $w->orWhereNull('estacion'))))
             ->when($request->ronda, fn($q, $r) => $q->where('ronda', (int) $r))->orderBy('id')->get();
         return response()->view('gastronomia.ticket-cocina', ['c' => $c, 'items' => $items, 'estacion' => $request->estacion ?: 'Cocina']);
+    }
+
+    // Fase 52: happy hour — descuento por franja horaria, días y rubros.
+    public function guardarHappyHours(Request $request)
+    {
+        $d = $request->validate(['happy_hours' => 'present|array|max:10', 'happy_hours.*.nombre' => 'required|string|max:40', 'happy_hours.*.activo' => 'boolean', 'happy_hours.*.pct' => 'required|numeric|min:1|max:90',
+            'happy_hours.*.desde' => 'required|date_format:H:i', 'happy_hours.*.hasta' => 'required|date_format:H:i', 'happy_hours.*.dias' => 'nullable|array', 'happy_hours.*.dias.*' => 'integer|between:1,7', 'happy_hours.*.rubros' => 'nullable|array', 'happy_hours.*.rubros.*' => 'integer']);
+        $b = $request->user()->business; $cfg = $b->gastronomia_config ?? [];
+        $cfg['happy_hours'] = collect($d['happy_hours'])->map(fn($r) => ['nombre' => trim($r['nombre']), 'activo' => (bool) ($r['activo'] ?? true), 'pct' => (float) $r['pct'], 'desde' => $r['desde'], 'hasta' => $r['hasta'], 'dias' => array_values(array_map('intval', $r['dias'] ?? [])), 'rubros' => array_values(array_map('intval', $r['rubros'] ?? []))])->values()->all();
+        $b->forceFill(['gastronomia_config' => $cfg])->save();
+        return back()->with('success', 'Happy hour guardado.');
     }
 }

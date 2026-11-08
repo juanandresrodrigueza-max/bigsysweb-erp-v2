@@ -52,3 +52,9 @@ El QR de cada mesa, que se imprime en Gastronomía → Reservas y QR, abre la ca
 - **Estaciones:** el pedido va a la estación de cada plato.
 - **Llamar al mozo y pedir la cuenta:** cada uno tiene su botón. En el salón, la mesa muestra «🙋 Llama al mozo» o «🧾 Pide la cuenta», con los minutos que lleva esperando, y además llega un aviso. Cuando el mozo abre la comanda, el llamado se borra.
 - **Confirmación del mozo:** en Gastronomía → Carta podés tildar que los pedidos del QR los confirme el mozo antes de ir a cocina. Así quedan «sin enviar» hasta que él los mande.
+
+## Happy hour, menú del día y números del salón (Fase 52)
+
+- **Happy hour:** en Gastronomía → Carta armás franjas con su nombre, el % de descuento, el horario (puede cruzar la medianoche), los días y los rubros. Por ejemplo: Happy hour, 50 % en Tragos, de lunes a viernes de 18 a 20. En esa franja el precio baja solo, en el salón y en el QR, y la comanda lo marca «[Happy hour]».
+- **Menú del día y combos:** en las opciones del plato tildás «Sólo se sirve en un horario» (por ejemplo, de lunes a viernes de 12 a 16). Fuera de ese horario no aparece. Para un combo de entrada, principal y postre, armá un grupo obligatorio por paso.
+- **Estadísticas → Gastronomía:** lo vendido, las mesas, el ticket promedio, los cubiertos, lo vendido por cubierto, las propinas y el tiempo de permanencia. Además, la venta por mozo, a qué hora se vende, salón contra mostrador o delivery, los platos más pedidos y los tiempos de cocina por estación. A Bigcito se lo podés preguntar: «¿qué plato sale más?», «¿cuánto tarda la parrilla?».

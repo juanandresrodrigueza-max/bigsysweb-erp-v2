@@ -130,6 +130,15 @@ class EstadisticasController extends Controller
         ]);
     }
 
+    // Fase 52 · Gastronomía: salón, mozos, horas, platos y cocina.
+    public function gastronomia(Request $request, \App\Services\Gastronomia\ReporteService $r)
+    {
+        abort_unless(in_array('gastronomia', $request->user()->modulosVisibles(), true), 404);
+        $desde = $request->desde ? Carbon::parse($request->desde) : now()->startOfMonth();
+        $hasta = $request->hasta ? Carbon::parse($request->hasta) : now();
+        return Inertia::render('Estadisticas/Gastronomia', ['periodo' => ['desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString()]] + $r->datos($desde, $hasta));
+    }
+
     // Fase 33.5 · Plata: qué entra y cuándo, cartera por semana, cobranza por cobrador, IVA del mes.
     public function plata(Request $request, \App\Services\Estadisticas\PlataService $pl)
     {

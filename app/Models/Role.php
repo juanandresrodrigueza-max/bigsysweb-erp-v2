@@ -23,7 +23,7 @@ class Role extends Model
     }
 
     // Fase 44.3: las partes del Tablero (Estadísticas). Sin la lista, ve todas.
-    public const PARTES_ESTADISTICAS = ['ventas' => 'Ventas', 'plata' => 'Plata', 'stock' => 'Stock y compras', 'que_hacer' => 'Qué hacer', 'rentabilidad' => 'Rentabilidad', 'vendedores' => 'Vendedores', 'analista' => 'Analista con IA'];
+    public const PARTES_ESTADISTICAS = ['ventas' => 'Ventas', 'plata' => 'Plata', 'stock' => 'Stock y compras', 'que_hacer' => 'Qué hacer', 'rentabilidad' => 'Rentabilidad', 'vendedores' => 'Vendedores', 'analista' => 'Analista con IA', 'gastronomia' => 'Gastronomía'];
 
     public function vePartes(): ?array { return is_array($this->permisos) && isset($this->permisos['_estadisticas']) ? (array) $this->permisos['_estadisticas'] : null; }
 

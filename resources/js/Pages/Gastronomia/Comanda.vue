@@ -29,7 +29,7 @@
           <button v-for="p in visibles" :key="p.id" @click="pedir(p)" class="card !p-3 text-left hover:border-carmin/50 active:scale-[0.98] transition relative">
             <span class="absolute top-2 right-2 w-2 h-2 rounded-full" :style="{ background: p.color || '#d6d1ca' }"></span>
             <p class="font-semibold text-sm leading-tight line-clamp-2 min-h-[2.4em]">{{ p.name }}</p>
-            <p class="text-lg font-extrabold tabular-nums mt-1">{{ moneda(p.price, 0) }}</p>
+            <p class="text-lg font-extrabold tabular-nums mt-1">{{ moneda(p.price, 0) }}</p><p v-if="p.hh" class="text-[10px] font-bold text-carmin">{{ p.hh }}</p>
             <p class="text-[11px] text-marca-muted">{{ p.va_cocina ? 'cocina' : 'directo' }}</p>
           </button>
         </div>
