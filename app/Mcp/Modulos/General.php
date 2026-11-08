@@ -38,6 +38,19 @@ class General
                 'descripcion' => 'Alertas activas del sistema (stock bajo, facturas vencidas, cheques, lotes por vencer, cajas abiertas…).',
                 'parametros' => ['cantidad' => ['type' => 'integer', 'description' => 'Máximo a devolver (20 por defecto).']],
                 'ejecutar' => fn(User $u, array $a) => ['alertas' => Alerta::visiblesPara($u)->activas()->latest()->limit(min(100, (int) ($a['cantidad'] ?? 20)))->get()->map(fn($x) => ['titulo' => $x->titulo, 'detalle' => $x->detalle, 'severidad' => $x->severidad, 'modulo' => $x->modulo, 'url' => $x->url ? Busca::url($x->url) : null, 'desde' => $x->created_at?->toDateTimeString()])->all()]],
+            // Fase 59: lo que dicen los documentos adjuntos (contratos, listas de precios, fichas). Devuelve los fragmentos con su fuente; Bigcito arma la respuesta.
+            ['nombre' => 'preguntar_documentos', 'titulo' => 'Preguntar a los documentos', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
+                'descripcion' => 'Busca en los documentos adjuntos de la empresa (contratos, listas de precios de proveedores, constancias, fichas técnicas, fotos ya leídas) lo que responde una pregunta. Si la pregunta es sobre un cliente, proveedor o artículo, nombralo.',
+                'parametros' => ['pregunta' => ['type' => 'string'], 'cliente' => ['type' => 'string'], 'proveedor' => ['type' => 'string'], 'articulo' => ['type' => 'string']], 'requeridos' => ['pregunta'],
+                'ejecutar' => function (User $u, array $a) {
+                    $type = null; $id = null;
+                    if (! empty($a['cliente']) && ($c = Busca::cliente($a['cliente']))) { $type = \App\Models\Contact::class; $id = $c->id; }
+                    elseif (! empty($a['proveedor']) && ($c = Busca::proveedor($a['proveedor']))) { $type = \App\Models\Contact::class; $id = $c->id; }
+                    elseif (! empty($a['articulo']) && ($p = Busca::articulo($a['articulo']))) { $type = \App\Models\Product::class; $id = $p->id; }
+                    $f = app(\App\Services\IA\DocumentosIaService::class)->buscar($u->business, (string) $a['pregunta'], $type, $id, null, 5);
+                    if (! $f) return ['fragmentos' => [], 'nota' => 'Ningún documento adjunto habla de eso. No inventes: decile que lo adjunte en Documentos del cliente, proveedor o artículo.'];
+                    return ['fragmentos' => collect($f)->map(fn($x) => ['documento' => $x['nombre'], 'de' => $x['de'], 'fecha' => $x['fecha'], 'texto' => mb_substr($x['fragmento'], 0, 1500), 'url' => Busca::url($x['url'])])->all(), 'nota' => 'Respondé con lo que dicen los fragmentos y nombrá el documento de donde lo sacaste.'];
+                }],
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',
                 'parametros' => ['pregunta' => ['type' => 'string', 'description' => 'Qué se quiere hacer, en palabras del usuario.']], 'requeridos' => ['pregunta'],
