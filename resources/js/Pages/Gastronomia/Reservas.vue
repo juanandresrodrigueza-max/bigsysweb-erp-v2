@@ -1,5 +1,5 @@
 <template>
-  <AppLayout titulo="Reservas y QR">
+  <AppLayout titulo="Big Restó · Reservas y QR">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Reservas y menú QR</h1><p class="page-subtitle">Las reservas que entran por la web y las que cargás a mano. Y los códigos QR de cada mesa para que pidan desde el celular.</p></div>
       <div class="flex gap-2"><Link href="/gastronomia" class="btn-secondary">Salón</Link><button class="btn-primary" @click="nuevaAbierta = true">Nueva reserva</button></div>

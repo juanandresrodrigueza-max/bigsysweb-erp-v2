@@ -1,7 +1,7 @@
 <template>
-  <AppLayout titulo="Salón">
+  <AppLayout titulo="Big Restó · Salón">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><h1 class="page-title">Salón</h1><p class="page-subtitle">Tocá una mesa para abrirla o ver su comanda. Se actualiza solo.</p></div>
+      <div><p class="text-xs font-bold uppercase tracking-widest text-carmin">Big Restó</p><h1 class="page-title">Salón</h1><p class="page-subtitle">Tocá una mesa para abrirla o ver su comanda. Se actualiza solo.</p></div>
       <div class="flex flex-wrap gap-2">
         <Link href="/gastronomia/carta" class="btn-secondary" data-e2e="ir-carta">Carta</Link>
         <Link href="/gastronomia/reservas" class="btn-secondary">Reservas y QR</Link>

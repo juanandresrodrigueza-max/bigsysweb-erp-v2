@@ -18,7 +18,7 @@ return [
         'sueldos'       => ['label' => 'Sueldos',        'icono' => 'idcard',    'grupo' => 'Finanzas',  'ruta' => '/sueldos',       'core' => false, 'disponible' => true],
         'contable'      => ['label' => 'Contable',       'icono' => 'book',      'grupo' => 'Finanzas',  'ruta' => '/contable',      'core' => false, 'disponible' => true],
         'estadisticas'  => ['label' => 'Estadísticas',   'icono' => 'chart',     'grupo' => 'Finanzas',  'ruta' => '/estadisticas',  'core' => true,  'disponible' => true],
-        'gastronomia'   => ['label' => 'Gastronomía',    'icono' => 'utensils',  'grupo' => 'Verticales','ruta' => '/gastronomia',   'core' => false, 'disponible' => true],
+        'gastronomia'   => ['label' => 'Big Restó',      'icono' => 'utensils',  'grupo' => 'Verticales','ruta' => '/gastronomia',   'core' => false, 'disponible' => true],
         'retail'        => ['label' => 'Comercio',       'icono' => 'store',     'grupo' => 'Verticales','ruta' => '/retail',        'core' => false, 'disponible' => true],
         'servicios'     => ['label' => 'Servicio técnico','icono' => 'wrench',   'grupo' => 'Verticales','ruta' => '/servicios',     'core' => false, 'disponible' => true],
         'hoteleria'     => ['label' => 'Hotelería',      'icono' => 'bed',       'grupo' => 'Verticales','ruta' => '/hoteleria',     'core' => false, 'disponible' => true],
