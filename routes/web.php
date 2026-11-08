@@ -160,6 +160,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/empresa/{id}',  [\App\Http\Controllers\EmpresaSwitchController::class, 'cambiar'])->whereNumber('id')->name('empresa.cambiar');
     Route::get('/contador/empresas', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'index']);
     Route::post('/contador/empresas/{id}/enviar', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'enviar'])->middleware('throttle:20,1');
+    Route::get('/contador/empresas/{id}/informe', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'informe'])->middleware('throttle:30,1'); // Fase 66
     Route::post('/contador/estudio', [\App\Http\Controllers\Contable\MisEmpresasController::class, 'guardarEstudio']);
     Route::get('/conjuntos/{id}', [\App\Http\Controllers\ConjuntosController::class, 'ver'])->whereNumber('id');
     Route::post('/conjuntos/{id?}', [\App\Http\Controllers\ConjuntosController::class, 'guardar'])->whereNumber('id');

@@ -50,7 +50,8 @@ class MisEmpresasController extends Controller
     {
         $user = $request->user();
         $b = $user->empresasAccesibles()->firstWhere('id', $id) ?? abort(403, 'No tenés acceso a esa empresa.');
-        $d = $request->validate(['email' => 'required|email|max:150', 'formato' => 'required|in:pdf,resumen', 'mes' => 'required|date_format:Y-m', 'mensaje' => 'nullable|string|max:2000']);
+        $d = $request->validate(['email' => 'required|email|max:150', 'formato' => 'required|in:pdf,resumen', 'mes' => 'required|date_format:Y-m', 'mensaje' => 'nullable|string|max:2000', 'informe' => 'boolean']);
+        $informe = $request->boolean('informe', true) ? app(\App\Services\Contabilidad\InformeContadorService::class)->informe($b, $d['mes']) : null; // Fase 66: el informe en castellano
         [$desde, $hasta] = [\Carbon\Carbon::parse($d['mes'] . '-01')->toDateString(), \Carbon\Carbon::parse($d['mes'] . '-01')->endOfMonth()->toDateString()];
         $r = $this->resumen($b, $desde, $hasta); $estudio = $this->estudio($user); $marca = app(\App\Services\Empresas\EstudioService::class)->config($estudio)['marca'];
         $periodo = \Carbon\Carbon::parse($d['mes'] . '-01')->locale('es')->translatedFormat('F Y');
@@ -58,10 +59,10 @@ class MisEmpresasController extends Controller
         $d['mensaje'] = $d['mensaje'] ?? null;
         $texto = ($d['mensaje'] ? $d['mensaje'] . "\n\n" : '') . "Resumen de {$b->name} · {$periodo}\n\n"
             . "Ventas: {$m($r['ventas'])} ({$r['ventas_n']} comprobantes)\nCompras: {$m($r['compras'])} ({$r['compras_n']} comprobantes)\n"
-            . "IVA débito: {$m($r['iva_debito'])} · crédito: {$m($r['iva_credito'])}\n" . ($r['iva_saldo'] > 0 ? 'IVA a pagar: ' : 'Saldo a favor: ') . $m(abs($r['iva_saldo'])) . "\n\n{$marca}";
+            . "IVA débito: {$m($r['iva_debito'])} · crédito: {$m($r['iva_credito'])}\n" . ($r['iva_saldo'] > 0 ? 'IVA a pagar: ' : 'Saldo a favor: ') . $m(abs($r['iva_saldo'])) . ($informe ? "\n\n" . $informe['texto'] : '') . "\n\n{$marca}";
         $adj = null;
         if ($d['formato'] === 'pdf') {
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('contable.resumen-empresa', ['r' => $r, 'b' => $b, 'estudio' => $estudio, 'marca' => $marca, 'periodo' => $periodo, 'logo' => $estudio->logoDataUri(), 'mensaje' => $d['mensaje']])->setPaper('a4');
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('contable.resumen-empresa', ['r' => $r, 'b' => $b, 'estudio' => $estudio, 'marca' => $marca, 'periodo' => $periodo, 'logo' => $estudio->logoDataUri(), 'mensaje' => $d['mensaje'], 'informe' => $informe])->setPaper('a4');
             $adj = [$pdf->output(), 'resumen-' . \Illuminate\Support\Str::slug($b->name) . '-' . $d['mes'] . '.pdf'];
         }
         \Illuminate\Support\Facades\Mail::to($d['email'])->send(new \App\Mail\DocumentoMail($estudio, "Resumen {$periodo} · {$b->name}", $texto, $adj));
@@ -69,6 +70,14 @@ class MisEmpresasController extends Controller
         $est = $estudio->estudio ?? []; $est['mails'][$b->id] = $d['email']; $estudio->estudio = $est; $estudio->save();
         \App\Models\AuditLog::registrar('enviar', $b, "Envió el resumen de {$periodo} a {$d['email']}");
         return back()->with('success', "Resumen enviado a {$d['email']}.");
+    }
+
+    // Fase 66: vista previa del informe del mes en castellano (lo que va a ir en el mail/PDF).
+    public function informe(Request $request, int $id)
+    {
+        $b = $request->user()->empresasAccesibles()->firstWhere('id', $id) ?? abort(403, 'No tenés acceso a esa empresa.');
+        $d = $request->validate(['mes' => 'required|date_format:Y-m']);
+        return response()->json(app(\App\Services\Contabilidad\InformeContadorService::class)->informe($b, $d['mes']));
     }
 
     private function resumen(Business $b, string $desde, string $hasta): array

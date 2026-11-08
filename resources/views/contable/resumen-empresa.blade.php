@@ -14,5 +14,9 @@
 <tr><td>IVA crédito fiscal</td><td class="n">{{ $m($r['iva_credito']) }}</td></tr>
 <tr class="tot"><td>{{ $r['iva_saldo'] > 0 ? 'IVA a pagar' : 'Saldo técnico a favor' }}</td><td class="n">{{ $m(abs($r['iva_saldo'])) }}</td></tr>
 </table>
+@if(!empty($informe))
+<h2 style="margin-top:22px;font-size:15px">El mes en palabras</h2>
+<div style="white-space:pre-line;line-height:1.45">{{ $informe['texto'] }}</div>
+@endif
 <p class="muted" style="margin-top:24px">Preparado por {{ $marca }} con BigSysWeb ERP. Importes con IVA según los comprobantes cargados del período.</p>
 </body></html>
