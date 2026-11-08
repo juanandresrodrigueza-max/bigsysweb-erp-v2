@@ -159,3 +159,12 @@ url_suscripcion}`; y el aviso **`plan.cambiado`** (mismo cuerpo) en cada cambio 
    por día) guarda `incluye_crm`, `estado`, `vence`, `max_usuarios`; si `incluye_crm` es false o `estado` es `bloqueada`, el CRM muestra el
    motivo y el link a `url_suscripcion` del ERP y no deja operar (sólo leer); no cobra una suscripción aparte.
 3. Al crear un usuario en el CRM con ERP conectado, si el ERP responde `ok:false` por el máximo del plan, el CRM lo dice con el mismo texto.
+
+## Ajustes tras la publicación de los dos lados
+
+- El ERP lee **`GET /api/v1/erp/salud`** del CRM (caché 5 min) y lo muestra en Configuración → CRM como "Lo que ve el CRM"; si de nuestro lado
+  está verde pero el CRM tiene envíos hacia el ERP caídos o errores, el semáforo del ERP pasa a amarillo con el texto del CRM. `estado_crm` lo
+  devuelve en `lo_que_ve_el_crm`.
+- Reconciliación del CRM (`contact.updated` / `quote.accepted` con `data.reconciliacion: true`): el ERP ya es idempotente (contacto por
+  `crm_external_id`, presupuesto por `crm_quote_id`), así que no duplica nada.
+- Pendiente del lado CRM: 69.3 (Cobranzas del CRM con saldo y vencido del ERP).
