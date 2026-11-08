@@ -106,7 +106,7 @@
         <div class="sm:col-span-2"><label class="label">Concepto</label><input v-model="mv.concepto" class="input" placeholder="Ej: Alquiler galpón septiembre" /><p v-if="mv.errors.concepto" class="text-carmin text-xs mt-1">{{ mv.errors.concepto }}</p></div>
         <div><label class="label">Importe</label><input v-model.number="mv.monto" type="number" step="any" min="0" class="input" /><p v-if="mv.errors.monto" class="text-carmin text-xs mt-1">{{ mv.errors.monto }}</p></div>
         <div><label class="label">Fecha</label><input v-model="mv.fecha" type="date" class="input" /></div>
-        <div v-if="mv.tipo === 'egreso'"><label class="label">Categoría</label><select v-model="mv.expense_category_id" class="input"><option :value="null">Sin categoría</option><option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.name }}</option></select></div>
+        <div v-if="mv.tipo === 'egreso'"><label class="label">Categoría <span v-if="catSug && mv.expense_category_id === catSug.expense_category_id" class="normal-case font-normal text-violeta">· ✦ sugerida</span></label><select v-model="mv.expense_category_id" class="input"><option :value="null">Sin categoría</option><option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.name }}</option><option v-if="catSug && !categorias.some(c => c.id === catSug.expense_category_id)" :value="catSug.expense_category_id">{{ catSug.nombre }}</option></select></div>
         <div><label class="label">Referencia</label><input v-model="mv.referencia" class="input" /></div>
       </div>
       <template #pie><button class="btn-secondary" @click="movModal = false">Cancelar</button><button class="btn-primary" :disabled="mv.processing" @click="mv.post('/fondos/movimiento', { preserveScroll: true, onSuccess: () => { movModal = false; mv.reset('concepto', 'monto', 'referencia') } })">Registrar</button></template>
@@ -192,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -217,6 +217,9 @@ function abrirCuenta(c) { cf.clearErrors(); Object.assign(cf, c ? { ...c, saldo_
 
 const movModal = ref(false)
 const mv = useForm({ cuenta_fondos_id: props.cuentaActual, fecha: hoyISO(), tipo: 'egreso', monto: null, concepto: '', expense_category_id: null, referencia: '' })
+// Fase 58: mientras escribe el concepto, la categoría se sugiere sola (lo aprendido y las reglas; la IA al guardar si hace falta).
+const catSug = ref(null); let catT = null
+watch(() => mv.concepto, (v) => { clearTimeout(catT); if (!v || v.length < 3 || mv.tipo !== 'egreso') { catSug.value = null; return } catT = setTimeout(async () => { try { const { data } = await window.axios.get('/fondos/sugerir-categoria', { params: { concepto: v } }); const prev = catSug.value?.expense_category_id; catSug.value = data.expense_category_id ? data : null; if (data.expense_category_id && (!mv.expense_category_id || mv.expense_category_id === prev)) mv.expense_category_id = data.expense_category_id } catch (e) {} }, 400) })
 function abrirMov(tipo) { mv.tipo = tipo; mv.cuenta_fondos_id = props.cuentaActual; movModal.value = true }
 
 const transfAbierto = ref(false)

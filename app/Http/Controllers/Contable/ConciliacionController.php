@@ -108,4 +108,17 @@ class ConciliacionController extends Controller
         $n = app(\App\Services\Contabilidad\BancoCajonesService::class)->registrarGrupo(CuentaFondos::findOrFail($d['cuenta']), $d['clase'], $d['expense_category_id'] ?? null);
         return back()->with('success', "Registrados {$n} renglones del banco en Fondos, ya conciliados.");
     }
+
+    // Fase 58: la IA clasifica de una vez los débitos pendientes que no tienen categoría (y queda aprendido).
+    public function clasificarIa(Request $request)
+    {
+        $d = $request->validate(['cuenta' => 'required|integer']);
+        $cuenta = CuentaFondos::findOrFail($d['cuenta']); $b = $request->user()->business;
+        abort_unless(\App\Support\Ia::tiene($b), 422, 'Cargá la clave de IA en Configuración → IA.');
+        $clas = app(\App\Services\Contabilidad\ClasificadorGastosService::class);
+        $pend = ExtractoItem::where('cuenta_fondos_id', $cuenta->id)->where('estado', 'pendiente')->where('monto', '<', 0)->get()->filter(fn($it) => ! $clas->sugerir($b, $it->descripcion, false))->values();
+        if ($pend->isEmpty()) return back()->with('success', 'Todos los débitos pendientes ya tienen categoría.');
+        $r = $clas->sugerirLote($b, $pend->pluck('descripcion')->all());
+        return back()->with('success', count($r) . ' de ' . $pend->count() . ' renglones clasificados con IA. Quedan aprendidos para los próximos extractos.');
+    }
 }

@@ -85,6 +85,9 @@ class ConciliacionService
     {
         $cuenta = CuentaFondos::findOrFail($it->cuenta_fondos_id);
         $monto = (float) $it->monto;
+        // Fase 58: sin categoría elegida, se clasifica sola; con categoría elegida, aprende.
+        $clas = app(ClasificadorGastosService::class); $b = $cuenta->business;
+        if ($monto < 0) { if ($categoriaId) $clas->aprender($b, $concepto ?: $it->descripcion, $categoriaId); else $categoriaId = $clas->sugerir($b, $concepto ?: $it->descripcion)['expense_category_id'] ?? null; }
         $m = $this->fondos->registrar($cuenta, ['fecha' => $it->fecha->toDateString(), 'origen' => $monto >= 0 ? 'ingreso' : 'gasto', 'expense_category_id' => $monto < 0 ? $categoriaId : null, 'concepto' => $concepto ?: $it->descripcion, 'ingreso' => max(0, $monto), 'egreso' => max(0, -$monto), 'referencia' => $it->referencia]);
         $this->vincular($it, $m, 'manual');
         app(ContabilidadService::class)->contabilizar($m);

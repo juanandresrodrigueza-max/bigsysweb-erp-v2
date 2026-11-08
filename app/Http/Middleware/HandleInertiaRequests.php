@@ -33,6 +33,7 @@ class HandleInertiaRequests extends Middleware
                 ],
                 'permisos' => $user->permisosResumen(),
                 'gastronomia' => in_array('gastronomia', $user->modulosVisibles(), true),
+                'ia' => \App\Support\Ia::tiene($user->business), // Fase 58
                 'partesEstadisticas' => $user->esDueno() || $user->is_superadmin ? null : $user->rolActual()?->vePartes(),
             ] : null,
             'empresa' => fn() => $user?->business ? [

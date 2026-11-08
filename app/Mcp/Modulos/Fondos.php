@@ -53,6 +53,7 @@ class Fondos
                     $like = \App\Support\Sql::like();
                     $cat = ! empty($a['categoria']) ? ExpenseCategory::where('name', $like, "%{$a['categoria']}%")->first() : null;
                     $cat ??= ExpenseCategory::where('name', $like, '%' . explode(' ', $concepto)[0] . '%')->first();
+                    if (! $cat && ($s = app(\App\Services\Contabilidad\ClasificadorGastosService::class)->sugerir($u->business, $concepto))) $cat = ExpenseCategory::find($s['expense_category_id']); // Fase 58
                     return ['titulo' => 'Gasto de ' . Busca::pesos($monto) . ": {$concepto}", 'detalle' => "Sale de {$c->nombre}" . ($cat ? " · categoría {$cat->name}" : ' · sin categoría') . '.',
                         'datos' => ['cuenta_id' => $c->id, 'concepto' => $concepto, 'egreso' => $monto, 'expense_category_id' => $cat?->id, 'fecha' => $a['fecha'] ?? today()->toDateString()]];
                 },

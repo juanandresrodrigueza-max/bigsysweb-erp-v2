@@ -100,3 +100,19 @@ Lo que el cliente tiene para retirar no es deuda. Por cliente: lo acopiado, lo r
 
 - **Por día** (Fondos → Cierres): una fila por día y caja con quién cerró y a qué hora, cuántos comprobantes, lo cobrado, lo contado y la diferencia, con el total abajo. Si hubo varios cierres ese día, **×N** los abre uno por uno.
 - **Alertas al celular en cada cierre:** cuando un cierre sale de lo normal para esa caja (mucho efectivo comparado con los últimos cierres, cerró en cero habiendo cobrado, o con muchos menos comprobantes que de costumbre), queda una alerta y le llega al dueño al celular.
+
+## Gastos que caen solos en su categoría (Fase 58)
+
+No hace falta elegir categoría cada vez que cargás un gasto. El sistema la pone solo, en este orden:
+
+1. **Lo que ya enseñaste.** Si alguna vez le pusiste una categoría a mano a un concepto parecido ("Amoladora Bosch" → Herramientas), la próxima vez va directo ahí.
+2. **Reglas por palabras.** Edenor, Epec, Edesur → Luz; Naturgy, Metrogas → Gas; YPF, Shell, nafta → Combustible; AFIP/ARCA, IIBB, SIRCREB → Impuestos y tasas; comisión, mantenimiento de cuenta → Gastos bancarios; Personal, Claro, Movistar → Internet y teléfono; alquiler, expensas → Alquiler; seguro → Seguros; flete, Andreani, correo → Fletes y correo, y así. Las categorías se crean la primera vez que hacen falta.
+3. **La IA**, si la empresa tiene clave cargada (Configuración → IA). Mira las categorías que ya tiene la empresa y elige una; si ninguna encaja, propone una nueva genérica (nunca el nombre del proveedor). Lo que decide queda aprendido: no se le pregunta dos veces por el mismo concepto.
+
+Dónde se nota:
+
+- **Fondos → gasto manual**: mientras escribís el concepto aparece la categoría "✦ sugerida". Si la cambiás, el sistema aprende tu elección. Si guardás sin categoría, se pone sola y el aviso te lo dice.
+- **Contable → Conciliación (extracto del banco)**: cada débito pendiente trae su categoría sugerida al lado. El botón **"✦ Clasificar con IA lo que no tiene categoría"** manda de una sola vez los que quedaron sin categoría (una pregunta por concepto, no por renglón). Al registrar un renglón sin elegir categoría, toma la sugerida.
+- **Bigcito**: "registrá un gasto de 3000 de recarga del celular" → lo propone con categoría *Internet y teléfono* sin que la nombres.
+
+Como cada categoría tiene su cuenta contable (5.2.x), el asiento también sale solo. Si una categoría quedó mal, cambiala en el movimiento: el sistema aprende la corrección.
