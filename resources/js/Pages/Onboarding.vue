@@ -11,14 +11,14 @@
 
       <!-- Fase 48: el inductor de Bigcito -->
       <div v-if="induccion.puede && (!induccion.hecha || rehacer)" class="card mb-5" data-e2e="inductor">
-        <div class="flex items-center gap-2 mb-3"><span class="w-9 h-9 rounded-full grid place-items-center text-white font-black" style="background: linear-gradient(135deg,#e4003f,#a42785)">B</span><div><p class="font-bold leading-tight">Bigcito te deja el sistema a medida</p><p class="text-xs text-marca-muted">Unas preguntas cortas según tu negocio. Lo que no uses lo saco del menú; lo que sí, te lo pongo en los pasos.</p></div></div>
+        <div class="flex items-center gap-2 mb-3"><img src="/img/bigcito.webp" alt="Bigcito" class="w-16 h-auto shrink-0" /><div><p class="font-bold leading-tight">Bigcito te deja el sistema a medida</p><p class="text-xs text-marca-muted">Unas preguntas cortas según tu negocio. Lo que no uses lo saco del menú; lo que sí, te lo pongo en los pasos.</p></div></div>
         <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
           <template v-for="k in respondidas" :key="k">
             <p class="text-sm bg-marca-fondo rounded-2xl rounded-tl-sm px-3 py-2 max-w-[85%]">{{ preguntasVis[k].texto }}</p>
             <p class="text-sm bg-lavanda-light text-violeta rounded-2xl rounded-tr-sm px-3 py-2 max-w-[85%] ml-auto text-right cursor-pointer" title="Cambiar" @click="delete r[k]">{{ preguntasVis[k].opciones[r[k]] }}</p>
           </template>
           <template v-if="actual">
-            <p class="text-sm bg-marca-fondo rounded-2xl rounded-tl-sm px-3 py-2 max-w-[85%] font-medium">{{ preguntasVis[actual].texto }}</p>
+            <div class="flex items-end gap-2"><img src="/img/bigcito-cara.webp" alt="" class="w-7 h-7 rounded-full shrink-0" /><p class="text-sm bg-marca-fondo rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%] font-medium">{{ preguntasVis[actual].texto }}</p></div>
             <div class="flex flex-wrap gap-1.5 justify-end"><button v-for="(l, v) in preguntasVis[actual].opciones" :key="v" class="btn-secondary !py-1 text-xs" @click="r[actual] = v" :data-opcion="actual + ':' + v">{{ l }}</button></div>
           </template>
           <p v-else class="text-sm bg-marca-fondo rounded-2xl rounded-tl-sm px-3 py-2 max-w-[85%]">¡Listo! Con esto te dejo: <b>{{ resumen }}</b>. ¿Lo dejo así?</p>
