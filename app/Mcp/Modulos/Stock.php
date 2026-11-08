@@ -65,11 +65,18 @@ class Stock
                     if (($ya = Busca::articulo($a['codigo'] ?? '')) || ($ya = Product::where('name', $a['nombre'])->first())) return ['error' => "Ya existe {$ya->name} (código {$ya->sku})."];
                     app(\App\Services\Suscripciones\LimitesPlanService::class)->verificarArticulo($u->business);
                     $sku = $a['codigo'] ?? ('IA' . str_pad((string) ((int) Product::max('id') + 1), 6, '0', STR_PAD_LEFT));
-                    return ['titulo' => "Crear el artículo {$a['nombre']}", 'detalle' => "Código {$sku} · precio " . Busca::pesos($a['precio']) . (isset($a['costo']) ? ' · costo ' . Busca::pesos($a['costo']) : '') . ' · IVA ' . ($a['iva'] ?? 21) . '%',
-                        'datos' => ['name' => $a['nombre'], 'sku' => $sku, 'price' => (float) $a['precio'], 'cost' => (float) ($a['costo'] ?? 0), 'iva' => (float) ($a['iva'] ?? 21), 'unit' => $a['unidad'] ?? 'un', 'stock_min' => (float) ($a['stock_minimo'] ?? 0)]];
+                    // Fase 61: con IA, el resto del artículo (rubro, unidad, IVA, marca, descripciones, atributos) se completa solo.
+                    $ia = \App\Support\Ia::tiene($u->business) ? app(\App\Services\Stock\AltaArticuloIaService::class)->completar($u->business, $a['nombre']) : ['ok' => false];
+                    $c = $ia['ok'] ? $ia['campos'] : [];
+                    $datos = ['name' => $a['nombre'], 'sku' => $sku, 'price' => (float) $a['precio'], 'cost' => (float) ($a['costo'] ?? 0), 'iva' => (float) ($a['iva'] ?? ($c['iva'] ?? 21)), 'unit' => $a['unidad'] ?? ($c['unit'] ?? 'un'), 'stock_min' => (float) ($a['stock_minimo'] ?? 0),
+                        'tipo' => $c['tipo'] ?? 'producto', 'rubro_id' => $c['rubro_id'] ?? null, 'marca' => $c['marca'] ?? null, 'barcode' => $c['barcode'] ?? null, 'description' => $c['description'] ?? null, 'descripcion_tienda' => $c['descripcion_tienda'] ?? null, 'atributos' => $c['atributos'] ?? null, 'contenido_neto' => $c['contenido_neto'] ?? null, 'contenido_unidad' => $c['contenido_unidad'] ?? null];
+                    $rubro = $datos['rubro_id'] ? \App\Models\Rubro::find($datos['rubro_id']) : null;
+                    return ['titulo' => "Crear el artículo {$a['nombre']}", 'detalle' => "Código {$sku} · precio " . Busca::pesos($a['precio']) . (isset($a['costo']) ? ' · costo ' . Busca::pesos($a['costo']) : '') . " · IVA {$datos['iva']}% · unidad {$datos['unit']}" . ($rubro ? " · rubro {$rubro->nombre}" : '') . ($c ? ' (completado con IA' . (! empty($ia['rubro_sugerido']) ? ", rubro sugerido «{$ia['rubro_sugerido']}» que no existe" : '') . ')' : ''),
+                        'datos' => $datos];
                 },
                 'confirmar' => function (User $u, array $d) {
-                    $p = Product::create($d + ['business_id' => $u->business_id, 'active' => true, 'controla_stock' => true, 'tipo' => 'producto', 'stock' => 0]);
+                    $p = Product::create(array_filter($d, fn($v) => $v !== null) + ['business_id' => $u->business_id, 'active' => true, 'controla_stock' => true, 'tipo' => 'producto', 'stock' => 0]);
+                    if (($d['tipo'] ?? 'producto') === 'servicio') $p->update(['controla_stock' => false]);
                     return ['texto' => "Artículo {$p->name} creado.", 'articulo_id' => $p->id, 'url' => Busca::url("/stock?buscar=" . urlencode((string) $p->sku))];
                 }],
             ['nombre' => 'cambiar_precio', 'titulo' => 'Cambiar un precio', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion',
