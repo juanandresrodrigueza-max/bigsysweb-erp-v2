@@ -53,6 +53,24 @@
       <p class="px-4 py-2 text-[11px] text-marca-muted">Cada noche a las 4:40 se miden las páginas clave de las empresas más grandes como su dueño. Una página lenta dos noches seguidas pone la salud en crítico y avisa por mail.</p>
     </div>
 
+    <!-- Fase 78: copias por empresa -->
+    <div class="card p-0 overflow-x-auto mb-4" data-e2e="copias-empresas">
+      <div class="px-4 py-3 border-b border-marca-borde flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Copias de seguridad por empresa</h2>
+        <span class="text-xs" :class="copias.remoto ? 'text-emerald-700' : 'text-amber-700'">{{ copias.remoto ? `Se suben a ${copias.disco}` : 'Sin disco externo: las copias viven en este servidor (BACKUP_DISK)' }}</span></div>
+      <table class="table text-sm">
+        <thead><tr><th>Empresa</th><th>Última copia</th><th class="text-right">Tamaño</th><th>Verificada</th><th>Ensayo de restauración</th><th>Fuera del servidor</th></tr></thead>
+        <tbody><tr v-for="c in copias.empresas" :key="c.business_id" :class="{ 'opacity-60': !c.auto }">
+          <td class="font-semibold">{{ c.empresa }}<span v-if="!c.auto" class="badge !py-0 ml-1">auto apagada</span></td>
+          <td class="tabular-nums" :class="{ 'text-carmin': c.hace_horas !== null && c.hace_horas > 30 }">{{ c.ultima ? `hace ${c.hace_horas} h` : 'nunca' }}</td>
+          <td class="text-right tabular-nums">{{ c.mb === null ? '—' : c.mb + ' MB' }}</td>
+          <td><span v-if="c.verificada === null" class="text-marca-muted">—</span><span v-else-if="c.verificada" class="text-emerald-700">✓ se abre y cuadra</span><span v-else class="text-carmin" :title="c.problemas.join(' ')">✗ {{ c.problemas[0] }}</span></td>
+          <td><span v-if="!c.ensayo" class="text-marca-muted">sin ensayo</span><span v-else :class="c.ensayo.ok ? 'text-emerald-700' : 'text-carmin'">{{ c.ensayo.ok ? '✓' : '✗' }} hace {{ c.ensayo.hace_dias }} d</span></td>
+          <td>{{ c.remoto ? '✓' : (copias.remoto ? '✗ no subida' : '—') }}</td></tr>
+          <tr v-if="!copias.empresas.length"><td colspan="6" class="text-center text-marca-muted py-4">Sin empresas activas.</td></tr></tbody>
+      </table>
+      <p class="px-4 py-2 text-[11px] text-marca-muted">A las 3:00 se hace la copia de cada empresa y se verifica en el acto; a las 3:40 se vuelven a comprobar todas; los domingos a las 5:10 se ensaya restaurar cada una en una transacción que se deshace. Una copia que no abre o no cuadra pone la salud en crítico.</p>
+    </div>
+
     <div class="card p-0 overflow-x-auto">
       <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">Errores recientes</h2><span class="text-xs text-marca-muted">{{ errores.filter(e => !e.resuelto).length }} sin resolver · agrupados por lugar</span></div>
       <table class="table text-sm">
@@ -79,7 +97,7 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
-const props = defineProps({ salud: Object, errores: Array, monitoreo: Object, paginas: { type: Object, default: () => ({ ronda: null, paginas: [], lentas: 0, umbral: 300 }) } })
+const props = defineProps({ salud: Object, errores: Array, monitoreo: Object, copias: { type: Object, default: () => ({ empresas: [], remoto: false, disco: null }) }, paginas: { type: Object, default: () => ({ ronda: null, paginas: [], lentas: 0, umbral: 300 }) } })
 const form = useForm({ sentry_dsn: '', monitoreo_email: props.monitoreo.email ?? '', salud_token: props.monitoreo.salud_token ?? '' })
 const abierto = ref(null)
 const clase = e => ({ ok: 'bg-emerald-50 text-emerald-700', aviso: 'bg-amber-50 text-amber-700', critico: 'bg-carmin-light text-carmin' }[e])

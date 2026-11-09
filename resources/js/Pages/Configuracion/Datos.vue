@@ -25,13 +25,14 @@
     <div class="card p-0 overflow-hidden">
       <div class="px-4 py-3 border-b border-marca-borde font-bold">Copias guardadas</div>
       <table class="table text-sm">
-        <thead><tr><th>Fecha</th><th>Origen</th><th class="text-right">Tamaño</th><th class="text-right">Tablas</th><th class="text-right">Filas</th><th>Usuario</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Origen</th><th class="text-right">Tamaño</th><th class="text-right">Tablas</th><th class="text-right">Filas</th><th>Verificada</th><th>Usuario</th><th></th></tr></thead>
         <tbody>
           <tr v-for="b in backups" :key="b.id">
-            <td class="tabular-nums">{{ b.fecha }}</td><td><span class="badge" :class="{ 'bg-lavanda-light text-violeta': b.origen === 'auto', 'bg-emerald-50 text-emerald-700': b.origen === 'manual', 'bg-amber-50 text-amber-700': b.origen === 'pre_restauracion' }">{{ { auto: 'Automática', manual: 'Manual', pre_restauracion: 'Antes de restaurar' }[b.origen] }}</span></td><td class="text-right tabular-nums">{{ b.mb }} MB</td><td class="text-right tabular-nums">{{ b.tablas }}</td><td class="text-right tabular-nums">{{ b.filas.toLocaleString('es-AR') }}</td><td>{{ b.usuario ?? 'Sistema' }}</td>
+            <td class="tabular-nums">{{ b.fecha }}</td><td><span class="badge" :class="{ 'bg-lavanda-light text-violeta': b.origen === 'auto', 'bg-emerald-50 text-emerald-700': b.origen === 'manual', 'bg-amber-50 text-amber-700': b.origen === 'pre_restauracion' }">{{ { auto: 'Automática', manual: 'Manual', pre_restauracion: 'Antes de restaurar' }[b.origen] }}</span></td><td class="text-right tabular-nums">{{ b.mb }} MB</td><td class="text-right tabular-nums">{{ b.tablas }}</td><td class="text-right tabular-nums">{{ b.filas.toLocaleString('es-AR') }}</td>
+            <td class="text-xs"><span v-if="b.verificada === null" class="text-marca-muted">—</span><span v-else-if="b.verificada" class="text-emerald-700" title="Se abrió la copia y cada tabla cuadra con lo guardado">✓ se abre y cuadra{{ b.remoto ? ' · fuera del servidor' : '' }}</span><span v-else class="text-carmin" :title="b.problemas.join(' ')">✗ {{ b.problemas[0] }}</span></td><td>{{ b.usuario ?? 'Sistema' }}</td>
             <td class="text-right whitespace-nowrap"><a :href="`/configuracion/datos/backups/${b.id}`" class="btn-ghost !px-2 text-xs">Descargar</a><button class="btn-ghost !px-2 text-xs" @click="rest.backup_id = b.id; restAbierto = true">Restaurar</button><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.delete(`/configuracion/datos/backups/${b.id}`, { preserveScroll: true })">Borrar</button></td>
           </tr>
-          <tr v-if="!backups.length"><td colspan="7" class="text-center text-marca-muted py-6">Todavía no hay copias. Generá la primera ahora.</td></tr>
+          <tr v-if="!backups.length"><td colspan="8" class="text-center text-marca-muted py-6">Todavía no hay copias. Generá la primera ahora.</td></tr>
         </tbody>
       </table>
     </div>

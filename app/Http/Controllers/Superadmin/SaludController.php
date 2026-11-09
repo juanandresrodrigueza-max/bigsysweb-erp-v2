@@ -21,6 +21,7 @@ class SaludController extends Controller
         return Inertia::render('Superadmin/Salud', [
             'salud' => $svc->verificar(), 'errores' => $errores,
             'paginas' => app(\App\Services\Monitoreo\MedicionService::class)->ultimaRonda(), // Fase 77
+            'copias' => ['empresas' => \App\Services\Migracion\BackupService::estadoPorEmpresa(), 'remoto' => \App\Services\Migracion\BackupService::remotoConfigurado(), 'disco' => config('services.backups.disk')], // Fase 78
             'monitoreo' => ['dsn_set' => (bool) ErrorReporter::dsn(), 'dsn_panel' => (bool) SistemaConfig::get('sentry_dsn'), 'email' => SistemaConfig::get('monitoreo_email') ?: SistemaConfig::get('soporte_email'), 'salud_token' => SistemaConfig::get('salud_token'), 'url_publica' => url('/salud')],
         ]);
     }

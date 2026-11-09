@@ -49,4 +49,8 @@ return [
     // Fase 46: captcha opcional del registro (Cloudflare Turnstile). Sin claves, el registro usa solo la trampa y el límite por IP.
     'turnstile' => ['site_key' => env('TURNSTILE_SITE_KEY'), 'secret' => env('TURNSTILE_SECRET')],
 
+    // Fase 78: disco (de config/filesystems.php) donde se sube cada copia de seguridad fuera del servidor, p. ej. "s3" apuntando a un
+    // bucket de Backblaze, Wasabi o Cloudflare R2. Sin esto las copias viven en el mismo disco del servidor y la salud lo avisa.
+    'backups' => ['disk' => env('BACKUP_DISK')],
+
 ];

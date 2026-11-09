@@ -88,7 +88,9 @@ class General
                     return ['estado' => $s['estado'], 'controles_con_problemas' => array_values(array_map(fn($c) => ['control' => $c['nombre'], 'estado' => $c['estado'], 'detalle' => $c['detalle']], array_filter($s['controles'], fn($c) => $c['estado'] !== 'ok'))),
                         'errores_24h' => ['total' => (int) $err->sum('veces'), 'distintos' => $err->count(), 'principales' => $err->map(fn($e) => ['que' => class_basename($e->clase) . ': ' . \Illuminate\Support\Str::limit($e->mensaje, 120), 'donde' => "{$e->archivo}:{$e->linea}", 'ruta' => $e->ruta, 'veces' => $e->veces, 'empresa' => $e->business_id, 'codigo' => substr($e->hash, 0, 8)])->all()],
                         'uso_7_dias' => ['empresas' => $uso['kpis']['empresas'], 'activas' => $uso['kpis']['activas_7'], 'en_riesgo' => array_map(fn($f) => ['empresa' => $f['nombre'], 'sin_uso_dias' => $f['sin_uso_dias']], array_slice($uso['en_riesgo'], 0, 5))],
-                        'empresas_sin_copia_48h' => $sinCopia, 'url' => Busca::url('/admin/salud')];
+                        'empresas_sin_copia_48h' => $sinCopia,
+                        'copias' => (function () { $e = collect(\App\Services\Migracion\BackupService::estadoPorEmpresa()); return ['con_problemas' => $e->where('verificada', false)->pluck('empresa')->all(), 'ensayo_fallido' => $e->filter(fn($x) => $x['ensayo'] && ! $x['ensayo']['ok'])->pluck('empresa')->all(), 'fuera_del_servidor' => \App\Services\Migracion\BackupService::remotoConfigurado()]; })(), // Fase 78
+                        'url' => Busca::url('/admin/salud')];
                 }],
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',

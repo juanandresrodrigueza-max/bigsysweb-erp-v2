@@ -42,6 +42,15 @@ class SaludService
         $ultimo = Backup::withoutGlobalScopes()->max('created_at');
         $horas = $ultimo ? (int) abs(now()->diffInHours(\Carbon\Carbon::parse($ultimo))) : null;
         $c[] = $this->item('backups', 'Copias de seguridad', $horas === null ? 'aviso' : ($horas > 72 ? 'critico' : ($horas > 30 ? 'aviso' : 'ok')), $horas === null ? 'Todavía no hay copias.' : "Última hace {$horas} h");
+        // Fase 78: ¿las copias sirven? ¿están fuera del servidor?
+        try {
+            $est = collect(\App\Services\Migracion\BackupService::estadoPorEmpresa())->where('auto', true)->filter(fn($e) => $e['ultima']);
+            $falladas = $est->where('verificada', false); $sinVerificar = $est->whereNull('verificada'); $ensayoMal = $est->filter(fn($e) => $e['ensayo'] && ! $e['ensayo']['ok']); $sinEnsayo = $est->filter(fn($e) => (! $e['ensayo'] && $e['hace_horas'] > 24 * 7) || ($e['ensayo'] && $e['ensayo']['hace_dias'] > 45));
+            $c[] = $this->item('copias_verificadas', 'Copias verificadas', $falladas->count() || $ensayoMal->count() ? 'critico' : ($sinVerificar->count() || $sinEnsayo->count() ? 'aviso' : ($est->count() ? 'ok' : 'aviso')),
+                ! $est->count() ? 'Ninguna empresa con copia todavía.' : trim(($falladas->count() ? "{$falladas->count()} copia(s) con problemas: " . $falladas->pluck('empresa')->implode(', ') . '. ' : '') . ($ensayoMal->count() ? "Ensayo de restauración fallido en: " . $ensayoMal->pluck('empresa')->implode(', ') . '. ' : '') . ($sinVerificar->count() ? "{$sinVerificar->count()} sin verificar. " : '') . ($sinEnsayo->count() ? "{$sinEnsayo->count()} sin ensayo de restauración en 45 días. " : '') . (! $falladas->count() && ! $ensayoMal->count() && ! $sinVerificar->count() && ! $sinEnsayo->count() ? "Las {$est->count()} copias se abren, cuadran y se restauran." : '')));
+            $remoto = \App\Services\Migracion\BackupService::remotoConfigurado(); $sinRemoto = $remoto ? $est->where('remoto', false) : collect();
+            $c[] = $this->item('copias_remotas', 'Copias fuera del servidor', ! $remoto ? 'aviso' : ($sinRemoto->count() ? 'critico' : 'ok'), ! $remoto ? 'Sin disco externo (BACKUP_DISK): las copias viven en el mismo disco del servidor.' : ($sinRemoto->count() ? "{$sinRemoto->count()} copia(s) no se subieron: " . $sinRemoto->pluck('empresa')->implode(', ') : 'Todas las copias están también en ' . config('services.backups.disk') . '.'));
+        } catch (\Throwable $e) { $c[] = $this->item('copias_verificadas', 'Copias verificadas', 'aviso', $e->getMessage()); }
         // ARCA pendientes
         $pendArca = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->count();
         $viejos = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->where('emitido_en', '<', now()->subHours(2))->count();

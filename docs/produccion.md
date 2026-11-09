@@ -79,3 +79,12 @@ Los formularios (factura, compra, orden de compra, fórmulas, POS) mandan el cat
 ## Caché
 
 - `CACHE_STORE=database` funciona; con `redis` mejora. Se cachean: los meses cerrados de la serie de rentabilidad (6 horas) y datos de configuración.
+
+## Copias de seguridad verificadas y fuera del servidor (Fase 78)
+
+- `backups:diario` (03:00) genera la copia de cada empresa y la **verifica** en el acto (zip abierto, manifiesto, tablas, conteos).
+- `backups:probar` (03:40) vuelve a comprobar la última copia de cada empresa; `backups:probar --ensayo` (domingos 05:10) además la
+  restaura en una transacción que se deshace y confirma que cargó todas las filas.
+- **Fuera del servidor**: `BACKUP_DISK=s3` más `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, `AWS_DEFAULT_REGION` y, para un
+  proveedor S3 compatible, `AWS_ENDPOINT` y `AWS_USE_PATH_STYLE_ENDPOINT=true`. Cada copia se sube a `bigsysweb/<slug>/<archivo>.zip`. Sin
+  `BACKUP_DISK`, la salud queda en aviso: las copias viven en el mismo disco del servidor.

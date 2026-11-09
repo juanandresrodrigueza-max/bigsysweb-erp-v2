@@ -88,21 +88,7 @@ class BackupService
         $restauradas = [];
         Schema::disableForeignKeyConstraints(); // en SQLite tiene que ir fuera de la transacción
         DB::transaction(function () use ($zip, $b, $manifest, &$restauradas) {
-            $tablas = array_values(array_filter($manifest['tablas'] ?? self::TABLAS, fn($t) => Schema::hasTable($t)));
-            foreach (array_reverse($tablas) as $t) {
-                if ($t === 'users') { DB::table($t)->where('business_id', $b->id)->where('is_superadmin', false)->delete(); continue; }
-                foreach (array_chunk(array_column($this->filas($t, $b->id), 'id'), 500) as $ids) DB::table($t)->whereIn('id', $ids)->delete();
-            }
-            foreach ($tablas as $t) {
-                $json = $zip->getFromName("datos/{$t}.json"); if ($json === false) continue;
-                $filas = json_decode($json, true) ?: [];
-                $cols = Schema::getColumnListing($t);
-                foreach (array_chunk($filas, 200) as $chunk) {
-                    $chunk = array_map(fn($f) => array_intersect_key(array_map(fn($v) => is_array($v) ? json_encode($v) : $v, $f), array_flip($cols)), $chunk);
-                    DB::table($t)->upsert($chunk, ['id']);
-                }
-                $restauradas[$t] = count($filas);
-            }
+            $restauradas = $this->cargarTablas($zip, $b, $manifest);
             foreach (array_filter(array_map(fn($i) => $zip->getNameIndex($i), range(0, $zip->numFiles - 1)), fn($n) => str_starts_with($n, 'archivos/') && ! str_ends_with($n, '/')) as $n) {
                 Storage::disk('local')->put(substr($n, 9), $zip->getFromName($n));
             }
@@ -113,6 +99,110 @@ class BackupService
         $zip->close();
         AuditLog::registrar('editar', $b, 'Restauró un backup: ' . count($restauradas) . ' tablas');
         return $restauradas;
+    }
+
+    // Borra lo de la empresa y vuelve a cargar cada tabla desde el zip (lo comparten la restauración real y el ensayo).
+    private function cargarTablas(\ZipArchive $zip, Business $b, array $manifest): array
+    {
+        $restauradas = [];
+        $tablas = array_values(array_filter($manifest['tablas'] ?? self::TABLAS, fn($t) => Schema::hasTable($t)));
+        foreach (array_reverse($tablas) as $t) {
+            if ($t === 'users') { DB::table($t)->where('business_id', $b->id)->where('is_superadmin', false)->delete(); continue; }
+            foreach (array_chunk(array_column($this->filas($t, $b->id), 'id'), 500) as $ids) DB::table($t)->whereIn('id', $ids)->delete();
+        }
+        foreach ($tablas as $t) {
+            $json = $zip->getFromName("datos/{$t}.json"); if ($json === false) continue;
+            $filas = json_decode($json, true) ?: [];
+            $cols = Schema::getColumnListing($t);
+            foreach (array_chunk($filas, 200) as $chunk) {
+                $chunk = array_map(fn($f) => array_intersect_key(array_map(fn($v) => is_array($v) ? json_encode($v) : $v, $f), array_flip($cols)), $chunk);
+                DB::table($t)->upsert($chunk, ['id']);
+            }
+            $restauradas[$t] = count($filas);
+        }
+        return $restauradas;
+    }
+
+    // ── Fase 78: la copia tiene que servir ──────────────────────────────────────────────────────────
+
+    // Abre el zip y comprueba: manifiesto de esta empresa, cada tabla del resumen presente y legible, conteos iguales al resumen, y que la
+    // base no tenga hoy MENOS filas que la copia en más de un 10 % (una tabla que se vació se nota acá). Guarda el veredicto en la copia.
+    public function verificar(Backup $bk): array
+    {
+        $problemas = []; $tablas = 0;
+        $path = Storage::disk('local')->path($bk->archivo);
+        if (! is_file($path)) $problemas[] = 'El archivo de la copia no está en el disco.';
+        else {
+            $zip = new \ZipArchive();
+            if ($zip->open($path) !== true) $problemas[] = 'El zip no se puede abrir (¿se cortó al escribirlo?).';
+            else {
+                $m = json_decode($zip->getFromName('manifest.json') ?: '', true);
+                if (! $m || ($m['app'] ?? '') !== 'BigSysWeb') $problemas[] = 'Sin manifiesto de BigSysWeb.';
+                elseif ((int) ($m['empresa']['id'] ?? 0) !== (int) $bk->business_id) $problemas[] = 'El manifiesto es de otra empresa.';
+                foreach ((array) ($bk->resumen ?? []) as $t => $n) {
+                    $json = $zip->getFromName("datos/{$t}.json");
+                    if ($json === false) { $problemas[] = "Falta la tabla {$t}."; continue; }
+                    $filas = json_decode($json, true);
+                    if (! is_array($filas)) { $problemas[] = "La tabla {$t} no se puede leer."; continue; }
+                    if (count($filas) !== (int) $n) { $problemas[] = "La tabla {$t} tiene " . count($filas) . " filas y el resumen dice {$n}."; continue; }
+                    $tablas++;
+                    if (Schema::hasTable($t) && $bk->business_id) { $hoy = count($this->filas($t, $bk->business_id)); if ($n >= 20 && $hoy < $n * 0.9) $problemas[] = "Hoy {$t} tiene {$hoy} filas y la copia {$n}: ¿se borró algo?"; }
+                }
+                $zip->close();
+            }
+        }
+        $r = ['ok' => ! $problemas, 'tablas' => $tablas, 'problemas' => $problemas];
+        $bk->forceFill(['verificado_en' => now(), 'verificacion' => $r])->save();
+        return $r;
+    }
+
+    // Ensayo de restauración: carga la copia sobre la empresa dentro de una transacción que se deshace. Prueba que la copia se restaura
+    // de verdad (claves, columnas, JSON) sin tocar los datos reales. Guarda el resultado en la copia.
+    public function ensayarRestauracion(Backup $bk): array
+    {
+        $b = Business::withoutGlobalScopes()->withTrashed()->find($bk->business_id);
+        $path = Storage::disk('local')->path($bk->archivo); $zip = new \ZipArchive(); $r = ['ok' => false, 'tablas' => 0, 'detalle' => null];
+        if (! $b || $zip->open($path) !== true) { $r['detalle'] = 'No se pudo abrir la copia.'; $bk->forceFill(['ensayo_en' => now(), 'ensayo_ok' => false])->save(); return $r; }
+        $manifest = json_decode($zip->getFromName('manifest.json') ?: '', true) ?: [];
+        Schema::disableForeignKeyConstraints();
+        DB::beginTransaction();
+        try {
+            $cargadas = $this->cargarTablas($zip, $b, $manifest);
+            $mal = [];
+            foreach ($cargadas as $t => $n) { $hay = count($this->filas($t, $b->id)); if ($hay !== $n) $mal[] = "{$t}: cargó {$hay} de {$n}"; }
+            $r = ['ok' => ! $mal, 'tablas' => count($cargadas), 'detalle' => $mal ? implode('; ', array_slice($mal, 0, 5)) : 'Se restauraron ' . count($cargadas) . ' tablas y se deshizo todo.'];
+        } catch (\Throwable $e) { $r = ['ok' => false, 'tablas' => 0, 'detalle' => mb_substr($e->getMessage(), 0, 300)]; }
+        finally { DB::rollBack(); Schema::enableForeignKeyConstraints(); $zip->close(); }
+        $bk->forceFill(['ensayo_en' => now(), 'ensayo_ok' => $r['ok']])->save();
+        return $r;
+    }
+
+    // Copia fuera del servidor: al disco configurado en BACKUP_DISK (p. ej. un bucket S3 compatible). Devuelve "disco:ruta" o null si no hay disco.
+    public function subirRemoto(Backup $bk): ?string
+    {
+        $disk = config('services.backups.disk'); if (! $disk || ! config("filesystems.disks.{$disk}")) return null;
+        $b = Business::withoutGlobalScopes()->withTrashed()->find($bk->business_id);
+        $destino = 'bigsysweb/' . ($b?->slug ?? $bk->business_id) . '/' . basename($bk->archivo);
+        $fh = fopen(Storage::disk('local')->path($bk->archivo), 'r');
+        try { if (! Storage::disk($disk)->put($destino, $fh)) throw new \RuntimeException("El disco {$disk} no aceptó el archivo."); } finally { if (is_resource($fh)) fclose($fh); }
+        $bk->forceFill(['remoto' => "{$disk}:{$destino}", 'remoto_en' => now()])->save();
+        return $bk->remoto;
+    }
+
+    public static function remotoConfigurado(): bool { $d = config('services.backups.disk'); return (bool) ($d && config("filesystems.disks.{$d}")); }
+
+    // Para el panel y la salud: por cada empresa activa con copia automática, su última copia y cómo está.
+    public static function estadoPorEmpresa(): array
+    {
+        $out = [];
+        foreach (Business::where('is_active', true)->orderBy('name')->get() as $b) {
+            $bk = Backup::withoutGlobalScopes()->where('business_id', $b->id)->latest('id')->first();
+            $ensayo = Backup::withoutGlobalScopes()->where('business_id', $b->id)->whereNotNull('ensayo_en')->latest('ensayo_en')->first();
+            $out[] = ['business_id' => $b->id, 'empresa' => $b->name, 'auto' => (bool) $b->backup_auto, 'ultima' => $bk?->created_at?->toIso8601String(), 'hace_horas' => $bk ? (int) abs(now()->diffInHours($bk->created_at)) : null,
+                'mb' => $bk ? round($bk->bytes / 1048576, 2) : null, 'verificada' => $bk?->verificado_en ? (bool) ($bk->verificacion['ok'] ?? false) : null, 'problemas' => $bk?->verificacion['problemas'] ?? [],
+                'ensayo' => $ensayo ? ['ok' => (bool) $ensayo->ensayo_ok, 'cuando' => $ensayo->ensayo_en->toIso8601String(), 'hace_dias' => (int) abs(now()->diffInDays($ensayo->ensayo_en))] : null, 'remoto' => (bool) $bk?->remoto];
+        }
+        return $out;
     }
 
     // Export "para llevarse todo": el mismo zip, pero el usuario lo usa fuera del sistema (CSV por tabla).
