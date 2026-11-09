@@ -320,7 +320,9 @@ class CrmSyncService
         $items = [];
         foreach ((array) ($q['items'] ?? []) as $it) {
             $prod = null;
-            if (! empty($it['code'])) $prod = Product::withoutGlobalScopes()->where('business_id', $b->id)->where(fn($w) => $w->where('sku', $it['code'])->orWhere('barcode', $it['code']))->first();
+            // Por external_id (es el id del artículo en el ERP, el que el ERP le mandó al CRM al sincronizar) y, si no, por código o barras.
+            if (! empty($it['external_id']) && ctype_digit((string) $it['external_id'])) $prod = Product::withoutGlobalScopes()->where('business_id', $b->id)->find((int) $it['external_id']);
+            if (! $prod && ! empty($it['code'])) $prod = Product::withoutGlobalScopes()->where('business_id', $b->id)->where(fn($w) => $w->where('sku', $it['code'])->orWhere('barcode', $it['code']))->first();
             $items[] = ['product_id' => $prod?->id, 'descripcion' => (string) ($it['description'] ?? $prod?->name ?? 'Ítem'), 'cantidad' => (float) ($it['quantity'] ?? 1), 'precio_unit' => (float) ($it['unit_price'] ?? 0), 'descuento' => 0, 'alicuota_iva' => $prod ? (float) $prod->iva : $iva];
         }
         if (! $items) return ['ok' => false, 'motivo' => 'El presupuesto no tiene ítems.'];

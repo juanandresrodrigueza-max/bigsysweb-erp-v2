@@ -44,13 +44,23 @@ class CrmClientesController extends Controller
             'descuento' => 'nullable|numeric|min:0', 'interes' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:300', 'crm_ref' => 'nullable|string|max:80',
             'vendedor_id' => 'nullable|integer', 'vendedor_email' => 'nullable|email', // Fase 74: quién cobró (para la comisión); por id del ERP o por mail
         ]);
-        if (! empty($d['vendedor_email']) && empty($d['vendedor_id'])) $d['vendedor_id'] = \App\Models\Vendedor::where('activo', true)->whereRaw('lower(email) = ?', [strtolower($d['vendedor_email'])])->value('id') ?? \App\Models\Vendedor::deUsuario(\App\Models\User::where('business_id', $contact->business_id)->whereRaw('lower(email) = ?', [strtolower($d['vendedor_email'])])->value('id'))?->id;
-        if (! empty($d['vendedor_id'])) { abort_unless(\App\Models\Vendedor::where('id', $d['vendedor_id'])->exists(), 422, 'Ese vendedor no existe en el ERP.'); $d['cobrador_id'] = $d['vendedor_id']; }
+        // Quién cobró, para la comisión: por id del ERP o por mail. Si el mail es de un usuario del ERP que todavía no es vendedor, se le crea la
+        // ficha de vendedor (0 % hasta que el dueño le cargue el porcentaje): el recibo nunca queda sin cobrador por eso (hallazgo de la prueba 3.4).
+        $aviso = null;
+        if (! empty($d['vendedor_email']) && empty($d['vendedor_id'])) {
+            $mail = strtolower(trim($d['vendedor_email']));
+            $v = \App\Models\Vendedor::where('activo', true)->whereRaw('lower(email) = ?', [$mail])->first();
+            $u = $v ? null : \App\Models\User::where('business_id', $contact->business_id)->whereRaw('lower(email) = ?', [$mail])->where('status', 'active')->first();
+            if (! $v && $u) $v = \App\Models\Vendedor::deUsuario($u->id) ?? \App\Models\Vendedor::create(['business_id' => $contact->business_id, 'user_id' => $u->id, 'nombre' => $u->name, 'email' => $mail, 'comision_venta' => 0, 'comision_cobro' => 0, 'activo' => true]);
+            if ($v) $d['vendedor_id'] = $v->id; else $aviso = "{$mail} no es usuario ni vendedor del ERP: el recibo queda sin cobrador.";
+        }
+        if (! empty($d['vendedor_id'])) { abort_unless(\App\Models\Vendedor::where('id', $d['vendedor_id'])->exists(), 422, 'Ese vendedor no existe en el ERP.'); $d['cobrador_id'] = (int) $d['vendedor_id']; }
         unset($d['vendedor_email']);
         foreach ($d['imputaciones'] ?? [] as $i) abort_unless(Comprobante::where('contact_id', $contact->id)->where('id', $i['comprobante_id'])->exists(), 422, "El comprobante {$i['comprobante_id']} no es de este cliente.");
         $d['notas'] = trim('Cobrado desde el CRM' . (! empty($d['crm_ref']) ? " ({$d['crm_ref']})" : '') . (! empty($d['notas']) ? ' · ' . $d['notas'] : ''));
         $cobro = $svc->registrar($contact, $d);
         $cobro->update(['modo' => 'crm']); // queda marcado de dónde vino
-        return response()->json(['data' => ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'total' => (float) $cobro->total, 'a_cuenta' => (float) $cobro->a_cuenta, 'saldo_cliente' => round((float) $contact->fresh()->balance, 2), 'url_imprimir' => url("/clientes/cobros/{$cobro->id}/imprimir")]], 201);
+        return response()->json(['data' => ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'total' => (float) $cobro->total, 'a_cuenta' => (float) $cobro->a_cuenta, 'saldo_cliente' => round((float) $contact->fresh()->balance, 2), 'url_imprimir' => url("/clientes/cobros/{$cobro->id}/imprimir"),
+            'cobrador' => $cobro->cobrador_id ? ['id' => $cobro->cobrador_id, 'nombre' => $cobro->cobrador?->nombre, 'email' => $cobro->cobrador?->email] : null, 'aviso' => $aviso]], 201);
     }
 }
