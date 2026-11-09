@@ -56,3 +56,12 @@ En **Configuración → Empresa → Avisos** se activan los recordatorios de ven
 - **Para llamar antes de que venza:** los clientes que suelen atrasarse y tienen facturas que vencen en los próximos 7 días. Una llamada ahora ahorra el reclamo después. También por voz: «¿quién tiene riesgo de mora?».
 - **Recordatorios escritos a medida** (con la clave de IA): en vez de la misma plantilla para todos, cada aviso se escribe para ese cliente: cordial y liviano con el que siempre paga o en el primer aviso, claro y firme con el reincidente (pidiendo fecha concreta), nombrando todas sus facturas vencidas con el total, y ofreciendo un plan si la deuda es vieja o el riesgo es alto. Siempre con el link para pagar. Se apaga en «Avisos automáticos» y vuelve la plantilla.
 - **Plan de pago propuesto:** en Refinanciar, «✦ Sugerir plan según cómo paga» arma las cuotas que el cliente puede pagar (la mitad de lo que te compra por mes), con el interés de su ficha y la primera cuota a 10 o 20 días según el riesgo, y el mensaje listo para mandar por WhatsApp o mail. Cuando el cliente dice que sí, «Usar estos valores» y «Crear plan». Por voz: «proponele un plan a López».
+
+## Cobrar y cobrar mejor con el CRM conectado (Fases 69 y 73)
+
+Si tu empresa usa también el CRM de BigSys (Configuración → CRM):
+
+- **El vendedor ve la cuenta del cliente en el CRM**: saldo, vencido, límite de crédito y riesgo de mora, en vivo desde el ERP, en la ficha del contacto y al lado de la conversación de WhatsApp. No necesita entrar al ERP para saber si le vende a cuenta.
+- **Cobrar desde el CRM**: el botón "Registrar cobro en el ERP" del CRM crea el recibo acá, imputado a las facturas, con el medio de pago y la caja o banco. Queda marcado "Cobrado desde el CRM" y dice quién cobró: ese cobro le comisiona a él. Si quien cobra es usuario del ERP pero todavía no tiene ficha de vendedor, el ERP se la crea con 0 % hasta que le cargues el porcentaje.
+- **Recordatorio por el CRM**: en Cobranzas, el canal "CRM" deja el recordatorio como tarea de cobranza para el vendedor, que se lo manda al cliente desde la conversación.
+- **Lo crítico le llega al vendedor**: un cheque rechazado, una deuda vencida hace más de 30 días o un cliente que pasó su límite de crédito aparecen como tarea en el CRM para el vendedor que lo atiende, sin que nadie se lo tenga que contar.

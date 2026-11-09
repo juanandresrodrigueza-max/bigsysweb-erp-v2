@@ -94,3 +94,9 @@ En iPhone, primero agregá BigSysWeb a la pantalla de inicio (Compartir → Agre
 ## Alerta de condición de IVA (Fase 44)
 
 Te avisa cuando hay clientes con la condición de IVA mal cargada: Consumidor Final con un CUIT de 11 dígitos, o Responsable Inscripto sin CUIT. Así la factura no sale con la letra equivocada. Para verlos, entrá en Clientes y elegí el filtro «IVA para revisar».
+
+## La campana y Bigcito con el CRM conectado (Fases 71 a 73)
+
+- **Tareas vencidas del CRM en la campana**: si el equipo de ventas tiene una tarea vencida en el CRM (un llamado, un seguimiento), aparece acá como alerta del módulo Clientes, con el nombre del cliente y del vendedor y el link al CRM. Las de prioridad alta son críticas. Se resuelve sola cuando el vendedor la cierra en el CRM.
+- **Reclamos**: lo que un cliente reclama por WhatsApp y atiende Bigcito queda como alerta acá **y** como tarea del CRM para su vendedor; la alerta dice el número de tarea.
+- **Bigcito compartido**: el Bigcito del ERP contesta con datos del CRM ("¿qué habló el vendedor con López?", "¿quién atiende a López y en qué anda?", "¿qué tenemos por cerrar?", "¿qué tiene pendiente ventas?") y el del CRM contesta con datos del ERP ("¿cuánto debe López?", "¿hay stock del hierro del 8?"), cada uno con los permisos de la persona que pregunta. El contexto de Bigcito ya sabe cuándo el CRM está conectado.
