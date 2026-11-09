@@ -44,6 +44,10 @@ Una pantalla con semáforo de todo lo que tiene que estar vivo en el servidor: b
 - **Bigcito**: "¿cómo está el sistema?", "¿hubo errores hoy?" (`salud_del_sistema`, sólo superadmin): controles con problemas, errores de 24 h con sus códigos, empresas activas y en riesgo, copias atrasadas.
 - **Resumen semanal**: los lunes a las 7:50 llega al mail de monitoreo cómo le fue al sistema la semana pasada: empresas que lo usaron y las que más, las en riesgo (sin uso 7 días o más), módulos más usados, errores con sus códigos, salud, copias y tickets. También a mano: `php artisan sistema:resumen-semanal`.
 
+## Velocidad de las páginas (Fase 77)
+
+Cada noche el sistema mide solo las pantallas clave (Inicio, Comprobantes, Clientes, Stock, Estadísticas, Fondos, Alertas) de las empresas más grandes, entrando como su dueño, y guarda cuánto tardó cada una y cuántas consultas hizo. En **Panel → Salud** está la tabla de la última noche con el peor tiempo, el promedio, la noche anterior y la consulta más lenta. Una página por encima del umbral pone la salud en aviso; dos noches seguidas, en crítico y avisa por mail. Así una pantalla que se va poniendo lenta con los datos se ve antes de que un cliente se queje.
+
 ## Uso y soporte
 
 **Uso**: qué empresas usan el sistema, cuáles se están enfriando (7 y 14 días sin uso), ranking, módulos más usados y detalle por empresa y usuario. **Soporte**: los tickets de todas las empresas por prioridad; al responder, la empresa recibe una alerta.

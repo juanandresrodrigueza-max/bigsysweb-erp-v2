@@ -53,6 +53,12 @@ class SaludService
         // Correo e IA
         $c[] = $this->item('correo', 'Correo saliente', config('mail.default') === 'smtp' ? 'ok' : 'aviso', config('mail.default') === 'smtp' ? 'SMTP configurado' : 'Sin SMTP: los avisos por mail no salen (' . config('mail.default') . ')');
         $c[] = $this->item('ia', 'Inteligencia artificial', config('services.anthropic.api_key') ? 'ok' : 'aviso', config('services.anthropic.api_key') ? 'Clave cargada' : 'Sin clave: el asistente trabaja en modo básico');
+        // Fase 77: páginas lentas en la ronda nocturna (crítico si una página viene lenta dos noches seguidas o da error).
+        try {
+            $m = app(MedicionService::class)->ultimaRonda();
+            $c[] = $this->item('paginas', 'Velocidad de las páginas', $m['ronda'] === null ? 'aviso' : (($m['lentas_dos_noches'] > 0 || ($m['con_error'] ?? 0) > 0) ? 'critico' : ($m['lentas'] > 0 ? 'aviso' : 'ok')),
+                $m['ronda'] === null ? 'Todavía no corrió la medición nocturna (erp:medir --nocturna).' : ($m['lentas'] ? "{$m['lentas']} página(s) por encima de {$m['umbral']} ms" . ($m['lentas_dos_noches'] ? ", {$m['lentas_dos_noches']} dos noches seguidas" : '') . (($m['con_error'] ?? 0) ? ", {$m['con_error']} con error" : '') . " (ronda {$m['ronda']})" : "Todas por debajo de {$m['umbral']} ms (ronda {$m['ronda']})"));
+        } catch (\Throwable $e) { $c[] = $this->item('paginas', 'Velocidad de las páginas', 'aviso', $e->getMessage()); }
         // Errores
         $err24 = (int) ErrorSistema::where('ultima_vez', '>=', now()->subDay())->whereNull('resuelto_en')->sum('veces');
         $c[] = $this->item('errores', 'Errores en las últimas 24 h', $err24 >= 20 ? 'critico' : ($err24 > 0 ? 'aviso' : 'ok'), $err24 ? "{$err24} errores (ver abajo)" : 'Ninguno');

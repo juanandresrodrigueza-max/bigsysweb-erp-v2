@@ -62,6 +62,8 @@ class Business extends Model
         return $this->belongsToMany(User::class, 'user_businesses')->withPivot('role_id')->withTimestamps()->where('users.business_id', '!=', $this->id);
     }
 
+    public function comprobantesVenta(): HasMany { return $this->hasMany(Comprobante::class)->where('direccion', 'venta'); } // Fase 77: para elegir las empresas grandes a medir
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
