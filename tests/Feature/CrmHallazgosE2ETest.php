@@ -43,6 +43,17 @@ class CrmHallazgosE2ETest extends ErpTestCase
         $this->assertNull($c3['cobrador']); $this->assertStringContainsString('no es usuario ni vendedor', $c3['aviso']);
     }
 
+    public function test_si_ya_hay_una_ficha_de_vendedor_con_el_mismo_nombre_y_sin_usuario_la_engancha_en_vez_de_duplicarla(): void
+    {
+        $juan = $this->usuarioConRol('vendedor', 'juan@test.com'); $juan->forceFill(['name' => 'Juan Vendedor'])->save();
+        $ficha = Vendedor::create(['business_id' => $this->empresa->id, 'nombre' => 'Juan Vendedor', 'comision_venta' => 5, 'comision_cobro' => 2, 'activo' => true]); // cargada a mano, sin mail ni usuario
+        $cli = $this->cliente(['name' => 'López SRL', 'crm_external_id' => '777']);
+        $token = $this->dueno->createToken('api')->plainTextToken; Auth::logout();
+        $c = $this->withToken($token)->postJson("/api/contacts/{$cli->id}/cobros", ['medios' => [['medio' => 'efectivo', 'monto' => 1000, 'cuenta_fondos_id' => $this->caja->id]], 'vendedor_email' => 'juan@test.com'])->assertStatus(201)->json('data');
+        $this->assertSame($ficha->id, $c['cobrador']['id'], 'Usa la ficha que ya estaba'); $this->assertSame(1, Vendedor::withoutGlobalScopes()->where('business_id', $this->empresa->id)->count(), 'No duplica');
+        $ficha->refresh(); $this->assertSame($juan->id, $ficha->user_id); $this->assertSame('juan@test.com', $ficha->email); $this->assertEquals(2, $ficha->comision_cobro, 'Conserva sus porcentajes');
+    }
+
     public function test_el_presupuesto_aceptado_empareja_los_items_por_external_id_aunque_no_tengan_codigo(): void
     {
         $p = $this->articulo(['name' => 'Hierro del 8', 'sku' => 'H8', 'iva' => 21, 'price' => 100]);
