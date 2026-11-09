@@ -172,3 +172,7 @@ url_suscripcion}`; y el aviso **`plan.cambiado`** (mismo cuerpo) en cada cambio 
   vendedor dejaba `cobrador_id` en null; ahora le crea la ficha de vendedor (0 % hasta que el dueño cargue el porcentaje) y la respuesta trae
   `cobrador` y, si el mail no es de nadie, `aviso`. `quote.accepted` empareja los ítems primero por `external_id` (id del artículo en el ERP) y
   después por `code`/barras.
+- Segunda tanda de hallazgos (bloques 1, 4 y 5): `user.updated` del **dueño** con rol o baja se rechaza (`ok:false`, 422), el nombre sí se
+  acepta; `GET /api/crm/salud?ping=1` y el botón Probar refrescan en el acto el ping y "Lo que ve el CRM"; **Reintentar** también adelanta los
+  envíos que esperan su próximo intento (backoff) y, de paso, se corrigió el filtro con que el ERP busca sus envíos en la cola (no coincidía con
+  el payload real, así que la cola contaba cero desde la Fase 68).

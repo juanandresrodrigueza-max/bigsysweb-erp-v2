@@ -165,6 +165,8 @@ class CrmSyncService
             return ['ok' => true, 'user_id' => $u->id, 'accion' => 'baja'];
         }
         if ($u) {
+            // El dueño del ERP es intocable desde el CRM: ni el rol ni el estado (el nombre sí). Se rechaza para que el CRM deshaga lo suyo.
+            if ($esDueno && ($rolSlug || array_key_exists('is_active', $k) && ! $k['is_active'])) return ['ok' => false, 'error' => 'El dueño de la empresa no se cambia desde el CRM: el rol y el estado del dueño se administran en el ERP.'];
             $cambios = [];
             if (! empty($k['name']) && $k['name'] !== $u->name) $cambios['name'] = mb_substr((string) $k['name'], 0, 120);
             if ($rol && ! $esDueno && $rol->id !== $u->role_id) $cambios['role_id'] = $rol->id;
@@ -174,7 +176,7 @@ class CrmSyncService
                 if (isset($cambios['role_id'])) foreach ($u->locations()->get() as $l) $u->locations()->updateExistingPivot($l->id, ['role_id' => $rol->id]);
                 AuditLog::registrar('editar', $u, "Usuario {$u->email} actualizado desde el CRM: " . implode(', ', array_keys($cambios)));
             }
-            return ['ok' => true, 'user_id' => $u->id, 'accion' => $cambios ? 'actualizado' : 'sin_cambios'] + ($esDueno && $rol ? ['nota' => 'El rol del dueño no se cambia desde el CRM.'] : []);
+            return ['ok' => true, 'user_id' => $u->id, 'accion' => $cambios ? 'actualizado' : 'sin_cambios'];
         }
         // Alta: con el perfil que diga el CRM (o vendedor), en la sucursal principal, con una clave que nadie conoce (entra por el botón del CRM o la recupera).
         $max = (int) ($b->activeSubscription?->plan?->max_users ?? 1);

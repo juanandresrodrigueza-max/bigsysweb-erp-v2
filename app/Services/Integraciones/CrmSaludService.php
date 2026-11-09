@@ -30,7 +30,8 @@ class CrmSaludService
         } catch (\Throwable) {}
     }
 
-    private static function like(int $bid): string { return '%"businessId";i:' . $bid . ';%'; }
+    // En el payload real las comillas van escapadas (s:10:\"businessId\";i:N;). El "_" del LIKE cubre la barra sin depender del carácter de escape de cada motor.
+    private static function like(int $bid): string { return '%businessId_";i:' . $bid . ';%'; }
 
     // Qué hay en la cola para esta empresa (jobs serializados: la propiedad businessId va como s:10:"businessId";i:N;).
     public function cola(Business $b): array
@@ -94,10 +95,14 @@ class CrmSaludService
     // Vuelve a encolar los envíos al CRM que agotaron los reintentos.
     public function reintentar(Business $b): int
     {
-        $uuids = $this->cola($b)['fallidos_uuids']; if (! $uuids) return 0;
-        Artisan::call('queue:retry', ['id' => $uuids]);
-        self::registrar($b->id, 'salida', 'reintento', 'ok', ['referencia' => count($uuids) . ' envío(s) fallido(s)', 'detalle' => 'Vueltos a la cola a pedido']);
-        return count($uuids);
+        $uuids = $this->cola($b)['fallidos_uuids'];
+        if ($uuids) Artisan::call('queue:retry', ['id' => $uuids]);
+        // Lo que está esperando su próximo intento (backoff) también sale ya: el usuario tocó Reintentar porque el CRM volvió.
+        $l = self::like($b->id);
+        $esperando = DB::table('jobs')->where('payload', 'like', $l)->where(fn($q) => $q->where('payload', 'like', '%NotificarCrmJob%')->orWhere('payload', 'like', '%SincronizarCrmJob%'))->where('available_at', '>', now()->getTimestamp())->update(['available_at' => now()->getTimestamp()]);
+        $n = count($uuids) + (int) $esperando; if (! $n) return 0;
+        self::registrar($b->id, 'salida', 'reintento', 'ok', ['referencia' => count($uuids) . ' fallido(s), ' . (int) $esperando . ' en espera', 'detalle' => 'Vueltos a la cola a pedido']);
+        return $n;
     }
 
     // Reconciliación: lo tocado en las últimas horas se vuelve a mandar. Del lado del CRM es idempotente (external_id / id del comprobante).

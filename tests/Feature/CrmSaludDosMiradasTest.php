@@ -32,6 +32,13 @@ class CrmSaludDosMiradasTest extends ErpTestCase
         Cache::flush();
         $r = app(CrmSaludService::class)->resumen($this->empresa->fresh(), true);
         $this->assertSame('amarillo', $r['estado']); $this->assertStringContainsString('Del lado del CRM: Hay 3 aviso(s)', $r['texto']); $this->assertSame(3, $r['crm']['cola']['fallidos']);
+        // Con la caché todavía vigente, la API con ?ping=1 lo refresca en el acto.
+        $crm['texto'] = 'Todo en orden otra vez.'; $crm['estado'] = 'verde'; $crm['cola'] = ['pendientes' => 0, 'fallidos' => 0];
+        $token = $this->dueno->createToken('api')->plainTextToken;
+        $this->assertSame('rojo', $this->withToken($token)->getJson('/api/crm/salud')->assertOk()->json('data.crm.estado'), 'Sin ping sirve la caché');
+        $this->assertSame('verde', $this->withToken($token)->getJson('/api/crm/salud?ping=1')->assertOk()->json('data.crm.estado'), 'Con ping=1 va a buscarlo');
+        $crm['estado'] = 'rojo'; $crm['texto'] = 'Hay 3 aviso(s) al ERP que agotaron los reintentos.'; $crm['cola'] = ['pendientes' => 1, 'fallidos' => 3]; Cache::flush();
+        $this->actingAs($this->dueno);
         $m = app(Catalogo::class)->llamar($this->dueno->fresh(), 'estado_crm', [], 'asistente');
         $this->assertSame('rojo', $m['lo_que_ve_el_crm']['estado']); $this->assertSame(3, $m['lo_que_ve_el_crm']['caidos']);
     }

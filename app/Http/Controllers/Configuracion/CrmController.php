@@ -72,6 +72,7 @@ class CrmController extends Controller
     public function probar(Request $request)
     {
         $r = CrmService::probar($request->user()->business);
+        app(\App\Services\Integraciones\CrmSaludService::class)->resumen($request->user()->business, true); // refresca el ping y "Lo que ve el CRM" en el acto
         AuditLog::registrar('editar', null, 'Probó la conexión con el CRM: ' . ($r['ok'] ? 'OK' : 'error'));
         return back()->with('crm_prueba', $r)->with($r['ok'] ? 'success' : 'error', $r['detalle']);
     }
