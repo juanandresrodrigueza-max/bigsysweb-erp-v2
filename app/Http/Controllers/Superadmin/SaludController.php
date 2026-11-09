@@ -22,13 +22,14 @@ class SaludController extends Controller
             'salud' => $svc->verificar(), 'errores' => $errores,
             'paginas' => app(\App\Services\Monitoreo\MedicionService::class)->ultimaRonda(), // Fase 77
             'copias' => ['empresas' => \App\Services\Migracion\BackupService::estadoPorEmpresa(), 'remoto' => \App\Services\Migracion\BackupService::remotoConfigurado(), 'disco' => config('services.backups.disk')], // Fase 78
-            'monitoreo' => ['dsn_set' => (bool) ErrorReporter::dsn(), 'dsn_panel' => (bool) SistemaConfig::get('sentry_dsn'), 'email' => SistemaConfig::get('monitoreo_email') ?: SistemaConfig::get('soporte_email'), 'salud_token' => SistemaConfig::get('salud_token'), 'url_publica' => url('/salud')],
+            'monitoreo' => ['dsn_set' => (bool) ErrorReporter::dsn(), 'dsn_panel' => (bool) SistemaConfig::get('sentry_dsn'), 'email' => SistemaConfig::get('monitoreo_email') ?: config('services.monitoreo.email') ?: SistemaConfig::get('soporte_email'), 'salud_token' => SistemaConfig::get('salud_token'), 'url_publica' => url('/salud')],
         ]);
     }
 
     public function guardar(Request $request)
     {
-        $d = $request->validate(['sentry_dsn' => 'nullable|string|max:300', 'monitoreo_email' => 'nullable|email', 'salud_token' => 'nullable|string|max:80']);
+        $d = $request->validate(['sentry_dsn' => 'nullable|string|max:300', 'monitoreo_email' => ['nullable', 'string', 'max:400', function ($a, $v, $fail) { if (trim((string) $v) !== '' && count(\App\Services\Monitoreo\Destinatarios::lista($v)) !== count(array_filter(preg_split('/[,;\s]+/', trim($v))))) $fail('Revisá los mails: alguno no es válido. Separalos con coma.'); }], 'salud_token' => 'nullable|string|max:80']);
+        if (isset($d['monitoreo_email'])) $d['monitoreo_email'] = implode(', ', \App\Services\Monitoreo\Destinatarios::lista((string) $d['monitoreo_email']));
         if (! empty($d['sentry_dsn']) && ! ErrorReporter::dsn() && ! (parse_url($d['sentry_dsn'])['user'] ?? null)) return back()->withErrors(['sentry_dsn' => 'El DSN tiene que ser como https://clave@sentry.io/123456.']);
         foreach ($d as $k => $v) { if ($k === 'sentry_dsn' && ! $v) continue; SistemaConfig::set($k, $v ?: null); }
         AuditLog::registrar('editar', null, 'Configuró el monitoreo de errores y salud');

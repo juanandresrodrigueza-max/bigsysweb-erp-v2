@@ -92,4 +92,19 @@ class ProduccionSolidaFase76Test extends ErpTestCase
             return true;
         });
     }
+
+    public function test_los_avisos_llegan_a_varios_mails_y_el_panel_valida_la_lista(): void
+    {
+        Mail::fake();
+        $this->dueno->forceFill(['is_superadmin' => true])->save();
+        $this->actingAs($this->dueno->fresh())->post('/admin/salud', ['monitoreo_email' => 'juan@test.com; Gerencia@Bigsys.com.ar , no-es-mail'])->assertSessionHasErrors('monitoreo_email');
+        $this->post('/admin/salud', ['monitoreo_email' => 'juan@test.com; Gerencia@Bigsys.com.ar'])->assertSessionHasNoErrors();
+        $this->assertSame('juan@test.com, gerencia@bigsys.com.ar', SistemaConfig::get('monitoreo_email'));
+        $this->assertSame(['juan@test.com', 'gerencia@bigsys.com.ar'], \App\Services\Monitoreo\Destinatarios::monitoreo());
+        Artisan::call('sistema:resumen-semanal');
+        Mail::assertSent(ResumenSemanalSistema::class, fn($m) => $m->hasTo('juan@test.com') && $m->hasTo('gerencia@bigsys.com.ar'));
+        // Sin nada en el panel, vale lo del .env.
+        SistemaConfig::set('monitoreo_email', null); config(['services.monitoreo.email' => 'ops@bigsys.test, dueno@bigsys.test']);
+        $this->assertSame(['ops@bigsys.test', 'dueno@bigsys.test'], \App\Services\Monitoreo\Destinatarios::monitoreo());
+    }
 }

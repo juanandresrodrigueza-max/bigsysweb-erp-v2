@@ -35,8 +35,8 @@ class ResumenSemanalService
 
     public function enviar(): ?string
     {
-        $email = SistemaConfig::get('monitoreo_email') ?: SistemaConfig::get('soporte_email'); if (! $email) return null;
-        Mail::to($email)->send(new \App\Mail\ResumenSemanalSistema($this->armar()));
-        return $email;
+        $emails = Destinatarios::monitoreo(); if (! $emails) return null;
+        Mail::to($emails)->send(new \App\Mail\ResumenSemanalSistema($this->armar()));
+        return implode(', ', $emails);
     }
 }

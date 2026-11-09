@@ -85,6 +85,11 @@ Los formularios (factura, compra, orden de compra, fórmulas, POS) mandan el cat
 - `backups:diario` (03:00) genera la copia de cada empresa y la **verifica** en el acto (zip abierto, manifiesto, tablas, conteos).
 - `backups:probar` (03:40) vuelve a comprobar la última copia de cada empresa; `backups:probar --ensayo` (domingos 05:10) además la
   restaura en una transacción que se deshace y confirma que cargó todas las filas.
-- **Fuera del servidor**: `BACKUP_DISK=s3` más `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, `AWS_DEFAULT_REGION` y, para un
-  proveedor S3 compatible, `AWS_ENDPOINT` y `AWS_USE_PATH_STYLE_ENDPOINT=true`. Cada copia se sube a `bigsysweb/<slug>/<archivo>.zip`. Sin
-  `BACKUP_DISK`, la salud queda en aviso: las copias viven en el mismo disco del servidor.
+- **Fuera del servidor**: las mismas variables que el CRM, `OFFSITE_S3_ENDPOINT`, `OFFSITE_S3_BUCKET`, `OFFSITE_S3_REGION`,
+  `OFFSITE_S3_ACCESS_KEY_ID`, `OFFSITE_S3_SECRET_ACCESS_KEY` (y opcional `OFFSITE_S3_PREFIX`, por defecto `bigsysweb/erp/`). Si el CRM corre
+  en el mismo servidor, el bloque se copia tal cual de su `.env` (el CRM sube a `bigsysweb/system/`, el ERP a `bigsysweb/erp/`, mismo bucket).
+  Con `OFFSITE_S3_BUCKET` cargado, el disco `backblaze` queda activo solo; `BACKUP_DISK` permite elegir otro disco de `config/filesystems.php`.
+  Después de cargarlo: `php artisan config:cache && php artisan backups:probar` sube las copias existentes y la salud pasa a verde.
+  Sin disco externo, la salud queda en aviso: las copias viven en el mismo disco del servidor.
+- **Mails de monitoreo** (error nuevo, salud crítica, resumen semanal): `MONITOREO_EMAIL=uno@mail.com, otro@mail.com` en el `.env`, o en
+  Superadmin → Salud (lo cargado ahí manda).

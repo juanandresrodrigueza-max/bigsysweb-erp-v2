@@ -53,7 +53,7 @@ class ErrorReporter
 
     private function avisarNuevo(ErrorSistema $row, bool $volvio): void
     {
-        $email = SistemaConfig::get('monitoreo_email') ?: SistemaConfig::get('soporte_email'); if (! $email) return;
+        $email = Destinatarios::monitoreo(); if (! $email) return;
         // A lo sumo 10 avisos por hora: si algo explota en cadena, el panel lo muestra entero y el mail no se vuelve ruido.
         $k = 'errores_avisados_' . now()->format('YmdH'); if ((int) Cache::get($k, 0) >= 10) return; Cache::put($k, (int) Cache::get($k, 0) + 1, 3600);
         try { \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ErrorNuevo($row, $volvio)); } catch (Throwable $e) { Log::warning('Monitoreo: no se pudo avisar el error nuevo: ' . $e->getMessage()); }
