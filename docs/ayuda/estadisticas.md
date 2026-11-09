@@ -76,3 +76,9 @@ La pantalla del dueño: ventas de hoy contra ayer, cobrado, caja y bancos, por c
 - **Ventas → Matriz ABC**: muestra todos los artículos vendidos en el período. Podés filtrar por rubro, ordenar (más o menos vendidos, más facturado, por nombre), buscar sin preocuparte por las tildes y bajar a Excel lo que estás viendo, sea todas las clases o solo la A, B o C.
 - **Stock y compras → Lo que salió**: cuántas unidades bajaron de cada artículo en los últimos 30 días, sumando ventas, pases, consumos y ajustes. Muestra solo unidades, sin importes. También se lo podés preguntar a Bigcito: «¿cuánto salió de cemento este mes?».
 - **Roles**: en Configuración → Roles elegís qué solapas de Estadísticas ve cada rol (Ventas, Plata, Stock, etc.). Las que no estén tildadas no aparecen y no se pueden abrir.
+
+## El embudo del CRM y las comisiones con lo real (Fase 74)
+
+Con el CRM de BigSys conectado, **Estadísticas → Vendedores** suma el bloque **El embudo del CRM**: oportunidades abiertas por etapa con sus montos, ganadas y perdidas en el período con la tasa de cierre, tareas vencidas, y una tabla por vendedor que cruza lo que tiene en el CRM (abiertas, ganadas) con lo que **vendió de verdad en el ERP**. Los montos del CRM son los que el vendedor cargó en cada oportunidad; se facturan y se cobran acá.
+
+Las **comisiones** salen siempre del ERP: lo facturado menos notas de crédito y lo cobrado de cada vendedor, con los porcentajes de Clientes → Vendedores. El módulo de comisiones del CRM lee esa misma base, así que no hay dos números. A Bigcito: "¿cuánto le toca a Juan este mes?".

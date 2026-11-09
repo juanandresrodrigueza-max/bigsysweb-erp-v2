@@ -37,3 +37,21 @@ Cada rol ve arriba del tablero lo suyo:
 - **Contador**: IVA débito y crédito del mes, posición, resultado, comprobantes sin asiento, pendientes de CAE y liquidaciones de sueldos sin pagar.
 
 El dueño y el administrador ven el tablero completo.
+
+## Con el CRM conectado (Fases 71 a 74)
+
+Si la empresa tiene el CRM de BigSys conectado (`CrmService::activo`), el asistente suma herramientas de consulta que leen de la API del CRM
+(caché de 2 minutos; si el CRM no responde, lo dice sin romper):
+
+| Pedido | Herramienta | Qué hace |
+|---|---|---|
+| "¿Qué habló el vendedor con López?" | `conversaciones_crm` | Últimas conversaciones (WhatsApp, mail, redes) y los mensajes de la más reciente |
+| "¿Quién atiende a López y en qué anda?" | `cliente_en_crm` | Vendedor, etapa, oportunidades abiertas, tareas pendientes, próxima cita |
+| "¿Qué tenemos por cerrar?", "¿qué tiene Juan en el embudo?" | `oportunidades_crm` | El embudo con total y por etapa, filtrable por cliente o vendedor |
+| "¿Qué tiene pendiente ventas?" | `pendientes_crm` | Tareas del CRM vencidas o de hoy |
+| "¿Cuánto le toca a Juan este mes?" | `comisiones_vendedores` | Base de comisiones con lo facturado y cobrado real |
+| "¿Anda el CRM?" | `estado_crm` | Semáforo de la conexión, cola, lo que ve el CRM y el plan |
+
+El contexto que recibe el modelo (`Recursos::instrucciones`) le avisa que el CRM está conectado y qué herramienta usar para lo comercial.
+En sentido inverso, el CRM consulta al ERP por `POST /mcp` con una conexión de solo consultas y la cabecera `X-BigSys-Usuario` (mail de
+quien pregunta): el ERP resuelve al usuario de la misma empresa y responde con sus permisos (`McpController::autenticar`).

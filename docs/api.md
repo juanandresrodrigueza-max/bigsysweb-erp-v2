@@ -73,6 +73,26 @@ Además de consultar, BigSysWeb puede avisarte: en **Seguridad y API → Webhook
 
 Marketplaces y sistemas de delivery mandan pedidos a `POST /api/canales/{tipo}/{token}` con el token del canal (Configuración → Tienda y canales). El formato genérico es `{external_id, cliente{nombre, email, telefono, direccion}, items[{sku, descripcion, cantidad, precio_unit}], entrega, pago, envio, total}`.
 
+## Para el CRM de BigSys (Fases 68 a 75)
+
+Endpoints que usa el CRM con un token de API del ERP (sirven para cualquier otro sistema que quiera lo mismo):
+
+| Método y ruta | Para qué |
+|---|---|
+| `GET /api/crm/salud` (`?ping=1` refresca) | Semáforo de la conexión con el CRM: cola, errores, último enviado y recibido, lo que ve el CRM |
+| `GET /api/contacts/{id}/cuenta` | Saldo, vencido, límite de crédito, riesgo de mora y comprobantes pendientes del cliente, en vivo |
+| `POST /api/contacts/{id}/cobros` | Registrar un recibo (medios, imputaciones, `vendedor_email` o `vendedor_id` de quien cobró); responde con el recibo y el cobrador |
+| `GET /api/products/para-presupuestar?q=&contact_id=&ids=` | Artículos con stock y el precio de la lista del cliente (descuentos incluidos) |
+| `GET /api/products/{id}/para-presupuestar?contact_id=` | Lo mismo para un artículo |
+| `GET /api/comisiones/base?desde&hasta&detalle=1` | Base de comisiones por vendedor: facturado, notas de crédito, cobrado, porcentajes y comisión, con detalle |
+| `GET /api/plan` | El plan contratado: si incluye el CRM, estado, vencimiento, usuarios máximos y activos |
+
+Lo que el ERP **le avisa** al CRM va a `POST {crm}/api/erp/webhook` firmado con `X-BigSys-Firma` (HMAC-SHA256 del cuerpo con el secreto
+compartido): `comprobante.emitido`, `comprobante.anulado`, `cobro.registrado` (con `vendedor`), `plan.cambiado`. Lo que el CRM le avisa al
+ERP entra por `POST /api/crm/webhook/{empresa}` firmado con `X-BigSysweb-Signature`: `contact.created`, `contact.updated`, `quote.accepted`,
+`deal.won`, `task.overdue`, `task.completed`, `user.created`, `user.updated`, `user.deactivated`, `user.deleted`. El contrato completo, con
+campos y respuestas, está en `docs/integracion-crm.md`.
+
 ## Especificación
 
 `GET /api/openapi.json` devuelve la especificación OpenAPI 3 generada desde las rutas reales, lista para importar en Postman, Insomnia o Swagger UI.

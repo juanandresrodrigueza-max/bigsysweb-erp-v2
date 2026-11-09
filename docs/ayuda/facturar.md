@@ -35,6 +35,10 @@ Si el cliente no está cargado, no hace falta salir de la factura: tocá **+ Cli
 - **Entrega pendiente**: se factura ahora y la mercadería sale después con remitos, en una o varias entregas.
 - **Acopio**: el cliente paga ahora y retira en partes; el stock se descuenta con cada retiro.
 
+### Presupuestos que vienen del CRM (Fases 69 a 74)
+
+Con el CRM de BigSys conectado, el vendedor presupuesta desde el CRM viendo **stock y precio de la lista del cliente** en vivo. Cuando el cliente acepta, el presupuesto **nace acá** con sus artículos (emparejados por el id del ERP o por el código), su número y, según lo que elijas en Configuración → CRM, como presupuesto o como factura en borrador. La factura que emitís después vuelve al CRM con su número, total y vendedor, y aparece en la ficha del contacto.
+
 ## Notas de crédito y débito
 
 Desde la factura, **Convertir → Nota de crédito** la anula total o parcialmente (ARCA exige asociarla a la factura original, el sistema lo hace solo). La nota de débito suma intereses o diferencias.

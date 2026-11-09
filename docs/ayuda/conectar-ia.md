@@ -55,6 +55,10 @@ claude mcp add --transport http bigsys https://erp.bigsysweb.com/mcp --header "A
 
 El token de una conexión de IA sirve **solo para la IA** (la dirección `/mcp`): la API del ERP lo rechaza. Así, un token de «Solo consultas» no puede cambiar nada por otro camino. Para integrar otro sistema por la API, creá un token de API en **Seguridad y API → Tokens**.
 
+### La conexión que usa el CRM (Fase 72)
+
+El CRM de BigSys le pregunta al ERP con una conexión de **Solo consultas** creada acá (Configuración → Conexiones IA) y cargada en el CRM en Integraciones → ERP. En cada pregunta el CRM dice qué persona está preguntando: si es usuaria activa de esta empresa, el ERP responde con **sus** permisos (un vendedor sin acceso a costos no los ve tampoco desde el CRM) y la llamada queda auditada a su nombre. Si no, responde con los permisos del dueño de la conexión. Las acciones nunca viajan por esa conexión.
+
 ## Las acciones siempre se confirman
 
 Cuando le pedís algo que cambia datos, la IA **no lo hace directamente**: el ERP arma una **propuesta** con el detalle (por ejemplo "Cobrar $ 50.000 a Ferretería López en transferencia; cancela la FA 0001-00000123") y la IA te la muestra. Solo si decís que sí, se ejecuta. Las propuestas vencen a los 30 minutos.
