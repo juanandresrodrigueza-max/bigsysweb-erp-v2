@@ -168,3 +168,7 @@ url_suscripcion}`; y el aviso **`plan.cambiado`** (mismo cuerpo) en cada cambio 
 - Reconciliación del CRM (`contact.updated` / `quote.accepted` con `data.reconciliacion: true`): el ERP ya es idempotente (contacto por
   `crm_external_id`, presupuesto por `crm_quote_id`), así que no duplica nada.
 - Pendiente del lado CRM: 69.3 (Cobranzas del CRM con saldo y vencido del ERP).
+- Hallazgos de la prueba de punta a punta: `POST /api/contacts/{id}/cobros` con `vendedor_email` de un usuario del ERP que todavía no era
+  vendedor dejaba `cobrador_id` en null; ahora le crea la ficha de vendedor (0 % hasta que el dueño cargue el porcentaje) y la respuesta trae
+  `cobrador` y, si el mail no es de nadie, `aviso`. `quote.accepted` empareja los ítems primero por `external_id` (id del artículo en el ERP) y
+  después por `code`/barras.
