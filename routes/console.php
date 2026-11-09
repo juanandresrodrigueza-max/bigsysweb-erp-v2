@@ -12,6 +12,7 @@ Schedule::command('salud:revisar')->hourly(); // salud del servidor: avisa por m
 Schedule::call(fn() => \Illuminate\Support\Facades\Cache::put(\App\Services\Monitoreo\SaludService::LATIDO_CRON, now()->toIso8601String(), 3600 * 24 * 30))->everyMinute()->name('salud:latido'); // previsiones recurrentes: registrar automáticas y avisar; recordatorios para facturar abonos
 Schedule::command('cobranzas:recordar')->dailyAt('09:30');
 Schedule::command('backups:diario')->dailyAt('03:00');
+Schedule::command('erp:medir --nocturna')->dailyAt('04:40'); // Fase 77: las páginas clave de las empresas grandes, medidas cada noche
 Schedule::command('analista:semanal')->weeklyOn(1, '08:00');
 Schedule::command('sistema:resumen-semanal')->weeklyOn(1, '07:50'); // Fase 76: la semana del sistema con uso real, al dueño de BigSys
 Schedule::command('avisos:dueno')->everyFifteenMinutes();

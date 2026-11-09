@@ -74,7 +74,7 @@ class MonitoreoTest extends ErpTestCase
         $this->assertNotSame('critico', $r['estado']);
 
         $this->admin();
-        $this->get('/admin/salud')->assertOk()->assertInertia(fn($a) => $a->component('Superadmin/Salud', false)->has('salud.controles', 12)->where('monitoreo.dsn_set', false));
+        $this->get('/admin/salud')->assertOk()->assertInertia(fn($a) => $a->component('Superadmin/Salud', false)->has('salud.controles', 13)->where('monitoreo.dsn_set', false));
         $this->get('/salud')->assertOk()->assertJsonStructure(['estado', 'hora'])->assertJsonMissing(['controles']);
         SistemaConfig::set('salud_token', 'tok-123'); SistemaConfig::set('monitoreo_email', 'ops@bigsys.test');
         $this->get('/salud?token=tok-123')->assertOk()->assertJsonStructure(['estado', 'controles']);

@@ -55,13 +55,15 @@ class EstadisticasController extends Controller
             'anterior' => ['desde' => $desdeAnt->toDateString(), 'hasta' => $hastaAnt->toDateString(), 'ventas' => $totalAnt, 'comprobantes' => $cantAnt, 'ticket' => $cantAnt ? round($totalAnt / $cantAnt, 2) : 0],
             'var_nominal' => $pct($total, $totalAnt),
             'pesos_hoy' => $coefAnt && $coefAct ? ['anterior' => round($totalAnt * $coefAnt, 2), 'actual' => round($total * $coefAct, 2), 'var_real' => $pct($total * $coefAct, $totalAnt * $coefAnt), 'ipc' => $ipcHoy->periodo] : null,
-            'mensual' => collect(range(11, 0))->map(function ($i) use ($ventas, $signo, $ipcHoy) {
-                $m = now()->subMonths($i); $mAnt = $m->copy()->subYear();
-                $v = (float) $ventas($m->copy()->startOfMonth(), $m->copy()->endOfMonth())->selectRaw("COALESCE(SUM(({$signo}) * total),0) s")->value('s');
-                $va = (float) $ventas($mAnt->copy()->startOfMonth(), $mAnt->copy()->endOfMonth())->selectRaw("COALESCE(SUM(({$signo}) * total),0) s")->value('s');
-                $c = $ipcHoy ? \App\Models\IndiceIpc::coeficiente($m->format('Y-m'), $ipcHoy->periodo) : null;
-                return ['mes' => $m->locale('es')->isoFormat('MMM YY'), 'actual' => $v, 'anterior' => $va, 'actual_hoy' => $c ? round($v * $c, 2) : null];
-            }),
+            // Fase 77: los 24 meses (12 actuales + 12 del año anterior) salen de UNA consulta agrupada por mes, no de 24 sueltas.
+            'mensual' => (function () use ($ventas, $signo, $ipcHoy) {
+                $porMes = $ventas(now()->subMonths(11)->subYear()->startOfMonth(), now()->endOfMonth())->selectRaw(\App\Support\Sql::mes('fecha') . " as k, SUM(({$signo}) * total) as monto")->groupBy('k')->pluck('monto', 'k');
+                return collect(range(11, 0))->map(function ($i) use ($porMes, $ipcHoy) {
+                    $m = now()->subMonths($i); $v = (float) ($porMes[$m->format('Y-m')] ?? 0); $va = (float) ($porMes[$m->copy()->subYear()->format('Y-m')] ?? 0);
+                    $c = $ipcHoy ? \App\Models\IndiceIpc::coeficiente($m->format('Y-m'), $ipcHoy->periodo) : null;
+                    return ['mes' => $m->locale('es')->isoFormat('MMM YY'), 'actual' => $v, 'anterior' => $va, 'actual_hoy' => $c ? round($v * $c, 2) : null];
+                });
+            })(),
         ];
 
         if ($request->export) {

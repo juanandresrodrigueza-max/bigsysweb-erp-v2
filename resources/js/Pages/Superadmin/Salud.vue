@@ -38,6 +38,21 @@
       </div>
     </div>
 
+    <!-- Fase 77: velocidad de las páginas, medida cada noche -->
+    <div class="card p-0 overflow-x-auto mb-4" data-e2e="paginas-lentas">
+      <div class="px-4 py-3 border-b border-marca-borde flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Velocidad de las páginas</h2>
+        <span class="text-xs text-marca-muted">{{ paginas.ronda ? `Ronda ${paginas.ronda} · umbral ${paginas.umbral} ms · ${paginas.lentas} lenta(s)` : 'Todavía no corrió la medición nocturna (php artisan erp:medir --nocturna)' }}</span></div>
+      <table v-if="paginas.paginas.length" class="table text-sm">
+        <thead><tr><th>Página</th><th class="text-right">Peor</th><th class="text-right">Promedio</th><th class="text-right">Noche anterior</th><th class="text-right">Consultas</th><th>Consulta más lenta</th></tr></thead>
+        <tbody><tr v-for="p in paginas.paginas" :key="p.url" :class="{ 'bg-rose-50 dark:bg-rose-950/30': p.peor_ms > paginas.umbral }">
+          <td class="font-mono text-xs">{{ p.url }}<span v-if="p.errores" class="badge !py-0 bg-carmin text-white ml-1">error</span></td>
+          <td class="text-right tabular-nums font-semibold">{{ p.peor_ms }} ms</td><td class="text-right tabular-nums">{{ p.promedio_ms }} ms</td>
+          <td class="text-right tabular-nums text-marca-muted">{{ p.anterior_ms === null ? '—' : p.anterior_ms + ' ms' }}</td><td class="text-right tabular-nums">{{ p.consultas }}</td>
+          <td class="text-xs text-marca-muted max-w-md truncate" :title="p.lentas[0]?.sql">{{ p.lentas[0] ? p.lentas[0].ms + ' ms · ' + p.lentas[0].sql : '—' }}</td></tr></tbody>
+      </table>
+      <p class="px-4 py-2 text-[11px] text-marca-muted">Cada noche a las 4:40 se miden las páginas clave de las empresas más grandes como su dueño. Una página lenta dos noches seguidas pone la salud en crítico y avisa por mail.</p>
+    </div>
+
     <div class="card p-0 overflow-x-auto">
       <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">Errores recientes</h2><span class="text-xs text-marca-muted">{{ errores.filter(e => !e.resuelto).length }} sin resolver · agrupados por lugar</span></div>
       <table class="table text-sm">
@@ -64,7 +79,7 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
-const props = defineProps({ salud: Object, errores: Array, monitoreo: Object })
+const props = defineProps({ salud: Object, errores: Array, monitoreo: Object, paginas: { type: Object, default: () => ({ ronda: null, paginas: [], lentas: 0, umbral: 300 }) } })
 const form = useForm({ sentry_dsn: '', monitoreo_email: props.monitoreo.email ?? '', salud_token: props.monitoreo.salud_token ?? '' })
 const abierto = ref(null)
 const clase = e => ({ ok: 'bg-emerald-50 text-emerald-700', aviso: 'bg-amber-50 text-amber-700', critico: 'bg-carmin-light text-carmin' }[e])

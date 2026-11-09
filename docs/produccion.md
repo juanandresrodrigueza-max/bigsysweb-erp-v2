@@ -55,6 +55,10 @@ Los formularios (factura, compra, orden de compra, fórmulas, POS) mandan el cat
   ```
   php artisan erp:medir /dashboard /comprobantes /estadisticas/rentabilidad --umbral=300
   ```
+- Fase 77: `php artisan erp:medir --nocturna` corre solo cada noche a las 4:40 sobre las 15 empresas más grandes (como su dueño) en las
+  páginas clave, guarda la historia en `mediciones_paginas` y la muestra en Superadmin → Salud ("Velocidad de las páginas"). Una página por
+  encima del umbral (300 ms, configurable con `umbral_ms` en la configuración del sistema) pone la salud en aviso; dos noches seguidas o un
+  error, en crítico, y avisa por mail. El test `RendimientoFase77Test` frena en CI cualquier pantalla que vuelva a hacer una consulta por fila.
 - Referencia con 50.000 artículos, 5.000 clientes y 200.000 facturas en SQLite (PostgreSQL es más rápido en los agregados):
 
   | Página | Tiempo | Consultas |
