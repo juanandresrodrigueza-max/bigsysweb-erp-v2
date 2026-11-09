@@ -1,6 +1,6 @@
-# Memo: fases 57 a 75 (IA de gestión y ERP ↔ CRM en permanencia)
+# Memo: fases 57 a 78 (IA de gestión, ERP ↔ CRM en permanencia y producción sólida)
 
-Estado: **los dos bloques completos**. Fases 57 a 75 cerradas y mergeadas en `main` (PRs #82 a #100), más los ajustes y hallazgos de la
+Estado: **los tres bloques completos**. Fases 57 a 75 cerradas y mergeadas en `main` (PRs #82 a #100), más los ajustes y hallazgos de la
 prueba de punta a punta (PRs #101 a #105). Pruebas: 420+ tests en verde en SQLite y PostgreSQL. El lado CRM de las fases 68 a 75 está
 publicado en **crm.bigsysweb.com**, y el guion `docs/prueba-punta-a-punta-crm.md` se corrió completo contra producción con todo ✅.
 
@@ -38,6 +38,18 @@ firmada; ninguno escribe en la base del otro. El contrato completo entre los dos
 
 Ajustes posteriores: dominio del CRM (#101), "Lo que ve el CRM" y el guion de prueba (#102), cobrador del recibo desde el CRM e ítems por
 `external_id` (#103, #104), dueño intocable, ping en vivo y el filtro de la cola (#105).
+
+## Bloque Producción sólida (76–78): que lo hecho aguante el uso real
+
+| Fase | Tema | Lo principal | PR |
+|---|---|---|---|
+| 76 | Lo que rompe se ve y se arregla | Mail inmediato por error nuevo (o que vuelve) con código; página de error amigable con "Avisar a soporte" que abre el ticket con el error pegado; Bigcito del superadmin `salud_del_sistema`; resumen semanal del sistema por mail; raíz del flaky de reparto | #107 |
+| 77 | Rendimiento | Test con techo de consultas por pantalla (frena N+1); comparativo mensual de Estadísticas en una consulta; medición nocturna `erp:medir --nocturna` con historia, panel y control de salud; índices faltantes | #108 |
+| 78 | Respaldo verificado | Cada copia se abre y cuadra; ensayo de restauración en transacción que se deshace (domingos); copia fuera del servidor con `BACKUP_DISK`; `backups:probar`; controles de salud y tabla por empresa | #109 |
+
+Pendiente de configurar en producción: `BACKUP_DISK` con un bucket S3 compatible (hasta entonces la salud avisa que las copias viven en el
+mismo disco) y el mail de monitoreo en Superadmin → Salud (sin él no salen ni el aviso de error nuevo ni el resumen semanal).
+Flaky a vigilar: `DocumentosPreguntasFase59Test` falló una vez en PostgreSQL en la corrida completa y pasa solo.
 
 ## Bigcito y MCP
 

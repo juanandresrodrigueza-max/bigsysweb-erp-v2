@@ -48,6 +48,10 @@ Una pantalla con semáforo de todo lo que tiene que estar vivo en el servidor: b
 
 Cada noche el sistema mide solo las pantallas clave (Inicio, Comprobantes, Clientes, Stock, Estadísticas, Fondos, Alertas) de las empresas más grandes, entrando como su dueño, y guarda cuánto tardó cada una y cuántas consultas hizo. En **Panel → Salud** está la tabla de la última noche con el peor tiempo, el promedio, la noche anterior y la consulta más lenta. Una página por encima del umbral pone la salud en aviso; dos noches seguidas, en crítico y avisa por mail. Así una pantalla que se va poniendo lenta con los datos se ve antes de que un cliente se queje.
 
+## Copias que sirven (Fase 78)
+
+En **Panel → Salud**, la tabla "Copias de seguridad por empresa" dice de cada una: cuándo fue la última copia, si **se abre y cuadra** (se verifica al generarla y de nuevo a las 3:40), si el **ensayo de restauración** del domingo anduvo (se restaura en una transacción que se deshace, sin tocar datos), y si está **fuera del servidor**. Dos controles de salud nuevos: "Copias verificadas" (crítico si una copia no abre, no cuadra o no se pudo restaurar) y "Copias fuera del servidor" (aviso mientras no haya disco externo; crítico si hay y una copia no subió). Para el disco externo: `BACKUP_DISK=s3` en el `.env` con las credenciales S3 del bucket (Backblaze B2, Wasabi, Cloudflare R2 o AWS); las copias se suben a `bigsysweb/<empresa>/`. A mano: `php artisan backups:probar` y `php artisan backups:probar --ensayo`.
+
 ## Uso y soporte
 
 **Uso**: qué empresas usan el sistema, cuáles se están enfriando (7 y 14 días sin uso), ranking, módulos más usados y detalle por empresa y usuario. **Soporte**: los tickets de todas las empresas por prioridad; al responder, la empresa recibe una alerta.

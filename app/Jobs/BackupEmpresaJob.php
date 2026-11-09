@@ -22,6 +22,9 @@ class BackupEmpresaJob implements ShouldQueue
 
     public function handle(BackupService $svc): void
     {
-        $svc->crear($this->empresa, $this->origen, $this->userId);
+        $bk = $svc->crear($this->empresa, $this->origen, $this->userId);
+        // Fase 78: la copia se verifica en el acto y, si hay disco externo, se sube. Si algo falla, queda anotado en la copia y la salud lo muestra.
+        try { $svc->verificar($bk); } catch (\Throwable $e) { $bk->forceFill(['verificado_en' => now(), 'verificacion' => ['ok' => false, 'tablas' => 0, 'problemas' => [mb_substr($e->getMessage(), 0, 200)]]])->save(); }
+        try { $svc->subirRemoto($bk); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning("Backup remoto {$this->empresa->id}: " . $e->getMessage()); }
     }
 }

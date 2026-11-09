@@ -117,6 +117,10 @@ Las fechas en formato Clarion y los acentos de los archivos de Windows se convie
 
 Copia automática diaria (se puede bajar) y restauración con un clic. Antes de restaurar se guarda una copia de seguridad del estado actual.
 
+### Copias que sirven (Fase 78)
+
+Cada copia, apenas se genera, **se abre y se comprueba**: que sea de tu empresa, que cada tabla esté y se pueda leer, y que los conteos cuadren con lo que se guardó. En la lista de copias lo ves como "✓ se abre y cuadra" (o el problema, en rojo). Los domingos el sistema además **ensaya restaurar** la última copia de cada empresa en una transacción que se deshace: prueba que la copia se restaura de verdad, sin tocar tus datos. Si BigSys tiene configurado un disco externo, cada copia también queda **fuera del servidor**.
+
 ## Seguridad y API
 
 - **Verificación en dos pasos** con app del teléfono, por usuario.

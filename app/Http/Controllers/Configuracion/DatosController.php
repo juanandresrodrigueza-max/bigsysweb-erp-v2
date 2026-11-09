@@ -17,7 +17,8 @@ class DatosController extends Controller
     {
         $b = $request->user()->business;
         return Inertia::render('Configuracion/Datos', [
-            'backups' => Backup::with('user:id,name')->latest()->limit(30)->get()->map(fn($k) => ['id' => $k->id, 'fecha' => $k->created_at->format('d/m/Y H:i'), 'origen' => $k->origen, 'mb' => round($k->bytes / 1048576, 2), 'tablas' => count($k->resumen ?? []), 'filas' => array_sum($k->resumen ?? []), 'usuario' => $k->user?->name, 'resumen' => $k->resumen]),
+            'backups' => Backup::with('user:id,name')->latest()->limit(30)->get()->map(fn($k) => ['id' => $k->id, 'fecha' => $k->created_at->format('d/m/Y H:i'), 'origen' => $k->origen, 'mb' => round($k->bytes / 1048576, 2), 'tablas' => count($k->resumen ?? []), 'filas' => array_sum($k->resumen ?? []), 'usuario' => $k->user?->name, 'resumen' => $k->resumen,
+                'verificada' => $k->verificado_en ? (bool) ($k->verificacion['ok'] ?? false) : null, 'problemas' => $k->verificacion['problemas'] ?? [], 'remoto' => (bool) $k->remoto]), // Fase 78
             'backupAuto' => (bool) $b->backup_auto,
             'tablas' => BackupService::TABLAS,
         ]);
