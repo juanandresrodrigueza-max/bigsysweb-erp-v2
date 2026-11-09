@@ -72,7 +72,7 @@ class RespaldoVerificadoFase78Test extends ErpTestCase
         \App\Jobs\BackupEmpresaJob::dispatch($this->empresa, 'auto');
         $bk = Backup::first();
         if (! $bk->remoto) app(BackupService::class)->subirRemoto($bk); // que explote con el motivo si el job lo tragó
-        $this->assertStringStartsWith('remoto_prueba:bigsysweb/' . $this->empresa->slug . '/', $bk->remoto); $this->assertNotNull($bk->remoto_en);
+        $this->assertStringStartsWith('remoto_prueba:bigsysweb/erp/' . $this->empresa->slug . '/', $bk->remoto); $this->assertNotNull($bk->remoto_en);
         Storage::disk('remoto_prueba')->assertExists(substr($bk->remoto, strlen('remoto_prueba:')));
         $this->assertSame('ok', $this->control('copias_remotas')['estado']);
         // Una copia que quedó sin subir (p. ej. el disco estaba caído) pone crítico, y backups:probar la sube.
@@ -81,5 +81,14 @@ class RespaldoVerificadoFase78Test extends ErpTestCase
         Artisan::call('backups:probar');
         $this->assertStringContainsString('subida al disco externo', Artisan::output()); $this->assertNotNull($bk->fresh()->remoto);
         $this->assertSame('ok', $this->control('copias_remotas')['estado']);
+    }
+
+    public function test_el_disco_backblaze_se_arma_con_las_mismas_variables_que_el_crm(): void
+    {
+        // La región sale del endpoint de Backblaze cuando viene "auto", y con el bucket cargado el disco queda elegido solo.
+        $this->assertSame('us-west-004', (function () { $r = 'auto'; return preg_match('~s3\\.([a-z0-9-]+)\\.backblazeb2\\.com~', 'https://s3.us-west-004.backblazeb2.com', $m) ? $m[1] : 'us-east-1'; })());
+        $this->assertSame('bigsysweb/erp/', config('services.backups.prefijo'));
+        config(['filesystems.disks.backblaze.bucket' => 'bigsys-copias', 'services.backups.disk' => 'backblaze']);
+        $this->assertTrue(BackupService::remotoConfigurado());
     }
 }

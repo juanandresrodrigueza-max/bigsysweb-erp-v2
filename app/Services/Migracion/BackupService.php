@@ -182,7 +182,7 @@ class BackupService
     {
         $disk = config('services.backups.disk'); if (! $disk || ! config("filesystems.disks.{$disk}")) return null;
         $b = Business::withoutGlobalScopes()->withTrashed()->find($bk->business_id);
-        $destino = 'bigsysweb/' . ($b?->slug ?? $bk->business_id) . '/' . basename($bk->archivo);
+        $destino = config('services.backups.prefijo', 'bigsysweb/erp/') . ($b?->slug ?? $bk->business_id) . '/' . basename($bk->archivo);
         $fh = fopen(Storage::disk('local')->path($bk->archivo), 'r');
         try { if (! Storage::disk($disk)->put($destino, $fh)) throw new \RuntimeException("El disco {$disk} no aceptó el archivo."); } finally { if (is_resource($fh)) fclose($fh); }
         $bk->forceFill(['remoto' => "{$disk}:{$destino}", 'remoto_en' => now()])->save();

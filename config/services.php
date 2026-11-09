@@ -51,6 +51,10 @@ return [
 
     // Fase 78: disco (de config/filesystems.php) donde se sube cada copia de seguridad fuera del servidor, p. ej. "s3" apuntando a un
     // bucket de Backblaze, Wasabi o Cloudflare R2. Sin esto las copias viven en el mismo disco del servidor y la salud lo avisa.
-    'backups' => ['disk' => env('BACKUP_DISK')],
+    'backups' => ['disk' => env('BACKUP_DISK', env('OFFSITE_S3_BUCKET') ? 'backblaze' : null), 'prefijo' => trim((string) env('OFFSITE_S3_PREFIX', 'bigsysweb/erp/'), '/') . '/'],
+
+    // Fase 76: a quién le llegan los avisos del sistema (error nuevo, salud crítica, resumen semanal). Varios mails separados por coma.
+    // Lo que se carga en Superadmin → Salud manda; esto es el valor inicial desde el .env.
+    'monitoreo' => ['email' => env('MONITOREO_EMAIL')],
 
 ];

@@ -85,7 +85,7 @@ class SaludService
         $r = $this->verificar();
         $criticos = array_values(array_filter($r['controles'], fn($c) => $c['estado'] === 'critico'));
         $nuevos = array_values(array_filter($criticos, fn($c) => Cache::add('salud_avisado_' . $c['key'], 1, now()->addHours(6))));
-        $email = SistemaConfig::get('monitoreo_email') ?: SistemaConfig::get('soporte_email');
+        $email = Destinatarios::monitoreo();
         if ($nuevos && $email) {
             try { \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\AvisoSalud($nuevos, $r)); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('Salud: no se pudo avisar: ' . $e->getMessage()); }
         }

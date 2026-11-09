@@ -47,6 +47,20 @@ return [
             'report' => false,
         ],
 
+        // Fase 78: copias de seguridad fuera del servidor. Mismas variables que el CRM (OFFSITE_S3_*): el bloque del .env se copia tal cual.
+        // Backblaze B2: endpoint https://s3.<region>.backblazeb2.com; la región sale del endpoint si no se indica.
+        'backblaze' => [
+            'driver' => 's3',
+            'key' => env('OFFSITE_S3_ACCESS_KEY_ID'),
+            'secret' => env('OFFSITE_S3_SECRET_ACCESS_KEY'),
+            'region' => (function () { $r = env('OFFSITE_S3_REGION'); if ($r && $r !== 'auto') return $r; return preg_match('~s3\.([a-z0-9-]+)\.backblazeb2\.com~', (string) env('OFFSITE_S3_ENDPOINT'), $m) ? $m[1] : 'us-east-1'; })(),
+            'bucket' => env('OFFSITE_S3_BUCKET'),
+            'endpoint' => env('OFFSITE_S3_ENDPOINT'),
+            'use_path_style_endpoint' => filter_var(env('OFFSITE_S3_FORCE_PATH_STYLE', true), FILTER_VALIDATE_BOOLEAN),
+            'throw' => true,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
