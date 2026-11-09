@@ -33,8 +33,9 @@ class RepartoService
     {
         $ocupadosC = $this->enViaje('comprobante_id'); $ocupadosA = $this->enViaje('acopio_id');
         $comps = Comprobante::ventas()->emitidos()->with(['items', 'contact:id,name,address,city,lat,lng,phone,mobile'])
-            ->where(fn($q) => $q->where(fn($w) => $w->facturas()->where('entrega_pendiente', true))->orWhere(fn($w) => $w->where('tipo', 'REM')->where('fecha', '>=', today()->subDays(60))))
-            ->whereNotIn('id', $ocupadosC)->orderBy('fecha')->get()
+            // Los remitos que nacieron de una entrega (origen = factura con entrega pendiente) ya se entregaron: no vuelven a la lista.
+            ->where(fn($q) => $q->where(fn($w) => $w->facturas()->where('entrega_pendiente', true))->orWhere(fn($w) => $w->where('tipo', 'REM')->where('fecha', '>=', today()->subDays(60))->whereDoesntHave('origen', fn($o) => $o->whereIn('tipo', ['FA', 'FB', 'FC', 'FE']))))
+            ->whereNotIn('id', $ocupadosC)->orderBy('fecha')->orderBy('id')->get()
             ->filter(fn($c) => $c->tipo === 'REM' ? ! OrdenEntregaItem::where('comprobante_id', $c->id)->where('estado', 'entregado')->exists() : $c->pendienteEntrega() > 0);
         $acopios = Acopio::with(['items', 'contact:id,name,address,city,lat,lng,phone,mobile'])->whereIn('estado', ['abierto', 'parcial', 'vencido'])->whereNotIn('id', $ocupadosA)->get();
         $porCliente = [];

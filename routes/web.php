@@ -152,6 +152,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/primeros-pasos/completar', [\App\Http\Controllers\OnboardingController::class, 'completar']);
     Route::get('/soporte',                   [\App\Http\Controllers\SoporteController::class, 'index']);
     Route::post('/soporte',                  [\App\Http\Controllers\SoporteController::class, 'crear']);
+    Route::post('/soporte/error',            [\App\Http\Controllers\SoporteController::class, 'desdeError']); // Fase 76: "Avisar a soporte" desde la pantalla de error
     Route::post('/soporte/{id}/responder',   [\App\Http\Controllers\SoporteController::class, 'responder']);
     Route::post('/soporte/{id}/cerrar',      [\App\Http\Controllers\SoporteController::class, 'cerrar']);
 

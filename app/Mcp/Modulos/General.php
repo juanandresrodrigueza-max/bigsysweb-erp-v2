@@ -75,6 +75,21 @@ class General
                         'plan' => \App\Services\Integraciones\CrmService::plan($u->business), // Fase 75
                         'lo_que_ve_el_crm' => $r['crm'] ? ['estado' => $r['crm']['estado'], 'texto' => $r['crm']['texto'], 'en_cola_hacia_el_erp' => $r['crm']['cola']['pendientes'], 'caidos' => $r['crm']['cola']['fallidos']] : null];
                 }],
+            // Fase 76: el dueño de BigSys le pregunta a Bigcito cómo está el sistema (sólo superadmin).
+            ['nombre' => 'salud_del_sistema', 'titulo' => 'Cómo está el sistema (superadmin)', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
+                'descripcion' => 'Sólo para el administrador de BigSys: controles de salud del servidor (base, cola, cron, disco, copias, ARCA), errores de las últimas 24 horas, uso de los últimos 7 días (empresas activas, en riesgo) y copias de seguridad atrasadas. "¿Cómo está el sistema?", "¿hubo errores hoy?".',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    if (! $u->is_superadmin) return ['error' => 'Esto lo ve sólo el administrador de BigSys.'];
+                    $s = app(\App\Services\Monitoreo\SaludService::class)->verificar();
+                    $err = \App\Models\ErrorSistema::where('ultima_vez', '>=', now()->subDay())->whereNull('resuelto_en')->orderByDesc('veces')->limit(5)->get();
+                    $uso = app(\App\Services\Producto\UsoService::class)->global(7);
+                    $sinCopia = \App\Models\Business::where('is_active', true)->where('backup_auto', true)->get()->filter(fn($b) => ! \App\Models\Backup::withoutGlobalScopes()->where('business_id', $b->id)->where('created_at', '>=', now()->subHours(48))->exists())->pluck('name')->values()->all();
+                    return ['estado' => $s['estado'], 'controles_con_problemas' => array_values(array_map(fn($c) => ['control' => $c['nombre'], 'estado' => $c['estado'], 'detalle' => $c['detalle']], array_filter($s['controles'], fn($c) => $c['estado'] !== 'ok'))),
+                        'errores_24h' => ['total' => (int) $err->sum('veces'), 'distintos' => $err->count(), 'principales' => $err->map(fn($e) => ['que' => class_basename($e->clase) . ': ' . \Illuminate\Support\Str::limit($e->mensaje, 120), 'donde' => "{$e->archivo}:{$e->linea}", 'ruta' => $e->ruta, 'veces' => $e->veces, 'empresa' => $e->business_id, 'codigo' => substr($e->hash, 0, 8)])->all()],
+                        'uso_7_dias' => ['empresas' => $uso['kpis']['empresas'], 'activas' => $uso['kpis']['activas_7'], 'en_riesgo' => array_map(fn($f) => ['empresa' => $f['nombre'], 'sin_uso_dias' => $f['sin_uso_dias']], array_slice($uso['en_riesgo'], 0, 5))],
+                        'empresas_sin_copia_48h' => $sinCopia, 'url' => Busca::url('/admin/salud')];
+                }],
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',
                 'parametros' => ['pregunta' => ['type' => 'string', 'description' => 'Qué se quiere hacer, en palabras del usuario.']], 'requeridos' => ['pregunta'],

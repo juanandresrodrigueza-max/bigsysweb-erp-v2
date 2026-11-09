@@ -6,6 +6,7 @@ use App\Models\ErrorSistema;
 use App\Models\SistemaConfig;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -38,14 +39,28 @@ class ErrorReporter
     private function guardarLocal(Throwable $e): void
     {
         $req = app()->bound('request') ? request() : null;
-        $hash = sha1(get_class($e) . '|' . $e->getFile() . '|' . $e->getLine());
+        $hash = self::hashDe($e);
         $row = ErrorSistema::where('hash', $hash)->first();
         $datos = ['clase' => get_class($e), 'mensaje' => Str::limit($e->getMessage(), 2000), 'archivo' => Str::after($e->getFile(), base_path() . '/'), 'linea' => $e->getLine(),
             'ruta' => $req ? Str::limit($req->method() . ' ' . $req->path(), 250) : (app()->runningInConsole() ? 'consola' : null), 'metodo' => $req?->method(),
             'business_id' => Auth::user()?->business_id, 'user_id' => Auth::id(), 'ultima_vez' => now(), 'traza' => Str::limit($e->getTraceAsString(), 6000)];
+        $volvio = $row && $row->resuelto_en !== null;
         if ($row) $row->forceFill($datos + ['veces' => $row->veces + 1, 'resuelto_en' => null])->save();
-        else ErrorSistema::create($datos + ['hash' => $hash, 'primera_vez' => now(), 'veces' => 1]);
+        else $row = ErrorSistema::create($datos + ['hash' => $hash, 'primera_vez' => now(), 'veces' => 1]);
+        // Fase 76: un error nuevo (o uno que vuelve después de marcarlo resuelto) le llega al superadmin en el acto, no en la ronda de la hora.
+        if ($volvio || $row->veces === 1) $this->avisarNuevo($row, $volvio);
     }
+
+    private function avisarNuevo(ErrorSistema $row, bool $volvio): void
+    {
+        $email = SistemaConfig::get('monitoreo_email') ?: SistemaConfig::get('soporte_email'); if (! $email) return;
+        // A lo sumo 10 avisos por hora: si algo explota en cadena, el panel lo muestra entero y el mail no se vuelve ruido.
+        $k = 'errores_avisados_' . now()->format('YmdH'); if ((int) Cache::get($k, 0) >= 10) return; Cache::put($k, (int) Cache::get($k, 0) + 1, 3600);
+        try { \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\ErrorNuevo($row, $volvio)); } catch (Throwable $e) { Log::warning('Monitoreo: no se pudo avisar el error nuevo: ' . $e->getMessage()); }
+    }
+
+    // El mismo hash con el que se agrupa (clase + archivo + línea): sirve para que la página de error y el ticket apunten a la fila.
+    public static function hashDe(Throwable $e): string { return sha1(get_class($e) . '|' . $e->getFile() . '|' . $e->getLine()); }
 
     // DSN: https://CLAVE@host/PROYECTO → POST https://host/api/PROYECTO/store/
     public static function dsn(): ?array
