@@ -56,8 +56,11 @@ class CrmIdentidadPlanFase75Test extends ErpTestCase
         // El dueño es intocable desde el CRM.
         $this->webhook('user.deactivated', ['email' => $this->dueno->email])->assertStatus(422)->assertJsonPath('ok', false);
         $this->assertSame('active', $this->dueno->fresh()->status);
-        $r = $this->webhook('user.updated', ['email' => $this->dueno->email, 'role' => 'viewer'])->assertOk()->json();
-        $this->assertSame('dueno', $this->dueno->fresh()->role->slug); $this->assertStringContainsString('dueño', $r['nota']);
+        $r = $this->webhook('user.updated', ['email' => $this->dueno->email, 'role' => 'viewer'])->assertStatus(422)->json();
+        $this->assertFalse($r['ok']); $this->assertSame('dueno', $this->dueno->fresh()->role->slug); $this->assertStringContainsString('dueño', $r['error']);
+        $this->webhook('user.updated', ['email' => $this->dueno->email, 'is_active' => false])->assertStatus(422);
+        $this->webhook('user.updated', ['email' => $this->dueno->email, 'name' => 'Dueño Renombrado'])->assertOk()->assertJsonPath('accion', 'actualizado'); // el nombre sí
+        $this->assertSame('Dueño Renombrado', $this->dueno->fresh()->name);
         // Baja de alguien que no existe: no es error.
         $this->webhook('user.deleted', ['email' => 'nadie@test.com'])->assertOk()->assertJsonPath('ignorado', 'No existe en el ERP.');
         $this->assertTrue(\App\Models\AuditLog::withoutGlobalScopes()->where('descripcion', 'like', '%desde el CRM%')->exists());
