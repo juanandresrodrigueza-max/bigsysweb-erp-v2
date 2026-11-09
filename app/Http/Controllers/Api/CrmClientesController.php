@@ -51,7 +51,12 @@ class CrmClientesController extends Controller
             $mail = strtolower(trim($d['vendedor_email']));
             $v = \App\Models\Vendedor::where('activo', true)->whereRaw('lower(email) = ?', [$mail])->first();
             $u = $v ? null : \App\Models\User::where('business_id', $contact->business_id)->whereRaw('lower(email) = ?', [$mail])->where('status', 'active')->first();
-            if (! $v && $u) $v = \App\Models\Vendedor::deUsuario($u->id) ?? \App\Models\Vendedor::create(['business_id' => $contact->business_id, 'user_id' => $u->id, 'nombre' => $u->name, 'email' => $mail, 'comision_venta' => 0, 'comision_cobro' => 0, 'activo' => true]);
+            if (! $v && $u) {
+                // Primero una ficha de vendedor sin usuario ligado con el mismo nombre (la cargaron a mano): se la engancha en vez de duplicarla.
+                $v = \App\Models\Vendedor::deUsuario($u->id) ?? \App\Models\Vendedor::where('activo', true)->whereNull('user_id')->whereRaw('lower(nombre) = ?', [mb_strtolower(trim($u->name))])->first();
+                if ($v && ! $v->user_id) $v->update(['user_id' => $u->id, 'email' => $v->email ?: $mail]);
+                $v = $v ?? \App\Models\Vendedor::create(['business_id' => $contact->business_id, 'user_id' => $u->id, 'nombre' => $u->name, 'email' => $mail, 'comision_venta' => 0, 'comision_cobro' => 0, 'activo' => true]);
+            }
             if ($v) $d['vendedor_id'] = $v->id; else $aviso = "{$mail} no es usuario ni vendedor del ERP: el recibo queda sin cobrador.";
         }
         if (! empty($d['vendedor_id'])) { abort_unless(\App\Models\Vendedor::where('id', $d['vendedor_id'])->exists(), 422, 'Ese vendedor no existe en el ERP.'); $d['cobrador_id'] = (int) $d['vendedor_id']; }
