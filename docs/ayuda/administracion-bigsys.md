@@ -37,6 +37,13 @@ Una pantalla con semáforo de todo lo que tiene que estar vivo en el servidor: b
 - **Aviso por mail**: cargá un correo y, cuando un control pasa a crítico, llega un mail (una vez cada 6 horas por control). La revisión corre sola cada hora.
 - **Uptime externo**: `https://tu-servidor/salud` responde 200 si está bien y 503 si hay algo crítico; ponelo en UptimeRobot, Better Stack o el monitor que uses. Con `?token=` (el token que cargues en la pantalla) devuelve el detalle de cada control.
 
+## Enterarse al toque y la semana en un mail (Fase 76)
+
+- **Error nuevo, aviso inmediato**: cuando aparece un error que nunca se había visto (o vuelve uno que marcaste resuelto), llega un mail al instante al mail de monitoreo (Panel → Salud), con la clase, dónde, la ruta, la empresa y un **código** de 8 letras. A lo sumo 10 por hora: si algo explota en cadena, el panel lo muestra entero.
+- **La pantalla de error habla claro**: si a un usuario le falla algo, ve "Algo falló de nuestro lado", el mismo código, y un botón **Avisar a soporte** que abre un ticket con el error ya pegado (no tiene que explicar nada técnico). El ticket llega como "Algo no anda", prioridad alta.
+- **Bigcito**: "¿cómo está el sistema?", "¿hubo errores hoy?" (`salud_del_sistema`, sólo superadmin): controles con problemas, errores de 24 h con sus códigos, empresas activas y en riesgo, copias atrasadas.
+- **Resumen semanal**: los lunes a las 7:50 llega al mail de monitoreo cómo le fue al sistema la semana pasada: empresas que lo usaron y las que más, las en riesgo (sin uso 7 días o más), módulos más usados, errores con sus códigos, salud, copias y tickets. También a mano: `php artisan sistema:resumen-semanal`.
+
 ## Uso y soporte
 
 **Uso**: qué empresas usan el sistema, cuáles se están enfriando (7 y 14 días sin uso), ranking, módulos más usados y detalle por empresa y usuario. **Soporte**: los tickets de todas las empresas por prioridad; al responder, la empresa recibe una alerta.

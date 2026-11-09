@@ -38,6 +38,21 @@ class SoporteController extends Controller
         return redirect("/soporte?abrir={$t->id}")->with('success', "Ticket {$t->numero()} enviado. " . ($bc['escalado'] ? 'Lo ve el equipo de BigSys: te responden acá y por mail.' : 'Bigcito ya te dejó una respuesta; si no te sirve, te responde una persona.'));
     }
 
+    // Fase 76: el usuario reporta desde la pantalla de error. El ticket nace con el error del sistema pegado (clase, dónde, ruta, código) para que soporte no adivine.
+    public function desdeError(Request $request)
+    {
+        $d = $request->validate(['hash' => 'nullable|string|max:40', 'url' => 'nullable|string|max:500', 'mensaje' => 'nullable|string|max:2000']);
+        $err = ! empty($d['hash']) ? \App\Models\ErrorSistema::where('hash', $d['hash'])->first() : null;
+        $codigo = $err ? substr($err->hash, 0, 8) : (! empty($d['hash']) ? substr($d['hash'], 0, 8) : null);
+        $asunto = 'Algo falló' . ($err ? ': ' . class_basename($err->clase) : '') . ($codigo ? " ({$codigo})" : '');
+        $t = Ticket::create(['business_id' => $request->user()->business_id, 'user_id' => $request->user()->id, 'asunto' => mb_substr($asunto, 0, 150), 'categoria' => 'error', 'prioridad' => 'alta', 'estado' => 'abierto', 'mensajes' => []]);
+        $texto = (trim((string) ($d['mensaje'] ?? '')) !== '' ? trim($d['mensaje']) . "\n\n" : '') . "Reportado desde la pantalla de error." . (! empty($d['url']) ? "\nPantalla: {$d['url']}" : '')
+            . ($err ? "\nError del sistema #{$err->id} · {$err->clase}: " . \Illuminate\Support\Str::limit($err->mensaje, 300) . "\nDónde: {$err->archivo}:{$err->linea} · ruta {$err->ruta} · {$err->veces} vez/veces · código {$codigo}" : ($codigo ? "\nCódigo: {$codigo}" : ''));
+        $t->agregar('empresa', $request->user(), $texto);
+        AuditLog::registrar('crear', $t, "Abrió el ticket {$t->numero()} desde la pantalla de error");
+        return redirect("/soporte?abrir={$t->id}")->with('success', "Ticket {$t->numero()} enviado con el detalle del error. Te respondemos acá y por mail.");
+    }
+
     public function responder(Request $request, int $id)
     {
         $d = $request->validate(['mensaje' => 'required|string|max:4000']);

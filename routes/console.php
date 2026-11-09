@@ -13,6 +13,7 @@ Schedule::call(fn() => \Illuminate\Support\Facades\Cache::put(\App\Services\Moni
 Schedule::command('cobranzas:recordar')->dailyAt('09:30');
 Schedule::command('backups:diario')->dailyAt('03:00');
 Schedule::command('analista:semanal')->weeklyOn(1, '08:00');
+Schedule::command('sistema:resumen-semanal')->weeklyOn(1, '07:50'); // Fase 76: la semana del sistema con uso real, al dueño de BigSys
 Schedule::command('avisos:dueno')->everyFifteenMinutes();
 Schedule::command('crm:salud')->everyFifteenMinutes()->withoutOverlapping();            // Fase 68: ¿el CRM responde? alerta si se corta
 Schedule::command('crm:salud --reconciliar')->dailyAt('06:30');
