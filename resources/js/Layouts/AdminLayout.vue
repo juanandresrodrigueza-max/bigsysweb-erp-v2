@@ -28,8 +28,10 @@
         <div class="flex-1"></div>
         <Link href="/admin/empresas?nueva=1" class="btn-primary !py-1.5 text-xs"><Icono nombre="plus" clase="w-4 h-4" /> Nueva empresa</Link>
       </header>
-      <div v-if="flash?.success" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">{{ flash.success }}</div>
-      <div v-if="flash?.error" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-carmin-light border border-carmin/30 text-carmin-dark text-sm">{{ flash.error }}</div>
+      <!-- El resultado de una acción flota a la vista aunque la página esté scrolleada (los botones de "Probar" suelen estar abajo de todo). -->
+      <div v-if="aviso" class="fixed bottom-4 right-4 left-4 md:left-auto md:max-w-md z-50 px-4 py-3 rounded-xl shadow-lg text-sm flex items-start gap-3 border" :class="aviso.tipo === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-carmin-light border-carmin/30 text-carmin-dark'" role="status" data-e2e="aviso">
+        <span class="flex-1">{{ aviso.texto }}</span><button type="button" class="opacity-60 hover:opacity-100 text-lg leading-none" aria-label="Cerrar" @click="aviso = null">×</button>
+      </div>
       <main class="flex-1 p-4 md:p-6"><slot /></main>
     </div>
 
@@ -45,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Head, Link, usePage } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import Logo from '@/Components/Logo.vue'
@@ -53,6 +55,13 @@ defineProps({ titulo: { type: String, default: '' } })
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
 const flash = computed(() => page.props.flash)
+// Cada respuesta con mensaje lo muestra como aviso flotante; se va solo a los 10 segundos (los errores se quedan hasta que se cierran).
+const aviso = ref(null); let temporizador = null
+watch(flash, (f) => {
+  const texto = f?.error ?? f?.success; if (!texto) return
+  aviso.value = { tipo: f.error ? 'error' : 'success', texto }
+  clearTimeout(temporizador); if (!f.error) temporizador = setTimeout(() => { aviso.value = null }, 10000)
+}, { immediate: true, deep: true })
 const movil = ref(false)
 const iniciales = computed(() => (user.value?.name ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase())
 const items = [
