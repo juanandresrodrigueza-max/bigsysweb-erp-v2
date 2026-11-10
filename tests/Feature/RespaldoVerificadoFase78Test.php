@@ -91,4 +91,15 @@ class RespaldoVerificadoFase78Test extends ErpTestCase
         config(['filesystems.disks.backblaze.bucket' => 'bigsys-copias', 'services.backups.disk' => 'backblaze']);
         $this->assertTrue(BackupService::remotoConfigurado());
     }
+
+    public function test_al_podar_las_copias_viejas_tambien_se_borran_del_bucket(): void
+    {
+        config(['filesystems.disks.remoto_prueba' => ['driver' => 'local', 'root' => storage_path('framework/testing/disks/remoto_prueba')], 'services.backups.disk' => 'remoto_prueba']); Storage::fake('remoto_prueba');
+        $this->cliente();
+        // Diez copias automáticas viejas ya subidas; la más vieja tiene que irse con la próxima copia.
+        for ($i = 1; $i <= 10; $i++) { Storage::disk('remoto_prueba')->put("bigsysweb/erp/x/vieja{$i}.zip", 'zip'); Backup::create(['business_id' => $this->empresa->id, 'archivo' => "backups/{$this->empresa->id}/vieja{$i}.zip", 'bytes' => 3, 'origen' => 'auto', 'resumen' => [], 'remoto' => "remoto_prueba:bigsysweb/erp/x/vieja{$i}.zip", 'remoto_en' => now()]); }
+        app(BackupService::class)->crear($this->empresa, 'auto');
+        $this->assertSame(10, Backup::where('origen', 'auto')->count());
+        Storage::disk('remoto_prueba')->assertMissing('bigsysweb/erp/x/vieja1.zip'); Storage::disk('remoto_prueba')->assertExists('bigsysweb/erp/x/vieja2.zip');
+    }
 }

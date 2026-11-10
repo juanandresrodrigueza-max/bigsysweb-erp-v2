@@ -48,7 +48,7 @@ class BackupService
         $zip->close();
         $bk = Backup::create(['business_id' => $b->id, 'archivo' => "{$dir}/{$nombre}", 'bytes' => filesize($path), 'origen' => $origen, 'resumen' => $resumen, 'user_id' => $userId]);
         // Se guardan los últimos 10 automáticos; los manuales quedan.
-        foreach (Backup::withoutGlobalScopes()->where('business_id', $b->id)->where('origen', 'auto')->orderByDesc('id')->skip(10)->limit(100)->get() as $viejo) { Storage::disk('local')->delete($viejo->archivo); $viejo->delete(); }
+        foreach (Backup::withoutGlobalScopes()->where('business_id', $b->id)->where('origen', 'auto')->orderByDesc('id')->skip(10)->limit(100)->get() as $viejo) { Storage::disk('local')->delete($viejo->archivo); $this->borrarRemoto($viejo); $viejo->delete(); }
         return $bk;
     }
 
@@ -187,6 +187,14 @@ class BackupService
         try { if (! Storage::disk($disk)->put($destino, $fh)) throw new \RuntimeException("El disco {$disk} no aceptó el archivo."); } finally { if (is_resource($fh)) fclose($fh); }
         $bk->forceFill(['remoto' => "{$disk}:{$destino}", 'remoto_en' => now()])->save();
         return $bk->remoto;
+    }
+
+    // Al podar una copia local se poda también la remota (si no, el bucket crece para siempre). Si el disco no responde, se anota y sigue.
+    private function borrarRemoto(Backup $bk): void
+    {
+        if (! $bk->remoto || ! str_contains($bk->remoto, ':')) return;
+        [$disk, $ruta] = explode(':', $bk->remoto, 2);
+        try { if (config("filesystems.disks.{$disk}")) Storage::disk($disk)->delete($ruta); } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning("Backup remoto: no se pudo borrar {$bk->remoto}: " . $e->getMessage()); }
     }
 
     public static function remotoConfigurado(): bool { $d = config('services.backups.disk'); return (bool) ($d && config("filesystems.disks.{$d}")); }
