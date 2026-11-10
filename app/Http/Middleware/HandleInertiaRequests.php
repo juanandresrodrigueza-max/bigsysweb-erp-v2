@@ -74,6 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'abrir'   => fn() => $request->session()->get('abrir'),
                 'crm_secreto_nuevo' => fn() => $request->session()->get('crm_secreto_nuevo'),
                 'envio_id' => fn() => $request->session()->get('envio_id'),
+                'prueba'   => fn() => $request->session()->get('prueba'), // resultado de "Probar" dentro de la tarjeta que lo pidió (Superadmin → Sistema)
                 'preview'  => fn() => $request->session()->get('preview'),
                 'interpretacion' => fn() => $request->session()->get('interpretacion'),
                 'resumen_texto' => fn() => $request->session()->get('resumen_texto'),
