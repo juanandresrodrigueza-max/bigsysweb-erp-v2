@@ -117,20 +117,20 @@ class SistemaController extends Controller
         SistemaConfig::aplicar();
         try {
             \Illuminate\Support\Facades\Mail::to($d['a'])->send(new \App\Mail\CorreoPrueba());
-        } catch (\Throwable $e) { return back()->with('error', 'No se pudo enviar: ' . mb_substr($e->getMessage(), 0, 200)); }
-        return back()->with('success', "Correo enviado a {$d['a']} por " . config('mail.default') . '. Revisá la bandeja (y el correo no deseado).');
+        } catch (\Throwable $e) { return back()->with('prueba', ['que' => 'correo', 'ok' => false, 'texto' => 'No se pudo enviar: ' . mb_substr($e->getMessage(), 0, 200)]); }
+        return back()->with('prueba', ['que' => 'correo', 'ok' => true, 'texto' => "Correo enviado a {$d['a']} por " . config('mail.default') . '. Revisá la bandeja (y el correo no deseado).']);
     }
 
     // Consulta mínima a la IA para comprobar la clave.
     public function probarIa()
     {
         SistemaConfig::aplicar();
-        $key = config('services.anthropic.api_key'); if (! $key) return back()->with('error', 'No hay clave de IA cargada.');
+        $key = config('services.anthropic.api_key'); if (! $key) return back()->with('prueba', ['que' => 'ia', 'ok' => false, 'texto' => 'No hay clave de IA cargada.']);
         try {
             $r = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => $key, 'anthropic-version' => '2023-06-01'])->timeout(20)->post('https://api.anthropic.com/v1/messages', ['model' => config('services.anthropic.model'), 'max_tokens' => 20, 'messages' => [['role' => 'user', 'content' => 'Respondé solo: OK']]]);
-            if (! $r->successful()) return back()->with('error', 'La IA respondió HTTP ' . $r->status() . ': ' . mb_substr((string) ($r->json('error.message') ?? $r->body()), 0, 160));
-        } catch (\Throwable $e) { return back()->with('error', 'No se pudo conectar con la IA: ' . mb_substr($e->getMessage(), 0, 160)); }
-        return back()->with('success', 'La clave de IA funciona (modelo ' . config('services.anthropic.model') . ').');
+            if (! $r->successful()) return back()->with('prueba', ['que' => 'ia', 'ok' => false, 'texto' => 'La IA respondió HTTP ' . $r->status() . ': ' . mb_substr((string) ($r->json('error.message') ?? $r->body()), 0, 160)]);
+        } catch (\Throwable $e) { return back()->with('prueba', ['que' => 'ia', 'ok' => false, 'texto' => 'No se pudo conectar con la IA: ' . mb_substr($e->getMessage(), 0, 160)]); }
+        return back()->with('prueba', ['que' => 'ia', 'ok' => true, 'texto' => 'La clave de IA funciona (modelo ' . config('services.anthropic.model') . ').']);
     }
 
     public function mantenimiento(Request $request)

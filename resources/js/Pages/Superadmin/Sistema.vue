@@ -59,6 +59,7 @@
         <p class="text-sm text-marca-muted">Con clave, el asistente, el analista, la lectura de facturas y la interpretación de pedidos usan IA. Sin clave, todo sigue funcionando en modo básico. La clave se guarda cifrada y no se vuelve a mostrar.</p>
         <div><label class="label">API key {{ config.ia_api_key_set ? '(dejar vacío para no cambiarla)' : '' }}</label><input v-model="form.ia_api_key" type="password" class="input" autocomplete="off" placeholder="sk-ant-…" /></div>
         <div><label class="label">Modelo</label><input v-model="form.ia_modelo" class="input" placeholder="claude-sonnet-5" /><p class="text-[11px] text-marca-muted mt-1">Haiku es más barato y rápido; Sonnet entiende mejor pedidos complejos y facturas borrosas.</p></div>
+        <p v-if="prueba?.que === 'ia'" class="text-sm px-3 py-2 rounded-lg mb-2" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="prueba-ia">{{ prueba.ok ? '✓' : '✗' }} {{ prueba.texto }}</p>
         <div class="flex flex-wrap gap-2 justify-end"><button v-if="config.ia_api_key_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('ia_api_key')">Borrar clave del panel</button><Link href="/admin/sistema/probar-ia" method="post" as="button" preserve-scroll class="btn-secondary">Probar la clave</Link><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
       </form>
       <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3">
@@ -67,6 +68,7 @@
         <div class="grid grid-cols-3 gap-2"><div class="col-span-2"><label class="label">Servidor</label><input v-model="form.mail_host" class="input" placeholder="smtp.gmail.com" /></div><div><label class="label">Puerto</label><input v-model.number="form.mail_port" type="number" class="input" /></div></div>
         <div class="grid grid-cols-2 gap-2"><div><label class="label">Usuario</label><input v-model="form.mail_username" class="input" autocomplete="off" /></div><div><label class="label">Contraseña {{ config.mail_password_set ? '(vacío = no cambiar)' : '' }}</label><input v-model="form.mail_password" type="password" class="input" autocomplete="off" /></div></div>
         <div class="grid grid-cols-3 gap-2"><div><label class="label">Cifrado</label><select v-model="form.mail_encryption" class="input"><option value="tls">TLS (587)</option><option value="ssl">SSL (465)</option><option value="none">Ninguno</option></select></div><div><label class="label">Remitente</label><input v-model="form.mail_from_address" type="email" class="input" placeholder="no-responder@bigsys.com.ar" /></div><div><label class="label">Nombre</label><input v-model="form.mail_from_name" class="input" /></div></div>
+        <p v-if="prueba?.que === 'correo'" class="text-sm px-3 py-2 rounded-lg mb-2" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="prueba-correo">{{ prueba.ok ? '✓' : '✗' }} {{ prueba.texto }}</p>
         <div class="flex flex-wrap items-center gap-2 justify-end"><input v-model="pruebaA" type="email" class="input !w-56 !py-1.5 text-sm" placeholder="Mandar prueba a…" /><button type="button" class="btn-secondary" :disabled="!pruebaA" @click="router.post('/admin/sistema/probar-correo', { a: pruebaA }, { preserveScroll: true })">Enviar prueba</button><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
       </form>
     </div>
@@ -102,8 +104,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Link, useForm, router } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
@@ -111,5 +113,6 @@ const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mante
 const base = location.origin
 const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls' })
 const pruebaA = ref('')
+const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
 </script>

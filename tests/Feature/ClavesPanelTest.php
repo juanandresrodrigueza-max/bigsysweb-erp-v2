@@ -39,14 +39,14 @@ class ClavesPanelTest extends ErpTestCase
     public function test_prueba_de_correo_y_de_ia_desde_el_panel(): void
     {
         $this->admin(); Mail::fake();
-        $this->post('/admin/sistema/probar-correo', ['a' => 'yo@ejemplo.com'])->assertSessionHas('success');
+        $this->post('/admin/sistema/probar-correo', ['a' => 'yo@ejemplo.com'])->assertSessionHas('prueba', fn($p) => $p['que'] === 'correo' && $p['ok']);
         Mail::assertSent(\App\Mail\CorreoPrueba::class);
-        $this->post('/admin/sistema/probar-ia')->assertSessionHas('error'); // sin clave
+        $this->post('/admin/sistema/probar-ia')->assertSessionHas('prueba', fn($p) => $p['que'] === 'ia' && ! $p['ok']); // sin clave
         SistemaConfig::set('ia_api_key', 'sk-test');
         \Illuminate\Support\Facades\Http::fake(['api.anthropic.com/*' => \Illuminate\Support\Facades\Http::sequence()->push(['content' => [['text' => 'OK']]])->push(['error' => ['message' => 'invalid x-api-key']], 401)]);
-        $this->post('/admin/sistema/probar-ia')->assertSessionHas('success');
+        $this->post('/admin/sistema/probar-ia')->assertSessionHas('prueba', fn($p) => $p['que'] === 'ia' && $p['ok']);
         \Illuminate\Support\Facades\Http::assertSent(fn($r) => $r->hasHeader('x-api-key', 'sk-test'));
-        $this->post('/admin/sistema/probar-ia')->assertSessionHas('error');
+        $this->post('/admin/sistema/probar-ia')->assertSessionHas('prueba', fn($p) => $p['que'] === 'ia' && ! $p['ok']);
     }
 
     public function test_un_usuario_comun_no_ve_el_panel(): void
