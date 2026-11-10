@@ -60,7 +60,9 @@ class SaludService
         $dias = $cot ? (int) abs(today()->diffInDays(\Carbon\Carbon::parse($cot))) : null;
         $intento = Cache::get(\App\Services\Fondos\CotizacionService::ULTIMO_INTENTO);
         $intentoTxt = $intento ? ' · último intento ' . \Carbon\Carbon::parse($intento['cuando'])->format('d/m H:i') . ': ' . ($intento['ok'] ? 'OK (' . $intento['detalle'] . ')' : 'falló (' . $intento['detalle'] . ')') : ' · todavía no corrió cotizaciones:actualizar desde el último reinicio (va a las 9 y a las 15)';
-        $c[] = $this->item('cotizacion', 'Cotización del dólar', $dias === null ? 'aviso' : ($dias > 3 ? 'aviso' : 'ok'), ($dias === null ? 'Sin cotización cargada.' : "Última del " . \Carbon\Carbon::parse($cot)->format('d/m/Y')) . $intentoTxt);
+        // Un intento OK en las últimas 36 h vale como "al día" aunque la fila tenga fecha anterior (fines de semana, feriados, valores que no cambian).
+        $intentoReciente = $intento && $intento['ok'] && \Carbon\Carbon::parse($intento['cuando'])->gt(now()->subHours(36));
+        $c[] = $this->item('cotizacion', 'Cotización del dólar', $dias === null ? 'aviso' : ($dias > 3 && ! $intentoReciente ? 'aviso' : 'ok'), ($dias === null ? 'Sin cotización cargada.' : "Última del " . \Carbon\Carbon::parse($cot)->format('d/m/Y')) . $intentoTxt);
         // Correo e IA
         $c[] = $this->item('correo', 'Correo saliente', config('mail.default') === 'smtp' ? 'ok' : 'aviso', config('mail.default') === 'smtp' ? 'SMTP configurado' : 'Sin SMTP: los avisos por mail no salen (' . config('mail.default') . ')');
         $c[] = $this->item('ia', 'Inteligencia artificial', config('services.anthropic.api_key') ? 'ok' : 'aviso', config('services.anthropic.api_key') ? 'Clave cargada' : 'Sin clave: el asistente trabaja en modo básico');

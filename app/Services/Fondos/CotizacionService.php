@@ -46,11 +46,12 @@ class CotizacionService
         return $res;
     }
 
-    // La fecha de la cotización nunca es futura ni inválida; sin fecha de la fuente, es hoy.
-    private function guardar(string $tipo, float $compra, float $venta, string $fuente, string $fecha): float
+    // La cotización se guarda con la fecha de HOY: es la vigente hoy aunque la fuente diga que el valor no cambia desde hace días
+    // (dolarapi informa para el oficial la fecha del último cambio, y así el oficial quedaba "viejo" en la salud sin estarlo).
+    // La fecha de la fuente sólo sirve para no guardar algo si viene claramente mal.
+    private function guardar(string $tipo, float $compra, float $venta, string $fuente, string $fechaFuente): float
     {
-        $f = preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) && $fecha <= today()->toDateString() ? $fecha : today()->toDateString();
-        Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => $f, 'tipo' => $tipo], ['compra' => $compra ?: $venta, 'venta' => $venta, 'fuente' => $fuente]);
+        Cotizacion::updateOrCreate(['business_id' => null, 'fecha' => today()->toDateString(), 'tipo' => $tipo], ['compra' => $compra ?: $venta, 'venta' => $venta, 'fuente' => $fuente]);
         return $venta;
     }
 
