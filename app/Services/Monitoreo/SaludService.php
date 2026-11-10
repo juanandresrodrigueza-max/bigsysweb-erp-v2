@@ -58,7 +58,9 @@ class SaludService
         // Cotización
         $cot = Cotizacion::withoutGlobalScopes()->whereNull('business_id')->where('tipo', 'oficial')->max('fecha');
         $dias = $cot ? (int) abs(today()->diffInDays(\Carbon\Carbon::parse($cot))) : null;
-        $c[] = $this->item('cotizacion', 'Cotización del dólar', $dias === null ? 'aviso' : ($dias > 3 ? 'aviso' : 'ok'), $dias === null ? 'Sin cotización cargada.' : "Última del " . \Carbon\Carbon::parse($cot)->format('d/m/Y'));
+        $intento = Cache::get(\App\Services\Fondos\CotizacionService::ULTIMO_INTENTO);
+        $intentoTxt = $intento ? ' · último intento ' . \Carbon\Carbon::parse($intento['cuando'])->format('d/m H:i') . ': ' . ($intento['ok'] ? 'OK (' . $intento['detalle'] . ')' : 'falló (' . $intento['detalle'] . ')') : ' · todavía no corrió cotizaciones:actualizar desde el último reinicio (va a las 9 y a las 15)';
+        $c[] = $this->item('cotizacion', 'Cotización del dólar', $dias === null ? 'aviso' : ($dias > 3 ? 'aviso' : 'ok'), ($dias === null ? 'Sin cotización cargada.' : "Última del " . \Carbon\Carbon::parse($cot)->format('d/m/Y')) . $intentoTxt);
         // Correo e IA
         $c[] = $this->item('correo', 'Correo saliente', config('mail.default') === 'smtp' ? 'ok' : 'aviso', config('mail.default') === 'smtp' ? 'SMTP configurado' : 'Sin SMTP: los avisos por mail no salen (' . config('mail.default') . ')');
         $c[] = $this->item('ia', 'Inteligencia artificial', config('services.anthropic.api_key') ? 'ok' : 'aviso', config('services.anthropic.api_key') ? 'Clave cargada' : 'Sin clave: el asistente trabaja en modo básico');
@@ -71,7 +73,8 @@ class SaludService
         // Errores
         $err24 = (int) ErrorSistema::where('ultima_vez', '>=', now()->subDay())->whereNull('resuelto_en')->sum('veces');
         $c[] = $this->item('errores', 'Errores en las últimas 24 h', $err24 >= 20 ? 'critico' : ($err24 > 0 ? 'aviso' : 'ok'), $err24 ? "{$err24} errores (ver abajo)" : 'Ninguno');
-        $c[] = $this->item('sentry', 'Monitoreo externo (Sentry)', ErrorReporter::dsn() ? 'ok' : 'aviso', ErrorReporter::dsn() ? 'DSN cargado: los errores se envían' : 'Sin DSN: los errores solo quedan en este panel');
+        $destinos = Destinatarios::monitoreo();
+        $c[] = $this->item('sentry', 'Monitoreo externo (Sentry)', ErrorReporter::dsn() || $destinos ? 'ok' : 'aviso', ErrorReporter::dsn() ? 'DSN cargado: los errores se envían' : ($destinos ? 'Sin Sentry, pero cada error nuevo avisa por mail a ' . implode(', ', $destinos) . ' y queda en este panel (opcional)' : 'Sin DSN ni mail de monitoreo: los errores solo quedan en este panel'));
 
         $estado = collect($c)->contains('estado', 'critico') ? 'critico' : (collect($c)->contains('estado', 'aviso') ? 'aviso' : 'ok');
         return ['estado' => $estado, 'controles' => $c, 'hora' => now()->toIso8601String(), 'version' => ['php' => PHP_VERSION, 'laravel' => app()->version()]];
