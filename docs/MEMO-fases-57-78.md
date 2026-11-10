@@ -49,6 +49,8 @@ Ajustes posteriores: dominio del CRM (#101), "Lo que ve el CRM" y el guion de pr
 
 Pendiente de configurar en producción: `BACKUP_DISK` con un bucket S3 compatible (hasta entonces la salud avisa que las copias viven en el
 mismo disco) y el mail de monitoreo en Superadmin → Salud (sin él no salen ni el aviso de error nuevo ni el resumen semanal).
+El bucket de Backblaze es compartido con el CRM (misma clave de aplicación): si alguna vez se rota la clave, hay que cambiarla en los dos
+`.env` (`OFFSITE_S3_*`). El ERP poda la copia remota junto con la local (quedan las últimas 10 automáticas por empresa).
 Flaky a vigilar: `DocumentosPreguntasFase59Test` falló una vez en PostgreSQL en la corrida completa y pasa solo.
 
 ## Bigcito y MCP

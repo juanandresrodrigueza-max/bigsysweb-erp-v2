@@ -166,7 +166,8 @@ class CrmSyncService
         }
         if ($u) {
             // El dueño del ERP es intocable desde el CRM: ni el rol ni el estado (el nombre sí). Se rechaza para que el CRM deshaga lo suyo.
-            if ($esDueno && ($rolSlug || array_key_exists('is_active', $k) && ! $k['is_active'])) return ['ok' => false, 'error' => 'El dueño de la empresa no se cambia desde el CRM: el rol y el estado del dueño se administran en el ERP.'];
+            // El CRM manda el usuario completo: para el dueño, "admin" es su rol de siempre (no es un cambio); otro rol o la baja sí se rechazan.
+            if ($esDueno && (($rolSlug && $rolSlug !== 'administrador') || array_key_exists('is_active', $k) && ! $k['is_active'])) return ['ok' => false, 'error' => 'El dueño de la empresa no se cambia desde el CRM: el rol y el estado del dueño se administran en el ERP.'];
             $cambios = [];
             if (! empty($k['name']) && $k['name'] !== $u->name) $cambios['name'] = mb_substr((string) $k['name'], 0, 120);
             if ($rol && ! $esDueno && $rol->id !== $u->role_id) $cambios['role_id'] = $rol->id;
