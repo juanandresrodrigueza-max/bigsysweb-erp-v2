@@ -361,6 +361,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     // Fondos
     Route::prefix('fondos')->middleware('permiso:fondos')->group(function () {
+        Route::post('/config',                   [FondosController::class, 'config'])->middleware('permiso:fondos,editar'); // Fase 89: arqueo ciego
         Route::get('/moneda',              [\App\Http\Controllers\Fondos\MonedaController::class, 'index']);
         Route::post('/moneda/fijar',       [\App\Http\Controllers\Fondos\MonedaController::class, 'fijar'])->middleware('permiso:fondos,editar');
         Route::post('/moneda/actualizar',  [\App\Http\Controllers\Fondos\MonedaController::class, 'actualizar'])->middleware('permiso:fondos,editar');
@@ -436,6 +437,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/articulos/completar-ia',   [\App\Http\Controllers\Stock\StockController::class, 'completarIa'])->middleware(['permiso:stock,editar', 'throttle:20,1']);
         Route::post('/articulos/{id?}',          [\App\Http\Controllers\Stock\StockController::class, 'guardar'])->middleware('permiso:stock,editar')->whereNumber('id');
         Route::get('/movimientos',               [\App\Http\Controllers\Stock\StockController::class, 'movimientos']);
+        Route::get('/mermas',                    [\App\Http\Controllers\Stock\MermasController::class, 'index']); // Fase 89
+        Route::post('/mermas',                   [\App\Http\Controllers\Stock\MermasController::class, 'store'])->middleware('permiso:stock,editar');
         Route::post('/ajustar',                  [\App\Http\Controllers\Stock\StockController::class, 'ajustar'])->middleware('permiso:stock,editar');
         Route::get('/pases',                     [\App\Http\Controllers\Stock\PasesController::class, 'index']);
         Route::post('/pases/leer',               [\App\Http\Controllers\Stock\PasesController::class, 'leer'])->middleware('permiso:stock,editar');
@@ -765,11 +768,13 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     // Gastronomía
     Route::prefix('gastronomia')->middleware('permiso:gastronomia')->group(function () {
         Route::get('/',                               [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mesas']);
+        Route::post('/mesas/plano',                 [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'plano'])->middleware('permiso:gastronomia,editar'); // Fase 89
         Route::post('/mesas/{id?}',                   [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarMesa'])->middleware('permiso:gastronomia,editar');
         Route::delete('/mesas/{id}',                  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'eliminarMesa'])->middleware('permiso:gastronomia,editar');
         Route::post('/comandas',                      [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'abrir'])->middleware('permiso:gastronomia,crear');
         Route::get('/comandas/{id}',                  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'comanda']);
         Route::post('/comandas/{id}/items',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'agregar'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/items/{item}/cortesia', [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cortesia'])->middleware('permiso:gastronomia,editar'); // Fase 89
         Route::delete('/comandas/{id}/items/{item}',  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'quitar'])->middleware('permiso:gastronomia,crear');
         Route::post('/comandas/{id}/enviar',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'enviar'])->middleware('permiso:gastronomia,crear');
         Route::post('/comandas/{id}/cuenta',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cuenta'])->middleware('permiso:gastronomia,crear');

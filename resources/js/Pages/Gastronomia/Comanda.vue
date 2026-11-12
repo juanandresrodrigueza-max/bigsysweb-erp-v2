@@ -20,13 +20,20 @@
 
     <div class="grid lg:grid-cols-5 gap-4">
       <div class="lg:col-span-3 space-y-3" v-if="abierta && puede('gastronomia','crear')">
+        <!-- Fase 89: pedir por asiento. Lo que se pide con un asiento elegido queda marcado y al cobrar se separa solo. -->
+        <div v-if="comanda.tipo === 'mesa'" class="flex items-center gap-1 flex-wrap text-xs" data-e2e="asientos">
+          <span class="text-marca-muted mr-1">Pide:</span>
+          <button type="button" class="px-2.5 py-1 rounded-full border font-semibold" :class="asientoSel === null ? 'bg-marca-texto text-white border-marca-texto' : 'bg-white border-marca-borde text-marca-muted'" @click="asientoSel = null">La mesa</button>
+          <button v-for="n in asientos" :key="n" type="button" class="px-2.5 py-1 rounded-full border font-semibold" :class="asientoSel === n ? 'bg-carmin text-white border-carmin' : 'bg-white border-marca-borde text-marca-muted'" :data-asiento="n" @click="asientoSel = n">{{ n }}</button>
+          <button type="button" class="px-2 py-1 rounded-full border border-dashed border-marca-borde text-marca-muted" title="Un asiento más" @click="masAsientos++">+</button>
+        </div>
         <input v-model="q" class="input !py-3 text-base" placeholder="Buscar en la carta…" />
         <div class="flex gap-1.5 overflow-x-auto pb-1">
           <button @click="rubroSel = null" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border" :class="rubroSel === null ? 'bg-marca-texto text-white border-marca-texto' : 'bg-white border-marca-borde text-marca-muted'">Favoritos</button>
           <button v-for="r in rubros" :key="r.id" @click="rubroSel = r.id" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border" :class="rubroSel === r.id ? 'text-white border-transparent' : 'bg-white border-marca-borde text-marca-muted'" :style="rubroSel === r.id ? { background: r.color || '#4f3089' } : {}">{{ r.nombre }}</button>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 max-h-[58vh] overflow-y-auto pr-1">
-          <button v-for="p in visibles" :key="p.id" @click="pedir(p)" class="card !p-3 text-left hover:border-carmin/50 active:scale-[0.98] transition relative">
+          <button v-for="p in visibles" :key="p.id" @click="pedir(p)" :data-plato="p.id" class="card !p-3 text-left hover:border-carmin/50 active:scale-[0.98] transition relative">
             <span class="absolute top-2 right-2 w-2 h-2 rounded-full" :style="{ background: p.color || '#d6d1ca' }"></span>
             <p class="font-semibold text-sm leading-tight line-clamp-2 min-h-[2.4em]">{{ p.name }}</p>
             <p class="text-lg font-extrabold tabular-nums mt-1">{{ moneda(p.price, 0) }}</p><p v-if="p.hh" class="text-[10px] font-bold text-carmin">{{ p.hh }}</p>
@@ -42,12 +49,20 @@
             <p class="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-marca-muted">Pedido {{ ronda }}</p>
             <div v-for="it in comanda.items.filter(i => i.ronda === ronda)" :key="it.id" class="flex items-center gap-2 px-4 py-2 border-b border-marca-borde/60 text-sm" :class="it.estado === 'anulado' ? 'opacity-40 line-through' : ''">
               <span class="w-8 text-right font-bold tabular-nums">{{ cantidad(it.cantidad) }}×</span>
-              <div class="flex-1 min-w-0"><p class="font-medium">{{ it.descripcion }}</p><p v-if="it.notas" class="text-xs text-carmin">{{ it.notas }}</p><p v-if="it.pagado > 0" class="text-[11px] text-emerald-700">{{ it.pagado >= it.cantidad - 0.0005 ? 'pagado' : 'pagado ' + cantidad(it.pagado) }}</p></div>
-              <span class="badge" :class="{ pedido: 'bg-gris-light text-marca-muted', cocina: 'bg-amber-50 text-amber-700', listo: 'bg-emerald-50 text-emerald-700', entregado: 'bg-lavanda-light text-violeta', anulado: 'bg-carmin-light text-carmin' }[it.estado]">{{ { pedido: 'sin enviar', cocina: 'en cocina', listo: 'listo', entregado: 'entregado', anulado: 'anulado' }[it.estado] }}</span>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium leading-tight">{{ it.descripcion }}</p>
+                <p class="flex flex-wrap items-center gap-1 mt-0.5">
+                  <span v-if="it.asiento" class="badge bg-lavanda-light text-violeta !px-1.5 !py-0" :title="`Asiento ${it.asiento}`" :data-item-asiento="it.asiento">A{{ it.asiento }}</span>
+                  <span v-if="it.cortesia" class="badge bg-emerald-50 text-emerald-700 !px-1.5 !py-0" :title="it.cortesia_motivo" data-cortesia>Cortesía</span>
+                  <span class="badge !px-1.5 !py-0" :class="{ pedido: 'bg-gris-light text-marca-muted', cocina: 'bg-amber-50 text-amber-700', listo: 'bg-emerald-50 text-emerald-700', entregado: 'bg-lavanda-light text-violeta', anulado: 'bg-carmin-light text-carmin' }[it.estado]">{{ { pedido: 'sin enviar', cocina: 'en cocina', listo: 'listo', entregado: 'entregado', anulado: 'anulado' }[it.estado] }}</span>
+                </p>
+                <p v-if="it.notas" class="text-xs text-carmin">{{ it.notas }}</p><p v-if="it.pagado > 0" class="text-[11px] text-emerald-700">{{ it.pagado >= it.cantidad - 0.0005 ? 'pagado' : 'pagado ' + cantidad(it.pagado) }}</p>
+              </div>
               <span class="w-20 text-right tabular-nums">{{ moneda(it.cantidad * it.precio_unit, 0) }}</span>
               <template v-if="abierta && puede('gastronomia','crear')">
                 <Link v-if="it.estado === 'listo'" :href="`/gastronomia/items/${it.id}/estado`" method="post" :data="{ estado: 'entregado' }" as="button" preserve-scroll class="btn-ghost !px-2 text-xs text-emerald-700" title="Entregado">✓</Link>
                 <button v-if="it.estado === 'pedido'" @click="notaDe = it" class="btn-ghost !px-2 text-xs" title="Nota">✎</button>
+                <button v-if="!it.cortesia && it.pagado <= 0 && it.estado !== 'anulado' && puede('gastronomia','editar')" @click="cortesiaDe = it" class="btn-ghost !px-2 text-xs" title="Cortesía: invitación de la casa, consumo del personal o error de cocina" :data-cortesia-de="it.id">🎁</button>
                 <Link v-if="it.estado !== 'entregado' && it.estado !== 'anulado'" :href="`/gastronomia/comandas/${comanda.id}/items/${it.id}`" method="delete" as="button" preserve-scroll class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></Link>
               </template>
             </div>
@@ -85,11 +100,21 @@
       <template #pie><button class="btn-secondary" @click="moverAbierto = false">Cancelar</button><button class="btn-primary" :disabled="!mesaDestino" @click="router.post(`/gastronomia/comandas/${comanda.id}/mover`, { mesa_id: mesaDestino }, { onSuccess: () => (moverAbierto = false) })">Mover</button></template>
     </Modal>
 
+    <!-- Fase 89: cortesía -->
+    <Modal :abierto="!!cortesiaDe" :titulo="cortesiaDe ? `Cortesía: ${cortesiaDe.descripcion}` : ''" @cerrar="cortesiaDe = null">
+      <p class="text-sm text-marca-muted mb-3">El plato sale igual y descuenta su receta, pero no se cobra. Queda registrado como merma con su costo, por motivo y por mozo.</p>
+      <label class="label">Motivo</label>
+      <select v-model="cortesia.motivo" class="input"><option value="cortesia">Invitación de la casa</option><option value="consumo_personal">Consumo del personal</option><option value="error_cocina">Error de cocina (se rehízo)</option></select>
+      <label class="label mt-3">Nota</label><input v-model="cortesia.notas" class="input" placeholder="Cumpleaños, demora, cliente habitual…" />
+      <template #pie><button class="btn-secondary" @click="cortesiaDe = null">Cancelar</button><button class="btn-primary" :disabled="cortesia.processing" data-e2e="confirmar-cortesia" @click="cortesia.post(`/gastronomia/comandas/${comanda.id}/items/${cortesiaDe.id}/cortesia`, { preserveScroll: true, onSuccess: () => { cortesiaDe = null } })">Marcar cortesía</button></template>
+    </Modal>
+
     <!-- Cierre -->
     <Modal :abierto="cierreAbierto" :titulo="`Cerrar ${comanda.titulo}`" @cerrar="cierreAbierto = false">
       <div class="flex gap-1 mb-3 p-1 rounded-xl bg-marca-fondo text-xs font-semibold" data-e2e="modo-cobro">
         <button v-for="m in [['todo', comanda.pagos.length ? 'Lo que falta' : 'Todo junto'], ['items', 'Cada uno lo suyo'], ['iguales', 'Partes iguales']]" :key="m[0]" class="flex-1 py-1.5 rounded-lg" :class="modo === m[0] ? 'bg-white shadow text-marca-texto' : 'text-marca-muted'" @click="cambiarModo(m[0])">{{ m[1] }}</button>
       </div>
+      <div v-if="modo === 'items' && asientosConPendientes.length" class="mb-2 flex flex-wrap items-center gap-1 text-xs"><span class="text-marca-muted mr-1">Cobrar el asiento:</span><button v-for="n in asientosConPendientes" :key="n" type="button" class="px-2.5 py-1 rounded-full border border-marca-borde bg-white font-semibold hover:border-carmin" :data-cobrar-asiento="n" @click="cobrarAsiento(n)">{{ n }}</button></div>
       <div v-if="modo === 'items'" class="mb-3 max-h-48 overflow-y-auto border border-marca-borde rounded-xl">
         <div v-for="it in pendientes" :key="it.id" class="flex items-center gap-2 px-3 py-1.5 text-sm border-b border-marca-borde/60">
           <span class="flex-1 truncate">{{ it.descripcion }}</span><span class="text-xs text-marca-muted">de {{ cantidad(it.cantidad - it.pagado) }}</span>
@@ -135,7 +160,13 @@ const rondas = computed(() => [...new Set(props.comanda.items.map(i => i.ronda))
 const q = ref(''), rubroSel = ref(null)
 const norm = s => (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const visibles = computed(() => q.value.trim() ? props.productos.filter(p => norm(p.name).includes(norm(q.value))) : rubroSel.value ? props.productos.filter(p => p.rubro_id === rubroSel.value) : (props.productos.filter(p => p.favorito).length ? props.productos.filter(p => p.favorito) : props.productos.slice(0, 24)))
-function pedir(p) { if (p.modificadores?.length) { elegidos.value = {}; modDe.value = p; return } router.post(`/gastronomia/comandas/${props.comanda.id}/items`, { product_id: p.id, cantidad: 1 }, { preserveScroll: true, onSuccess: () => (q.value = '') }) }
+// Fase 89: asientos. Tantos como cubiertos (o los que ya tengan ítems), y se pueden agregar más.
+const asientoSel = ref(null), masAsientos = ref(0)
+const asientos = computed(() => { const n = Math.max(props.comanda.cubiertos || 0, ...props.comanda.items.map(i => i.asiento || 0), masAsientos.value); return Array.from({ length: n }, (_, i) => i + 1) })
+const asientosConPendientes = computed(() => [...new Set(pendientes.value.map(i => i.asiento).filter(Boolean))].sort((a, b) => a - b))
+function cobrarAsiento(n) { partes.value = Object.fromEntries(pendientes.value.filter(i => i.asiento === n).map(i => [i.id, Math.round((i.cantidad - i.pagado) * 1000) / 1000])); actualizarMonto() }
+const cortesiaDe = ref(null), cortesia = useForm({ motivo: 'cortesia', notas: '' })
+function pedir(p) { if (p.modificadores?.length) { elegidos.value = {}; modDe.value = p; return } router.post(`/gastronomia/comandas/${props.comanda.id}/items`, { product_id: p.id, cantidad: 1, asiento: asientoSel.value }, { preserveScroll: true, onSuccess: () => (q.value = '') }) }
 const notaDe = ref(null), nota = ref('')
 function guardarNota() { const it = notaDe.value; router.delete(`/gastronomia/comandas/${props.comanda.id}/items/${it.id}`, { preserveScroll: true, onSuccess: () => router.post(`/gastronomia/comandas/${props.comanda.id}/items`, { product_id: it.product_id, descripcion: it.descripcion, cantidad: it.cantidad, precio_unit: it.precio_unit, notas: nota.value }, { preserveScroll: true, onSuccess: () => { notaDe.value = null; nota.value = '' } }) }) }
 const moverAbierto = ref(false), mesaDestino = ref(null)
@@ -164,7 +195,7 @@ const modDe = ref(null), elegidos = ref({})
 const extraMods = computed(() => (modDe.value?.modificadores ?? []).reduce((a, g) => a + (elegidos.value[g.nombre] ?? []).reduce((b, n) => b + (Number(g.opciones.find(o => o.nombre === n)?.precio) || 0), 0), 0))
 const faltaObligatorio = computed(() => (modDe.value?.modificadores ?? []).some(g => g.obligatorio && !(elegidos.value[g.nombre] ?? []).length))
 function elegir(g, n) { const a = elegidos.value[g.nombre] ?? []; elegidos.value[g.nombre] = a.includes(n) ? a.filter(x => x !== n) : (g.multiple ? [...a, n] : [n]) }
-function confirmarMods() { const p = modDe.value; router.post(`/gastronomia/comandas/${props.comanda.id}/items`, { product_id: p.id, cantidad: 1, modificadores: elegidos.value }, { preserveScroll: true, onSuccess: () => { modDe.value = null; q.value = '' } }) }
+function confirmarMods() { const p = modDe.value; router.post(`/gastronomia/comandas/${props.comanda.id}/items`, { product_id: p.id, cantidad: 1, modificadores: elegidos.value, asiento: asientoSel.value }, { preserveScroll: true, onSuccess: () => { modDe.value = null; q.value = '' } }) }
 const pagado = computed(() => cierre.medios.reduce((a, m) => a + (Number(m.monto) || 0), 0))
 function abrirCierre() { cierre.descuento = props.comanda.descuento; cierre.propina = 0; modo.value = 'todo'; partes.value = {}; cierre.medios = [{ medio: 'efectivo', monto: totalCobrar.value }]; cierreAbierto.value = true }
 </script>

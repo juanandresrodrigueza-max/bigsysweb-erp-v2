@@ -34,7 +34,7 @@ class GastronomiaController extends Controller
             'mozo' => $c->mozo?->name, 'cubiertos' => $c->cubiertos, 'cliente' => $c->cliente, 'direccion' => $c->direccion, 'telefono' => $c->telefono, 'total' => (float) $c->total, 'descuento' => (float) $c->descuento, 'propina' => (float) $c->propina, 'notas' => $c->notas,
             'abierta' => $c->abierta_en?->format('H:i'), 'minutos' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0, 'comprobante_id' => $c->comprobante_id,
             'pagos' => $c->pagos ?? [], 'pendiente' => round($c->items->where('estado', '!=', 'anulado')->sum(fn($i) => ((float) $i->cantidad - (float) $i->pagado) * (float) $i->precio_unit), 2),
-            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'estacion' => $i->estacion, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
+            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'asiento' => $i->asiento, 'cortesia' => (bool) $i->cortesia, 'cortesia_motivo' => $i->cortesia_motivo, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'estacion' => $i->estacion, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
             'pendientes_envio' => $c->items->where('estado', 'pedido')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
         ];
     }
@@ -45,7 +45,7 @@ class GastronomiaController extends Controller
         $mesas = Mesa::with('comandaAbierta.items', 'comandaAbierta.mozo:id,name')->where('business_location_id', $user->current_location_id)->orderBy('sector')->orderBy('orden')->orderBy('nombre')->get();
         $hoy = Comanda::where('estado', 'cerrada')->whereDate('cerrada_en', today());
         return Inertia::render('Gastronomia/Mesas', [
-            'mesas' => $mesas->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'capacidad' => $m->capacidad, 'activa' => $m->activa, 'orden' => $m->orden,
+            'mesas' => $mesas->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'capacidad' => $m->capacidad, 'activa' => $m->activa, 'orden' => $m->orden, 'pos_x' => $m->pos_x !== null ? (float) $m->pos_x : null, 'pos_y' => $m->pos_y !== null ? (float) $m->pos_y : null, 'forma' => $m->forma ?: 'cuadrada',
                 'comanda' => $m->comandaAbierta ? ['id' => $m->comandaAbierta->id, 'llamado' => $m->comandaAbierta->llamado, 'llamado_min' => $m->comandaAbierta->llamado_en ? (int) $m->comandaAbierta->llamado_en->diffInMinutes(now()) : null, 'estado' => $m->comandaAbierta->estado, 'total' => (float) $m->comandaAbierta->total, 'minutos' => (int) $m->comandaAbierta->abierta_en->diffInMinutes(now()), 'mozo' => $m->comandaAbierta->mozo?->name, 'cubiertos' => $m->comandaAbierta->cubiertos, 'listos' => $m->comandaAbierta->items->where('estado', 'listo')->count(), 'sin_enviar' => $m->comandaAbierta->items->where('estado', 'pedido')->count()] : null]),
             'otras' => Comanda::abiertas()->whereNull('mesa_id')->with('items', 'mozo:id,name')->orderBy('abierta_en')->get()->map(fn($c) => $this->comandaArr($c)),
             'kpis' => ['abiertas' => Comanda::abiertas()->count(), 'ocupadas' => $mesas->filter(fn($m) => $m->comandaAbierta)->count(), 'mesas' => $mesas->where('activa', true)->count(), 'ventas_hoy' => (float) (clone $hoy)->sum('total'), 'cubiertos_hoy' => (int) (clone $hoy)->sum('cubiertos'), 'comandas_hoy' => (clone $hoy)->count(), 'propinas_hoy' => (float) (clone $hoy)->sum('propina'), 'en_cocina' => ComandaItem::where('estado', 'cocina')->whereHas('comanda', fn($q) => $q->abiertas())->count()],
@@ -55,10 +55,19 @@ class GastronomiaController extends Controller
 
     public function guardarMesa(Request $request, ?int $id = null)
     {
-        $d = $request->validate(['nombre' => 'required|string|max:30', 'sector' => 'nullable|string|max:40', 'capacidad' => 'nullable|integer|min:1|max:50', 'orden' => 'nullable|integer', 'activa' => 'boolean']);
+        $d = $request->validate(['nombre' => 'required|string|max:30', 'sector' => 'nullable|string|max:40', 'capacidad' => 'nullable|integer|min:1|max:50', 'orden' => 'nullable|integer', 'activa' => 'boolean', 'forma' => 'nullable|in:cuadrada,redonda,larga', 'pos_x' => 'nullable|numeric|min:0|max:100', 'pos_y' => 'nullable|numeric|min:0|max:100']);
         $m = $id ? Mesa::findOrFail($id) : new Mesa(['business_id' => $request->user()->business_id, 'business_location_id' => $request->user()->current_location_id]);
         $m->fill($d)->save();
         return back()->with('success', 'Mesa guardada.');
+    }
+
+    // Fase 89: el plano del salón: dónde queda cada mesa dentro de su sector (en % del ancho y del alto).
+    public function plano(Request $request)
+    {
+        $d = $request->validate(['mesas' => 'required|array', 'mesas.*.id' => 'required|integer', 'mesas.*.pos_x' => 'required|numeric|min:0|max:100', 'mesas.*.pos_y' => 'required|numeric|min:0|max:100']);
+        $mias = Mesa::whereIn('id', array_column($d['mesas'], 'id'))->get()->keyBy('id');
+        foreach ($d['mesas'] as $m) if (isset($mias[$m['id']])) $mias[$m['id']]->update(['pos_x' => round((float) $m['pos_x'], 2), 'pos_y' => round((float) $m['pos_y'], 2)]);
+        return back()->with('success', 'Plano guardado.');
     }
 
     public function eliminarMesa(int $id)
@@ -92,9 +101,18 @@ class GastronomiaController extends Controller
 
     public function agregar(Request $request, int $id, ComandaService $svc)
     {
-        $d = $request->validate(['product_id' => 'nullable|exists:products,id', 'descripcion' => 'nullable|string|max:150', 'cantidad' => 'nullable|numeric|min:0.001', 'precio_unit' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:150', 'modificadores' => 'nullable|array']);
+        $d = $request->validate(['product_id' => 'nullable|exists:products,id', 'descripcion' => 'nullable|string|max:150', 'cantidad' => 'nullable|numeric|min:0.001', 'precio_unit' => 'nullable|numeric|min:0', 'asiento' => 'nullable|integer|min:1|max:50', 'notas' => 'nullable|string|max:150', 'modificadores' => 'nullable|array']);
         $svc->agregar(Comanda::findOrFail($id), $d);
         return back();
+    }
+
+    // Fase 89: cortesía (invitación de la casa, consumo del personal, error de cocina): el ítem queda a $ 0 y la merma registra el costo.
+    public function cortesia(Request $request, int $id, int $item, ComandaService $svc)
+    {
+        $d = $request->validate(['motivo' => 'required|in:cortesia,consumo_personal,error_cocina', 'notas' => 'nullable|string|max:120']);
+        $c = Comanda::findOrFail($id);
+        $svc->cortesia($c->items()->findOrFail($item), $d['motivo'], $d['notas'] ?? null);
+        return back()->with('success', 'Marcado como cortesía.');
     }
 
     public function quitar(int $id, int $item, ComandaService $svc)

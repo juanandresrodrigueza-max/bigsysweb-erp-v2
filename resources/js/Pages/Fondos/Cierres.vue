@@ -2,7 +2,7 @@
   <AppLayout titulo="Cerrar caja">
     <PageHeader titulo="Cerrar caja" :principal="puede('fondos','crear') ? { label: 'Cerrar la caja de hoy', icono: 'wallet', href: '/fondos?cerrar=1', title: 'Va a la caja con turno abierto y abre el cierre' } : null"
       :secundaria="{ label: 'Controlar la planilla de caja', click: () => pl.abierto = true, e2e: 'abrir-planilla' }"
-      :mas="[{ label: 'Exportar CSV', href: `/fondos/cierres?export=1&desde=${filtros.desde}&hasta=${filtros.hasta}`, externo: true }]" compacto>
+      :mas="[{ label: cajaConfig.arqueo_ciego ? 'Arqueo ciego: activado' : 'Arqueo ciego: desactivado', icono: 'settings', title: 'Con arqueo ciego el cajero cuenta sin ver lo esperado; el encargado sí lo ve', click: () => router.post('/fondos/config', { arqueo_ciego: !cajaConfig.arqueo_ciego }, { preserveScroll: true }), cuando: puede('fondos','editar') }, { label: 'Exportar CSV', href: `/fondos/cierres?export=1&desde=${filtros.desde}&hasta=${filtros.hasta}`, externo: true }]" compacto>
       <template #subtitulo>Cada cierre de turno con lo esperado, lo contado y la diferencia. Quién tiene faltantes, en qué caja, y los turnos abiertos ahora.</template>
     </PageHeader>
     <div v-if="false" class="flex flex-wrap items-end justify-between gap-3 mb-4">
@@ -134,7 +134,7 @@ import { usePermisos } from '@/util/permisos'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 const { puede } = usePermisos()
-const props = defineProps({ turnos: Array, porCajero: Array, porCaja: Array, porDia: Array, abiertos: Array, filtros: Object, cajas: Array, cajeros: Array, cuentasDestino: Array, kpis: Object })
+const props = defineProps({ cajaConfig: { type: Object, default: () => ({}) }, turnos: Array, porCajero: Array, porCaja: Array, porDia: Array, abiertos: Array, filtros: Object, cajas: Array, cajeros: Array, cuentasDestino: Array, kpis: Object })
 const pl = reactive({ abierto: false, caja: props.cajas[0]?.id ?? null, r: null, error: null })
 async function subirPlanilla(f) { if (!f) return; pl.error = null; pl.r = null; const fd = new FormData(); fd.append('archivo', f); fd.append('cuenta_fondos_id', pl.caja); try { const { data } = await window.axios.post('/fondos/cierres/planilla', fd); pl.r = data } catch (e) { pl.error = e.response?.data?.errors?.archivo?.[0] ?? e.response?.data?.message ?? 'No se pudo leer la planilla.' } }
 const f = reactive({ ...props.filtros })

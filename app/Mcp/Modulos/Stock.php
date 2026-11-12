@@ -138,6 +138,22 @@ class Stock
                     app(StockService::class)->ajustar($p, Deposito::findOrFail($d['deposito_id']), $d['cantidad'], $d['motivo'] . ' (IA)');
                     return ['texto' => "Stock de {$p->name} ajustado a {$d['cantidad']}."];
                 }],
+            // Fase 89: "tiré dos kilos de tomate", "se rompieron tres botellas".
+            ['nombre' => 'registrar_merma', 'titulo' => 'Registrar una merma', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion',
+                'descripcion' => 'Registra una merma (lo que se tiró, se rompió, venció, salió como cortesía o consumo del personal): baja el stock y guarda el motivo y el costo.',
+                'parametros' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number'], 'motivo' => ['type' => 'string', 'description' => 'vencido, roto, tirado, error_cocina, cortesia, consumo_personal u otro'], 'notas' => ['type' => 'string'], 'deposito' => ['type' => 'string']],
+                'requeridos' => ['articulo', 'cantidad'],
+                'proponer' => function (User $u, array $a) {
+                    $p = Busca::articulo($a['articulo']); if (! $p) return ['error' => "No encuentro el artículo \"{$a['articulo']}\"."];
+                    $motivo = strtolower(trim((string) ($a['motivo'] ?? 'tirado'))); $motivo = array_key_exists($motivo, \App\Models\Merma::MOTIVOS) ? $motivo : (str_contains($motivo, 'venc') ? 'vencido' : (str_contains($motivo, 'rot') || str_contains($motivo, 'romp') ? 'roto' : (str_contains($motivo, 'cortes') || str_contains($motivo, 'invit') ? 'cortesia' : (str_contains($motivo, 'personal') || str_contains($motivo, 'empleado') ? 'consumo_personal' : 'tirado'))));
+                    $d = ! empty($a['deposito']) ? Deposito::where('nombre', \App\Support\Sql::like(), "%{$a['deposito']}%")->first() : Deposito::porDefecto($u->current_location_id);
+                    return ['titulo' => "Merma de {$a['cantidad']} {$p->unit} de {$p->name}", 'detalle' => \App\Models\Merma::MOTIVOS[$motivo] . ($d ? " · {$d->nombre}" : '') . (! empty($a['notas']) ? " · {$a['notas']}" : ''), 'datos' => ['id' => $p->id, 'deposito_id' => $d?->id, 'cantidad' => (float) $a['cantidad'], 'motivo' => $motivo, 'notas' => $a['notas'] ?? null]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $p = Product::findOrFail($d['id']);
+                    app(\App\Services\Stock\MermasService::class)->registrar($u, $p, (float) $d['cantidad'], $d['motivo'], $d['deposito_id'] ? Deposito::find($d['deposito_id']) : null, $d['notas'] ?? null);
+                    return ['texto' => "Merma registrada: {$d['cantidad']} {$p->unit} de {$p->name} (" . \App\Models\Merma::MOTIVOS[$d['motivo']] . ')'];
+                }],
             ['nombre' => 'bloquear_lote', 'titulo' => 'Bloquear un lote', 'modulo' => 'stock', 'permiso' => 'editar', 'tipo' => 'accion',
                 'descripcion' => 'Bloquea un lote para que no se venda (retiro, control de calidad) o lo vuelve a habilitar.',
                 'parametros' => ['articulo' => ['type' => 'string'], 'lote' => ['type' => 'string'], 'motivo' => ['type' => 'string'], 'desbloquear' => ['type' => 'boolean']],

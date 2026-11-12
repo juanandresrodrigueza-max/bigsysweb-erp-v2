@@ -40,6 +40,7 @@ class CierresController extends Controller
         $porDia = $turnos->groupBy(fn($t) => $t->cierre->toDateString())->map(fn($g, $d) => ['fecha' => Carbon::parse($d)->format('d/m'), 'diferencia' => round((float) $g->sum('diferencia'), 2), 'turnos' => $g->count()])->sortKeys()->values();
         $abiertos = TurnoCaja::with('user:id,name', 'cuenta:id,nombre')->whereNull('cierre')->get()->map(fn($t) => ['id' => $t->id, 'caja' => $t->cuenta?->nombre, 'cajero' => $t->user?->name, 'apertura' => $t->apertura->format('d/m H:i'), 'horas' => round($t->apertura->diffInMinutes(now()) / 60, 1), 'esperado' => (float) $t->cuenta?->fresh()->saldo, 'arqueos' => collect($t->arqueos ?? [])->map(fn($a) => $a)->all(), 'largo' => $t->apertura->lt(now()->subHours(14))]);
         return Inertia::render('Fondos/Cierres', [
+            'cajaConfig' => $request->user()->business->caja_config ?? [], // Fase 89
             'turnos' => $filas, 'porCajero' => $porCajero, 'porCaja' => $porCaja, 'porDia' => $porDia, 'abiertos' => $abiertos,
             'filtros' => ['desde' => $desde, 'hasta' => $hasta, 'caja' => $request->caja, 'cajero' => $request->cajero, 'solo_dif' => (bool) $request->solo_dif],
             'cajas' => CuentaFondos::where('tipo', 'caja')->orderBy('nombre')->get(['id', 'nombre']), 'cajeros' => User::where('business_id', $request->user()->business_id)->orderBy('name')->get(['id', 'name']),
