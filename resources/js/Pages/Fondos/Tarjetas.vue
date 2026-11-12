@@ -34,7 +34,7 @@
               <td class="text-right tabular-nums font-semibold">{{ moneda(c.monto) }}</td>
               <td><button v-if="c.estado === 'cartera' && puede('fondos','editar')" @click="rechazar(c)" class="text-xs text-marca-muted hover:text-carmin">Rechazado</button></td>
             </tr>
-            <tr v-if="!cupones.length"><td colspan="8" class="text-center text-marca-muted py-10">No hay cupones.</td></tr>
+            <tr v-if="!cupones.length"><td colspan="8" class="!py-0"><EstadoVacio texto="No hay cupones." /></td></tr>
           </tbody>
         </table>
       </div>
@@ -74,6 +74,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'

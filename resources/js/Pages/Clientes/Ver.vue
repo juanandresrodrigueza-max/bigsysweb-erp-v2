@@ -47,7 +47,7 @@
             <td class="text-right tabular-nums text-emerald-700">{{ m.haber ? moneda(m.haber) : '' }}</td>
             <td class="text-right tabular-nums font-semibold" :class="m.saldo > 0 ? 'text-carmin' : ''">{{ moneda(m.saldo) }}</td>
           </tr>
-          <tr v-if="!cc.length"><td colspan="6" class="text-center text-marca-muted py-10">Sin movimientos todavía.</td></tr>
+          <tr v-if="!cc.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin movimientos todavía." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -62,7 +62,7 @@
             <td class="tabular-nums" :class="p.vencido ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ p.fecha_vto }} <span v-if="p.vencido" class="badge bg-carmin-light text-carmin ml-1">Vencido</span></td>
             <td class="text-right tabular-nums">{{ moneda(p.total) }}</td><td class="text-right tabular-nums font-semibold text-carmin">{{ moneda(p.saldo) }}</td>
           </tr>
-          <tr v-if="!pendientes.length"><td colspan="5" class="text-center text-marca-muted py-10">No debe nada. 🙂</td></tr>
+          <tr v-if="!pendientes.length"><td colspan="5" class="!py-0"><EstadoVacio texto="No debe nada. 🙂" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -91,7 +91,7 @@
             <td class="text-right tabular-nums font-semibold">{{ moneda(k.total) }}</td><td class="text-right tabular-nums text-marca-muted">{{ k.a_cuenta ? moneda(k.a_cuenta) : '' }}</td>
             <td class="text-right whitespace-nowrap"><a :href="`/clientes/cobros/${k.id}/imprimir`" target="_blank" class="btn-ghost !px-2 text-xs">Recibo</a><button v-if="k.estado !== 'anulado' && k.a_cuenta > 0 && pendientes.length" @click="abrirAplicar(k)" class="btn-ghost !px-2 text-xs text-violeta font-semibold">Aplicar a facturas</button><button v-if="k.estado !== 'anulado'" @click="enviarDoc('Cobro', k.id)" class="btn-ghost !px-2 text-xs">Enviar</button><button v-if="k.estado !== 'anulado'" @click="anularCobro(k)" class="btn-ghost !px-2 text-xs text-carmin">Anular</button></td>
           </tr>
-          <tr v-if="!cobros.length"><td colspan="6" class="text-center text-marca-muted py-10">Sin cobros registrados.</td></tr>
+          <tr v-if="!cobros.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin cobros registrados." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -267,6 +267,7 @@ import { JURISDICCIONES } from '@/util/jurisdicciones'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import ClienteModal from '@/Components/ClienteModal.vue'

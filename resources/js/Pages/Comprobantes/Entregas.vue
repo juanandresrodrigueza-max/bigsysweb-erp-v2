@@ -18,7 +18,7 @@
             <td class="text-right tabular-nums">{{ o.entregados }} / {{ o.items }}</td>
             <td><span class="badge" :class="{ pendiente: 'bg-gris-light text-marca-muted', en_curso: 'bg-violeta-light text-violeta', entregada: 'bg-emerald-50 text-emerald-700', cancelada: 'bg-carmin-light text-carmin' }[o.estado]">{{ estados[o.estado] }}</span></td>
           </tr>
-          <tr v-if="!ordenes.length"><td colspan="5" class="text-center text-marca-muted py-10">No hay hojas de reparto.</td></tr>
+          <tr v-if="!ordenes.length"><td colspan="5" class="!py-0"><EstadoVacio texto="No hay hojas de reparto." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -45,6 +45,7 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'

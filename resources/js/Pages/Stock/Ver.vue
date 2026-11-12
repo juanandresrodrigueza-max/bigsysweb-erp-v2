@@ -74,7 +74,7 @@
                 <td class="text-right tabular-nums text-marca-muted">{{ cantidad(m.despues) }}</td>
                 <td class="text-xs text-marca-muted">{{ m.usuario }}</td>
               </tr>
-              <tr v-if="!movimientos.data.length"><td colspan="6" class="text-center text-marca-muted py-8">Sin movimientos.</td></tr>
+              <tr v-if="!movimientos.data.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin movimientos." /></td></tr>
             </tbody>
           </table>
         </div>
@@ -102,6 +102,7 @@
 import { ref, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import Paginacion from '@/Components/Paginacion.vue'

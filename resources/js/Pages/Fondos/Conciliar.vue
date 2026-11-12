@@ -27,7 +27,7 @@
               <td>{{ l.id }}</td><td>{{ l.origen }}</td><td>{{ l.fondo }}</td><td class="text-xs">{{ l.periodo }}</td>
               <td class="text-right tabular-nums">{{ moneda(l.resumen?.cerro ?? 0, 0) }}</td><td class="text-right tabular-nums" :class="l.resumen?.revisar_n ? 'text-amber-700 font-bold' : ''">{{ l.resumen?.revisar_n ?? 0 }}</td>
               <td><span class="badge" :class="{ propuesta: 'bg-violeta/10 text-violeta', asentada: 'bg-emerald-50 text-emerald-700', deshecha: 'bg-gris-light text-marca-muted' }[l.estado]">{{ l.estado }}</span></td></tr>
-              <tr v-if="!lotes.length"><td colspan="7" class="text-center text-marca-muted py-6">Todavía no subiste ninguna liquidación.</td></tr></tbody></table>
+              <tr v-if="!lotes.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no subiste ninguna liquidación." compacto /></td></tr></tbody></table>
         </div>
       </div>
 
@@ -52,6 +52,7 @@
 import { reactive, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ fondos: Array, origenes: Object, sin_lector: Array, bancos: Array, lotes: Array })
 const ff = reactive(props.fondos.map(f => ({ ...f, procesadoras: [...f.procesadoras] })))

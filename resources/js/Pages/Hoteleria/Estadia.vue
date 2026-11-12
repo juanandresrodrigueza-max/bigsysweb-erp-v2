@@ -30,7 +30,7 @@
             <thead><tr><th>Fecha</th><th>Detalle</th><th class="text-right">Cant.</th><th class="text-right">Precio</th><th class="text-right">Total</th><th></th></tr></thead>
             <tbody>
               <tr v-for="c in estadia.consumos" :key="c.id"><td class="tabular-nums text-xs">{{ c.fecha }}</td><td class="font-medium">{{ c.descripcion }}</td><td class="text-right tabular-nums">{{ cantidad(c.cantidad) }}</td><td class="text-right tabular-nums">{{ moneda(c.precio_unit) }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(c.total) }}</td><td class="text-right"><button v-if="estadia.estado === 'checkin'" class="btn-ghost !px-2 text-xs text-carmin" @click="router.post(`/hoteleria/estadias/${estadia.id}/consumos/${c.id}/borrar`, {}, { preserveScroll: true })">Quitar</button></td></tr>
-              <tr v-if="!estadia.consumos.length"><td colspan="6" class="text-center text-marca-muted py-5 text-xs">Sin consumos. Desayunos, minibar, lavandería, excursiones: todo va a la cuenta de la habitación.</td></tr>
+              <tr v-if="!estadia.consumos.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin consumos. Desayunos, minibar, lavandería, excursiones: todo va a la cuenta de la habitación." compacto /></td></tr>
               <tr v-if="estadia.estado === 'checkin'"><td colspan="6" class="!p-2">
                 <div class="grid grid-cols-[1fr_80px_110px_auto] gap-2 items-end">
                   <div><select v-model="cf.product_id" class="input !py-1 text-xs" @change="alElegirProducto"><option :value="null">Del catálogo…</option><option v-for="p in productos" :key="p.id" :value="p.id">{{ p.name }} · {{ moneda(p.precio, 0) }}</option></select><input v-model="cf.descripcion" class="input !py-1 text-xs mt-1" placeholder="o a mano: Desayuno x2, Lavandería…" /></div>
@@ -92,6 +92,7 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 const props = defineProps({ estadia: Object, estados: Object, productos: Array, habitaciones: Array, clientes: Array, cuentas: Array })

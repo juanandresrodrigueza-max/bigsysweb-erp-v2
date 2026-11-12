@@ -141,7 +141,7 @@
                 <td><span v-if="v.estado_cobro !== 'na'" class="badge" :class="estadoCobro[v.estado_cobro].clase">{{ estadoCobro[v.estado_cobro].label }}</span></td>
                 <td class="text-right font-semibold tabular-nums">{{ moneda(v.total) }}</td>
               </tr>
-              <tr v-if="!ultimas.length"><td colspan="5" class="text-center text-marca-muted py-6">Todavía no hay ventas.</td></tr>
+              <tr v-if="!ultimas.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Todavía no hay ventas." compacto /></td></tr>
             </tbody>
           </table>
         </div>
@@ -154,6 +154,7 @@
 import { computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import StatCard from '@/Components/StatCard.vue'
 import { estadoCobro, cantidad } from '@/util/formato'
 

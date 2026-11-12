@@ -98,7 +98,7 @@
         <p class="text-xs text-marca-muted">Interpretado ({{ interp.modo === 'ia' ? 'con IA' : 'modo básico' }}). Corregí lo que haga falta.</p>
         <table class="table text-sm"><thead><tr><th>Artículo</th><th class="w-24 text-right">Cant.</th><th class="w-8"></th></tr></thead>
           <tbody><tr v-for="(it, i) in cw.items" :key="i"><td>{{ it.descripcion }}</td><td><input v-model.number="it.cantidad" type="number" step="any" class="input !py-1 text-right" /></td><td><button class="text-marca-muted hover:text-carmin" @click="cw.items.splice(i, 1)">✕</button></td></tr>
-          <tr v-if="!cw.items.length"><td colspan="3" class="text-center text-marca-muted py-3">No se identificó ningún artículo. Cargalo a mano desde Comprobantes.</td></tr></tbody></table>
+          <tr v-if="!cw.items.length"><td colspan="3" class="!py-0"><EstadoVacio texto="No se identificó ningún artículo. Cargalo a mano desde Comprobantes." /></td></tr></tbody></table>
         <div class="grid sm:grid-cols-2 gap-2"><input v-model="cw.nombre" class="input" placeholder="Nombre del cliente" /><input v-model="cw.direccion" class="input" placeholder="Dirección de entrega" /><select v-model="cw.entrega" class="input"><option value="retiro">Retira</option><option value="envio">Envío</option></select><input v-model="cw.notas" class="input" placeholder="Notas" /></div>
         <div class="p-3 rounded-xl bg-lavanda-light text-sm"><p class="text-[11px] font-bold uppercase tracking-widest text-violeta mb-1">Respuesta sugerida</p><p>{{ interp.respuesta }}</p></div>
       </div>
@@ -138,6 +138,7 @@ function enviado(p) { const t = p.entrega === 'envio' ? window.prompt('Número d
 import { ref, reactive, watch, computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { useDictado } from '@/util/dictado'

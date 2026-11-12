@@ -45,7 +45,7 @@
             <td class="text-right tabular-nums">{{ p.controla ? moneda(p.valor, 0) : '' }}</td>
             <td class="text-right"><button v-if="puede('stock','editar')" @click.stop="abrirArticulo(p)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
-          <tr v-if="!lista.data.length"><td :colspan="9 + depositosActivos.length" class="text-center text-marca-muted py-10">No hay artículos con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td :colspan="9 + depositosActivos.length" class="!py-0"><EstadoVacio texto="Todavía no hay artículos. Cargalos de a uno o importá tu lista de precios." :filtros="f" :accion="puede('stock','crear') ? { label: 'Nuevo artículo', click: () => abrirArticulo() } : null" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -162,6 +162,7 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'

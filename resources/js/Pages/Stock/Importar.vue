@@ -100,7 +100,7 @@
                       <BuscadorSelect v-if="dec[r.fila] === '__otro'" :modelValue="null" :opciones="opcionesArticulos" placeholder="Buscar artículo…" class="mt-1" @update:modelValue="v => { if (v) dec[r.fila] = String(v) }" />
                     </td>
                   </tr>
-                  <tr v-if="!filasVista.length"><td colspan="5" class="text-center text-marca-muted py-5">Nada en esta vista.</td></tr>
+                  <tr v-if="!filasVista.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Nada en esta vista." compacto /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -145,6 +145,7 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda } from '@/util/formato'
 

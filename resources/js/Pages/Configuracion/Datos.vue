@@ -31,7 +31,7 @@
             <td class="text-xs"><span v-if="b.verificada === null" class="text-marca-muted">—</span><span v-else-if="b.verificada" class="text-emerald-700" title="Se abrió la copia y cada tabla cuadra con lo guardado">✓ se abre y cuadra{{ b.remoto ? ' · fuera del servidor' : '' }}</span><span v-else class="text-carmin" :title="b.problemas.join(' ')">✗ {{ b.problemas[0] }}</span></td><td>{{ b.usuario ?? 'Sistema' }}</td>
             <td class="text-right whitespace-nowrap"><a :href="`/configuracion/datos/backups/${b.id}`" class="btn-ghost !px-2 text-xs">Descargar</a><button class="btn-ghost !px-2 text-xs" @click="rest.backup_id = b.id; restAbierto = true">Restaurar</button><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.delete(`/configuracion/datos/backups/${b.id}`, { preserveScroll: true })">Borrar</button></td>
           </tr>
-          <tr v-if="!backups.length"><td colspan="8" class="text-center text-marca-muted py-6">Todavía no hay copias. Generá la primera ahora.</td></tr>
+          <tr v-if="!backups.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Todavía no hay copias. Generá la primera ahora." compacto /></td></tr>
         </tbody>
       </table>
     </div>
@@ -53,6 +53,7 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 defineProps({ backups: Array, backupAuto: Boolean, tablas: Array })
 const bk = useForm({})

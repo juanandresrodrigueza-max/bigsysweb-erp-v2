@@ -15,7 +15,7 @@
             <thead><tr><th>Cuenta</th><th class="text-right">Saldo USD</th><th class="text-right">Última valuación</th><th class="text-right">Valuación hoy</th><th class="text-right">Dif. pendiente</th></tr></thead>
             <tbody>
               <tr v-for="c in posicion.cuentas" :key="c.id"><td class="font-medium">{{ c.nombre }}<span class="text-xs text-marca-muted"> · {{ c.tipo }}</span></td><td class="text-right tabular-nums font-bold">USD {{ n(c.saldo_usd) }}</td><td class="text-right tabular-nums text-marca-muted">{{ c.cotizacion_cierre ? moneda(c.cotizacion_cierre) : 'nunca' }}</td><td class="text-right tabular-nums">{{ moneda(c.valuacion, 0) }}</td><td class="text-right tabular-nums" :class="c.dif_pendiente > 0 ? 'text-emerald-700' : c.dif_pendiente < 0 ? 'text-carmin' : 'text-marca-muted'">{{ moneda(c.dif_pendiente, 0) }}</td></tr>
-              <tr v-if="!posicion.cuentas.length"><td colspan="5" class="text-center text-marca-muted py-6">No tenés cuentas en dólares. Creá una en Fondos con moneda USD (caja fuerte, cuenta bancaria en USD).</td></tr>
+              <tr v-if="!posicion.cuentas.length"><td colspan="5" class="!py-0"><EstadoVacio texto="No tenés cuentas en dólares. Creá una en Fondos con moneda USD (caja fuerte, cuenta bancaria en USD)." compacto /></td></tr>
             </tbody>
           </table>
         </div>
@@ -67,6 +67,7 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 const props = defineProps({ cotizaciones: Object, posicion: Object })

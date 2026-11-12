@@ -9,7 +9,7 @@
         <table class="table text-sm"><thead><tr><th>Cliente</th><th>{{ config.equipo }}</th><th>Le toca</th><th></th></tr></thead>
           <tbody><tr v-for="x in lista" :key="x.ot_id"><td>{{ x.cliente }}</td><td>{{ x.equipo }} <span class="text-xs text-marca-muted">{{ x.serie }}</span></td><td class="text-xs"><p v-for="m in x.motivos" :key="m">{{ m }}</p></td>
             <td class="whitespace-nowrap text-right"><a v-if="x.whatsapp" :href="x.whatsapp" target="_blank" class="btn-secondary !py-1 text-xs" @click="router.post(`/servicios/${x.ot_id}/recordado`, {}, { preserveScroll: true })">WhatsApp</a><span v-if="x.recordado" class="block text-[10px] text-emerald-700">avisado {{ x.recordado }}</span></td></tr>
-            <tr v-if="!lista.length"><td colspan="4" class="text-center text-marca-muted py-8">A nadie le toca en estos días.</td></tr></tbody></table>
+            <tr v-if="!lista.length"><td colspan="4" class="!py-0"><EstadoVacio texto="A nadie le toca en estos días." /></td></tr></tbody></table>
       </div>
       <div class="card self-start" data-e2e="piezas"><h2 class="font-bold mb-1">Alertas por pieza</h2><p class="text-xs text-marca-muted mb-2">Cada cuánto {{ (config.medidor || 'uso').toLowerCase() }} se cambia (la correa cada 60.000). Se mira la última vez que se cambió en cada {{ config.equipo.toLowerCase() }}.</p>
         <div v-for="(p, i) in pz" :key="i" class="flex gap-2 mb-1"><input v-model="p.nombre" class="input !py-1" placeholder="Pieza" /><input v-model.number="p.cada" type="number" class="input !py-1 !w-28" placeholder="Cada" /><button class="text-carmin text-xs" @click="pz.splice(i, 1)">✕</button></div>
@@ -22,6 +22,7 @@
 import { reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ lista: Array, dias: Number, piezas: Array, config: Object })
 const pz = reactive(props.piezas.map(p => ({ ...p })))
 </script>

@@ -81,7 +81,7 @@
       <p class="px-4 py-3 text-xs text-marca-muted border-b border-marca-borde">Artículos marcados "Pesable" en su ficha. El PLU es el número que se carga en la balanza: la etiqueta que imprime (código que empieza con el prefijo de Configuración → Empresa → Punto de venta) trae ese PLU y el peso o el importe, y la caja y la factura lo leen solos.</p>
       <table class="table text-sm"><thead><tr><th>PLU</th><th>Artículo</th><th class="text-right">Precio lista 1</th><th>Unidad</th><th class="text-right">Vence</th></tr></thead><tbody>
         <tr v-for="p in pesables" :key="p.id"><td class="font-mono font-bold">{{ p.plu || '—' }}</td><td><Link :href="`/stock/${p.id}`" class="hover:text-carmin">{{ p.name }}</Link></td><td class="text-right tabular-nums">{{ moneda(p.price) }}</td><td>{{ p.unit }}</td><td class="text-right text-xs">{{ p.dias_vencimiento ? p.dias_vencimiento + ' días' : '—' }}</td></tr>
-        <tr v-if="!pesables.length"><td colspan="5" class="text-center text-marca-muted py-8">Ningún artículo marcado como pesable.</td></tr>
+        <tr v-if="!pesables.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Ningún artículo marcado como pesable." /></td></tr>
       </tbody></table>
     </div>
   </AppLayout>
@@ -91,6 +91,7 @@
 import { ref, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda, cantidad } from '@/util/formato'
 
 const props = defineProps({ plantillas: Array, operaciones: Array, productos: Array, pesables: Array, depositos: Array })

@@ -33,7 +33,7 @@
                 <td class="text-right tabular-nums">{{ cantidad(p.cantidad) }} {{ p.unidad }}</td><td class="text-right tabular-nums">{{ moneda(p.costo_unit) }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(p.total) }}</td>
                 <td class="text-right"><button class="btn-ghost !px-2 text-xs text-carmin" @click="router.post(`/obras/${obra.id}/partes/${p.id}/borrar`, {}, { preserveScroll: true })">Quitar</button></td>
               </tr>
-              <tr v-if="!partes.length"><td colspan="7" class="text-center text-marca-muted py-6">Todavía no hay partes. Cargá materiales, horas y gastos a medida que avanza la obra.</td></tr>
+              <tr v-if="!partes.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no hay partes. Cargá materiales, horas y gastos a medida que avanza la obra." compacto /></td></tr>
             </tbody>
           </table>
         </div>
@@ -96,6 +96,7 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import ObraModal from '@/Pages/Obras/ObraModal.vue'
 import { moneda, cantidad, hoyISO } from '@/util/formato'

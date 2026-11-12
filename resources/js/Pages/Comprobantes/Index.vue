@@ -52,7 +52,7 @@
             </td>
             <td class="text-right"><a :href="`/comprobantes/${c.id}/imprimir`" target="_blank" @click.stop class="btn-ghost !px-2 text-xs" title="Imprimir">PDF</a></td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="8" class="text-center text-marca-muted py-10">No hay comprobantes con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Todavía no hay comprobantes. La primera venta se hace desde Vender o con Nueva factura." :filtros="f" :accion="puede('comprobantes','crear') ? { label: 'Nueva factura', href: '/comprobantes/nuevo' } : null" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -64,6 +64,7 @@
 import { reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Paginacion from '@/Components/Paginacion.vue'

@@ -40,7 +40,7 @@
               </template>
             </td>
           </tr>
-          <tr v-if="!lista.length"><td colspan="6" class="text-center text-marca-muted py-10">No hay cheques con este filtro.</td></tr>
+          <tr v-if="!lista.length"><td colspan="6" class="!py-0"><EstadoVacio texto="No hay cheques con este filtro." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -58,6 +58,7 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'

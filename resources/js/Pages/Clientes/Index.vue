@@ -24,7 +24,7 @@
             <td class="text-right tabular-nums font-semibold" :class="c.balance > 0 ? 'text-carmin' : c.balance < 0 ? 'text-emerald-700' : 'text-marca-muted'">{{ moneda(c.balance) }}<p v-if="c.credit_limit > 0" class="text-[10px] font-normal text-marca-muted">límite {{ moneda(c.credit_limit, 0) }}</p></td>
             <td class="text-right"><button @click.stop="editar(c)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="6" class="text-center text-marca-muted py-10">No hay clientes con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Todavía no hay clientes." :filtros="f" :accion="{ label: 'Nuevo cliente', click: () => editar(null) }" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -60,6 +60,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'

@@ -27,7 +27,7 @@
             <td class="text-right tabular-nums" :class="o.desvio > 0 ? 'text-carmin font-semibold' : ''">{{ moneda(o.costo_real, 0) }}</td><td class="text-right tabular-nums">{{ moneda(o.facturado, 0) }}</td>
             <td class="text-right tabular-nums font-bold" :class="o.margen_proyectado < 0 ? 'text-carmin' : 'text-emerald-700'">{{ moneda(o.margen_proyectado, 0) }}</td>
           </tr>
-          <tr v-if="!obras.length"><td colspan="9" class="text-center text-marca-muted py-8">Sin obras. Creá la primera con el botón de arriba.</td></tr>
+          <tr v-if="!obras.length"><td colspan="9" class="!py-0"><EstadoVacio texto="Sin obras. Creá la primera con el botón de arriba." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -39,6 +39,7 @@
 import { ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import ObraModal from '@/Pages/Obras/ObraModal.vue'
 import { moneda } from '@/util/formato'
 defineProps({ obras: Array, estados: Object, filtros: Object, clientes: Array, usuarios: Array, kpis: Object })

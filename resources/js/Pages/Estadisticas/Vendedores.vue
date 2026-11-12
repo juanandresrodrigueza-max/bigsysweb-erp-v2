@@ -17,7 +17,7 @@
         <div class="overflow-x-auto"><table class="table text-sm"><thead><tr><th>#</th><th>Vendedor</th><th class="text-right">Vendido</th><th class="text-right">Comp.</th><th class="text-right">Ticket</th><th class="text-right">Clientes</th><th>Objetivo del mes</th></tr></thead>
           <tbody><tr v-for="(v, i) in ranking" :key="v.id"><td class="text-marca-muted">{{ i + 1 }}</td><td class="font-semibold">{{ v.nombre }}<span v-if="v.modo === 'calle'" class="badge bg-sky-50 text-sky-700 ml-1">calle</span></td><td class="text-right tabular-nums font-bold">{{ moneda(v.total, 0) }}<span v-if="v.devoluciones" class="block text-[10px] text-carmin">−{{ moneda(v.devoluciones, 0) }} devuelto</span></td><td class="text-right tabular-nums">{{ v.comprobantes }}</td><td class="text-right tabular-nums">{{ moneda(v.ticket, 0) }}</td><td class="text-right tabular-nums">{{ v.clientes }}</td>
             <td><div v-if="v.objetivo" class="min-w-[9rem]"><div class="flex justify-between text-[11px]"><span class="tabular-nums">{{ v.objetivo.pct }}%</span><span :class="v.objetivo.ritmo === 'adelantado' ? 'text-emerald-700' : 'text-carmin'">{{ v.objetivo.ritmo }}</span></div><div class="h-1.5 rounded-full bg-marca-fondo overflow-hidden"><div class="h-full bg-marca-grad" :style="{ width: Math.min(100, v.objetivo.pct) + '%' }"></div></div></div><span v-else class="text-xs text-marca-muted">sin objetivo</span></td></tr>
-          <tr v-if="!ranking.length"><td colspan="7" class="text-center text-marca-muted py-8">Sin vendedores activos.</td></tr></tbody></table></div>
+          <tr v-if="!ranking.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin vendedores activos." /></td></tr></tbody></table></div>
       </div>
       <div class="card">
         <h2 class="font-bold mb-2">Cómo viene la venta</h2>
@@ -71,6 +71,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import EmbudoCrm from '@/Components/EmbudoCrm.vue'
 import { moneda } from '@/util/formato'

@@ -19,7 +19,7 @@
             <td class="text-right tabular-nums">{{ m.debe ? moneda(m.debe) : '' }}</td><td class="text-right tabular-nums">{{ m.haber ? moneda(m.haber) : '' }}</td>
             <td class="text-right tabular-nums font-semibold" :class="m.saldo < 0 ? 'text-carmin' : ''">{{ moneda(m.saldo) }}</td>
           </tr>
-          <tr v-if="!movimientos.length"><td colspan="6" class="text-center text-marca-muted py-8">Sin movimientos en el período.</td></tr>
+          <tr v-if="!movimientos.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin movimientos en el período." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -27,6 +27,7 @@
 </template>
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 defineProps({ cuentas: Array, cuentaId: Number, cuenta: Object, periodo: Object, inicial: Number, movimientos: Array, final: Number, deudora: Boolean })

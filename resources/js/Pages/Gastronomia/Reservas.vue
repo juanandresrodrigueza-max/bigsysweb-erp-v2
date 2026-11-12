@@ -20,7 +20,7 @@
               <td><span class="badge" :class="{ 'bg-amber-50 text-amber-700': r.estado === 'pending', 'bg-emerald-50 text-emerald-700': r.estado === 'confirmed', 'bg-gris-light text-marca-muted': ['cancelled', 'completed'].includes(r.estado), 'bg-red-50 text-carmin': r.estado === 'no_show' }">{{ { pending: 'Pendiente', confirmed: 'Confirmada', cancelled: 'Cancelada', completed: 'Vino', no_show: 'No vino' }[r.estado] }}</span></td>
               <td class="text-right whitespace-nowrap"><button v-if="r.estado === 'pending'" class="btn-ghost !px-2 text-xs" @click="estado(r, 'confirmed')">Confirmar</button><button v-if="['pending', 'confirmed'].includes(r.estado)" class="btn-ghost !px-2 text-xs" @click="estado(r, 'completed')">Vino</button><button v-if="['pending', 'confirmed'].includes(r.estado)" class="btn-ghost !px-2 text-xs text-carmin" @click="estado(r, 'cancelled')">Cancelar</button></td>
             </tr>
-            <tr v-if="!reservas.length"><td colspan="7" class="text-center text-marca-muted py-8">Sin reservas en el período.</td></tr>
+            <tr v-if="!reservas.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin reservas en el período." /></td></tr>
           </tbody>
         </table>
       </div>
@@ -49,6 +49,7 @@ import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import QRCode from 'qrcode'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { hoyISO } from '@/util/formato'

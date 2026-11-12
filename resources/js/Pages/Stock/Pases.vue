@@ -36,7 +36,7 @@
         <table class="table text-sm"><thead><tr><th>Número</th><th>De → a</th><th>Estado</th></tr></thead>
           <tbody><tr v-for="p in pases" :key="p.id" class="cursor-pointer hover:bg-gris-light" @click="router.visit(`/stock/pases/${p.id}`)"><td class="font-semibold">{{ p.numero }}<span class="block text-xs text-marca-muted">{{ p.fecha }}</span></td><td>{{ p.tipo === 'pedido' ? p.destino + ' pide a ' + p.origen : p.tipo === 'proveedor' ? p.origen + ' → ' + p.proveedor : p.origen + ' → ' + p.destino }}</td>
             <td><span class="badge" :class="{ en_viaje: 'bg-violeta/10 text-violeta', pedido: 'bg-amber-50 text-amber-700', en_proveedor: 'bg-amber-50 text-amber-700', recibida: 'bg-emerald-50 text-emerald-700', vuelto: 'bg-emerald-50 text-emerald-700', armado: 'bg-emerald-50 text-emerald-700', con_diferencias: 'bg-carmin-light text-carmin' }[p.estado] ?? 'bg-gris-light'">{{ p.estado_label }}</span></td></tr>
-            <tr v-if="!pases.length"><td colspan="3" class="text-center text-marca-muted py-6">No hay nada con esos filtros.</td></tr></tbody></table>
+            <tr v-if="!pases.length"><td colspan="3" class="!py-0"><EstadoVacio texto="No hay nada con esos filtros." compacto /></td></tr></tbody></table>
       </div>
     </div>
   </AppLayout>
@@ -45,6 +45,7 @@
 import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ pases: Array, depositos: Array, proveedores: { type: Array, default: () => [] }, estados: Object, filtros: Object, pedido: Object })
 const modos = { pase: 'Pase', pedido: 'Pedir al depósito', proveedor: 'A proveedor' }
 const modo = ref('pase')

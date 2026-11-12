@@ -45,7 +45,7 @@
             <td class="text-xs text-marca-muted"><Link v-for="(id, k) in e.asientos" v-show="k !== 'resultado'" :key="k" :href="`/contable/asientos?buscar=${id}`" class="mr-2 underline">{{ k }}</Link></td>
             <td class="text-right"><button v-if="e.estado === 'cerrado'" class="btn-ghost !px-2 text-xs" @click="router.post(`/contable/ejercicio/${e.id}/reabrir`, {}, { preserveScroll: true })">Reabrir</button></td>
           </tr>
-          <tr v-if="!ejercicios.length"><td colspan="6" class="text-center text-marca-muted py-6">Todavía no cerraste ningún ejercicio.</td></tr>
+          <tr v-if="!ejercicios.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Todavía no cerraste ningún ejercicio." compacto /></td></tr>
         </tbody>
       </table>
     </div>
@@ -61,6 +61,7 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ actual: Object, cierreMes: Number, ejercicios: Array, ipcCierre: Number, periodoCierre: String, ajustes: Array, ajusteDefault: String })

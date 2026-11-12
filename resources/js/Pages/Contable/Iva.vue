@@ -24,7 +24,7 @@
             <td class="tabular-nums whitespace-nowrap">{{ f.fecha }}</td><td class="whitespace-nowrap font-medium">{{ f.tipo }} <span class="tabular-nums">{{ f.numero }}</span></td><td>{{ f.contacto }}</td><td class="tabular-nums">{{ f.cuit }}</td><td class="text-marca-muted">{{ f.condicion.replace('Responsable Inscripto', 'RI').replace('Consumidor Final', 'CF').replace('Monotributista', 'Mono') }}</td>
             <td class="text-right tabular-nums">{{ moneda(f.neto) }}</td><td class="text-right tabular-nums">{{ f.iva_21 ? moneda(f.iva_21) : '' }}</td><td class="text-right tabular-nums">{{ f.iva_105 ? moneda(f.iva_105) : '' }}</td><td class="text-right tabular-nums">{{ f.percepciones ? moneda(f.percepciones) : '' }}</td><td class="text-right tabular-nums">{{ f.exento ? moneda(f.exento) : '' }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(f.total) }}</td>
           </tr>
-          <tr v-if="!filas.length"><td colspan="11" class="text-center text-marca-muted py-8">Sin comprobantes en el período.</td></tr>
+          <tr v-if="!filas.length"><td colspan="11" class="!py-0"><EstadoVacio texto="Sin comprobantes en el período." /></td></tr>
         </tbody>
         <tfoot v-if="filas.length"><tr class="font-bold bg-marca-fondo"><td colspan="5">Totales</td><td class="text-right tabular-nums">{{ moneda(totales.neto) }}</td><td class="text-right tabular-nums">{{ moneda(totales.iva_21) }}</td><td class="text-right tabular-nums">{{ moneda(totales.iva_105) }}</td><td class="text-right tabular-nums">{{ moneda(totales.percepciones) }}</td><td class="text-right tabular-nums">{{ moneda(totales.exento) }}</td><td class="text-right tabular-nums">{{ moneda(totales.total) }}</td></tr></tfoot>
       </table>
@@ -34,6 +34,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 defineProps({ libro: String, periodo: Object, filas: Array, totales: Object })

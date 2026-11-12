@@ -99,7 +99,7 @@
             <tr><td class="tabular-nums">{{ h.fecha }}</td><td>{{ h.entidad }}</td><td class="text-marca-muted">{{ h.archivo }}</td><td class="text-right tabular-nums">{{ h.leidas }}</td><td class="text-right tabular-nums text-emerald-700">{{ h.creadas }}</td><td class="text-right tabular-nums">{{ h.actualizadas }}</td><td class="text-right tabular-nums" :class="h.errores ? 'text-carmin font-bold' : ''">{{ h.errores }}</td><td>{{ h.usuario }}</td></tr>
             <tr v-if="h.detalle?.length"><td colspan="8" class="text-xs" :class="h.errores ? 'text-carmin bg-red-50/40' : 'text-marca-muted bg-marca-fondo'"><span v-for="(d, i) in h.detalle.slice(0, 10)" :key="i" class="block">{{ d }}</span></td></tr>
           </template>
-          <tr v-if="!historial.length"><td colspan="8" class="text-center text-marca-muted py-6">Todavía no importaste nada.</td></tr>
+          <tr v-if="!historial.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Todavía no importaste nada." compacto /></td></tr>
         </tbody>
       </table>
     </div>
@@ -110,6 +110,7 @@
 import { computed, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { hoyISO } from '@/util/formato'
 const props = defineProps({ entidades: Array, historial: Array, bigconnect: Object, migracion: Object })
 // Fase 41: migrar desde BIG Connect (primero la prueba, después la de verdad).

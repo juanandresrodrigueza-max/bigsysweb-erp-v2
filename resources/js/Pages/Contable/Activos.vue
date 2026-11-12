@@ -29,7 +29,7 @@
             <td class="text-right tabular-nums font-semibold">{{ moneda(a.residual_contable, 0) }}</td>
             <td class="text-right whitespace-nowrap"><button class="btn-ghost !px-2 text-xs" @click="abrir(a)">Editar</button><button v-if="a.estado === 'activo'" class="btn-ghost !px-2 text-xs text-carmin" @click="baja = { id: a.id, nombre: a.nombre, residual: a.residual_contable, fecha: hoyISO(), valor_venta: 0, motivo: '' }">Baja / venta</button></td>
           </tr>
-          <tr v-if="!activos.length"><td colspan="9" class="text-center text-marca-muted py-8">Sin bienes en este estado.</td></tr>
+          <tr v-if="!activos.length"><td colspan="9" class="!py-0"><EstadoVacio texto="Sin bienes en este estado." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -68,6 +68,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 const props = defineProps({ activos: Array, categorias: Object, estados: Object, filtros: Object, resumen: Object, periodo: String, proveedores: Array })

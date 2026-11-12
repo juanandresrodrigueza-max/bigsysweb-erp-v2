@@ -12,7 +12,7 @@
         <tbody><tr v-for="h in historial" :key="h.tipo + h.id"><td>{{ h.empleado }}<span v-if="h.tipo === 'externo'" class="badge bg-gris-light !text-[10px] ml-1">PDF externo</span></td><td>{{ h.periodo }}</td><td class="text-xs">{{ h.enviado ?? '—' }}</td><td class="text-xs">{{ h.visto ?? '—' }}</td>
           <td class="text-xs"><span v-if="h.firmado" :class="h.conformidad === 'disconforme' ? 'text-carmin font-semibold' : 'text-emerald-700'">{{ h.firmado }}<span v-if="h.conformidad === 'disconforme'"> · disconforme: {{ h.observacion }}</span></span><span v-else class="text-marca-muted">falta</span></td><td class="text-xs tabular-nums">{{ h.ip }}</td>
           <td><button v-if="!h.firmado && h.empleado !== '— sin asignar —'" class="text-xs text-violeta font-semibold" @click="router.post(`/sueldos/enviar/${h.tipo}/${h.id}`, {}, { preserveScroll: true })">{{ h.enviado ? 'Reenviar' : 'Enviar' }}</button></td></tr>
-          <tr v-if="!historial.length"><td colspan="7" class="text-center text-marca-muted py-8">Todavía no hay recibos.</td></tr></tbody></table>
+          <tr v-if="!historial.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no hay recibos." /></td></tr></tbody></table>
     </div>
 
     <div v-if="tab === 'externos'" class="space-y-3" data-e2e="externos">
@@ -25,7 +25,7 @@
             <select v-else class="input !py-1 text-xs" @change="router.post(`/sueldos/externos/${r.id}/asignar`, { empleado_id: $event.target.value }, { preserveScroll: true })" data-e2e="asignar"><option value="">¿De quién es?</option><option v-for="e in empleados" :key="e.id" :value="e.id">{{ e.nombre }} · {{ e.cuil ?? 'leg. ' + e.legajo }}</option></select></td>
           <td class="text-xs">{{ r.periodo ?? '—' }}</td><td class="text-xs">{{ r.firmado ? 'firmado ' + r.firmado : r.enviado ? 'enviado ' + r.enviado : '' }}</td>
           <td class="whitespace-nowrap"><a :href="r.url" target="_blank" class="text-xs text-violeta">ver</a><button v-if="r.empleado_id && !r.firmado" class="text-xs text-violeta font-semibold ml-2" @click="router.post(`/sueldos/enviar/externo/${r.id}`, {}, { preserveScroll: true })">enviar</button></td></tr>
-          <tr v-if="!externos.length"><td colspan="5" class="text-center text-marca-muted py-6">No subiste recibos externos.</td></tr></tbody></table></div>
+          <tr v-if="!externos.length"><td colspan="5" class="!py-0"><EstadoVacio texto="No subiste recibos externos." compacto /></td></tr></tbody></table></div>
     </div>
 
     <div v-if="tab === 'periodo'" class="grid lg:grid-cols-2 gap-4" data-e2e="periodo">
@@ -49,6 +49,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ historial: Array, periodo: String, externos: Array, empleados: Array, costo: Object, firma_empleador: Object })
 const tab = ref('firmas')
