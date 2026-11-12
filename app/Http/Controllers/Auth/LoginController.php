@@ -55,7 +55,8 @@ class LoginController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
         AuditLog::registrar('login', $user, 'Inicio de sesión');
 
-        return redirect()->intended($user->is_superadmin && ! $user->business_id ? '/admin' : ($user->empresas()->count() > 0 ? '/contador/empresas' : '/dashboard'));
+        if ($user->is_superadmin) app(\App\Services\Suscripciones\EmpresaBigSysService::class)->sumar($user); // Fase 87
+        return redirect()->intended($user->is_superadmin ? '/admin' : ($user->empresas()->count() > 0 ? '/contador/empresas' : '/dashboard'));
     }
 
     public function verificar(Request $request)
@@ -80,7 +81,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
         AuditLog::registrar('login', $user, 'Inicio de sesión (dos pasos)');
-        return redirect()->intended($user->is_superadmin && ! $user->business_id ? '/admin' : '/dashboard');
+        return redirect()->intended($user->is_superadmin ? '/admin' : '/dashboard');
     }
 
     public function destroy(Request $request)

@@ -20,6 +20,12 @@ Esta guía es para el equipo que opera BigSysWeb como servicio (el superadmin), 
 
 Desde la ficha de la empresa, **Entrar como dueño** para dar soporte. Todo lo que se haga queda auditado y marcado como hecho por el superadmin.
 
+## La empresa de BigSys en el ERP (Fase 87)
+
+Como en el CRM, los superadmins tienen **su propia empresa** dentro del ERP para la gestión de BigSys: facturar a los clientes, cobrar, la plata, la contabilidad. Se define una vez en **Sistema → La empresa de BigSys en el ERP**: se crea nueva ("BigSysWeb", con todo activado y suscripción de cortesía) o se usa una que ya existe. Desde ese momento todos los superadmins, los de ahora y los que se creen después, entran a esa empresa como dueños.
+
+Para saltar: en el panel, el botón con el nombre de la empresa (arriba a la derecha) la abre; adentro de la empresa, el botón **Panel** del encabezado vuelve al panel de control. No es el modo soporte: no hay cartel de "estás dentro de…", no cambia el usuario y nada queda marcado como hecho por soporte. El modo soporte (**Entrar como dueño** desde la ficha de otra empresa) sigue igual y al volver te deja en el panel con tu empresa.
+
 ## Sistema
 
 - Días de prueba y gracia, avisos.

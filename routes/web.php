@@ -132,6 +132,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
     Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
     Route::post('/sistema/probar-ia',                 [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarIa']);
+    Route::post('/sistema/empresa-bigsys',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'empresaBigsys']); // Fase 87
     Route::get('/soporte',                            [\App\Http\Controllers\SoporteController::class, 'admin']);
     Route::post('/soporte/{id}/responder',            [\App\Http\Controllers\SoporteController::class, 'adminResponder']);
     Route::post('/sistema/revisar',                   [\App\Http\Controllers\Superadmin\SistemaController::class, 'revisarAhora']);
@@ -140,7 +141,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
 });
 
 Route::middleware(['auth', 'suscripcion'])->group(function () {
-    Route::get('/', fn() => redirect(request()->user()?->is_superadmin && ! request()->user()->business_id ? '/admin' : '/dashboard'));
+    Route::get('/', fn() => redirect(request()->user()?->is_superadmin ? '/admin' : '/dashboard')); // Fase 87: el superadmin entra por el panel y salta a su empresa desde ahí
     Route::get('/mis-repartos', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'misRepartos']); // Fase 43.2: el chofer
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permiso:dashboard')->name('dashboard');
     Route::get('/integraciones/crm/ir', [\App\Http\Controllers\Integraciones\CrmHandoffController::class, 'ir']);

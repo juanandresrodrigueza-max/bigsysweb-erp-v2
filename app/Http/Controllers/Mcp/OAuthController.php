@@ -61,7 +61,7 @@ class OAuthController extends Controller
     {
         [$cli, $err] = $this->validarPedido($r);
         abort_if($err, 422, $err);
-        $u = $r->user(); abort_if($u->is_superadmin || ! $u->business_id, 403);
+        $u = $r->user(); abort_if(! $u->business_id, 403);
         $sep = str_contains($r->input('redirect_uri'), '?') ? '&' : '?';
         $state = $r->filled('state') ? ['state' => $r->input('state')] : [];
         if ($r->input('decision') !== 'permitir') return Inertia::location($r->input('redirect_uri') . $sep . http_build_query(['error' => 'access_denied'] + $state));

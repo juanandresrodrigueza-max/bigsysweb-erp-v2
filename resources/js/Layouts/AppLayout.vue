@@ -93,7 +93,9 @@
         </button>
         <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
 
-        <Link v-if="empresa?.plan" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
+        <!-- Fase 87: el superadmin salta al panel de control desde su propia empresa -->
+        <Link v-if="user?.is_superadmin && !impersonando" href="/admin" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-violeta/40 bg-lavanda-light text-violeta hover:border-violeta text-sm font-semibold" data-e2e="ir-panel" title="Panel de control de BigSysWeb"><Icono nombre="shield" clase="w-4 h-4" /> Panel</Link>
+        <Link v-if="empresa?.plan && !user?.is_superadmin" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
         <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 shrink-0 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-carmin/50 hover:text-carmin font-black" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
         <CampanaNovedades :cantidad="$page.props.novedades ?? 0" />
         <span data-tour="alertas"><CampanaAlertas :alertas="alertas" /></span>
@@ -161,6 +163,7 @@
         </template>
         <Link href="/ayuda" @click="movil = false" class="mt-6 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Ayuda</Link>
         <Link href="/soporte" @click="movil = false" class="mt-2 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Soporte</Link>
+        <Link v-if="user?.is_superadmin && !impersonando" href="/admin" @click="movil = false" class="mt-2 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="shield" clase="w-4 h-4" /> Panel de BigSys</Link>
         <Link href="/logout" method="post" as="button" class="mt-2 flex items-center gap-2 text-sm text-white/70"><Icono nombre="logout" clase="w-4 h-4" /> Salir</Link>
       </div>
     </div>

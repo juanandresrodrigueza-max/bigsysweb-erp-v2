@@ -159,8 +159,9 @@ class AyudaService
 
     public static function tipDelDia(\App\Models\User $u): ?array
     {
-        $dias = (int) $u->created_at?->diffInDays(now());
-        if ($u->created_at === null || $dias >= 7) return null;
+        if ($u->created_at === null) return null;
+        $dias = max(0, (int) $u->created_at->diffInDays(now(), false)); // con el reloj corrido hacia atrás (pruebas) no puede dar negativo
+        if ($dias >= 7) return null;
         $tips = self::tipsPrimeraSemana();
         return $tips[$dias % count($tips)];
     }

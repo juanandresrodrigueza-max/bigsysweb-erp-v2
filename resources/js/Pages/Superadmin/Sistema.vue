@@ -39,6 +39,19 @@
       </div>
     </form>
 
+    <!-- Fase 87: la empresa propia de BigSys. Los superadmins la usan como su empresa y saltan entre el panel y ella. -->
+    <div class="card space-y-3 mt-4" data-e2e="empresa-bigsys">
+      <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">La empresa de BigSys en el ERP</h2><span class="badge" :class="bigsys ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ bigsys ? bigsys.nombre : 'Sin definir' }}</span></div>
+      <p class="text-sm text-marca-muted">Como en el CRM: los superadmins tienen su propia empresa para la gestión de BigSys (facturar, cobrar, la plata) y saltan entre el panel y la empresa con un botón, sin el modo soporte. Todos los superadmins, los de ahora y los que se creen después, entran como dueños.</p>
+      <div v-if="bigsys" class="flex flex-wrap gap-2"><Link href="/dashboard" class="btn-primary"><Icono nombre="building" clase="w-4 h-4" /> Entrar a {{ bigsys.nombre }}</Link></div>
+      <form v-else class="grid sm:grid-cols-[1fr_auto_1fr_auto] gap-2 items-end" @submit.prevent="eb.post('/admin/sistema/empresa-bigsys', { preserveScroll: true })">
+        <div><label class="label">Crear una nueva</label><input v-model="eb.nombre" class="input" placeholder="BigSysWeb" /></div>
+        <button class="btn-primary" :disabled="eb.processing" @click.prevent="eb.business_id = null; eb.post('/admin/sistema/empresa-bigsys', { preserveScroll: true })" data-e2e="crear-bigsys">Crear</button>
+        <div><label class="label">O usar una que ya existe</label><select v-model="eb.business_id" class="input"><option :value="null">Elegí la empresa…</option><option v-for="e in empresasParaBigsys" :key="e.id" :value="e.id">{{ e.name }}</option></select></div>
+        <button class="btn-secondary" :disabled="eb.processing || !eb.business_id" data-e2e="usar-bigsys">Usar esta</button>
+      </form>
+    </div>
+
     <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="apps-tiendas">
       <h2 class="font-bold">Aplicaciones para conectar tiendas con un botón</h2>
       <p class="text-sm text-marca-muted">Una sola vez para todos los clientes: la aplicación de BigSys en MercadoLibre (developers.mercadolibre.com.ar) y en Tienda Nube (partners.tiendanube.com). Con esto cada empresa conecta su cuenta entrando con su usuario, sin copiar claves. La URL de retorno de las dos es <code>{{ base }}/conectar/&lt;tienda&gt;/volver</code> y la de notificaciones de MercadoLibre <code>{{ base }}/api/canales/mercadolibre/notificaciones</code>.</p>
@@ -107,7 +120,9 @@
 import { ref, computed } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
-const props = defineProps({ config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+import Icono from '@/Components/Icono.vue'
+const props = defineProps({ bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin

@@ -66,9 +66,11 @@ class McpTest extends ErpTestCase
         $this->rpc($tk, 'ping')->assertOk();
         McpConexion::withoutGlobalScopes()->update(['revocada_en' => now()]);
         $this->rpc($tk, 'ping')->assertStatus(401);
-        // El superadmin nunca entra por MCP.
+        // Fase 87: el superadmin sin empresa no entra por MCP; con su empresa propia (o una asignada) usa Bigcito como cualquier dueño.
+        $sinEmpresa = User::factory()->create(['is_superadmin' => true, 'business_id' => null]);
+        $this->rpc($this->token($sinEmpresa), 'ping')->assertStatus(401);
         $sa = User::factory()->create(['is_superadmin' => true, 'business_id' => $this->empresa->id]);
-        $this->rpc($this->token($sa), 'ping')->assertStatus(401);
+        $this->rpc($this->token($sa), 'ping')->assertOk();
     }
 
     public function test_el_token_del_mcp_no_entra_a_la_api_rest(): void
