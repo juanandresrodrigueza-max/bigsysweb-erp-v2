@@ -61,6 +61,14 @@
       </template>
     </div>
 
+    <!-- Fase 84: los accesos del día, en el orden en que pasan las cosas, arriba de los números. -->
+    <div v-if="accesos.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-e2e="accesos-del-dia">
+      <Link v-for="a in accesos" :key="a.key" :href="a.href" class="card py-3 flex items-center gap-3 hover:border-carmin/40 transition" :data-e2e="`acceso-${a.key}`">
+        <span class="w-10 h-10 rounded-xl grid place-items-center shrink-0" :class="a.color"><Icono :nombre="a.icono" clase="w-5 h-5" /></span>
+        <span class="min-w-0"><span class="block font-bold">{{ a.label }}</span><span class="block text-xs text-marca-muted truncate">{{ a.sub }}</span></span>
+      </Link>
+    </div>
+
     <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
       <StatCard v-for="k in kpis" :key="k.key" v-bind="k" />
     </div>
@@ -156,10 +164,20 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 import StatCard from '@/Components/StatCard.vue'
+import Icono from '@/Components/Icono.vue'
+import { usePermisos } from '@/util/permisos'
 import { estadoCobro, cantidad } from '@/util/formato'
 
 const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String, operacion: Object, panel: Object })
 const page = usePage()
+const { puede } = usePermisos()
+const modulos = computed(() => new Set((page.props.nav ?? []).flatMap(g => g.items.map(i => i.modulo))))
+const accesos = computed(() => [
+  modulos.value.has('comprobantes') && puede('comprobantes', 'crear') && { key: 'vender', label: 'Vender', sub: 'Mostrador: cobrar y facturar', href: '/vender', icono: 'receipt', color: 'bg-carmin-light text-carmin' },
+  modulos.value.has('clientes') && { key: 'cobrar', label: 'Cobrar', sub: 'Quién debe y recibos', href: '/clientes/cobranzas', icono: 'cash', color: 'bg-emerald-50 text-emerald-700' },
+  modulos.value.has('comprobantes') && { key: 'entregar', label: 'Entregar', sub: 'Por entregar y repartos', href: '/comprobantes/pendientes', icono: 'truck', color: 'bg-violeta-light text-violeta' },
+  modulos.value.has('fondos') && puede('fondos', 'crear') && { key: 'cerrar-caja', label: 'Cerrar caja', sub: 'Contar y cerrar el turno', href: '/fondos?cerrar=1', icono: 'wallet', color: 'bg-amber-50 text-amber-700' },
+].filter(Boolean))
 const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0])
 const periodos = [{ key: 'hoy', label: 'Hoy' }, { key: 'semana', label: 'Semana' }, { key: 'mes', label: 'Mes' }, { key: 'trimestre', label: 'Trimestre' }, { key: 'anio', label: 'Año' }]
 const etiquetaPeriodo = computed(() => ({ hoy: 'hoy', semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este año' }[props.periodo]))

@@ -12,18 +12,21 @@
       </div>
       <template #pie><button class="btn-secondary" @click="tr.datos = null">Cancelar</button><button class="btn-primary" :disabled="trf.processing || !trf.contact_id || !trf.cuenta_fondos_id" @click="trf.post('/clientes/cobranzas/desde-transferencia', { preserveScroll: true, onSuccess: () => (tr.datos = null) })" data-e2e="tr-confirmar">Hacer el recibo</button></template>
     </Modal>
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <h1 class="page-title">Cobranzas</h1>
-        <p class="page-subtitle">Quién debe, hace cuánto, y los avisos que salen solos por mail o WhatsApp.</p>
+    <PageHeader titulo="Cobranzas" subtitulo="Quién debe, hace cuánto, y los avisos que salen solos por mail o WhatsApp."
+      :principal="puede('clientes','crear') ? { label: 'Registrar cobro', icono: 'cash', click: () => elegirAbierto = true } : null"
+      :mas="[
+        { label: 'Enviar avisos de hoy', click: () => router.post('/clientes/cobranzas/correr', {}, { preserveScroll: true }), cuando: puede('clientes','crear'), title: config.activo ? '' : 'Activá los avisos automáticos primero' },
+        { label: `Avisos automáticos ${config.activo ? 'ON' : 'OFF'}`, icono: 'settings', click: () => cfgAbierta = true, cuando: puede('clientes','editar') },
+      ]">
+      <template #extra><label v-if="puede('clientes','crear')" class="btn-secondary cursor-pointer" data-e2e="subir-transferencia" title="Subí el comprobante de transferencia y la IA arma el recibo">{{ tr.leyendo ? 'Leyendo…' : 'Recibo desde comprobante' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerTransferencia" /></label></template>
+    </PageHeader>
+    <Modal :abierto="elegirAbierto" titulo="¿A quién le cobrás?" @cerrar="elegirAbierto = false">
+      <div class="space-y-3 text-sm">
+        <p class="text-marca-muted">El cobro se registra en la ficha del cliente, donde ves qué le falta pagar e imputás lo que corresponde.</p>
+        <select v-model="elegido" class="input" data-e2e="cobro-cliente"><option :value="null">Elegí el cliente…</option><option v-for="c in clientesLista" :key="c.id" :value="c.id">{{ c.nombre }}<template v-if="c.saldo > 0"> · debe {{ moneda(c.saldo, 0) }}</template></option></select>
       </div>
-      <div class="flex gap-2">
-        <Link href="/clientes/acopios" class="btn-secondary" data-ir-acopios>Acopios</Link>
-        <label v-if="puede('clientes','crear')" class="btn-primary cursor-pointer" data-e2e="subir-transferencia">{{ tr.leyendo ? 'Leyendo…' : 'Recibo desde comprobante' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerTransferencia" /></label>
-        <button v-if="puede('clientes','crear')" @click="router.post('/clientes/cobranzas/correr', {}, { preserveScroll: true })" class="btn-secondary" :title="config.activo ? '' : 'Activá los avisos automáticos primero'">Enviar avisos de hoy</button>
-        <button v-if="puede('clientes','editar')" @click="cfgAbierta = true" class="btn-violeta"><Icono nombre="settings" clase="w-4 h-4" /> Avisos automáticos {{ config.activo ? 'ON' : 'OFF' }}</button>
-      </div>
-    </div>
+      <template #pie><button class="btn-secondary" @click="elegirAbierto = false">Cancelar</button><Link :href="elegido ? `/clientes/${elegido}?cobro=1` : '#'" class="btn-primary" :class="{ 'opacity-50 pointer-events-none': !elegido }">Ir a registrar el cobro</Link></template>
+    </Modal>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Por cobrar</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.por_cobrar, 0) }}</p></div>
@@ -125,6 +128,7 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
@@ -133,6 +137,7 @@ import { usePermisos } from '@/util/permisos'
 
 const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean, llamarAntes: { type: Array, default: () => [] }, ia: Boolean, bancos: { type: Array, default: () => [] }, clientesLista: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
+const elegirAbierto = ref(false), elegido = ref(null)
 const page = usePage()
 const cfgAbierta = ref(false)
 // Fase 47: la foto o el PDF de la transferencia → la IA lo lee → recibo para confirmar.

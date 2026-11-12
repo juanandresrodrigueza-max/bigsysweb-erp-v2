@@ -1,6 +1,6 @@
 <template>
-  <AppLayout titulo="Pendientes">
-    <PageHeader titulo="Pendientes de entrega y facturación" subtitulo="Lo que se entregó sin facturar y lo que se facturó sin entregar. Ambos deberían tender a cero." />
+  <AppLayout titulo="Por entregar">
+    <PageHeader titulo="Por entregar y por facturar" subtitulo="Lo que se entregó sin facturar y lo que se facturó sin entregar. Ambos deberían tender a cero." />
 
     <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 w-fit mb-4">
       <button v-for="t in [['remitos', `Remitos sin facturar (${remitos.length})`], ['facturas', `Facturas sin entregar (${facturas.length})`]]" :key="t[0]" @click="tab = t[0]" class="px-3 py-1.5 rounded-full text-xs font-semibold" :class="tab === t[0] ? 'bg-carmin text-white' : 'text-marca-muted'">{{ t[1] }}</button>

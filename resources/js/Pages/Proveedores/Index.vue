@@ -1,9 +1,9 @@
 <template>
   <AppLayout titulo="Proveedores">
     <PageHeader titulo="Proveedores"
-      :principal="puede('proveedores','crear') ? { label: 'Nuevo proveedor', click: () => editar(null) } : null"
-      :secundaria="puede('proveedores','crear') ? { label: 'Nueva factura de compra', href: '/proveedores/compras/nueva' } : null"
-      :mas="[{ label: 'Exportar CSV', href: '/configuracion/importar/exportar/proveedores', externo: true }]">
+      :principal="puede('proveedores','crear') ? { label: 'Nueva orden', href: '/proveedores/ordenes/nueva' } : null"
+      :secundaria="puede('proveedores','crear') ? { label: 'Nuevo proveedor', click: () => editar(null) } : null"
+      :mas="[{ label: 'Nueva factura de compra', href: '/proveedores/compras/nueva', cuando: puede('proveedores','crear') }, { label: 'Exportar CSV', href: '/configuracion/importar/exportar/proveedores', externo: true }]">
       <template #subtitulo>{{ entero(totales.proveedores) }} proveedores · por pagar {{ moneda(totales.por_pagar, 0) }} <span v-if="totales.vencido > 0" class="text-carmin font-semibold">· vencido {{ moneda(totales.vencido, 0) }}</span></template>
     </PageHeader>
 

@@ -80,7 +80,7 @@ return [
             ['key' => 'acopios',   'label' => 'Acopios',   'ruta' => '/clientes/acopios', 'ayuda' => 'Lo que el cliente pagó por adelantado y todavía no retiró'],
         ],
         'entregar' => [
-            ['key' => 'pendientes', 'label' => 'Pendientes',             'ruta' => '/comprobantes/pendientes', 'ayuda' => 'Entregado sin facturar y facturado sin entregar'],
+            ['key' => 'pendientes', 'label' => 'Por entregar',           'ruta' => '/comprobantes/pendientes', 'ayuda' => 'Entregado sin facturar y facturado sin entregar'],
             ['key' => 'entregas',   'label' => 'Hojas de reparto',       'ruta' => '/comprobantes/entregas'],
             ['key' => 'pases',      'label' => 'Pases entre sucursales', 'ruta' => '/stock/pases', 'modulo' => 'stock'],
         ],
