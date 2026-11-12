@@ -64,11 +64,16 @@ return [
     // (/nuevo, /nueva, /editar, /armar) van siempre a pantalla completa.
     'secciones_sin' => ['nuevo', 'nueva', 'editar', 'armar'],
     'secciones' => [
+        // Fase 83: Mostrador y Configurar canales son 'solo_link' (se listan, pero no adueñan la URL: el mostrador va a pantalla completa
+        // y /configuracion/tienda sigue siendo de Configuración). Tienda online vive acá aunque su URL siga en /stock.
         'vender' => [
+            ['key' => 'mostrador',    'label' => 'Mostrador',            'ruta' => '/vender', 'solo_link' => true, 'accion' => 'crear', 'ayuda' => 'Cobrar y facturar en el momento'],
             ['key' => 'comprobantes', 'label' => 'Comprobantes',         'ruta' => '/comprobantes', 'exacto' => true, 'ayuda' => 'Facturas, notas, remitos y presupuestos'],
-            ['key' => 'pedidos',      'label' => 'Pedidos web',          'ruta' => '/comprobantes/pedidos'],
             ['key' => 'abonos',       'label' => 'Abonos',               'ruta' => '/comprobantes/abonos'],
             ['key' => 'lote',         'label' => 'Facturación por lote', 'ruta' => '/comprobantes/lote'],
+            ['key' => 'pedidos',      'label' => 'Pedidos web',          'ruta' => '/comprobantes/pedidos', 'grupo' => 'Canales', 'palabras' => 'whatsapp mercadolibre delivery menú qr portal'],
+            ['key' => 'tienda-online','label' => 'Tienda online',        'ruta' => '/stock/tienda-online', 'grupo' => 'Canales', 'modulo' => 'stock', 'palabras' => 'publicar catálogo'],
+            ['key' => 'canales',      'label' => 'Configurar canales',   'ruta' => '/configuracion/tienda', 'grupo' => 'Canales', 'modulo' => 'configuracion', 'solo_link' => true],
         ],
         'cobrar' => [
             ['key' => 'cobranzas', 'label' => 'Cobranzas', 'ruta' => '/clientes/cobranzas', 'exacto' => true],
@@ -85,9 +90,11 @@ return [
             ['key' => 'puntos',     'label' => 'Puntos',     'ruta' => '/clientes/fidelizacion'],
         ],
         'comprar' => [
+            ['key' => 'reponer',     'label' => 'Qué reponer',        'ruta' => '/proveedores/reponer', 'ayuda' => 'Lo que está en el mínimo, por proveedor habitual'],
             ['key' => 'proveedores', 'label' => 'Proveedores',        'ruta' => '/proveedores', 'exacto' => true],
             ['key' => 'ordenes',     'label' => 'Órdenes de compra',  'ruta' => '/proveedores/ordenes'],
             ['key' => 'compras',     'label' => 'Facturas de compra', 'ruta' => '/proveedores/compras'],
+            ['key' => 'pagos',       'label' => 'Pagos',              'ruta' => '/proveedores/pagos', 'palabras' => 'órdenes de pago'],
         ],
         'stock' => [
             ['key' => 'articulos',    'label' => 'Artículos',             'ruta' => '/stock', 'exacto' => true],
@@ -101,7 +108,6 @@ return [
             ['key' => 'informes',     'label' => 'Informes',              'ruta' => '/stock/informes'],
             ['key' => 'desc-lista',   'label' => 'Descuentos por lista',  'ruta' => '/stock/descuentos-lista', 'grupo' => 'De vez en cuando'],
             ['key' => 'catalogos',    'label' => 'Catálogos',             'ruta' => '/stock/catalogos',        'grupo' => 'De vez en cuando'],
-            ['key' => 'tienda-online','label' => 'Tienda online',         'ruta' => '/stock/tienda-online',    'grupo' => 'De vez en cuando'],
             ['key' => 'importar',     'label' => 'Importar lista',        'ruta' => '/stock/importar',         'grupo' => 'De vez en cuando', 'accion' => 'editar'],
             ['key' => 'despiece',     'label' => 'Carnicería y pesables', 'ruta' => '/stock/despiece',         'grupo' => 'De vez en cuando'],
             ['key' => 'consultor',    'label' => 'Consultor de precios',  'ruta' => '/stock/consultor',        'grupo' => 'De vez en cuando', 'ayuda' => 'Precio y stock al toque, también para la pantalla del salón'],
@@ -133,6 +139,26 @@ return [
             ['key' => 'ejercicio',    'label' => 'Ejercicio',             'ruta' => '/contable/ejercicio',    'grupo' => 'Puesta a punto', 'palabras' => 'cierre apertura'],
             ['key' => 'activos',      'label' => 'Bienes de uso',         'ruta' => '/contable/activos',      'grupo' => 'Puesta a punto', 'palabras' => 'amortizaciones'],
             ['key' => 'conciliacion', 'label' => 'Conciliación',          'ruta' => '/contable/conciliacion', 'grupo' => 'Puesta a punto', 'palabras' => 'banco extracto'],
+        ],
+        // Fase 83: "Mi rubro" es una sola entrada del menú; sus secciones son las pantallas de los verticales que la empresa tiene prendidos.
+        // Los mostradores (Comercio, Minimarket) son 'solo_link': van a pantalla completa.
+        'rubro' => [
+            ['key' => 'mesas',       'label' => 'Mesas',            'ruta' => '/gastronomia', 'exacto' => true, 'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
+            ['key' => 'cocina',      'label' => 'Cocina',           'ruta' => '/gastronomia/cocina',   'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
+            ['key' => 'carta',       'label' => 'Carta',            'ruta' => '/gastronomia/carta',    'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
+            ['key' => 'reservas',    'label' => 'Reservas',         'ruta' => '/gastronomia/reservas', 'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
+            ['key' => 'llamador',    'label' => 'Llamador',         'ruta' => '/gastronomia/llamador', 'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
+            ['key' => 'retail',      'label' => 'Mostrador',        'ruta' => '/retail',     'solo_link' => true, 'modulo' => 'retail',     'grupo' => 'Comercio'],
+            ['key' => 'minimarket',  'label' => 'Caja',             'ruta' => '/minimarket', 'solo_link' => true, 'modulo' => 'minimarket', 'grupo' => 'Minimarket'],
+            ['key' => 'servicios',   'label' => 'Órdenes',          'ruta' => '/servicios', 'exacto' => true, 'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
+            ['key' => 'mis-ordenes', 'label' => 'Mis órdenes',      'ruta' => '/servicios/mis-ordenes', 'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
+            ['key' => 'que-vuelvan', 'label' => 'Que vuelvan',      'ruta' => '/servicios/que-vuelvan', 'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
+            ['key' => 'tecnicos',    'label' => 'Técnicos',         'ruta' => '/servicios/tecnicos',    'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
+            ['key' => 'hoteleria',   'label' => 'Habitaciones',     'ruta' => '/hoteleria', 'modulo' => 'hoteleria', 'grupo' => 'Hotelería'],
+            ['key' => 'obras',       'label' => 'Obras',            'ruta' => '/obras', 'exacto' => true, 'modulo' => 'obras', 'grupo' => 'Obras'],
+            ['key' => 'produccion',  'label' => 'Órdenes',          'ruta' => '/produccion', 'exacto' => true, 'modulo' => 'produccion', 'grupo' => 'Producción'],
+            ['key' => 'formulas',    'label' => 'Fórmulas',         'ruta' => '/produccion/formulas', 'modulo' => 'produccion', 'grupo' => 'Producción'],
+            ['key' => 'agenda',      'label' => 'Agenda',           'ruta' => '/agenda', 'modulo' => 'agenda', 'grupo' => 'Agenda'],
         ],
         'sueldos' => [
             ['key' => 'liquidaciones', 'label' => 'Liquidaciones', 'ruta' => '/sueldos', 'exacto' => true],

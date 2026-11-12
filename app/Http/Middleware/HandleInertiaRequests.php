@@ -103,21 +103,40 @@ class HandleInertiaRequests extends Middleware
         $visibles = $user->modulosVisibles();
         // Los grupos son tramos consecutivos del menú (el orden manda): el ciclo sin título, "Mi rubro" con título, y Configuración al final.
         $grupos = [];
-        foreach (config('erp.menu') as $m) {
-            if (! in_array($m['modulo'], $visibles, true)) continue;
-            if (isset($m['solo_sin']) && in_array($m['solo_sin'], $visibles, true)) continue; // Fase 82: Sueldos vive adentro de Contable
+        foreach ($this->entradas($visibles) as $m) {
             $g = $m['grupo'] ?? '';
             if (! $grupos || end($grupos)['label'] !== $g) $grupos[] = ['label' => $g, 'items' => []];
             $grupos[array_key_last($grupos)]['items'][] = ['key' => $m['key'], 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'modulo' => $m['modulo'], 'disponible' => config("erp.modulos.{$m['modulo']}.disponible", true),
                 // Fase 82: las secciones también viajan en el menú, para que Ctrl K encuentre "Liquidaciones" o "Puntos de venta y AFIP".
-                'secciones' => array_map(fn($i) => ['label' => $i['label'], 'ruta' => $i['ruta']], $this->itemsDe($m['key'], $m, $user, $visibles))];
+                'secciones' => array_map(fn($i) => ['key' => $i['key'], 'label' => $i['label'], 'ruta' => $i['ruta']], $this->itemsDe($m['key'], $m, $user, $visibles))]
+                + (isset($m['verticales']) ? ['verticales' => $m['verticales']] : []);
         }
         // Integración con el CRM activa: botón que pasa al CRM ya logueado (link externo, no Inertia), al final.
         if (\App\Services\Integraciones\CrmService::activo($user->business)) {
             if (! $grupos || end($grupos)['label'] !== '') $grupos[] = ['label' => '', 'items' => []];
-            $grupos[array_key_last($grupos)]['items'][] = ['key' => 'crm', 'label' => 'CRM', 'icono' => 'idcard', 'ruta' => '/integraciones/crm/ir', 'modulo' => 'configuracion', 'disponible' => true, 'externo' => true];
+            $grupos[array_key_last($grupos)]['items'][] = ['key' => 'crm', 'label' => 'CRM', 'icono' => 'idcard', 'ruta' => '/integraciones/crm/ir', 'modulo' => 'configuracion', 'disponible' => true, 'externo' => true, 'secciones' => []];
         }
         return $grupos;
+    }
+
+    // Las entradas del menú que este usuario ve, en orden. Fase 83: los verticales de "Mi rubro" se juntan en una sola entrada
+    // (con el nombre real del vertical si es uno solo; "Mi rubro" si son varios); la Agenda va adentro.
+    private function entradas(array $visibles): array
+    {
+        $out = []; $rubro = []; $pos = null;
+        foreach (config('erp.menu') as $m) {
+            if (! in_array($m['modulo'], $visibles, true)) continue;
+            if (isset($m['solo_sin']) && in_array($m['solo_sin'], $visibles, true)) continue; // Fase 82: Sueldos vive adentro de Contable
+            if (($m['grupo'] ?? '') === 'Mi rubro') { $rubro[] = $m; $pos ??= count($out); continue; }
+            $out[] = $m;
+        }
+        if ($rubro) {
+            $verticales = array_values(array_filter($rubro, fn($m) => $m['key'] !== 'agenda'));
+            $uno = count($verticales) === 1 ? $verticales[0] : null;
+            $primero = $verticales[0] ?? $rubro[0];
+            array_splice($out, $pos, 0, [['key' => 'rubro', 'label' => $uno ? $uno['label'] : 'Mi rubro', 'icono' => $uno ? $uno['icono'] : 'store', 'ruta' => $primero['ruta'], 'modulo' => $primero['modulo'], 'grupo' => 'Mi rubro', 'verticales' => array_column($rubro, 'key')]]);
+        }
+        return $out;
     }
 
     // Fase 80: la sub-navegación de la pantalla actual. Gana el ítem de ruta más larga que coincide con la URL (así /stock/pases
@@ -126,10 +145,11 @@ class HandleInertiaRequests extends Middleware
     {
         $url = '/' . trim($request->path(), '/');
         $visibles = $user->modulosVisibles();
-        $menu = collect(config('erp.menu'))->keyBy('key');
+        $menu = collect($this->entradas($visibles))->keyBy('key');
         $candidatos = []; // [key, ruta] de los ítems que coinciden; gana la ruta más larga y, en empate, la primera entrada visible
         foreach (config('erp.secciones', []) as $key => $items) {
             foreach ($items as $it) {
+                if (! empty($it['solo_link'])) continue; // se lista, pero la pantalla pertenece a otro módulo (o va a pantalla completa)
                 $r = $it['ruta'];
                 if ($url === $r || (empty($it['exacto']) && str_starts_with($url, $r . '/'))) $candidatos[] = [$key, $r];
             }
@@ -139,8 +159,7 @@ class HandleInertiaRequests extends Middleware
         $mejor = null;
         foreach ($candidatos as [$key, $r]) {
             if (strlen($r) !== $max) continue;
-            $m = $menu[$key] ?? null;
-            if ($m && in_array($m['modulo'], $visibles, true) && ! (isset($m['solo_sin']) && in_array($m['solo_sin'], $visibles, true))) { $mejor = [$key, $r]; break; }
+            if (isset($menu[$key])) { $mejor = [$key, $r]; break; } // las entradas ya vienen filtradas por lo que el usuario ve
         }
         if (! $mejor) return null;
         [$key, $activa] = $mejor;

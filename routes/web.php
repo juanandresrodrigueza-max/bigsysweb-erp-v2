@@ -349,6 +349,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras/{id}/nota-credito', [ComprasController::class, 'notaCredito'])->middleware('permiso:proveedores,crear');
         Route::post('/pagos/{id}/anular',       [PagosController::class, 'anular'])->middleware('permiso:proveedores,anular');
         Route::post('/pagos/{id}/aplicar',      [PagosController::class, 'aplicar'])->middleware('permiso:proveedores,crear');
+        Route::get('/pagos',                    [PagosController::class, 'index']); // Fase 83
+        Route::get('/reponer',                  [\App\Http\Controllers\Proveedores\ReposicionController::class, 'index']); // Fase 83
         Route::get('/pagos/{id}/imprimir',      [PagosController::class, 'imprimir']);
         Route::post('/{id}/retencion-sugerida', [PagosController::class, 'retencionSugerida'])->whereNumber('id');
         Route::get('/{id}',                     [ProveedoresController::class, 'show'])->whereNumber('id');
