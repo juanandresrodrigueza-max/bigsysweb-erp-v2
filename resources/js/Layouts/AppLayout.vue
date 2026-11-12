@@ -118,6 +118,11 @@
         <div class="flex-1 max-w-48 h-1.5 rounded-full bg-marca-fondo"><div class="h-1.5 rounded-full bg-marca-grad" :style="{ width: (onboarding.hechos / onboarding.total * 100) + '%' }"></div></div>
         <Link href="/primeros-pasos" class="text-xs font-bold text-carmin underline whitespace-nowrap">Seguir configurando</Link>
       </div>
+      <!-- Fase 81: un consejo por día en la primera semana -->
+      <div v-if="tip && !tipOculto" class="px-4 md:px-6 py-2 bg-white border-b border-marca-borde text-sm flex items-center gap-2" data-tip>
+        <Icono nombre="sparkles" clase="w-4 h-4 text-violeta shrink-0" /><span class="flex-1 min-w-0"><b class="text-violeta">Primera semana:</b> {{ tip.texto }}</span>
+        <button type="button" @click="ocultarTip" class="text-xs font-bold text-violeta whitespace-nowrap">Entendido</button>
+      </div>
       <!-- Aviso de suscripción: solo a quien puede renovarla -->
       <div v-if="suscripcion?.aviso && suscripcion.puede" class="px-4 md:px-6 py-2 text-sm flex items-center gap-2" :class="{ info: 'bg-lavanda-light text-violeta', warn: 'bg-amber-50 text-amber-800', error: 'bg-carmin text-white' }[suscripcion.aviso.nivel]">
         <Icono :nombre="suscripcion.aviso.nivel === 'info' ? 'info' : 'alert'" clase="w-4 h-4 shrink-0" /><span>{{ suscripcion.aviso.texto }}</span>
@@ -189,6 +194,9 @@ const impersonando = computed(() => page.props.impersonando)
 const mensajeGlobal = computed(() => page.props.mensajeGlobal)
 const onboarding = computed(() => page.props.onboarding)
 const empresas = computed(() => page.props.empresas)
+const tip = computed(() => page.props.tip)
+const tipOculto = ref(true)
+function ocultarTip() { tipOculto.value = true; try { localStorage.setItem('bs.tip.' + tip.value.clave, '1') } catch {} }
 // El tour se muestra una vez, en Inicio, la primera vez que entra cada usuario.
 const tourInicial = page.props.tour && ['/dashboard', '/dueno'].includes(page.url.split('?')[0]) ? page.props.tour : null
 
@@ -214,6 +222,7 @@ function clickAfuera(e) { if (selRef.value && !selRef.value.contains(e.target)) 
 onMounted(() => {
   document.addEventListener('click', clickAfuera)
   try { abierto.value = localStorage.getItem('bs.sidebar') !== '0' } catch {}
+  try { tipOculto.value = !tip.value || !!localStorage.getItem('bs.tip.' + tip.value.clave) } catch { tipOculto.value = !tip.value }
 })
 onBeforeUnmount(() => document.removeEventListener('click', clickAfuera))
 watch(abierto, v => { try { localStorage.setItem('bs.sidebar', v ? '1' : '0') } catch {} })

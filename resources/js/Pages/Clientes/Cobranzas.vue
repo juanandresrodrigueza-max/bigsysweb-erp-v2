@@ -51,7 +51,7 @@
                 <button v-if="d.vencido > 0 && !d.plan && puede('clientes','crear')" @click="abrirRefi(d)" class="btn-ghost !px-2 text-xs text-violeta">Refinanciar</button>
               </td>
             </tr>
-            <tr v-if="!deudores.length"><td colspan="8" class="text-center text-marca-muted py-10">Nadie debe nada. 🎉</td></tr>
+            <tr v-if="!deudores.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Nadie debe nada. 🎉" /></td></tr>
           </tbody>
         </table>
       </div>
@@ -125,6 +125,7 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'

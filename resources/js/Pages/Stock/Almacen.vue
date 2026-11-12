@@ -68,7 +68,7 @@
               <td class="text-right tabular-nums">{{ u.articulos }}</td><td class="text-right tabular-nums">{{ cantidad(u.unidades) }}</td>
               <td class="text-right whitespace-nowrap"><button class="text-xs text-violeta" @click="editar(u)">editar</button> <button class="text-xs text-carmin ml-1" @click="router.delete(`/stock/almacen/ubicaciones/${u.id}`, { preserveScroll: true })">borrar</button></td>
             </tr>
-            <tr v-if="!ubicaciones.length"><td colspan="6" class="text-center text-marca-muted py-8">Todavía no hay ubicaciones en este depósito. Generalas de una vez con el formulario de la derecha.</td></tr>
+            <tr v-if="!ubicaciones.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Todavía no hay ubicaciones en este depósito. Generalas de una vez con el formulario de la derecha." /></td></tr>
           </tbody>
         </table>
       </div>
@@ -103,7 +103,7 @@
       <p class="px-4 py-3 text-xs text-marca-muted border-b border-marca-borde">Mercadería del depósito que todavía no está en ninguna ubicación. Guardala con la pistola (modo Guardar).</p>
       <table class="table text-sm"><thead><tr><th>Artículo</th><th class="text-right">Sin ubicar</th><th></th></tr></thead><tbody>
         <tr v-for="s in sinUbicar" :key="s.product_id"><td>{{ s.nombre }} <span class="text-xs text-marca-muted">{{ s.sku }}</span></td><td class="text-right tabular-nums">{{ cantidad(s.cantidad) }} {{ s.unidad }}</td><td class="text-right"><button class="text-xs text-violeta" @click="empezarGuardar(s)">Guardar…</button></td></tr>
-        <tr v-if="!sinUbicar.length"><td colspan="3" class="text-center text-marca-muted py-8">Todo está ubicado.</td></tr>
+        <tr v-if="!sinUbicar.length"><td colspan="3" class="!py-0"><EstadoVacio texto="Todo está ubicado." /></td></tr>
       </tbody></table>
     </div>
 
@@ -118,7 +118,7 @@
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3"><div><p class="font-bold">{{ prep.comprobante.nombre }}</p><p class="text-xs text-marca-muted">{{ prep.comprobante.cliente || 'Consumidor final' }} · {{ prep.deposito }}</p></div><a :href="`/stock/almacen/preparar/${prep.comprobante.id}`" target="_blank" class="btn-secondary !py-1 text-xs">Imprimir hoja</a></div>
           <table class="table text-sm"><thead><tr><th>#</th><th>Ubicación</th><th>Artículo</th><th class="text-right">Cantidad</th></tr></thead><tbody>
             <tr v-for="(p, i) in prep.pasos" :key="i"><td class="text-marca-muted">{{ i + 1 }}</td><td class="font-mono font-bold">{{ p.codigo }}</td><td>{{ p.nombre }}<span v-if="p.lote" class="block text-xs text-marca-muted">{{ p.lote }}</span></td><td class="text-right tabular-nums font-semibold">{{ cantidad(p.cantidad) }} {{ p.unidad }}</td></tr>
-            <tr v-if="!prep.pasos.length"><td colspan="4" class="text-marca-muted">Nada ubicado para este comprobante.</td></tr>
+            <tr v-if="!prep.pasos.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Nada ubicado para este comprobante." /></td></tr>
           </tbody></table>
           <p v-for="f in prep.faltan" :key="f.product_id" class="text-xs text-carmin mt-2">{{ f.nombre }}: faltan {{ cantidad(f.cantidad) }} en ubicaciones ({{ cantidad(f.sin_ubicar) }} sin ubicar).</p>
         </template>
@@ -130,7 +130,7 @@
     <div v-if="tab === 'movs'" class="card p-0 overflow-x-auto">
       <table class="table text-sm"><thead><tr><th>Fecha</th><th>Artículo</th><th>Desde</th><th>Hacia</th><th class="text-right">Cantidad</th><th>Motivo</th><th>Usuario</th></tr></thead><tbody>
         <tr v-for="m in movimientos" :key="m.id"><td class="whitespace-nowrap">{{ m.fecha }}</td><td>{{ m.articulo }}</td><td class="font-mono text-xs">{{ m.desde }}</td><td class="font-mono text-xs">{{ m.hacia }}</td><td class="text-right tabular-nums">{{ cantidad(m.cantidad) }}</td><td class="text-xs">{{ m.motivo }}</td><td class="text-xs">{{ m.usuario }}</td></tr>
-        <tr v-if="!movimientos.length"><td colspan="7" class="text-center text-marca-muted py-8">Sin movimientos todavía.</td></tr>
+        <tr v-if="!movimientos.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin movimientos todavía." /></td></tr>
       </tbody></table>
     </div>
   </AppLayout>
@@ -140,6 +140,7 @@
 import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { cantidad } from '@/util/formato'
 
 const props = defineProps({ deposito: Object, depositos: Array, ubicaciones: Array, sinUbicar: Array, tipos: Object, movimientos: Array, comprobantes: Array })

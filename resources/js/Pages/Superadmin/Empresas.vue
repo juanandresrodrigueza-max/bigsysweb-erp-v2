@@ -25,7 +25,7 @@
             <td class="text-sm">{{ e.dueno }}</td>
             <td class="text-xs text-marca-muted">{{ e.ultimo_acceso ?? 'Nunca' }}</td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="8" class="text-center text-marca-muted py-10">No hay empresas con este filtro.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="8" class="!py-0"><EstadoVacio texto="No hay empresas con este filtro." :filtros="f" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -69,6 +69,7 @@ import Icono from '@/Components/Icono.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import { moneda } from '@/util/formato'
 import { estadoClase } from '@/util/suscripcion'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ lista: Object, filtros: Object, planes: Array, estados: Object, verticales: Object, diasPrueba: Number })
 const f = reactive({ buscar: props.filtros.buscar ?? '', estado: props.filtros.estado ?? '', plan: props.filtros.plan ?? '' })
 function filtrar() { router.get('/admin/empresas', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }

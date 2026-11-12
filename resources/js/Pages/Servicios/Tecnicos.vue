@@ -8,7 +8,7 @@
       <table class="table text-sm"><thead><tr><th>{{ config.tecnico }}</th><th class="text-right">Órdenes</th><th class="text-right">Mano de obra</th><th class="text-right">A pagar</th></tr></thead>
         <tbody><template v-for="t in pago.tecnicos" :key="t.user_id"><tr class="cursor-pointer hover:bg-gris-light" @click="abierto = abierto === t.user_id ? null : t.user_id"><td class="font-medium">{{ t.tecnico }}</td><td class="text-right tabular-nums">{{ t.ordenes }}</td><td class="text-right tabular-nums">{{ moneda(t.mano_obra) }}</td><td class="text-right tabular-nums font-bold">{{ moneda(t.a_pagar) }}</td></tr>
           <tr v-if="abierto === t.user_id"><td colspan="4" class="bg-gris-light/50 text-xs"><p v-for="(d, i) in t.detalle" :key="i">{{ d.ot }} · {{ d.trabajo }} · {{ d.pct }} % · {{ moneda(d.monto) }}</p></td></tr></template>
-          <tr v-if="!pago.tecnicos.length"><td colspan="4" class="text-center text-marca-muted py-8">No hay órdenes entregadas con mano de obra en el período.</td></tr></tbody></table>
+          <tr v-if="!pago.tecnicos.length"><td colspan="4" class="!py-0"><EstadoVacio texto="No hay órdenes entregadas con mano de obra en el período." /></td></tr></tbody></table>
     </div>
   </AppLayout>
 </template>
@@ -16,6 +16,7 @@
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 defineProps({ periodo: Object, pago: Object, config: Object })

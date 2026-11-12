@@ -14,11 +14,11 @@
       <div class="card p-0 overflow-hidden"><div class="px-4 py-3 border-b border-marca-borde font-bold">Ranking</div>
         <table class="table text-sm"><thead><tr><th>#</th><th>Cliente</th><th class="text-right">Puntos</th><th class="text-right">Valen</th></tr></thead>
           <tbody><tr v-for="(r, i) in ranking" :key="r.id" class="cursor-pointer" @click="$inertia.visit(`/clientes/${r.id}`)"><td class="text-marca-muted">{{ i + 1 }}</td><td class="font-medium">{{ r.nombre }}</td><td class="text-right tabular-nums font-bold text-violeta">★ {{ cantidad(r.puntos) }}</td><td class="text-right tabular-nums">{{ moneda(r.pesos, 0) }}</td></tr>
-          <tr v-if="!ranking.length"><td colspan="4" class="text-center text-marca-muted py-6">Todavía nadie sumó puntos.</td></tr></tbody></table></div>
+          <tr v-if="!ranking.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Todavía nadie sumó puntos." compacto /></td></tr></tbody></table></div>
       <div class="card p-0 overflow-hidden"><div class="px-4 py-3 border-b border-marca-borde font-bold">Movimientos</div>
         <div class="max-h-[60vh] overflow-y-auto"><table class="table text-xs"><thead><tr><th>Fecha</th><th>Cliente</th><th>Motivo</th><th class="text-right">Puntos</th></tr></thead>
           <tbody><tr v-for="m in movimientos" :key="m.id"><td class="tabular-nums whitespace-nowrap">{{ m.fecha }}</td><td>{{ m.cliente }}</td><td class="text-marca-muted">{{ m.motivo }}</td><td class="text-right tabular-nums font-semibold" :class="m.puntos < 0 ? 'text-carmin' : 'text-emerald-700'">{{ m.puntos > 0 ? '+' : '' }}{{ cantidad(m.puntos) }}</td></tr>
-          <tr v-if="!movimientos.length"><td colspan="4" class="text-center text-marca-muted py-6">Sin movimientos.</td></tr></tbody></table></div></div>
+          <tr v-if="!movimientos.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Sin movimientos." compacto /></td></tr></tbody></table></div></div>
     </div>
     <Modal :abierto="ajAbierto" titulo="Sumar o canjear puntos" @cerrar="ajAbierto = false">
       <div class="space-y-3">
@@ -36,6 +36,7 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 defineProps({ config: Object, ranking: Array, movimientos: Array, kpis: Object, clientes: Array })

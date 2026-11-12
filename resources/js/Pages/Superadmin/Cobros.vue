@@ -33,7 +33,7 @@
               </template>
             </td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="8" class="text-center text-marca-muted py-10">Sin cobros con este filtro.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Sin cobros con este filtro." :filtros="f" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -48,6 +48,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import { moneda } from '@/util/formato'
 import { pagoClase, pagoLabel, cicloLabel } from '@/util/suscripcion'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ lista: Object, filtros: Object, estados: Object, medios: Object, resumen: Object })
 const f = reactive({ buscar: props.filtros.buscar ?? '', estado: props.filtros.estado ?? '', medio: props.filtros.medio ?? '' })
 function filtrar() { router.get('/admin/cobros', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }

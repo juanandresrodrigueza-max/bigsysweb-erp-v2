@@ -130,7 +130,7 @@
         <div class="px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Por usuario</h2></div>
         <table class="table text-sm"><thead><tr><th>Usuario</th><th class="text-right">Vistas</th><th class="text-right">Acciones</th><th class="text-right">Días</th><th class="text-right">Último</th></tr></thead>
           <tbody><tr v-for="u in usoDetalle.usuarios" :key="u.id"><td class="font-medium">{{ u.nombre }}</td><td class="text-right tabular-nums">{{ u.vistas }}</td><td class="text-right tabular-nums">{{ u.acciones }}</td><td class="text-right tabular-nums">{{ u.dias }}</td><td class="text-right tabular-nums">{{ u.ultimo }}</td></tr>
-          <tr v-if="!usoDetalle.usuarios.length"><td colspan="5" class="text-center text-marca-muted py-4">Nadie entró en 30 días.</td></tr></tbody></table>
+          <tr v-if="!usoDetalle.usuarios.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Nadie entró en 30 días." compacto /></td></tr></tbody></table>
       </div>
     </div>
     <div v-if="tab === 'auditoria'" class="card p-0 overflow-x-auto">
@@ -138,7 +138,7 @@
         <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
         <tbody>
           <tr v-for="l in auditoria" :key="l.id"><td class="text-marca-muted whitespace-nowrap">{{ l.fecha }}</td><td>{{ l.usuario }}</td><td><span class="badge bg-marca-fondo">{{ l.accion }}</span></td><td>{{ l.descripcion }}</td></tr>
-          <tr v-if="!auditoria.length"><td colspan="4" class="text-center text-marca-muted py-8">Sin registros.</td></tr>
+          <tr v-if="!auditoria.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Sin registros." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -196,6 +196,7 @@ import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { estadoClase, pagoClase, pagoLabel, cicloLabel } from '@/util/suscripcion'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 
 const props = defineProps({ usoDetalle: Object, empresa: Object, suscripcion: Object, uso: Object, usuarios: Array, pagos: Array, auditoria: Array, planes: Array, medios: Object, verticales: Object, estados: Object })
 const tab = ref('suscripcion')

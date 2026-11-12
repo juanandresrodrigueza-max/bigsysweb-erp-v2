@@ -64,7 +64,7 @@
           <thead><tr><th>Fecha</th><th>Tipo</th><th>Proveedor</th><th class="text-right">Base</th><th class="text-right">%</th><th class="text-right">Monto</th><th>Certificado</th></tr></thead>
           <tbody>
             <tr v-for="r in retenciones" :key="r.id"><td class="tabular-nums">{{ r.fecha }}</td><td>{{ r.tipo }}</td><td>{{ r.proveedor }}<span class="text-marca-muted"> · OP {{ r.pago }}</span></td><td class="text-right tabular-nums">{{ moneda(r.base) }}</td><td class="text-right tabular-nums">{{ r.alicuota }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(r.monto) }}</td><td><a :href="`/contable/fiscal/retenciones/${r.id}/certificado`" target="_blank" class="underline text-violeta">{{ r.certificado || 'Certificado' }}</a></td></tr>
-            <tr v-if="!retenciones.length"><td colspan="7" class="text-center text-marca-muted py-6">Sin retenciones en el período.</td></tr>
+            <tr v-if="!retenciones.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin retenciones en el período." compacto /></td></tr>
           </tbody></table></div>
       </div>
       <div class="card p-0 overflow-hidden">
@@ -73,7 +73,7 @@
           <thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>Jurisd.</th><th class="text-right">Base</th><th class="text-right">%</th><th class="text-right">Monto</th></tr></thead>
  <tbody>
             <tr v-for="p in percepciones" :key="p.id" class="cursor-pointer" @click="$inertia.visit(`/comprobantes/${p.comprobante_id}`)"><td class="tabular-nums">{{ p.fecha }}</td><td class="whitespace-nowrap">{{ p.comprobante }}</td><td>{{ p.cliente }}</td><td>{{ p.jurisdiccion }}</td><td class="text-right tabular-nums">{{ moneda(p.base) }}</td><td class="text-right tabular-nums">{{ p.alicuota }}</td><td class="text-right tabular-nums font-semibold" :class="p.monto < 0 ? 'text-carmin' : ''">{{ moneda(p.monto) }}</td></tr>
-            <tr v-if="!percepciones.length"><td colspan="7" class="text-center text-marca-muted py-6">Sin percepciones en el período. Activalas en Configuración → Impuestos.</td></tr>
+            <tr v-if="!percepciones.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin percepciones en el período. Activalas en Configuración → Impuestos." compacto /></td></tr>
           </tbody></table></div>
       </div>
       <div class="card p-0 overflow-hidden" data-sufridas>
@@ -83,7 +83,7 @@
           <tbody>
             <tr v-for="(r, k) in sufridas.retenciones" :key="'r' + k"><td class="tabular-nums">{{ r.fecha }}</td><td>Retención</td><td>{{ r.agente }}<span class="text-marca-muted"> · {{ r.recibo }}</span></td><td :class="!r.jurisdiccion ? 'text-carmin font-semibold' : ''">{{ nombreJur(r.jurisdiccion) }}</td><td>{{ r.constancia }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(r.monto) }}</td></tr>
             <tr v-for="(p, k) in sufridas.percepciones" :key="'p' + k" class="cursor-pointer" @click="$inertia.visit(`/proveedores/compras/${p.comprobante_id}`)"><td class="tabular-nums">{{ p.fecha }}</td><td>Percepción</td><td>{{ p.agente }}</td><td :class="!p.jurisdiccion ? 'text-carmin font-semibold' : ''">{{ nombreJur(p.jurisdiccion) }}</td><td>{{ p.comprobante }}</td><td class="text-right tabular-nums font-semibold" :class="p.monto < 0 ? 'text-carmin' : ''">{{ moneda(p.monto) }}</td></tr>
-            <tr v-if="!sufridas.retenciones.length && !sufridas.percepciones.length"><td colspan="6" class="text-center text-marca-muted py-6">Sin retenciones ni percepciones de IIBB sufridas en el período.</td></tr>
+            <tr v-if="!sufridas.retenciones.length && !sufridas.percepciones.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin retenciones ni percepciones de IIBB sufridas en el período." compacto /></td></tr>
           </tbody></table></div>
       </div>
     </div>
@@ -94,6 +94,7 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 import { computed as computedS } from 'vue'

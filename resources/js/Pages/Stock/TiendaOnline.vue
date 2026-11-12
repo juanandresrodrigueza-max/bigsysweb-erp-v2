@@ -176,7 +176,7 @@
         </div>
         <div v-if="cargos" class="card p-0 overflow-x-auto"><table class="table text-xs"><thead><tr><th>Fecha</th><th>Venta</th><th>Comprador</th><th>Comprobante</th><th class="text-right">Precio</th><th class="text-right">Cargo</th><th class="text-right">Cuotas</th><th class="text-right">Envío</th><th class="text-right">Retenc.</th><th class="text-right">Recibís</th><th>Libera</th><th class="text-right">Te deja</th></tr></thead>
           <tbody><tr v-for="f in cargos.filas" :key="f.id"><td>{{ f.fecha }}</td><td><Link :href="`/comprobantes/pedidos?abrir=${f.id}`" class="text-violeta">{{ f.venta }}</Link></td><td>{{ f.comprador }}</td><td>{{ f.comprobante ?? '—' }}</td><td class="text-right tabular-nums">{{ moneda(f.precio) }}</td><td class="text-right tabular-nums">{{ moneda(f.cargo_venta) }}</td><td class="text-right tabular-nums">{{ moneda(f.cuotas) }}</td><td class="text-right tabular-nums">{{ moneda(f.envio) }}</td><td class="text-right tabular-nums">{{ moneda(f.retenciones) }}</td><td class="text-right tabular-nums">{{ moneda(f.recibe) }}</td><td>{{ f.libera ?? '—' }}</td><td class="text-right tabular-nums" :class="f.deja < 0 ? 'text-carmin font-semibold' : ''">{{ moneda(f.deja) }}</td></tr>
-          <tr v-if="!cargos.filas.length"><td colspan="12" class="text-center text-marca-muted py-8">Sin ventas con cargos en ese mes.</td></tr></tbody></table></div>
+          <tr v-if="!cargos.filas.length"><td colspan="12" class="!py-0"><EstadoVacio texto="Sin ventas con cargos en ese mes." /></td></tr></tbody></table></div>
       </div>
 
       <div v-else class="card text-center py-10 text-sm text-marca-muted">Esta solapa llega en el próximo paso de la fase.</div>
@@ -215,6 +215,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ canales: Array, canal: Number, rubros: Array, publicaciones: Array, listas: Array })

@@ -39,7 +39,7 @@
               <button v-if="puede('fondos','editar')" @click="eliminar(p)" class="btn-ghost !px-2 text-xs text-carmin">Eliminar</button>
             </td>
           </tr>
-          <tr v-if="!items.length"><td colspan="6" class="text-center text-marca-muted py-10">Todavía no hay previsiones. Cargá el alquiler, los seguros, el monotributo… y el sistema te avisa antes de cada vencimiento.</td></tr>
+          <tr v-if="!items.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Todavía no hay previsiones. Cargá el alquiler, los seguros, el monotributo… y el sistema te avisa antes de cada vencimiento." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -80,6 +80,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 import { moneda, hoyISO } from '@/util/formato'

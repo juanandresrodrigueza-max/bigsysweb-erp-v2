@@ -21,10 +21,10 @@
       <table v-if="tab === 'listo'" class="table text-sm"><thead><tr><th>Fecha</th><th class="text-right">Importe</th><th>Cupón archivo</th><th>Cupón sistema</th><th>Cliente</th><th>Cómo</th><th>Acreditación</th><th></th></tr></thead>
         <tbody><tr v-for="f in r.listo" :key="f.fila"><td>{{ f.fecha_venta }}</td><td class="text-right tabular-nums">{{ moneda(f.importe) }}</td><td>{{ f.cupon }}</td><td>{{ f.cupon_numero }}</td><td>{{ f.cliente }} <span class="text-xs text-marca-muted">{{ f.recibo }}</span></td><td class="text-xs text-marca-muted">{{ f.como }}</td><td class="text-xs">{{ f.acreditacion }}<span v-if="f.comision_de_mas" class="text-carmin"> · +{{ moneda(f.comision_de_mas) }}</span></td><td><button v-if="editable" class="text-xs text-marca-muted hover:text-carmin" @click="resolver(f.fila, null, true)">volver a revisar</button></td></tr>
           <tr v-for="f in r.ya_tildado" :key="'y' + f.fila" class="opacity-60"><td>{{ f.fecha_venta }}</td><td class="text-right tabular-nums">{{ moneda(f.importe) }}</td><td>{{ f.cupon }}</td><td>{{ f.cupon_numero }}</td><td>{{ f.cliente }}</td><td class="text-xs">ya tildado</td><td></td><td></td></tr>
-          <tr v-if="!r.listo.length && !r.ya_tildado.length"><td colspan="8" class="text-center text-marca-muted py-6">Nada cerró todavía.</td></tr></tbody></table>
+          <tr v-if="!r.listo.length && !r.ya_tildado.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Nada cerró todavía." compacto /></td></tr></tbody></table>
       <table v-if="tab === 'no_pagaron'" class="table text-sm"><thead><tr><th>Fecha</th><th>Cupón</th><th>Tarjeta</th><th>Cliente</th><th class="text-right">Monto</th><th class="text-right">Días</th></tr></thead>
         <tbody><tr v-for="c in r.no_pagaron" :key="c.id"><td>{{ c.fecha }}</td><td>{{ c.numero }}</td><td>{{ c.tarjeta }}</td><td>{{ c.cliente }}</td><td class="text-right tabular-nums">{{ moneda(c.monto) }}</td><td class="text-right">{{ c.dias }}</td></tr>
-          <tr v-if="!r.no_pagaron.length"><td colspan="6" class="text-center text-emerald-700 py-6">Te pagaron todo lo del período.</td></tr></tbody></table>
+          <tr v-if="!r.no_pagaron.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Te pagaron todo lo del período." compacto /></td></tr></tbody></table>
       <div v-if="tab === 'acreditaciones'" class="p-4 space-y-2 text-sm">
         <div v-for="a in r.acreditaciones" :key="a.clave" class="border-b border-marca-borde pb-2"><b>{{ a.clave }}</b> <span class="text-xs text-marca-muted">{{ a.fecha_pago }} · {{ a.cupones }} cupones</span><p>{{ a.texto }}</p><p class="text-xs text-marca-muted">Comisión {{ moneda(a.comision) }} · IVA {{ moneda(a.iva) }} · Ret. IVA {{ moneda(a.ret_iva) }} · IIBB {{ moneda(a.ret_iibb) }} · Gan. {{ moneda(a.ret_ganancias) }}<span v-if="a.otros"> · otros {{ moneda(a.otros) }}</span></p></div>
         <p v-if="!r.acreditaciones.length" class="text-marca-muted">Sin acreditaciones.</p>
@@ -32,7 +32,7 @@
       <table v-if="tab === 'revisar'" class="table text-sm"><thead><tr><th>Fecha</th><th class="text-right">Importe</th><th>Cupón</th><th>Por qué</th><th>Qué hacer</th></tr></thead>
         <tbody><tr v-for="f in r.revisar" :key="f.fila" data-e2e="fila-revisar"><td>{{ f.fecha_venta }}</td><td class="text-right tabular-nums">{{ moneda(f.importe) }}</td><td>{{ f.cupon ?? '—' }}</td><td class="text-xs">{{ f.motivo }}</td>
           <td class="text-xs"><template v-if="editable"><button v-for="c in f.candidatos" :key="c.id" class="block text-violeta font-semibold" @click="resolver(f.fila, c.id)">Es el {{ c.numero }} · {{ c.fecha }} · {{ c.cliente }}</button><button class="block text-marca-muted" @click="resolver(f.fila, null)" data-e2e="descartar">No es de este sistema</button></template></td></tr>
-          <tr v-if="!r.revisar.length"><td colspan="5" class="text-center text-emerald-700 py-6">Nada para revisar.</td></tr></tbody></table>
+          <tr v-if="!r.revisar.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Nada para revisar." compacto /></td></tr></tbody></table>
     </div>
 
     <!-- 35.4 Asentar -->
@@ -58,6 +58,7 @@
 import { ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 const props = defineProps({ lote: Object, previa: Object, bancos: Array })

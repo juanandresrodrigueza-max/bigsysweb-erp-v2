@@ -29,7 +29,7 @@
       </div>
       <table class="table text-sm mb-3"><thead><tr><th>Usuario</th><th class="text-right">Anuló</th><th class="text-right">Modificó después</th><th class="text-right">A deshora</th><th class="text-right">Fecha atrasada</th></tr></thead>
         <tbody><tr v-for="u in control.por_usuario" :key="u.usuario"><td class="font-medium">{{ u.usuario }}</td><td class="text-right tabular-nums" :class="u.anulados ? 'text-carmin font-bold' : ''">{{ u.anulados }}</td><td class="text-right tabular-nums" :class="u.modificados ? 'text-amber-700 font-bold' : ''">{{ u.modificados }}</td><td class="text-right tabular-nums" :class="u.deshora ? 'text-amber-700 font-bold' : ''">{{ u.deshora }}</td><td class="text-right tabular-nums" :class="u.atrasados ? 'text-amber-700 font-bold' : ''">{{ u.atrasados }}</td></tr>
-        <tr v-if="!control.por_usuario.length"><td colspan="5" class="text-center text-emerald-700 py-6">Nada raro en estos días.</td></tr></tbody></table>
+        <tr v-if="!control.por_usuario.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Nada raro en estos días." compacto /></td></tr></tbody></table>
       <div class="flex gap-1.5 text-xs mb-2"><button v-for="t in [['anulados', 'Anulados'], ['modificados', 'Modificados después'], ['deshora', 'A deshora'], ['atrasados', 'Fecha atrasada']]" :key="t[0]" class="rounded-full px-2.5 py-1 font-semibold border" :class="tab === t[0] ? 'bg-marca-texto text-white border-marca-texto' : 'border-marca-borde'" @click="tab = t[0]">{{ t[1] }} ({{ control[t[0]].length }})</button></div>
       <div class="max-h-72 overflow-y-auto text-xs">
         <div v-for="(r, i) in control[tab]" :key="i" class="flex justify-between gap-2 py-1 border-t border-marca-borde"><span><b>{{ r.usuario }}</b> · {{ r.cuando }} · {{ r.descripcion ?? (r.numero + ' (' + r.motivo + ')') }}</span><span v-if="r.total !== undefined" class="tabular-nums">{{ moneda(r.total, 0) }}</span></div>
@@ -43,6 +43,7 @@
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda } from '@/util/formato'
 defineProps({ hallazgos: Object, control: Object })

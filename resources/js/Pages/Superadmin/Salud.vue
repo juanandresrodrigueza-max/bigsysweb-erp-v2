@@ -66,7 +66,7 @@
           <td><span v-if="c.verificada === null" class="text-marca-muted">—</span><span v-else-if="c.verificada" class="text-emerald-700">✓ se abre y cuadra</span><span v-else class="text-carmin" :title="c.problemas.join(' ')">✗ {{ c.problemas[0] }}</span></td>
           <td><span v-if="!c.ensayo" class="text-marca-muted">sin ensayo</span><span v-else :class="c.ensayo.ok ? 'text-emerald-700' : 'text-carmin'">{{ c.ensayo.ok ? '✓' : '✗' }} hace {{ c.ensayo.hace_dias }} d</span></td>
           <td>{{ c.remoto ? '✓' : (copias.remoto ? '✗ no subida' : '—') }}</td></tr>
-          <tr v-if="!copias.empresas.length"><td colspan="6" class="text-center text-marca-muted py-4">Sin empresas activas.</td></tr></tbody>
+          <tr v-if="!copias.empresas.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin empresas activas." compacto /></td></tr></tbody>
       </table>
       <p class="px-4 py-2 text-[11px] text-marca-muted">A las 3:00 se hace la copia de cada empresa y se verifica en el acto; a las 3:40 se vuelven a comprobar todas; los domingos a las 5:10 se ensaya restaurar cada una en una transacción que se deshace. Una copia que no abre o no cuadra pone la salud en crítico.</p>
     </div>
@@ -86,7 +86,7 @@
             </tr>
             <tr v-if="abierto === e.id"><td colspan="5" class="bg-marca-fondo"><pre class="text-[11px] whitespace-pre-wrap max-h-64 overflow-auto">{{ e.traza }}</pre></td></tr>
           </template>
-          <tr v-if="!errores.length"><td colspan="5" class="text-center text-marca-muted py-8">Sin errores registrados. 🙂</td></tr>
+          <tr v-if="!errores.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Sin errores registrados. 🙂" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -97,6 +97,7 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ salud: Object, errores: Array, monitoreo: Object, copias: { type: Object, default: () => ({ empresas: [], remoto: false, disco: null }) }, paginas: { type: Object, default: () => ({ ronda: null, paginas: [], lentas: 0, umbral: 300 }) } })
 const form = useForm({ sentry_dsn: '', monitoreo_email: props.monitoreo.email ?? '', salud_token: props.monitoreo.salud_token ?? '' })
 const abierto = ref(null)

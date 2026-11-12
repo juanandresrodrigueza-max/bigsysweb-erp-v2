@@ -23,7 +23,7 @@
               <td class="text-right tabular-nums text-marca-muted">{{ cantidad(m.despues) }}</td>
               <td class="text-xs text-marca-muted">{{ m.usuario }}</td>
             </tr>
-            <tr v-if="!movimientos.data.length"><td colspan="7" class="text-center text-marca-muted py-10">Sin movimientos con estos filtros.</td></tr>
+            <tr v-if="!movimientos.data.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin movimientos con estos filtros." :filtros="f" /></td></tr>
           </tbody>
         </table>
         <div class="px-4"><Paginacion :links="movimientos.links" :desde="movimientos.from" :hasta="movimientos.to" :total="movimientos.total" /></div>
@@ -45,6 +45,7 @@
 import { reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import { cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'

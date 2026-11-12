@@ -79,7 +79,7 @@
           <thead><tr><th>Jurisdicción</th><th class="text-right">CUIT cargados</th><th>Actualizado</th></tr></thead>
           <tbody>
             <tr v-for="p in padrones" :key="p.jurisdiccion"><td>{{ p.nombre }}</td><td class="text-right tabular-nums">{{ entero(p.n) }}</td><td class="text-marca-muted">{{ p.actualizado }}</td></tr>
-            <tr v-if="!padrones.length"><td colspan="3" class="text-center text-marca-muted py-4">Todavía no hay padrones cargados.</td></tr>
+            <tr v-if="!padrones.length"><td colspan="3" class="!py-0"><EstadoVacio texto="Todavía no hay padrones cargados." compacto /></td></tr>
           </tbody>
         </table>
         <form @submit.prevent="padron.post('/configuracion/impuestos/padron', { forceFormData: true, preserveScroll: true, onSuccess: () => padron.reset() })" class="grid sm:grid-cols-3 gap-3 items-end">
@@ -102,7 +102,7 @@
         <div class="max-h-64 overflow-y-auto">
           <table class="table text-sm"><thead><tr><th>Período</th><th class="text-right">Índice</th><th>Fuente</th></tr></thead>
             <tbody><tr v-for="i in ipc_lista" :key="i.periodo"><td class="tabular-nums">{{ i.periodo }}</td><td class="text-right tabular-nums">{{ Number(i.valor).toLocaleString('es-AR', { minimumFractionDigits: 2 }) }}</td><td class="text-marca-muted">{{ i.fuente }}</td></tr>
-            <tr v-if="!ipc_lista.length"><td colspan="3" class="text-center text-marca-muted py-4">Sin índices cargados.</td></tr></tbody></table>
+            <tr v-if="!ipc_lista.length"><td colspan="3" class="!py-0"><EstadoVacio texto="Sin índices cargados." compacto /></td></tr></tbody></table>
         </div>
       </div>
     </div>
@@ -112,6 +112,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { entero } from '@/util/formato'
 const props = defineProps({ arba: { type: Object, default: () => ({}) }, config: Object, cbu_fce: String, cierre_mes: Number, jurisdicciones: Object, padrones: Array, ipc: Array })
 const ipc_lista = props.ipc

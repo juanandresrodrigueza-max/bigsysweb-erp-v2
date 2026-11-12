@@ -47,7 +47,7 @@
       <div class="card p-0 overflow-x-auto"><table class="table text-xs">
         <thead><tr><th>Artículo</th><th>Proveedor</th><th class="text-right">Stock</th><th class="text-right">Mínimo</th><th class="text-right">Venta/día</th><th class="text-right">Días de stock</th><th class="text-right">Pedir</th><th class="text-right">Costo</th></tr></thead>
         <tbody><tr v-for="f in datos.filas" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="hover:underline">{{ f.nombre }}</Link><span class="text-marca-muted"> {{ f.sku }}</span></td><td class="text-marca-muted">{{ f.proveedor ?? '—' }}</td><td class="text-right tabular-nums" :class="f.stock <= f.minimo ? 'text-carmin font-semibold' : ''">{{ cantidad(f.stock) }}</td><td class="text-right tabular-nums">{{ cantidad(f.minimo) }}</td><td class="text-right tabular-nums">{{ f.venta_diaria }}</td><td class="text-right tabular-nums" :class="f.dias_stock !== null && f.dias_stock < 7 ? 'text-amber-600 font-semibold' : ''">{{ f.dias_stock ?? '—' }}</td><td class="text-right tabular-nums font-bold">{{ cantidad(f.pedir) }}</td><td class="text-right tabular-nums">{{ moneda(f.costo, 0) }}</td></tr>
-        <tr v-if="!datos.filas.length"><td colspan="8" class="text-center text-marca-muted py-8">Nada que reponer con el ritmo de venta actual.</td></tr></tbody></table></div>
+        <tr v-if="!datos.filas.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Nada que reponer con el ritmo de venta actual." /></td></tr></tbody></table></div>
     </template>
 
     <!-- Muertos -->
@@ -60,7 +60,7 @@
       <div class="card p-0 overflow-x-auto"><table class="table text-xs">
         <thead><tr><th>Artículo</th><th class="text-right">Stock</th><th class="text-right">Valor</th><th>Última venta</th><th></th></tr></thead>
         <tbody><tr v-for="f in datos.filas" :key="f.id"><td>{{ f.nombre }}<span class="text-marca-muted"> {{ f.sku }}</span></td><td class="text-right tabular-nums">{{ cantidad(f.stock) }} {{ f.unit }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(f.valor, 0) }}</td><td class="tabular-nums text-marca-muted">{{ f.ultima_venta ? f.ultima_venta.split('-').reverse().join('/') : 'nunca' }}</td><td class="text-right"><Link :href="`/stock/etiquetas?ids=${f.id}`" class="btn-ghost !px-2 text-xs">Etiqueta oferta</Link></td></tr>
-        <tr v-if="!datos.filas.length"><td colspan="5" class="text-center text-marca-muted py-8">Todo lo que hay en stock se movió en el período.</td></tr></tbody></table></div>
+        <tr v-if="!datos.filas.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Todo lo que hay en stock se movió en el período." /></td></tr></tbody></table></div>
     </template>
 
     <!-- Mínimos -->
@@ -75,7 +75,7 @@
       <div class="card p-0 overflow-x-auto"><table class="table text-xs">
         <thead><tr><th><input type="checkbox" @change="todos($event.target.checked)" /></th><th>Artículo</th><th class="text-right">Venta/día</th><th v-if="datos.metodo === 'estadistico'" class="text-right">Desvío</th><th class="text-right">Mínimo actual</th><th class="text-right">Sugerido</th></tr></thead>
         <tbody><tr v-for="f in datos.filas" :key="f.id"><td><input type="checkbox" :checked="sel[f.id] !== undefined" @change="$event.target.checked ? (sel[f.id] = f.sugerido) : delete sel[f.id]" /></td><td>{{ f.nombre }}<span class="text-marca-muted"> {{ f.sku }}</span></td><td class="text-right tabular-nums">{{ f.venta_diaria }}</td><td v-if="datos.metodo === 'estadistico'" class="text-right tabular-nums text-marca-muted">{{ f.desvio }}</td><td class="text-right tabular-nums">{{ cantidad(f.actual) }}</td><td class="text-right tabular-nums font-bold" :class="f.sugerido > f.actual ? 'text-carmin' : 'text-emerald-700'">{{ cantidad(f.sugerido) }}</td></tr>
-        <tr v-if="!datos.filas.length"><td colspan="5" class="text-center text-marca-muted py-8">Los mínimos ya están alineados con la venta.</td></tr></tbody></table></div>
+        <tr v-if="!datos.filas.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Los mínimos ya están alineados con la venta." /></td></tr></tbody></table></div>
     </template>
 
     <!-- Vencimientos -->
@@ -87,7 +87,7 @@
       <div class="card p-0 overflow-x-auto"><table class="table text-xs">
         <thead><tr><th>Artículo</th><th>Partida</th><th>Depósito</th><th>Vence</th><th class="text-right">Cantidad</th><th class="text-right">Valor</th></tr></thead>
         <tbody><tr v-for="f in datos.filas" :key="f.id" :class="f.vencido ? 'bg-red-50' : ''"><td><Link :href="`/stock/${f.product_id}`" class="hover:underline">{{ f.nombre }}</Link><span class="text-marca-muted"> {{ f.sku }}</span></td><td>{{ f.lote || f.serie || '—' }}</td><td class="text-marca-muted">{{ f.deposito }}</td><td class="tabular-nums" :class="f.vencido ? 'text-carmin font-bold' : f.dias <= 7 ? 'text-amber-600 font-semibold' : ''">{{ f.vencimiento }} <span class="text-[10px]">{{ f.vencido ? '(vencido)' : `(${f.dias} días)` }}</span></td><td class="text-right tabular-nums">{{ cantidad(f.cantidad) }} {{ f.unit }}</td><td class="text-right tabular-nums">{{ moneda(f.valor, 0) }}</td></tr>
-        <tr v-if="!datos.filas.length"><td colspan="6" class="text-center text-marca-muted py-8">Nada vence en el período.</td></tr></tbody></table></div>
+        <tr v-if="!datos.filas.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Nada vence en el período." /></td></tr></tbody></table></div>
     </template>
   </AppLayout>
 </template>
@@ -96,6 +96,7 @@
 import { reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda, cantidad } from '@/util/formato'
 const props = defineProps({ tipo: String, datos: Object, filtros: Object, rubros: Array })
 const tipos = [{ k: 'valorizado', label: 'Valorizado' }, { k: 'abc', label: 'ABC' }, { k: 'faltantes', label: 'Faltantes y compra' }, { k: 'muertos', label: 'Sin movimiento' }, { k: 'minimos', label: 'Mínimos sugeridos' }, { k: 'vencimientos', label: 'Vencimientos' }]

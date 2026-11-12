@@ -17,7 +17,7 @@
         <thead><tr><th>Fecha</th><th>Usuario</th><th>Artículo</th><th class="text-right">Lista</th><th class="text-right">Facturado</th><th class="text-right">Cant.</th><th class="text-right">Diferencia</th><th>Detalle</th></tr></thead>
         <tbody>
           <tr v-for="n in novedades.data" :key="n.id" class="cursor-pointer" @click="n.url && $inertia.visit(n.url)"><td class="tabular-nums whitespace-nowrap">{{ n.fecha }}</td><td>{{ n.usuario }}</td><td class="font-medium">{{ n.articulo }}</td><td class="text-right tabular-nums">{{ moneda(n.lista) }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(n.facturado) }}</td><td class="text-right tabular-nums">{{ cantidad(n.cantidad) }}</td><td class="text-right tabular-nums font-bold" :class="n.diferencia < 0 ? 'text-carmin' : 'text-emerald-700'">{{ moneda(n.diferencia) }}</td><td class="text-marca-muted">{{ n.descripcion }}</td></tr>
-          <tr v-if="!novedades.data.length"><td colspan="8" class="text-center text-marca-muted py-8">Nadie modificó precios al facturar en el período.</td></tr>
+          <tr v-if="!novedades.data.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Nadie modificó precios al facturar en el período." /></td></tr>
         </tbody>
       </table>
       <Paginacion v-bind="novedades" />
@@ -28,6 +28,7 @@
 <script setup>
 import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import { moneda, cantidad } from '@/util/formato'

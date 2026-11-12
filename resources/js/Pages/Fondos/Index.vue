@@ -46,7 +46,7 @@
                 <td class="text-right tabular-nums text-carmin font-semibold">{{ m.egreso ? moneda(m.egreso) : '' }}</td>
                 <td class="text-xs text-marca-muted">{{ m.usuario }}</td>
               </tr>
-              <tr v-if="!movimientos?.data?.length"><td colspan="6" class="text-center text-marca-muted py-10">Sin movimientos.</td></tr>
+              <tr v-if="!movimientos?.data?.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin movimientos." /></td></tr>
             </tbody>
           </table>
         </div>
@@ -183,6 +183,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'

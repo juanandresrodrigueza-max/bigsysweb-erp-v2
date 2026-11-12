@@ -18,7 +18,7 @@
             <td class="text-right tabular-nums">{{ moneda(c.total) }}</td>
             <td class="text-right"><button v-if="puede('comprobantes','crear')" @click="abrir(c)" class="btn-primary !py-1 text-xs">{{ tab === 'remitos' ? 'Facturar' : 'Entregar' }}</button></td>
           </tr>
-          <tr v-if="!lista.length"><td colspan="6" class="text-center text-marca-muted py-10">Nada pendiente. 🎉</td></tr>
+          <tr v-if="!lista.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Nada pendiente. 🎉" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -38,6 +38,7 @@
 import { ref, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'

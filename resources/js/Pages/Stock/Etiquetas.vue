@@ -22,7 +22,7 @@
           <tbody><tr v-for="a in articulos" :key="a.k"><td><input type="checkbox" :checked="cant[a.k] > 0" @change="cant[a.k] = $event.target.checked ? (a.cantidad || 1) : 0" /></td>
             <td>{{ a.nombre }}<span class="text-marca-muted"> · {{ a.rubro }}</span><span v-if="a.serie" class="block font-mono text-marca-muted">S/N {{ a.serie }}</span><span v-else-if="a.lote || a.vence" class="block text-marca-muted">{{ a.lote ? 'Lote ' + a.lote : '' }} {{ a.vence ? '· vence ' + a.vence : '' }}</span></td>
             <td class="tabular-nums">{{ a.barcode }}</td><td class="text-right tabular-nums">{{ moneda(a.precio) }}<span v-if="a.medida" class="block text-marca-muted">{{ moneda(a.medida.precio) }}/{{ a.medida.unidad }}</span></td><td><input v-model.number="cant[a.k]" type="number" min="0" class="input !py-1 text-right" /></td></tr>
-          <tr v-if="!articulos.length"><td colspan="5" class="text-center text-marca-muted py-6">Sin artículos con ese filtro.</td></tr></tbody></table></div>
+          <tr v-if="!articulos.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Sin artículos con ese filtro." compacto /></td></tr></tbody></table></div>
       </div>
       <div class="card">
         <h2 class="font-bold mb-3">Diseño y formato</h2>
@@ -52,6 +52,7 @@ import { ref, reactive, computed, h, onMounted, onUpdated, defineComponent, watc
 import { Link, router } from '@inertiajs/vue3'
 import JsBarcode from 'jsbarcode'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ articulos: Array, rubros: Array, filtros: Object, empresa: Object, origen: String, preseleccion: Boolean })
 const q = ref(props.filtros.q ?? ''); const rubro = ref(props.filtros.rubro ?? ''); const lista = ref(Number(props.filtros.lista ?? 1))

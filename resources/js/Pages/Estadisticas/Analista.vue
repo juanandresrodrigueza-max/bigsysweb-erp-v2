@@ -50,7 +50,7 @@
           <thead><tr><th>Artículo</th><th class="text-right">Días</th><th class="text-right">Pedir</th><th class="text-right">Costo</th></tr></thead>
           <tbody>
             <tr v-for="f in compra.filas" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="font-medium hover:underline">{{ f.nombre }}</Link><p class="text-[10px] text-marca-muted">{{ f.proveedor || 'Sin proveedor' }}</p></td><td class="text-right tabular-nums" :class="f.dias_stock !== null && f.dias_stock < 7 ? 'text-carmin font-bold' : ''">{{ f.dias_stock ?? '∞' }}</td><td class="text-right tabular-nums">{{ f.pedir }}</td><td class="text-right tabular-nums">{{ moneda(f.costo, 0) }}</td></tr>
-            <tr v-if="!compra.filas.length"><td colspan="4" class="text-center text-marca-muted py-6">Stock cubierto para los próximos 30 días.</td></tr>
+            <tr v-if="!compra.filas.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Stock cubierto para los próximos 30 días." compacto /></td></tr>
           </tbody>
         </table>
         <div v-if="compra.n > compra.filas.length" class="px-4 py-2 text-xs text-marca-muted border-t border-marca-borde">Mostrando {{ compra.filas.length }} de {{ compra.n }}. <Link href="/stock/informes?tipo=faltantes&estacional=1" class="underline">Ver todo y armar el pedido</Link></div>
@@ -63,6 +63,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ hallazgos: Array, informe: Object, ia: Boolean, resumen: Object, compra: Object, ayer: Object })

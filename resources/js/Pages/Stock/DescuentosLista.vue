@@ -38,7 +38,7 @@
             <td class="text-xs">{{ vigencia(r) }}</td>
             <td class="text-right whitespace-nowrap"><button class="text-xs text-violeta" @click="editar(r)">editar</button> <button class="text-xs text-carmin ml-1" @click="router.delete(`/stock/descuentos-lista/${r.id}`, { preserveScroll: true })">quitar</button></td>
           </tr>
-          <tr v-if="!reglas.length"><td colspan="8" class="text-center text-marca-muted py-8">Sin descuentos especiales. Cada lista vende a su precio.</td></tr>
+          <tr v-if="!reglas.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Sin descuentos especiales. Cada lista vende a su precio." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -49,6 +49,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import BuscadorSelect from '@/Components/BuscadorSelect.vue'
 import { moneda, cantidad } from '@/util/formato'
 

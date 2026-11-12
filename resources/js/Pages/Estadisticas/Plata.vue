@@ -49,7 +49,7 @@
         <p class="text-2xl font-black tabular-nums mt-1">{{ moneda(cobradores.total, 0) }} <span class="text-sm font-normal text-marca-muted">cobrados en el período</span></p>
         <table class="table text-sm mt-1"><thead><tr><th>Cobrador</th><th class="text-right">Cobrado</th><th class="text-right">Parte</th><th class="text-right">Recibos</th><th class="text-right">Clientes</th></tr></thead>
           <tbody><tr v-for="c in cobradores.items" :key="c.nombre"><td class="font-medium">{{ c.nombre }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(c.monto, 0) }}</td><td class="text-right tabular-nums">{{ c.parte }}%</td><td class="text-right tabular-nums">{{ c.recibos }}</td><td class="text-right tabular-nums">{{ c.clientes }}</td></tr>
-          <tr v-if="!cobradores.items.length"><td colspan="5" class="text-center text-marca-muted py-6">Sin recibos en el período.</td></tr></tbody></table>
+          <tr v-if="!cobradores.items.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Sin recibos en el período." compacto /></td></tr></tbody></table>
       </div>
     </div>
   </AppLayout>
@@ -58,6 +58,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'

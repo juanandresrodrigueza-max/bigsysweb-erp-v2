@@ -138,7 +138,7 @@
         <p v-if="aj.prev.no_encontrados.length" class="text-xs text-carmin mb-1">No encontré: {{ aj.prev.no_encontrados.slice(0, 15).join(', ') }}{{ aj.prev.no_encontrados.length > 15 ? '…' : '' }}</p>
         <div class="overflow-x-auto max-h-80"><table class="table text-sm"><thead><tr><th>Artículo</th><th class="text-right">Hay</th><th class="text-right">Queda</th><th class="text-right">Diferencia</th></tr></thead>
           <tbody><tr v-for="c in aj.prev.cambios" :key="c.product_id"><td>{{ c.articulo }} <span class="text-xs text-marca-muted">{{ c.codigo }}</span></td><td class="text-right tabular-nums">{{ c.actual }}</td><td class="text-right tabular-nums font-semibold">{{ c.nuevo }}</td><td class="text-right tabular-nums" :class="c.diferencia < 0 ? 'text-carmin' : 'text-emerald-700'">{{ c.diferencia > 0 ? '+' : '' }}{{ c.diferencia }}</td></tr>
-            <tr v-if="!aj.prev.cambios.length"><td colspan="4" class="text-center text-marca-muted py-4">El stock ya está como dice la planilla.</td></tr></tbody></table></div>
+            <tr v-if="!aj.prev.cambios.length"><td colspan="4" class="!py-0"><EstadoVacio texto="El stock ya está como dice la planilla." compacto /></td></tr></tbody></table></div>
         <button v-if="aj.prev.cambios.length" class="btn-primary mt-2" @click="router.post('/stock/precios/stock', { deposito_id: aj.prev.deposito_id, cambios: aj.prev.cambios }, { preserveScroll: true, onSuccess: () => aj.prev = null })" data-e2e="aj-aplicar">Dejar el stock de {{ aj.prev.cambios.length }} artículos como dice la planilla</button>
       </div>
     </div>
@@ -149,6 +149,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 
 const props = defineProps({ rubros: Array, proveedores: Array, marcas: Array, campos: Object, historial: Array, ids: Array, inicial: Object, depositos: { type: Array, default: () => [] } })

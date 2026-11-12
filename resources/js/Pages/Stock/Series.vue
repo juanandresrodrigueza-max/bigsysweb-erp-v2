@@ -26,7 +26,7 @@
             <td class="text-xs"><span v-if="s.garantia_hasta" :class="s.en_garantia ? 'text-emerald-700 font-semibold' : 'text-marca-muted'">{{ s.en_garantia ? 'hasta ' : 'venció ' }}{{ s.garantia_hasta }}</span><span v-else class="text-marca-muted">—</span></td>
             <td class="text-right text-xs text-violeta font-semibold">Ver</td>
           </tr>
-          <tr v-if="!series.length"><td colspan="7" class="text-center text-marca-muted py-8">Sin números de serie para mostrar. Se cargan al recibir la compra de un artículo marcado "Con número de serie".</td></tr>
+          <tr v-if="!series.length"><td colspan="7" class="!py-0"><EstadoVacio texto='Sin números de serie para mostrar. Se cargan al recibir la compra de un artículo marcado "Con número de serie".' /></td></tr>
         </tbody>
       </table>
     </div>
@@ -59,6 +59,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 
 const props = defineProps({ series: Array, filtros: Object, kpis: Object })

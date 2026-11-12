@@ -10,7 +10,7 @@
         <thead><tr><th>Fecha</th><th>Empresa</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th>IP</th></tr></thead>
         <tbody>
           <tr v-for="l in logs.data" :key="l.id"><td class="text-marca-muted whitespace-nowrap">{{ l.fecha }}</td><td class="font-medium">{{ l.empresa }}</td><td>{{ l.usuario }}</td><td><span class="badge bg-marca-fondo">{{ l.accion }}</span></td><td>{{ l.descripcion }}</td><td class="text-xs text-marca-muted">{{ l.ip }}</td></tr>
-          <tr v-if="!logs.data.length"><td colspan="6" class="text-center text-marca-muted py-8">Sin registros.</td></tr>
+          <tr v-if="!logs.data.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Sin registros." :filtros="f" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -22,6 +22,7 @@ import { reactive } from 'vue'
 import { router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Paginacion from '@/Components/Paginacion.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ logs: Object, filtros: Object, empresas: Array })
 const f = reactive({ empresa: props.filtros.empresa ?? '', accion: props.filtros.accion ?? '' })
 function filtrar() { router.get('/admin/auditoria', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }

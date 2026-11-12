@@ -59,7 +59,7 @@
                 <td class="tabular-nums">{{ e.legajo }}</td><td class="font-medium">{{ e.nombre }}<p class="text-xs text-marca-muted">{{ e.cuil }}<span v-if="e.puesto"> · {{ e.puesto }}</span></p></td><td class="text-xs">{{ e.categoria }}<p class="text-marca-muted">{{ e.convenio }}</p></td><td class="tabular-nums text-xs">{{ fmt(e.fecha_ingreso) }} <span class="text-marca-muted">({{ e.antiguedad }} a.)</span></td><td class="text-right tabular-nums">{{ moneda(e.sueldo_basico, 0) }}</td><td class="text-right tabular-nums" :class="e.anticipos ? 'text-amber-700 font-semibold' : 'text-marca-muted'">{{ e.anticipos ? moneda(e.anticipos, 0) : '—' }}</td>
                 <td class="text-right whitespace-nowrap"><button class="btn-ghost !px-2 text-xs" @click="anticipo = { id: e.id, nombre: e.nombre, monto: null, cuenta_id: cuentas[0]?.id ?? null, fecha: hoyISO() }">Anticipo</button><button class="btn-ghost !px-2 text-xs" @click="abrirEmpleado(e)">Editar</button></td>
               </tr>
-              <tr v-if="!empleados.length"><td colspan="7" class="text-center text-marca-muted py-8">Todavía no cargaste empleados.</td></tr>
+              <tr v-if="!empleados.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no cargaste empleados." /></td></tr>
             </tbody>
           </table>
         </div>
@@ -254,6 +254,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'

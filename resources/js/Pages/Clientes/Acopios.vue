@@ -19,7 +19,7 @@
             <tr v-if="abierto === c.id"><td colspan="5" class="bg-gris-light/50"><div v-for="a in c.acopios" :key="a.id" class="mb-2"><p class="text-xs font-semibold">Acopio #{{ a.id }} · {{ a.fecha }} · {{ a.factura }} · {{ a.estado }}<span v-if="a.ultimo_retiro"> · último retiro {{ a.ultimo_retiro }}</span></p>
               <table class="table text-xs"><thead><tr><th>Qué le queda por retirar</th><th class="text-right">Acopiado</th><th class="text-right">Retirado</th><th class="text-right">Le queda</th></tr></thead><tbody><tr v-for="(it, i) in a.items" :key="i" :class="it.negativo ? 'text-carmin' : ''"><td>{{ it.articulo }}</td><td class="text-right tabular-nums">{{ it.acopiado }} {{ it.unidad }}</td><td class="text-right tabular-nums">{{ it.retirado }}</td><td class="text-right tabular-nums font-bold">{{ it.pendiente }} {{ it.unidad }}</td></tr></tbody></table>
               <Link :href="`/clientes/${c.id}#acopios`" class="text-xs text-violeta font-semibold">Armar retiro en la ficha →</Link></div></td></tr></template>
-            <tr v-if="!clientes.length"><td colspan="5" class="text-center text-marca-muted py-8">No hay acopios. Se crean al facturar con "Es acopio".</td></tr></tbody></table>
+            <tr v-if="!clientes.length"><td colspan="5" class="!py-0"><EstadoVacio texto='No hay acopios. Se crean al facturar con "Es acopio".' /></td></tr></tbody></table>
       </div>
       <div class="card self-start" data-e2e="comprometido"><h2 class="font-bold mb-1">Stock comprometido en acopio</h2><p class="text-xs text-marca-muted mb-2">Lo que ya vendiste y todavía está acá. Disponible = stock − comprometido.</p>
         <div v-for="a in articulos" :key="a.id" class="flex justify-between text-sm border-t border-marca-borde py-1"><span>{{ a.articulo }}</span><span class="tabular-nums text-right"><span class="text-xs text-marca-muted">stock {{ a.stock }} · comprometido {{ a.comprometido }}</span><b class="block" :class="a.falta ? 'text-carmin' : ''">{{ a.disponible }} {{ a.unidad }}</b></span></div>
@@ -31,6 +31,7 @@
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 defineProps({ clientes: Array, articulos: Array, avisos: Array, totales: Object })
 const abierto = ref(null)

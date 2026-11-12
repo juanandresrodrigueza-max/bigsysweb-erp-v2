@@ -14,7 +14,7 @@
               <td><span class="badge" :class="p.activo ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ p.activo ? 'Activo' : 'Inactivo' }}</span></td>
               <td class="text-right"><button @click="abrir(p)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
             </tr>
-            <tr v-if="!puntos.length"><td colspan="5" class="text-center text-marca-muted py-6">Sin puntos de venta. Creá el 0001 para empezar.</td></tr>
+            <tr v-if="!puntos.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Sin puntos de venta. Creá el 0001 para empezar." compacto /></td></tr>
           </tbody>
         </table>
       </div>
@@ -67,6 +67,7 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 

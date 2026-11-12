@@ -18,7 +18,7 @@
             <td>{{ l.descripcion }} <span v-if="l.modelo" class="text-xs text-marca-muted">({{ l.modelo }})</span></td>
             <td class="text-xs text-marca-muted">{{ l.ip }}</td>
           </tr>
-          <tr v-if="!logs.data.length"><td colspan="5" class="text-center text-marca-muted py-8">Sin registros.</td></tr>
+          <tr v-if="!logs.data.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Sin registros." :filtros="f" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -32,6 +32,7 @@
 import { reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ logs: Object, usuarios: Array, filtros: Object })
 const f = reactive({ usuario: props.filtros.usuario ?? '', accion: props.filtros.accion ?? '' })
 function filtrar() { router.get('/configuracion/auditoria', f, { preserveState: true, replace: true }) }

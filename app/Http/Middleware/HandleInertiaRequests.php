@@ -49,6 +49,7 @@ class HandleInertiaRequests extends Middleware
             ] : null,
             'nav' => fn() => $user ? $this->nav($user) : [],
             'subnav' => fn() => $user && $user->business_id ? $this->subnav($user, $request) : null, // Fase 80
+            'tip' => fn() => $user && $user->business_id && ! $user->is_superadmin ? \App\Services\Producto\AyudaService::tipDelDia($user) : null, // Fase 81
             // Contador con varias empresas: selector en el encabezado.
             'empresas' => fn() => $user && ($user->business_id) ? (function () use ($user) { $l = $user->empresasAccesibles(); return $l->count() > 1 ? $l->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name, 'cuit' => $b->cuit])->values() : null; })() : null,
             'tour' => fn() => $user && $user->business_id && ! $user->tour_visto_en ? \App\Services\Producto\AyudaService::tour() : null,

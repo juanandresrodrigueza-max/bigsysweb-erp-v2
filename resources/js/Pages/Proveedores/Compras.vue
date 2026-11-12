@@ -41,7 +41,7 @@
             <td class="text-right font-semibold tabular-nums">{{ moneda(c.total) }}</td><td class="text-right tabular-nums" :class="c.saldo > 0 ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ c.estado_pago !== 'na' ? moneda(c.saldo) : '' }}</td>
             <td><span class="badge" :class="estadoComprobante[c.estado].clase">{{ c.estado === 'emitido' ? 'Registrada' : estadoComprobante[c.estado].label }}</span> <span v-if="c.estado === 'emitido' && c.estado_pago !== 'na'" class="badge ml-1" :class="estadoCobro[c.estado_pago].clase">{{ { pendiente: 'A pagar', parcial: 'Parcial', cobrado: 'Pagada' }[c.estado_pago] }}</span></td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="7" class="text-center text-marca-muted py-10">No hay compras con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no hay facturas de compra." :filtros="f" :accion="puede('proveedores','crear') ? { label: 'Nueva factura de compra', href: '/proveedores/compras/nueva' } : null" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -111,6 +111,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import Paginacion from '@/Components/Paginacion.vue'

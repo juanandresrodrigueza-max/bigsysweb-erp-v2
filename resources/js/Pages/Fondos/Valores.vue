@@ -29,7 +29,7 @@
             <td><Link v-if="c.contact_id && c.tipo === 'tercero'" :href="`/clientes/${c.contact_id}`" class="hover:underline">{{ c.origen }}</Link><span v-else>{{ c.origen }}</span></td>
             <td><Link v-if="c.pago_id && c.contact_id" :href="`/proveedores/${c.contact_id}`" class="hover:underline">{{ c.destino }}</Link><span v-else>{{ c.destino }}</span><span v-if="c.notas" class="text-marca-muted"> · {{ c.notas }}</span></td>
           </tr>
-          <tr v-if="!cheques.length"><td colspan="7" class="text-center text-marca-muted py-8">Sin cheques con ese filtro.</td></tr>
+          <tr v-if="!cheques.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin cheques con ese filtro." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -43,7 +43,7 @@
             <td><Link v-if="c.contact_id" :href="`/clientes/${c.contact_id}`" class="hover:underline">{{ c.origen }}</Link><span v-else>{{ c.origen }}</span></td>
             <td>{{ c.destino }}</td>
           </tr>
-          <tr v-if="!cupones.length"><td colspan="7" class="text-center text-marca-muted py-8">Sin cupones con ese filtro.</td></tr>
+          <tr v-if="!cupones.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin cupones con ese filtro." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -54,6 +54,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ cheques: Array, cupones: Array, filtros: Object, estadosCheque: Object, resumen: Object })
 const f = reactive({ q: props.filtros.q ?? '', tipo: props.filtros.tipo ?? '', estado: props.filtros.estado ?? '' })

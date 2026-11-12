@@ -27,7 +27,7 @@
           <div class="flex items-center justify-between mt-2 text-xs text-marca-muted"><span>{{ a.usuario ?? 'Sistema' }}</span><div class="flex gap-3"><Link v-if="a.url" :href="a.url" class="font-semibold text-carmin">Ver origen</Link><Link v-if="a.origen === 'manual' && a.estado === 'confirmado' && puede('contable','anular')" :href="`/contable/asientos/${a.id}/anular`" method="post" as="button" preserve-scroll class="text-carmin">Anular</Link></div></div>
         </div>
       </div>
-      <div v-if="!lista.data.length" class="card text-center text-marca-muted py-10">Sin asientos en este período.</div>
+      <div v-if="!lista.data.length" class="card !py-0"><EstadoVacio texto="Sin asientos en este período. Se arman solos con cada venta, compra, cobro y pago." :filtros="f" /></div>
     </div>
     <Paginacion :links="lista.links" :desde="lista.from" :hasta="lista.to" :total="lista.total" />
 
@@ -53,6 +53,7 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'

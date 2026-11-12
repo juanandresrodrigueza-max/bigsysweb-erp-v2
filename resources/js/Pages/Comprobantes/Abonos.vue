@@ -24,7 +24,7 @@
             <td class="text-right tabular-nums">{{ a.emitidos }}<span class="text-xs text-marca-muted"> / cuota {{ a.cuota_actual }}</span></td>
             <td class="text-right whitespace-nowrap"><button v-if="a.activo && puede('comprobantes','crear')" @click="router.post(`/comprobantes/abonos/${a.id}/emitir`)" class="btn-ghost !px-2 text-xs">Emitir ahora</button><button v-if="puede('comprobantes','crear')" @click="abrir(a)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
-          <tr v-if="!abonos.length"><td colspan="7" class="text-center text-marca-muted py-10">Todavía no hay abonos. Creá el primero.</td></tr>
+          <tr v-if="!abonos.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no hay abonos. Creá el primero." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -66,6 +66,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'

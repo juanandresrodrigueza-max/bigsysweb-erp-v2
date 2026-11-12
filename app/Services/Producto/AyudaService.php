@@ -143,6 +143,28 @@ class AyudaService
     }
 
     // Pasos del tour guiado por pantalla: selector (data-tour) + texto.
+    // Fase 81: un consejo por día durante la primera semana de cada usuario (barra finita bajo el encabezado, se cierra con "Entendido").
+    public static function tipsPrimeraSemana(): array
+    {
+        return [
+            ['clave' => 'buscar',   'texto' => 'Ctrl K busca lo que sea: un cliente, un artículo, una factura por número o una pantalla.'],
+            ['clave' => 'ayuda',    'texto' => 'El ? del encabezado abre la ayuda de la pantalla en la que estás, con el paso a paso.'],
+            ['clave' => 'bigcito',  'texto' => 'El asistente violeta de abajo a la derecha hace cosas por vos: «cobrale 5000 a Pérez en efectivo».'],
+            ['clave' => 'mas',      'texto' => 'Cada pantalla tiene una acción principal y un botón Más con el resto; las secciones del módulo están a la izquierda.'],
+            ['clave' => 'atajos',   'texto' => 'Alt+N abre una factura nueva, Alt+P el mostrador, Alt+C clientes y Alt+S stock.'],
+            ['clave' => 'campana',  'texto' => 'La campanita avisa lo que hay que mirar hoy: vencimientos, stock bajo, cheques por depositar.'],
+            ['clave' => 'celular',  'texto' => 'Desde el celular se usa igual: agregalo a la pantalla de inicio y queda como una app.'],
+        ];
+    }
+
+    public static function tipDelDia(\App\Models\User $u): ?array
+    {
+        $dias = (int) $u->created_at?->diffInDays(now());
+        if ($u->created_at === null || $dias >= 7) return null;
+        $tips = self::tipsPrimeraSemana();
+        return $tips[$dias % count($tips)];
+    }
+
     public static function tour(string $pantalla = 'general'): array
     {
         return match ($pantalla) {

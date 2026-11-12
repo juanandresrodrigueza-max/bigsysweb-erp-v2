@@ -26,7 +26,7 @@
         <table class="table text-sm"><thead><tr><th>Empresa</th><th>Estado</th><th class="text-right">Usuarios</th><th class="text-right">Último uso</th><th class="text-right">Sin uso</th></tr></thead>
           <tbody>
             <tr v-for="e in en_riesgo" :key="e.id"><td><Link :href="`/admin/empresas/${e.id}`" class="font-medium hover:text-carmin">{{ e.nombre }}</Link><p class="text-[11px] text-marca-muted">alta {{ e.alta }}</p></td><td><span class="badge" :class="{ active: 'bg-emerald-50 text-emerald-700', trial: 'bg-lavanda-light text-violeta', grace: 'bg-amber-50 text-amber-700' }[e.estado]">{{ e.estado }}</span></td><td class="text-right tabular-nums">{{ e.usuarios }}</td><td class="text-right tabular-nums">{{ e.ultimo ?? 'nunca' }}</td><td class="text-right tabular-nums font-semibold text-carmin">{{ e.sin_uso_dias === null ? '—' : e.sin_uso_dias + ' d' }}</td></tr>
-            <tr v-if="!en_riesgo.length"><td colspan="5" class="text-center text-marca-muted py-6">Todas las empresas activas usaron el sistema esta semana.</td></tr>
+            <tr v-if="!en_riesgo.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Todas las empresas activas usaron el sistema esta semana." compacto /></td></tr>
           </tbody></table>
       </div>
       <div class="card">
@@ -47,6 +47,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 const props = defineProps({ dias: Number, kpis: Object, ranking: Array, en_riesgo: Array, modulos: Array, serie: Array })
 const maxEmp = computed(() => Math.max(0, ...props.serie.map(p => p.empresas)))
 </script>

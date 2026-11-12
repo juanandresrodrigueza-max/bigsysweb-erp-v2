@@ -35,7 +35,7 @@
             <td><span class="badge" :class="{ disponible: 'bg-emerald-50 text-emerald-700', bloqueado: 'bg-violeta/10 text-violeta', retirado: 'bg-carmin-light text-carmin' }[l.estado]" :title="l.motivo">{{ estados[l.estado] }}</span></td>
             <td class="text-right text-xs text-violeta font-semibold">Ver</td>
           </tr>
-          <tr v-if="!lotes.length"><td colspan="9" class="text-center text-marca-muted py-8">Nada para mostrar con este filtro.</td></tr>
+          <tr v-if="!lotes.length"><td colspan="9" class="!py-0"><EstadoVacio texto="Nada para mostrar con este filtro." /></td></tr>
         </tbody>
       </table>
     </div>
@@ -95,6 +95,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 

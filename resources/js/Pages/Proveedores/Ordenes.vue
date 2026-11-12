@@ -42,7 +42,7 @@
             <td class="text-right font-semibold tabular-nums">{{ moneda(o.total) }}</td>
             <td><span class="badge" :class="claseEstado[o.estado]">{{ estados[o.estado] }}</span></td>
           </tr>
-          <tr v-if="!lista.data.length"><td colspan="8" class="text-center text-marca-muted py-10">No hay órdenes con estos filtros.</td></tr>
+          <tr v-if="!lista.data.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Todavía no hay órdenes de compra." :filtros="f" :accion="puede('proveedores','crear') ? { label: 'Nueva orden', href: '/proveedores/ordenes/nueva' } : null" /></td></tr>
         </tbody>
       </table>
     </div>
@@ -94,6 +94,7 @@
 import { reactive, ref, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import Modal from '@/Components/Modal.vue'

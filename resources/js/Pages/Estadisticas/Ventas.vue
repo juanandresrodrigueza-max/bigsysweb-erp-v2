@@ -21,7 +21,7 @@
         <div class="max-h-80 overflow-y-auto">
           <table class="table text-xs"><thead><tr><th>Clase</th><th>Artículo</th><th class="text-right">Facturado s/IVA</th><th class="text-right">%</th><th class="text-right">Acum.</th><th class="text-right">Unidades</th><th class="text-right">Stock</th></tr></thead>
             <tbody><tr v-for="i in abcVisibles" :key="i.id"><td><span class="badge" :class="{ 'bg-emerald-50 text-emerald-700': i.clase === 'A', 'bg-amber-50 text-amber-800': i.clase === 'B', 'bg-gris-light text-marca-muted': i.clase === 'C' }">{{ i.clase }}</span></td><td><Link :href="`/stock/${i.id}`" class="hover:text-carmin">{{ i.nombre }}</Link> <span class="text-marca-muted">{{ i.sku }}</span></td><td class="text-right tabular-nums font-semibold">{{ moneda(i.neto, 0) }}</td><td class="text-right tabular-nums">{{ i.pct }}%</td><td class="text-right tabular-nums text-marca-muted">{{ i.acum }}%</td><td class="text-right tabular-nums">{{ cantidad(i.unidades) }}</td><td class="text-right tabular-nums" :class="i.clase === 'A' && i.stock <= 0 ? 'text-carmin font-bold' : ''">{{ cantidad(i.stock) }}</td></tr>
-            <tr v-if="!abcVisibles.length"><td colspan="7" class="text-center text-marca-muted py-6">Sin ventas con artículo en el período.</td></tr></tbody></table>
+            <tr v-if="!abcVisibles.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin ventas con artículo en el período." compacto /></td></tr></tbody></table>
         </div>
       </div>
       <!-- Cuándo vende -->
@@ -47,7 +47,7 @@
         <div class="flex items-center justify-between mb-2"><h2 class="font-bold">Por punto de venta, contra el año anterior</h2><span class="text-marca-muted cursor-help" :title="puntos.como">ⓘ</span></div>
         <table class="table text-sm"><thead><tr><th>Punto de venta</th><th class="text-right">Este período</th><th class="text-right">Año anterior</th><th class="text-right">Var.</th></tr></thead>
           <tbody><tr v-for="p in puntos.items" :key="p.punto_venta_id ?? 0"><td>{{ p.nombre }} <span class="text-xs text-marca-muted">{{ p.n }} fact.</span></td><td class="text-right tabular-nums font-semibold">{{ moneda(p.monto, 0) }}</td><td class="text-right tabular-nums text-marca-muted">{{ moneda(p.anterior, 0) }} <span class="text-xs">{{ p.n_anterior }} fact.</span></td><td class="text-right tabular-nums" :class="p.var === null ? 'text-marca-muted' : p.var >= 0 ? 'text-emerald-600' : 'text-carmin'">{{ p.var === null ? '—' : (p.var >= 0 ? '+' : '') + p.var + '%' }}</td></tr>
-          <tr v-if="!puntos.items.length"><td colspan="4" class="text-center text-marca-muted py-6">Sin ventas.</td></tr></tbody></table>
+          <tr v-if="!puntos.items.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Sin ventas." compacto /></td></tr></tbody></table>
       </div>
       <!-- Lo que se frenó de golpe -->
       <div class="card" data-e2e="frenados">
@@ -55,7 +55,7 @@
         <p class="text-xs text-marca-muted mb-2">Se vendían seguido, tienen stock y hace dos semanas que no sale nada: un precio mal cargado, mal ubicado, vencido.</p>
         <table class="table text-sm"><thead><tr><th>Artículo</th><th class="text-right">Por semana</th><th class="text-right">Stock</th><th class="text-right">Precio</th></tr></thead>
           <tbody><tr v-for="f in frenados.items" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="hover:text-carmin">{{ f.nombre }}</Link> <span class="text-xs text-marca-muted">{{ f.sku }} · {{ f.semanas }} de 6 semanas</span></td><td class="text-right tabular-nums">{{ cantidad(f.por_semana) }}</td><td class="text-right tabular-nums">{{ cantidad(f.stock) }}</td><td class="text-right tabular-nums">{{ moneda(f.precio) }}<span v-if="f.actualizado" class="block text-[10px] text-marca-muted">precio del {{ f.actualizado }}</span></td></tr>
-          <tr v-if="!frenados.items.length"><td colspan="4" class="text-center text-emerald-700 py-6">Nada se frenó: lo que se vendía, se sigue vendiendo.</td></tr></tbody></table>
+          <tr v-if="!frenados.items.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Nada se frenó: lo que se vendía, se sigue vendiendo." compacto /></td></tr></tbody></table>
       </div>
     </div>
 
@@ -67,7 +67,7 @@
       </div>
       <div class="overflow-x-auto"><table class="table text-sm"><thead><tr><th>Vendedor</th><th class="text-right">Ventas</th><th class="text-right">vs anterior</th><th class="text-right">Parte</th><th class="text-right">Facturas</th><th class="text-right">Ticket</th><th class="text-right">Clientes</th><th class="text-right">Margen</th><th class="text-right">N. crédito</th><th class="text-right">Hora pico</th></tr></thead>
         <tbody><tr v-for="v in vendedores.items" :key="v.nombre"><td class="font-medium">{{ v.nombre }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(v.ventas, 0) }}</td><td class="text-right tabular-nums" :class="v.var === null ? 'text-marca-muted' : v.var >= 0 ? 'text-emerald-600' : 'text-carmin'">{{ v.var === null ? '—' : (v.var >= 0 ? '+' : '') + v.var + '%' }}</td><td class="text-right tabular-nums">{{ v.parte }}%</td><td class="text-right tabular-nums">{{ v.facturas }}</td><td class="text-right tabular-nums">{{ moneda(v.ticket, 0) }}</td><td class="text-right tabular-nums">{{ v.clientes }}</td><td class="text-right tabular-nums">{{ moneda(v.margen, 0) }} <span class="text-xs text-marca-muted">{{ v.margen_pct ?? '—' }}%</span></td><td class="text-right tabular-nums text-marca-muted">{{ v.nc ? moneda(v.nc, 0) : '—' }}</td><td class="text-right tabular-nums">{{ v.hora_pico !== null ? v.hora_pico + ':00' : '—' }}</td></tr>
-        <tr v-if="!vendedores.items.length"><td colspan="10" class="text-center text-marca-muted py-6">Sin ventas en el período.</td></tr></tbody></table></div>
+        <tr v-if="!vendedores.items.length"><td colspan="10" class="!py-0"><EstadoVacio texto="Sin ventas en el período." compacto /></td></tr></tbody></table></div>
     </div>
   </AppLayout>
 </template>
@@ -76,6 +76,7 @@
 import { ref, computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import { moneda, cantidad } from '@/util/formato'

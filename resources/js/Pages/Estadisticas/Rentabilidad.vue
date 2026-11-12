@@ -81,7 +81,7 @@
           <td class="text-right tabular-nums">{{ flecha(i.margen, i.hace30) }}</td><td class="text-right tabular-nums">{{ flecha(i.margen, i.hace90) }}</td>
           <td class="text-marca-muted">{{ i.ultimo_cambio ? `${i.ultimo_cambio.fecha}: precio ${moneda(i.ultimo_cambio.precio_antes, 0)} → ${moneda(i.ultimo_cambio.precio, 0)}, costo ${moneda(i.ultimo_cambio.costo_antes, 0)} → ${moneda(i.ultimo_cambio.costo, 0)}` : '—' }}</td>
           <td class="text-right whitespace-nowrap"><button class="text-violeta font-semibold" @click="verHistorial(i)">Historial</button> · <input :value="i.margen_minimo_articulo" type="number" step="any" class="input !py-0.5 !text-xs w-16 text-right" placeholder="mín." title="Mínimo de este artículo" @change="minArticulo(i, $event.target.value)" /></td>
-        </tr><tr v-if="!vigilar.items.length"><td colspan="10" class="text-center text-marca-muted py-6">Nada con este filtro.</td></tr></tbody></table></div>
+        </tr><tr v-if="!vigilar.items.length"><td colspan="10" class="!py-0"><EstadoVacio texto="Nada con este filtro." compacto /></td></tr></tbody></table></div>
     </div>
 
     <div class="grid lg:grid-cols-2 gap-5 mb-5">
@@ -209,7 +209,7 @@
             <td><select v-model="c.imputacion" class="input !py-1"><option v-for="(l, k) in imputaciones" :key="k" :value="k">{{ l }}</option></select></td>
             <td class="text-xs text-marca-muted"><button v-if="c.sugerencia.tipo_costo !== c.tipo_costo || c.sugerencia.imputacion !== c.imputacion" class="text-violeta" @click="c.tipo_costo = c.sugerencia.tipo_costo; c.imputacion = c.sugerencia.imputacion">Sugerido: {{ tipos[c.sugerencia.tipo_costo] }} · {{ imputaciones[c.sugerencia.imputacion] }}</button></td>
           </tr>
-          <tr v-if="!clasif.categorias.length"><td colspan="4" class="text-center text-marca-muted py-4">Todavía no hay categorías. Crealas en Fondos → Nueva categoría.</td></tr>
+          <tr v-if="!clasif.categorias.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Todavía no hay categorías. Crealas en Fondos → Nueva categoría." compacto /></td></tr>
         </tbody>
       </table></div>
       <template #pie><button class="btn-secondary" @click="clasifAbierto = false">Cancelar</button><button class="btn-primary" :disabled="clasif.processing || !clasif.categorias.length" @click="clasif.post('/estadisticas/rentabilidad/categorias', { preserveScroll: true, onSuccess: () => (clasifAbierto = false) })">Guardar clasificación</button></template>
@@ -221,6 +221,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import EstadoVacio from '@/Components/EstadoVacio.vue'
 import EstadisticasTabs from '@/Components/EstadisticasTabs.vue'
 import StatCard from '@/Components/StatCard.vue'
 import Modal from '@/Components/Modal.vue'
