@@ -23,7 +23,7 @@ return [
         'servicios'     => ['label' => 'Servicio técnico','icono' => 'wrench',   'grupo' => 'Mi rubro','ruta' => '/servicios',     'core' => false, 'disponible' => true],
         'hoteleria'     => ['label' => 'Hotelería',      'icono' => 'bed',       'grupo' => 'Mi rubro','ruta' => '/hoteleria',     'core' => false, 'disponible' => true],
         'minimarket'    => ['label' => 'Minimarket',     'icono' => 'basket',    'grupo' => 'Mi rubro','ruta' => '/minimarket',    'core' => false, 'disponible' => true],
-        'alertas'       => ['label' => 'Alertas',        'icono' => 'bell',      'grupo' => 'Sistema',   'ruta' => '/alertas',       'core' => true,  'disponible' => true],
+        'alertas'       => ['label' => 'Alertas',        'icono' => 'bell',      'grupo' => 'Sistema',   'ruta' => '/alertas',       'core' => true,  'disponible' => true, 'sin_permiso' => true], // Fase 85: la campana es de todos, no se asigna por rol
         'configuracion' => ['label' => 'Configuración',  'icono' => 'settings',  'grupo' => 'Sistema',   'ruta' => '/configuracion', 'core' => true,  'disponible' => true],
     ],
 
@@ -109,18 +109,19 @@ return [
             ['key' => 'desc-lista',   'label' => 'Descuentos por lista',  'ruta' => '/stock/descuentos-lista', 'grupo' => 'De vez en cuando'],
             ['key' => 'catalogos',    'label' => 'Catálogos',             'ruta' => '/stock/catalogos',        'grupo' => 'De vez en cuando'],
             ['key' => 'importar',     'label' => 'Importar lista',        'ruta' => '/stock/importar',         'grupo' => 'De vez en cuando', 'accion' => 'editar'],
-            ['key' => 'despiece',     'label' => 'Carnicería y pesables', 'ruta' => '/stock/despiece',         'grupo' => 'De vez en cuando'],
-            ['key' => 'consultor',    'label' => 'Consultor de precios',  'ruta' => '/stock/consultor',        'grupo' => 'De vez en cuando', 'ayuda' => 'Precio y stock al toque, también para la pantalla del salón'],
+            // Fase 85: sólo para los rubros que los usan (o si la empresa ya los usa: artículos pesables, despieces, pantallas del consultor).
+            ['key' => 'despiece',     'label' => 'Pesables y cortes',     'ruta' => '/stock/despiece',         'grupo' => 'De vez en cuando', 'usa' => 'pesables', 'palabras' => 'carnicería balanza plu despiece'],
+            ['key' => 'consultor',    'label' => 'Simulador de precios',  'ruta' => '/stock/consultor',        'grupo' => 'De vez en cuando', 'usa' => 'consultor', 'ayuda' => 'Precio y stock al toque, también para la pantalla del salón', 'palabras' => 'consultor verificador pantalla salón'],
         ],
         'plata' => [
             ['key' => 'cuentas',     'label' => 'Cajas y bancos',  'ruta' => '/fondos', 'exacto' => true],
-            ['key' => 'cierres',     'label' => 'Cierres de caja', 'ruta' => '/fondos/cierres', 'ayuda' => 'Historial de cierres, diferencias por cajero y por caja'],
-            ['key' => 'cheques',     'label' => 'Cheques',         'ruta' => '/fondos/cheques'],
-            ['key' => 'valores',     'label' => 'Valores',         'ruta' => '/fondos/valores', 'ayuda' => 'De dónde vino y a dónde fue cada cheque o cupón'],
-            ['key' => 'tarjetas',    'label' => 'Tarjetas',        'ruta' => '/fondos/tarjetas'],
-            ['key' => 'conciliar',   'label' => 'Conciliar',       'ruta' => '/fondos/conciliar'],
-            ['key' => 'dolares',     'label' => 'Dólares',         'ruta' => '/fondos/moneda', 'ayuda' => 'Cuentas en dólares, cotización y diferencia de cambio'],
-            ['key' => 'previsiones', 'label' => 'Previsiones',     'ruta' => '/fondos/previsiones', 'ayuda' => 'Gastos e ingresos que se repiten todos los meses'],
+            // Fase 85: nombres de uso diario; "Cheques y valores" es una sola entrada ('alias' marca la misma sección desde /fondos/valores).
+            ['key' => 'cierres',     'label' => 'Cerrar caja',            'ruta' => '/fondos/cierres', 'ayuda' => 'Cerrar el turno y ver cada cierre: lo esperado, lo contado y la diferencia', 'palabras' => 'turno arqueo planilla diferencias'],
+            ['key' => 'cheques',     'label' => 'Cheques y valores',      'ruta' => '/fondos/cheques', 'alias' => ['/fondos/valores'], 'ayuda' => 'Cartera de cheques y de dónde vino y a dónde fue cada cheque o cupón'],
+            ['key' => 'tarjetas',    'label' => 'Tarjetas',               'ruta' => '/fondos/tarjetas'],
+            ['key' => 'conciliar',   'label' => 'Conciliar',              'ruta' => '/fondos/conciliar'],
+            ['key' => 'dolares',     'label' => 'Dólares',                'ruta' => '/fondos/moneda', 'ayuda' => 'Cuentas en dólares, cotización y diferencia de cambio'],
+            ['key' => 'previsiones', 'label' => 'Vencimientos previstos', 'ruta' => '/fondos/previsiones', 'ayuda' => 'Gastos e ingresos que se repiten todos los meses', 'palabras' => 'previsiones alquiler seguros impuestos'],
         ],
         // Fase 82: Contable en tres grupos y Sueldos adentro (quien no ve Contable tiene la sección 'sueldos' sola).
         'contable' => [

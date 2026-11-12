@@ -188,7 +188,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::get('/ayuda/guia/{nombre}',   [\App\Http\Controllers\AyudaController::class, 'guia']);
     Route::get('/ayuda/{slug}',          [\App\Http\Controllers\AyudaController::class, 'index']);
 
-    Route::get('/alertas',                  [AlertasController::class, 'index'])->middleware('permiso:alertas')->name('alertas.index');
+    Route::get('/alertas',                  [AlertasController::class, 'index'])->name('alertas.index'); // Fase 85: la campana es de todos
     Route::post('/alertas/leer-todas',      [AlertasController::class, 'leerTodas'])->name('alertas.leerTodas');
     Route::post('/alertas/{id}/leer',       [AlertasController::class, 'leer'])->name('alertas.leer');
     Route::post('/alertas/{id}/resolver',   [AlertasController::class, 'resolver'])->name('alertas.resolver');

@@ -93,9 +93,9 @@ En **Configuración → Mercado Pago**:
 
 El posnet de SiPago queda para cuando tengamos su documentación técnica.
 
-## El Consultor de precios: para empleados o para clientes
+## El Simulador de precios: para empleados o para clientes
 
-Está en **Stock → Consultor de precios** (reemplaza al verificador). Es sólo consulta: no vende ni toca el stock.
+Está en **Stock → Simulador de precios** (antes "Consultor de precios"; reemplaza al verificador). Es sólo consulta: no vende ni toca el stock.
 
 - **Empleados.** Buscá como te acordás del producto: por nombre con las palabras en cualquier orden («2.25 coca»), por código, por código de barras, por rubro; la etiqueta de la balanza también se lee. Un código exacto aparece siempre primero, aunque el artículo esté discontinuado; si un número no es el código de nadie, lo dice. Arriba elegís la **lista** (queda elegida para la próxima) o un **cliente** (ves su precio con lo pactado). Cada artículo muestra el stock (y por depósito en la ficha), las seis listas y la oferta por cantidad.
 - **Como una caja.** Pasás un código y Enter: entra al simulador. Escribís `3*código`: entra con 3. Un número solo y Enter: es la cantidad del último renglón. Esc cierra la ficha. El simulador queda guardado en ese dispositivo; en **Recientes** están las últimas diez listas (abrir o borrar), y Vaciar no pierde nada.

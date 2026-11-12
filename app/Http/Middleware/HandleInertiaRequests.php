@@ -150,20 +150,21 @@ class HandleInertiaRequests extends Middleware
         foreach (config('erp.secciones', []) as $key => $items) {
             foreach ($items as $it) {
                 if (! empty($it['solo_link'])) continue; // se lista, pero la pantalla pertenece a otro módulo (o va a pantalla completa)
-                $r = $it['ruta'];
-                if ($url === $r || (empty($it['exacto']) && str_starts_with($url, $r . '/'))) $candidatos[] = [$key, $r];
+                foreach (array_merge([$it['ruta']], $it['alias'] ?? []) as $r) { // Fase 85: 'alias' = otra URL que es la misma sección (Valores dentro de Cheques y valores)
+                    if ($url === $r || (empty($it['exacto']) && str_starts_with($url, $r . '/'))) $candidatos[] = [$key, $r, $it['ruta']];
+                }
             }
         }
         if (! $candidatos) return null;
         $max = max(array_map(fn($c) => strlen($c[1]), $candidatos));
         $mejor = null;
-        foreach ($candidatos as [$key, $r]) {
+        foreach ($candidatos as [$key, $r, $rutaItem]) {
             if (strlen($r) !== $max) continue;
-            if (isset($menu[$key])) { $mejor = [$key, $r]; break; } // las entradas ya vienen filtradas por lo que el usuario ve
+            if (isset($menu[$key])) { $mejor = [$key, $r, $rutaItem]; break; } // las entradas ya vienen filtradas por lo que el usuario ve
         }
         if (! $mejor) return null;
-        [$key, $activa] = $mejor;
-        $resto = array_filter(explode('/', substr($url, strlen($activa))));
+        [$key, $coincidida, $activa] = $mejor;
+        $resto = array_filter(explode('/', substr($url, strlen($coincidida))));
         if (array_intersect($resto, config('erp.secciones_sin', []))) return null;
         $entrada = $menu[$key];
         $items = array_map(fn($it) => $it + ['activo' => $it['ruta'] === $activa], $this->itemsDe($key, $entrada, $user, $visibles));
@@ -178,6 +179,7 @@ class HandleInertiaRequests extends Middleware
             $modulo = $it['modulo'] ?? $entrada['modulo'];
             if (! in_array($modulo, $visibles, true)) continue;
             if (isset($it['accion']) && ! $user->puede($modulo, $it['accion'])) continue;
+            if (isset($it['usa']) && ! $user->business?->usa($it['usa'])) continue; // Fase 85: pantallas de rubro (pesables, simulador)
             $items[] = ['key' => $it['key'], 'label' => $it['label'], 'ruta' => $it['ruta'], 'grupo' => $it['grupo'] ?? '', 'ayuda' => $it['ayuda'] ?? null, 'palabras' => $it['palabras'] ?? ''];
         }
         return $items;

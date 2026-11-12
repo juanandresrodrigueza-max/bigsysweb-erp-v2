@@ -1,14 +1,18 @@
 <template>
-  <AppLayout titulo="Cheques">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <AppLayout titulo="Cheques y valores">
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-3">
       <div>
-        <h1 class="page-title">Cartera de cheques</h1>
+        <h1 class="page-title">Cheques y valores</h1>
         <p class="page-subtitle">Los cheques de terceros entran por cobros; los propios salen por órdenes de pago.</p>
       </div>
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1">
         <button v-for="t in [['tercero','De terceros'],['propio','Propios']]" :key="t[0]" @click="$inertia.visit(`/fondos/cheques?tipo=${t[0]}`)" class="px-3 py-1.5 rounded-full text-xs font-semibold" :class="tipo === t[0] ? 'bg-carmin text-white' : 'text-marca-muted'">{{ t[1] }}</button>
       </div>
     </div>
+      <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 w-fit mb-4" data-e2e="cheques-valores-tabs">
+        <Link href="/fondos/cheques" class="px-4 py-1.5 rounded-full text-sm font-semibold" :class="true ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">Cartera de cheques</Link>
+        <Link href="/fondos/valores" class="px-4 py-1.5 rounded-full text-sm font-semibold" :class="false ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">Trazabilidad de valores</Link>
+      </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">En cartera</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(totales.cartera, 0) }}</p></div>
