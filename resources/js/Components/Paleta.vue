@@ -48,7 +48,7 @@ const acciones = computed(() => {
     tiene('stock') && { titulo: 'Actualizar precios', url: '/stock?precios=1', icono: 'boxes' },
   ].filter(Boolean)
 })
-const pantallas = computed(() => [...props.nav.flatMap(g => g.items.filter(i => i.disponible !== false).map(i => ({ titulo: i.label, sub: g.label, url: i.ruta, icono: i.icono }))), { titulo: 'Centro de ayuda', sub: 'Sistema', url: '/ayuda', icono: 'info' }, { titulo: 'Soporte', sub: 'Sistema', url: '/soporte', icono: 'info' }])
+const pantallas = computed(() => [...props.nav.flatMap(g => g.items.filter(i => i.disponible !== false).flatMap(i => [{ titulo: i.label, sub: g.label, url: i.ruta, icono: i.icono }, ...(i.secciones ?? []).filter(s => s.ruta !== i.ruta).map(s => ({ titulo: s.label, sub: i.label, url: s.ruta, icono: i.icono }))])), { titulo: 'Centro de ayuda', sub: 'Sistema', url: '/ayuda', icono: 'info' }, { titulo: 'Soporte', sub: 'Sistema', url: '/soporte', icono: 'info' }])
 
 const grupos = computed(() => {
   const t = norm(q.value.trim())

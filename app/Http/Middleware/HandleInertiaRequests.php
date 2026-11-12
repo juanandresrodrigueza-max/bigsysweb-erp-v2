@@ -105,9 +105,12 @@ class HandleInertiaRequests extends Middleware
         $grupos = [];
         foreach (config('erp.menu') as $m) {
             if (! in_array($m['modulo'], $visibles, true)) continue;
+            if (isset($m['solo_sin']) && in_array($m['solo_sin'], $visibles, true)) continue; // Fase 82: Sueldos vive adentro de Contable
             $g = $m['grupo'] ?? '';
             if (! $grupos || end($grupos)['label'] !== $g) $grupos[] = ['label' => $g, 'items' => []];
-            $grupos[array_key_last($grupos)]['items'][] = ['key' => $m['key'], 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'modulo' => $m['modulo'], 'disponible' => config("erp.modulos.{$m['modulo']}.disponible", true)];
+            $grupos[array_key_last($grupos)]['items'][] = ['key' => $m['key'], 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'modulo' => $m['modulo'], 'disponible' => config("erp.modulos.{$m['modulo']}.disponible", true),
+                // Fase 82: las secciones también viajan en el menú, para que Ctrl K encuentre "Liquidaciones" o "Puntos de venta y AFIP".
+                'secciones' => array_map(fn($i) => ['label' => $i['label'], 'ruta' => $i['ruta']], $this->itemsDe($m['key'], $m, $user, $visibles))];
         }
         // Integración con el CRM activa: botón que pasa al CRM ya logueado (link externo, no Inertia), al final.
         if (\App\Services\Integraciones\CrmService::activo($user->business)) {
@@ -122,28 +125,42 @@ class HandleInertiaRequests extends Middleware
     public function subnav($user, Request $request): ?array
     {
         $url = '/' . trim($request->path(), '/');
-        $mejor = null;
+        $visibles = $user->modulosVisibles();
+        $menu = collect(config('erp.menu'))->keyBy('key');
+        $candidatos = []; // [key, ruta] de los ítems que coinciden; gana la ruta más larga y, en empate, la primera entrada visible
         foreach (config('erp.secciones', []) as $key => $items) {
             foreach ($items as $it) {
                 $r = $it['ruta'];
-                $coincide = $url === $r || (empty($it['exacto']) && str_starts_with($url, $r . '/'));
-                if ($coincide && ($mejor === null || strlen($r) > strlen($mejor[1]))) $mejor = [$key, $r];
+                if ($url === $r || (empty($it['exacto']) && str_starts_with($url, $r . '/'))) $candidatos[] = [$key, $r];
             }
+        }
+        if (! $candidatos) return null;
+        $max = max(array_map(fn($c) => strlen($c[1]), $candidatos));
+        $mejor = null;
+        foreach ($candidatos as [$key, $r]) {
+            if (strlen($r) !== $max) continue;
+            $m = $menu[$key] ?? null;
+            if ($m && in_array($m['modulo'], $visibles, true) && ! (isset($m['solo_sin']) && in_array($m['solo_sin'], $visibles, true))) { $mejor = [$key, $r]; break; }
         }
         if (! $mejor) return null;
         [$key, $activa] = $mejor;
         $resto = array_filter(explode('/', substr($url, strlen($activa))));
         if (array_intersect($resto, config('erp.secciones_sin', []))) return null;
-        $entrada = collect(config('erp.menu'))->firstWhere('key', $key);
-        $visibles = $user->modulosVisibles();
-        if (! $entrada || ! in_array($entrada['modulo'], $visibles, true)) return null;
+        $entrada = $menu[$key];
+        $items = array_map(fn($it) => $it + ['activo' => $it['ruta'] === $activa], $this->itemsDe($key, $entrada, $user, $visibles));
+        return ['key' => $key, 'titulo' => $entrada['label'], 'icono' => $entrada['icono'], 'ruta' => $entrada['ruta'], 'items' => $items];
+    }
+
+    // Los ítems de una sección que este usuario puede usar (módulo visible y, si el ítem lo pide, la acción).
+    private function itemsDe(string $key, array $entrada, $user, array $visibles): array
+    {
         $items = [];
-        foreach (config("erp.secciones.$key") as $it) {
+        foreach (config("erp.secciones.$key", []) as $it) {
             $modulo = $it['modulo'] ?? $entrada['modulo'];
             if (! in_array($modulo, $visibles, true)) continue;
             if (isset($it['accion']) && ! $user->puede($modulo, $it['accion'])) continue;
-            $items[] = ['key' => $it['key'], 'label' => $it['label'], 'ruta' => $it['ruta'], 'activo' => $it['ruta'] === $activa, 'grupo' => $it['grupo'] ?? '', 'ayuda' => $it['ayuda'] ?? null];
+            $items[] = ['key' => $it['key'], 'label' => $it['label'], 'ruta' => $it['ruta'], 'grupo' => $it['grupo'] ?? '', 'ayuda' => $it['ayuda'] ?? null, 'palabras' => $it['palabras'] ?? ''];
         }
-        return ['key' => $key, 'titulo' => $entrada['label'], 'icono' => $entrada['icono'], 'ruta' => $entrada['ruta'], 'items' => $items];
+        return $items;
     }
 }
