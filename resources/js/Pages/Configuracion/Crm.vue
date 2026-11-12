@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="CRM">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">CRM</h1>
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h2 class="font-bold text-lg">Integración con el CRM de BigSys</h2><p class="text-sm text-marca-muted">Un botón para pasar del ERP al CRM (y al revés) ya logueado, y las dos bases hablándose por API. Nadie escribe en la base del otro.</p></div>
       <span class="badge text-sm px-3 py-1" :class="listo ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ listo ? 'Activa' : 'Inactiva' }}</span>
@@ -95,7 +94,6 @@
 import { computed } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 const props = defineProps({ config: Object, cuit: String, urlEntrada: String, urlWebhook: String, listo: Boolean, prueba: Object, salud: Object, plan: { type: Object, default: () => ({ incluye_crm: false }) } })
 const page = usePage()
 const secretoNuevo = computed(() => page.props.flash?.crm_secreto_nuevo)

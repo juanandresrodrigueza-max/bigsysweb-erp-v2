@@ -2,7 +2,6 @@
   <AppLayout titulo="Carnicería y pesables">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Carnicería y pesables</h1>
         <p class="page-subtitle">Despiece de media res, cerdo o pollo con el rinde real de cada corte y su costo por kilo, y los artículos que se venden por peso con su código PLU para la balanza.</p>
       </div>

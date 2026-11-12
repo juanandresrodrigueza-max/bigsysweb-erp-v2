@@ -53,6 +53,17 @@ El bucket de Backblaze es compartido con el CRM (misma clave de aplicación): si
 `.env` (`OFFSITE_S3_*`). El ERP poda la copia remota junto con la local (quedan las últimas 10 automáticas por empresa).
 Flaky a vigilar: `DocumentosPreguntasFase59Test` falló una vez en PostgreSQL en la corrida completa y pasa solo.
 
+## Bloque Intuitivo (79–83): lo que dijo el relevamiento UX
+
+Sale del doc "Relevamiento UX del ERP BigSysWeb". Reglas: las rutas viejas redirigen un año, Bigcito entiende los nombres viejos, aviso en la campanita por cada cambio visible, se mide con `uso_diario`.
+
+| Fase | Qué | Cómo quedó | PR |
+|---|---|---|---|
+| 79 | Menú nuevo y nombres | `config/erp.php` → `menu` (orden del día: Inicio · Vender · Cobrar · Entregar · Clientes · Comprar · Stock · Plata · Contable · Sueldos · Estadísticas · Mi rubro · Configuración) y `nombres_viejos`; las claves de módulo y los permisos no cambian; Alertas vive en la campana | #116 |
+| 80 | Sub-navegación y cabecera única | `config/erp.php` → `secciones` (por entrada del menú; `exacto`, `accion`, `modulo`, `grupo`) y `secciones_sin`; `HandleInertiaRequests::subnav()` comparte la sección de la URL actual (gana la ruta más larga: `/stock/pases` es de Entregar); `AppLayout` pone `SubNav` a la izquierda (chips en el celular) cuando hay sección y las fichas/formularios van a pantalla completa; `PageHeader` (título, una acción principal, a lo sumo una secundaria, menú Más); `ConfigTabs` y `ContableTabs` desaparecen; los botones dicen Nuevo/a, Registrar o Guardar (Cargar sólo para archivos) | — |
+
+Flaky a vigilar (PostgreSQL, corrida completa, pasan solos): `GastronomiaHorariosReporteFase52Test` (404 en /estadisticas/gastronomia) e `InductorBigcitoTest` (mostrar-modulo). Son de orden entre tests, no del cambio de la Fase 80.
+
 ## Bigcito y MCP
 
 Herramientas nuevas (`app/Mcp/Modulos/*.php`): `riesgo_de_mora`, `proponer_plan_pago`, `registrar_gastos_banco`, `preguntar_documentos`,

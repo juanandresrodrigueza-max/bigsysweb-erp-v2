@@ -203,7 +203,7 @@ Cómo se hacen las cosas:
 - Cobrar: Clientes > ficha del cliente > "Registrar cobro"; podés combinar efectivo, transferencia, cheque, MercadoPago y elegir qué facturas cancela.
 - Acopio: al emitir una factura marcás "Es acopio"; el cliente paga todo y retira de a poco desde su ficha > Acopios > "Registrar retiro" (genera remito).
 - Facturar varios presupuestos o remitos juntos: Comprobantes > Facturación por lote.
-- Cargar una factura de proveedor: Proveedores > Compras > "Cargar factura" (a mano, con foto/PDF leído por IA, o "Importar de AFIP" con el CSV de Mis Comprobantes). Al registrar impacta cuenta corriente y stock.
+- Cargar una factura de proveedor: Comprar > Facturas de compra > "Nueva factura de compra" (a mano, con foto/PDF leído por IA, o "Importar de AFIP" con el CSV de Mis Comprobantes). Al registrar impacta cuenta corriente y stock.
 - Pagar a un proveedor: Proveedores > ficha > "Registrar pago": transferencia, efectivo, cheque propio, endoso de cheque de tercero o retención; se imputa a facturas y se imprime la orden de pago.
 - Stock: cada sucursal tiene depósitos; el stock se ve por depósito y total. Desde Stock: nuevo artículo (con listas de precios 1 a 5), ajustar stock desde la ficha del artículo, "Transferir" entre depósitos, "Inventario" para contar un depósito completo, "Actualizar precios" por porcentaje (por rubro o proveedor), y "Movimientos" para el kardex.
 - Producción: en Producción > Fórmulas se define qué insumos lleva cada producto elaborado (el costo se calcula solo). Luego "Orden de producción": elegís fórmula y cantidad; al "Terminar" se descuentan los insumos y entra el producto terminado al depósito con su costo actualizado.

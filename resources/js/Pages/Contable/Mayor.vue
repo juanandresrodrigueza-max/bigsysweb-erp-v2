@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Mayor</h1><p class="page-subtitle">Movimientos de una cuenta con saldo corrido.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="{ cuenta: cuentaId }" />
     </div>
-    <ContableTabs />
     <div class="card mb-4 flex flex-wrap items-center gap-3">
       <select :value="cuentaId" @change="$inertia.get('/contable/mayor', { cuenta: $event.target.value, ...periodo }, { preserveState: true, replace: true })" class="input w-auto min-w-[280px]"><option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.codigo }} · {{ c.nombre }}</option></select>
       <span class="text-sm text-marca-muted">Saldo inicial <b class="tabular-nums text-marca-texto">{{ moneda(inicial) }}</b> · final <b class="tabular-nums" :class="final < 0 ? 'text-carmin' : 'text-marca-texto'">{{ moneda(final) }}</b> <span class="text-xs">({{ deudora ? 'deudor' : 'acreedor' }} positivo)</span></span>
@@ -28,7 +27,6 @@
 </template>
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 defineProps({ cuentas: Array, cuentaId: Number, cuenta: Object, periodo: Object, inicial: Number, movimientos: Array, final: Number, deudora: Boolean })

@@ -127,7 +127,14 @@
       <div v-if="flash?.success" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">{{ flash.success }}</div>
       <div v-if="flash?.error" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-carmin-light border border-carmin/30 text-carmin-dark text-sm">{{ flash.error }}</div>
 
-      <main class="flex-1 p-4 md:p-6 pb-24"><slot /></main>
+      <main class="flex-1 p-4 md:p-6 pb-24">
+        <!-- Fase 80: si la pantalla pertenece a una sección, el módulo pone su sub-navegación a la izquierda; la página sólo arma su contenido. -->
+        <div v-if="subnav" class="md:flex md:gap-6 md:items-start">
+          <SubNav :subnav="subnav" />
+          <div class="flex-1 min-w-0"><slot /></div>
+        </div>
+        <slot v-else />
+      </main>
     </div>
 
     <!-- Sidebar móvil -->
@@ -165,6 +172,7 @@ import AgenteIA from '@/Components/AgenteIA.vue'
 import Paleta from '@/Components/Paleta.vue'
 import AyudaPanel from '@/Components/AyudaPanel.vue'
 import Tour from '@/Components/Tour.vue'
+import SubNav from '@/Components/SubNav.vue'
 
 defineProps({ titulo: { type: String, default: '' } })
 
@@ -173,6 +181,7 @@ const user = computed(() => page.props.auth?.user)
 const empresa = computed(() => page.props.empresa)
 const sucursales = computed(() => page.props.sucursales)
 const nav = computed(() => page.props.nav ?? [])
+const subnav = computed(() => page.props.subnav ?? null)
 const alertas = computed(() => page.props.alertas)
 const flash = computed(() => page.props.flash)
 const suscripcion = computed(() => page.props.suscripcion)
@@ -194,6 +203,8 @@ const iniciales = computed(() => (user.value?.name ?? '?').split(' ').slice(0, 2
 // La entrada activa es la de ruta más larga que coincide con la URL: así Cobrar (/clientes/cobranzas) gana sobre Clientes (/clientes)
 // y Entregar (/comprobantes/pendientes) sobre Vender (/comprobantes).
 const rutaActiva = computed(() => {
+  // Fase 80: si la pantalla tiene sub-navegación, manda su módulo (así /stock/pases marca Entregar y no Stock).
+  if (subnav.value) { const i = nav.value.flatMap(g => g.items).find(i => i.key === subnav.value.key); if (i) return i.ruta }
   const url = page.url.split('?')[0]
   const rutas = nav.value.flatMap(g => g.items).map(i => i.ruta).filter(r => url === r || url.startsWith(r + '/') || (r === '/configuracion' && url.startsWith('/configuracion')))
   return rutas.sort((a, b) => b.length - a.length)[0] ?? null

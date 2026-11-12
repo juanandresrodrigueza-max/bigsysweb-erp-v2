@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Plan de cuentas</h1><p class="page-subtitle">Viene armado para una PyME argentina. Las cuentas con "rol" las usa el sistema para los asientos automáticos.</p></div>
       <button v-if="puede('contable','editar')" @click="abrir()" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Cuenta</button>
     </div>
-    <ContableTabs />
     <div class="card p-0 overflow-x-auto">
       <table class="table">
         <thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th>Rol en el sistema</th><th class="text-right">Saldo</th><th></th></tr></thead>
@@ -38,7 +37,6 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 import { moneda } from '@/util/formato'

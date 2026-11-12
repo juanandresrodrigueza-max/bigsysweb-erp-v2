@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Balance de sumas y saldos</h1><p class="page-subtitle">Todas las cuentas con movimiento en el período y el estado de resultados.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" />
     </div>
-    <ContableTabs />
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 card p-0 overflow-x-auto">
         <table class="table">
@@ -39,7 +38,6 @@
 <script setup>
 import { computed } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ periodo: Object, filas: Array, totales: Object, resultado: Object, tipos: Object })

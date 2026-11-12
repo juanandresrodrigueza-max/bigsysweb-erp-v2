@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Tienda y canales">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Tienda y canales</h1>
     <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 w-fit mb-4"><button v-for="t in tabs" :key="t.k" class="px-4 py-1.5 rounded-full text-sm font-semibold" :class="tab === t.k ? 'bg-carmin text-white' : 'text-marca-muted'" @click="tab = t.k">{{ t.label }}</button></div>
 
     <!-- Tienda propia -->
@@ -189,7 +188,6 @@ import { ref, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import QRCode from 'qrcode'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ config: Object, urlTienda: String, urlMenu: String, urlReservas: String, rubros: Array, enTienda: Number, totalArticulos: Number, fidelizacion: Object, canales: Array, tiposCanal: Object, whatsapp: Object, oauth: Object, clientes: Array, datosPersonales: { type: Array, default: () => [] } })

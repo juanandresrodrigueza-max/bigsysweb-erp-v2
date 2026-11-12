@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Configuración">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Empresa</h1>
 
     <div class="grid lg:grid-cols-3 gap-4">
       <form @submit.prevent="form.post('/configuracion/empresa', { preserveScroll: true })" class="card lg:col-span-2 space-y-4">
@@ -151,7 +150,6 @@
 import { computed, ref } from 'vue'
 import { Link, router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import DisenoComprobantes from '@/Components/DisenoComprobantes.vue'
 
 const props = defineProps({ cartelera: { type: Array, default: () => [] }, empresa: Object, plan: Object, modulos: Array, avisos: Object, pos: Object, resumenTexto: String, whatsappApi: Boolean, verticalesExtra: { type: Array, default: () => [] }, tarjetas: { type: Array, default: () => [] }, mercadopago: { type: Object, default: () => ({}) }, marca: { type: Object, default: () => ({ mostrar: {} }) }, estilos: { type: Object, default: () => ({}) } })

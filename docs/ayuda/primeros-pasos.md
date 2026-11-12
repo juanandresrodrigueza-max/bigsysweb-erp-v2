@@ -36,6 +36,8 @@ Hacé una de prueba desde **Comprobantes → Nueva factura**. Se puede anular de
 
 El menú de la izquierda va **en el orden del día del negocio**: Inicio, **Vender** (facturas, presupuestos, mostrador), **Cobrar** (cobranzas y recibos), **Entregar** (pendientes de entrega y reparto), **Clientes**, **Comprar** (proveedores, órdenes y facturas de compra), **Stock**, **Plata** (cajas, bancos, cheques, cierres), **Contable**, **Sueldos** y **Estadísticas**. Abajo, **Mi rubro** (Big Restó, Comercio, Servicio técnico, Hotelería, Obras, Producción, Agenda: sólo lo que tu empresa usa) y **Configuración**. Si venís de versiones anteriores: *Comprobantes* ahora es *Vender*, *Fondos* es *Plata* y *Proveedores* es *Comprar*; adentro no cambió nada. Las alertas viven en la **campanita** del encabezado.
 
+- Adentro de cada módulo, las **secciones** van en una columna a la izquierda (en el celular, chips arriba): por ejemplo en Stock, Artículos, Precios, Inventario, Movimientos… Las fichas y los formularios se abren a pantalla completa.
+- Cada pantalla tiene **una acción principal** (el botón rojo) y un botón **Más** con el resto. Los botones dicen siempre lo mismo: **Nuevo/a** para algo que no existía, **Registrar** para un hecho (un gasto, un cobro, un pago) y **Guardar** en los formularios.
 - **Ctrl+K** abre el buscador de todo: clientes, artículos, comprobantes por número, pantallas.
 - **Alt+N** factura nueva, **Alt+P** punto de venta, **Alt+C** clientes, **Alt+S** stock, **Alt+F** fondos.
 - El **signo de pregunta** del encabezado abre la ayuda de la pantalla en la que estás.

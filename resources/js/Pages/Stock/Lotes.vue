@@ -2,7 +2,6 @@
   <AppLayout titulo="Lotes y vencimientos">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Lotes y vencimientos</h1>
         <p class="page-subtitle">Qué vence, qué ya venció y qué está bloqueado. La venta sale primero de lo que vence antes; los vencidos y bloqueados no se venden. Desde cada lote ves de qué proveedor vino y a qué clientes fue.</p>
       </div>

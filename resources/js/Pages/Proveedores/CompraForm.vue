@@ -1,9 +1,9 @@
 <template>
-  <AppLayout :titulo="compra ? 'Editar compra' : 'Cargar factura de compra'">
+  <AppLayout :titulo="compra ? 'Editar compra' : 'Nueva factura de compra'">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
         <Link href="/proveedores/compras" class="text-xs text-marca-muted hover:text-carmin">← Compras</Link>
-        <h1 class="page-title">{{ compra ? 'Editar compra' : 'Cargar factura de compra' }}</h1>
+        <h1 class="page-title">{{ compra ? 'Editar compra' : 'Nueva factura de compra' }}</h1>
         <p class="page-subtitle">Cargá los datos tal como vienen en el comprobante del proveedor. Al registrar impacta en su cuenta corriente y en el stock.</p>
       </div>
       <label class="btn-violeta cursor-pointer"><input type="file" accept="image/*,.pdf" class="hidden" @change="leerOCR($event.target.files[0])" /><Icono nombre="sparkles" clase="w-4 h-4" /> {{ ocr.cargando ? 'Leyendo…' : 'Leer factura con IA' }}</label>

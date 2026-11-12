@@ -2,7 +2,6 @@
   <AppLayout titulo="Almacén">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Almacén</h1>
         <p class="page-subtitle">Cada cosa en su lugar: ubicaciones con código de barras (pasillo, estante, nivel), la pistola para guardar, mover, buscar y contar, y la hoja para preparar pedidos en orden de recorrido.</p>
       </div>

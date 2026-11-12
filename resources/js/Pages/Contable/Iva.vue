@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Libro IVA {{ libro }}</h1><p class="page-subtitle">Listo para el contador o para cargar en AFIP. Las notas de crédito restan.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="{ libro }" />
     </div>
-    <ContableTabs />
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1">
         <Link v-for="l in ['ventas', 'compras']" :key="l" :href="`/contable/iva?libro=${l}&desde=${periodo.desde}&hasta=${periodo.hasta}`" class="px-4 py-1.5 rounded-full text-sm font-semibold capitalize" :class="libro === l ? 'bg-carmin text-white' : 'text-marca-muted'">{{ l }}</Link>
@@ -35,7 +34,6 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 defineProps({ libro: String, periodo: Object, filas: Array, totales: Object })

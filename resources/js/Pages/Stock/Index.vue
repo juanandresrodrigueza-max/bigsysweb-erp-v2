@@ -1,29 +1,13 @@
 <template>
   <AppLayout titulo="Stock">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div><h1 class="page-title">Stock</h1><p class="page-subtitle">Artículos, existencias por depósito y valorización a costo.</p></div>
-      <div class="flex flex-wrap gap-2">
-        <Link href="/stock/movimientos" class="btn-secondary">Movimientos</Link>
-        <Link v-if="puede('stock','editar')" href="/stock/inventario" class="btn-secondary">Inventario</Link>
-        <button v-if="puede('stock','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
-        <a href="/configuracion/importar/exportar/articulos" class="btn-secondary" title="Todos los artículos con sus 6 listas, stock y descuentos">Exportar CSV</a>
-        <Link v-if="puede('stock','editar')" href="/stock/precios" class="btn-secondary" data-ir-precios>Precios y datos en masa</Link>
-        <Link v-if="puede('stock','editar')" href="/stock/importar" class="btn-secondary">Importar lista</Link>
-        <Link href="/stock/informes" class="btn-secondary">Informes</Link>
-        <Link href="/stock/etiquetas" class="btn-secondary">Etiquetas</Link>
-        <Link href="/stock/catalogos" class="btn-secondary" data-ir-catalogos>Catálogos</Link>
-        <Link href="/stock/tienda-online" class="btn-secondary" data-e2e="ir-tienda-online">Tienda online</Link>
-        <Link href="/stock/descuentos-lista" class="btn-secondary" data-ir-desc-lista>Descuentos por lista</Link>
-        <Link href="/stock/lotes" class="btn-secondary" data-ir-lotes>Lotes y vencimientos</Link>
-        <Link href="/stock/almacen" class="btn-secondary" data-ir-almacen>Almacén</Link>
-        <Link href="/stock/series" class="btn-secondary" data-ir-series>Números de serie</Link>
-        <Link href="/stock/despiece" class="btn-secondary" data-ir-despiece>Carnicería y pesables</Link>
-        <Link href="/stock/consultor" class="btn-secondary" data-ir-consultor title="Precio y stock al toque, también para la pantalla del salón">Consultor de precios</Link>
-        <button v-if="puede('stock','editar')" @click="dolarAbierto = true" class="btn-ghost text-xs" :title="cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización'">U$S {{ cotizacion ? moneda(cotizacion.venta, 0).replace('$ ', '') : '—' }}</button>
-        <button v-if="puede('stock','editar')" @click="configAbierto = true" class="btn-ghost"><Icono nombre="settings" clase="w-4 h-4" /></button>
-        <button v-if="puede('stock','crear')" @click="abrirArticulo()" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Artículo</button>
-      </div>
-    </div>
+    <PageHeader titulo="Stock" subtitulo="Artículos, existencias por depósito y valorización a costo."
+      :principal="puede('stock','crear') ? { label: 'Nuevo artículo', click: () => abrirArticulo() } : null"
+      :mas="[
+        { label: 'Transferir entre depósitos', click: () => transfAbierto = true, cuando: puede('stock','crear') },
+        { label: 'Exportar CSV', href: '/configuracion/importar/exportar/articulos', externo: true, title: 'Todos los artículos con sus 6 listas, stock y descuentos' },
+        { label: cotizacion ? `Dólar U$S ${moneda(cotizacion.venta, 0).replace('$ ', '')}` : 'Cotización del dólar', click: () => dolarAbierto = true, cuando: puede('stock','editar'), title: cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización' },
+        { label: 'Preferencias de stock', icono: 'settings', click: () => configAbierto = true, cuando: puede('stock','editar') },
+      ]" />
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Artículos activos</p><p class="text-xl font-extrabold tabular-nums">{{ entero(kpis.articulos) }}</p></div>
@@ -178,6 +162,7 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import Paginacion from '@/Components/Paginacion.vue'

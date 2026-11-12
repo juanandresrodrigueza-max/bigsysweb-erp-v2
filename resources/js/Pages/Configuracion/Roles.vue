@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Roles y permisos">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Roles y permisos</h1>
 
     <div class="flex items-center justify-between mb-4">
       <p class="text-sm text-marca-muted">Cada rol define qué módulos ve y qué puede hacer. Los roles del sistema se pueden ajustar pero no borrar.</p>
@@ -64,7 +63,6 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 

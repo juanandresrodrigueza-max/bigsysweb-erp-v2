@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Puntos de venta y AFIP">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Puntos de venta y AFIP</h1>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card">
@@ -68,7 +67,6 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 

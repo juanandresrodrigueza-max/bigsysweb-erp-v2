@@ -4,7 +4,6 @@
          por WhatsApp; el comprador ve además costo, margen y a qué proveedores comprar. Clientes: la pantalla del salón con su llave. -->
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Consultor de precios y stock</h1>
         <p class="page-subtitle">Sólo consulta: no vende ni toca el stock. Pasá el código con la pistola o buscá por nombre.</p>
       </div>

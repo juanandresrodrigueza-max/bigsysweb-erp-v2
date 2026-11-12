@@ -2,7 +2,6 @@
   <AppLayout titulo="Números de serie">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Números de serie</h1>
         <p class="page-subtitle">Cada equipo con su historia: de qué proveedor vino, a quién se vendió, hasta cuándo tiene garantía y qué services tuvo. Escaneá o escribí la serie.</p>
       </div>
@@ -44,7 +43,7 @@
         </div>
         <div class="rounded-xl border border-marca-borde p-3 mb-4">
           <div class="flex justify-between items-center mb-1"><p class="font-bold text-sm">Ingresar a servicio técnico</p><Link :href="`/stock/etiquetas?lotes=${det.id}`" class="text-xs text-violeta font-semibold">Etiqueta de la serie</Link></div>
-          <div class="flex gap-2"><input v-model="falla" class="input !py-1.5 flex-1" placeholder="¿Qué falla tiene?" data-e2e="falla" /><button class="btn-primary !py-1.5 text-xs" :disabled="!falla" data-e2e="crear-servicio" @click="router.post(`/stock/series/${det.id}/servicio`, { falla })">Crear orden</button></div>
+          <div class="flex gap-2"><input v-model="falla" class="input !py-1.5 flex-1" placeholder="¿Qué falla tiene?" data-e2e="falla" /><button class="btn-primary !py-1.5 text-xs" :disabled="!falla" data-e2e="crear-servicio" @click="router.post(`/stock/series/${det.id}/servicio`, { falla })">Nueva orden</button></div>
           <div v-if="det.servicios.length" class="mt-2 text-xs space-y-1"><p class="text-marca-muted">Services anteriores:</p><Link v-for="o in det.servicios" :key="o.id" :href="`/servicios/${o.id}`" class="block hover:text-carmin">{{ o.numero }} · {{ o.fecha }} · {{ o.estado }} · {{ o.falla }}</Link></div>
         </div>
         <p class="font-bold text-sm mb-1">Historia</p>

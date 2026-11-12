@@ -2,7 +2,6 @@
   <AppLayout titulo="Abonos">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/comprobantes" class="text-xs text-marca-muted hover:text-carmin">← Comprobantes</Link>
         <h1 class="page-title">Abonos y facturación recurrente</h1>
         <p class="page-subtitle">Cuotas, alquileres, servicios mensuales: se facturan solos el día que indiques. Ingreso mensual recurrente: <b>{{ moneda(mrr, 0) }}</b>.</p>
       </div>

@@ -1,13 +1,6 @@
 <template>
   <AppLayout titulo="Pendientes">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <Link href="/comprobantes" class="text-xs text-marca-muted hover:text-carmin">← Comprobantes</Link>
-        <h1 class="page-title">Pendientes de entrega y facturación</h1>
-        <p class="page-subtitle">Lo que se entregó sin facturar y lo que se facturó sin entregar. Ambos deberían tender a cero.</p>
-      </div>
-      <Link href="/comprobantes/entregas" class="btn-secondary">Hojas de reparto</Link>
-    </div>
+    <PageHeader titulo="Pendientes de entrega y facturación" subtitulo="Lo que se entregó sin facturar y lo que se facturó sin entregar. Ambos deberían tender a cero." />
 
     <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 w-fit mb-4">
       <button v-for="t in [['remitos', `Remitos sin facturar (${remitos.length})`], ['facturas', `Facturas sin entregar (${facturas.length})`]]" :key="t[0]" @click="tab = t[0]" class="px-3 py-1.5 rounded-full text-xs font-semibold" :class="tab === t[0] ? 'bg-carmin text-white' : 'text-marca-muted'">{{ t[1] }}</button>
@@ -45,6 +38,7 @@
 import { ref, computed } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'

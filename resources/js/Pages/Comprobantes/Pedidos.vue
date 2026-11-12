@@ -105,7 +105,7 @@
       <template #pie>
         <button class="btn-secondary" @click="waAbierto = false; interp = null">Cancelar</button>
         <button v-if="!interp" class="btn-primary" :disabled="wa.processing || !wa.texto" @click="wa.post('/comprobantes/pedidos/interpretar', { preserveScroll: true })">{{ wa.processing ? 'Interpretando…' : 'Interpretar' }}</button>
-        <button v-else class="btn-primary" :disabled="cw.processing || !cw.items.length" @click="cw.post('/comprobantes/pedidos/whatsapp', { onSuccess: () => { waAbierto = false; interp = null } })">Crear pedido</button>
+        <button v-else class="btn-primary" :disabled="cw.processing || !cw.items.length" @click="cw.post('/comprobantes/pedidos/whatsapp', { onSuccess: () => { waAbierto = false; interp = null } })">Nuevo pedido</button>
       </template>
     </Modal>
     <Modal :abierto="exp.abierto" titulo="Exportar pedidos a CSV / Excel" @cerrar="exp.abierto = false">

@@ -2,7 +2,7 @@
   <AppLayout titulo="Fondos · Conciliar">
     <!-- Fase 35: subís la liquidación de la procesadora o billetera tal como viene y el sistema la cruza contra tus cupones. -->
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><Link href="/fondos" class="text-xs text-marca-muted hover:text-carmin">← Fondos</Link><h1 class="page-title">Conciliar tarjetas y billeteras</h1><p class="page-subtitle">Subí el archivo que te manda la procesadora: lo que cierra queda listo para tildar, lo que no, te lo explica.</p></div>
+      <div><h1 class="page-title">Conciliar tarjetas y billeteras</h1><p class="page-subtitle">Subí el archivo que te manda la procesadora: lo que cierra queda listo para tildar, lo que no, te lo explica.</p></div>
       <Link href="/fondos/tarjetas" class="btn-secondary">Cupones en cartera</Link>
     </div>
 

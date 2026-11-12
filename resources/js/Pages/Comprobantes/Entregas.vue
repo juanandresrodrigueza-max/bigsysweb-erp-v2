@@ -1,13 +1,8 @@
 <template>
   <AppLayout titulo="Hojas de reparto">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <Link href="/comprobantes/pendientes" class="text-xs text-marca-muted hover:text-carmin">← Pendientes</Link>
-        <h1 class="page-title">Hojas de reparto</h1>
-        <p class="page-subtitle">Agrupá las entregas del día por repartidor, imprimí la hoja y marcá cada entrega al volver.</p>
-      </div>
-      <div class="flex gap-2"><button v-if="puede('comprobantes','crear')" @click="nuevaAbierta = true" class="btn-secondary">Hoja rápida</button><Link v-if="puede('comprobantes','crear')" href="/comprobantes/entregas/armar" class="btn-primary" data-e2e="armar"><Icono nombre="plus" clase="w-4 h-4" /> Armar viaje</Link></div>
-    </div>
+    <PageHeader titulo="Hojas de reparto" subtitulo="Agrupá las entregas del día por repartidor, imprimí la hoja y marcá cada entrega al volver."
+      :principal="puede('comprobantes','crear') ? { label: 'Armar viaje', href: '/comprobantes/entregas/armar', e2e: 'armar' } : null"
+      :secundaria="puede('comprobantes','crear') ? { label: 'Hoja rápida', click: () => nuevaAbierta = true } : null" />
 
     <div class="card mb-4 flex gap-2 items-center">
       <select :value="filtros.estado ?? ''" @change="$inertia.visit(`/comprobantes/entregas?estado=${$event.target.value}`)" class="input w-auto"><option value="">Abiertas</option><option v-for="(l, k) in estados" :key="k" :value="k">{{ l }}</option></select>
@@ -50,6 +45,7 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { hoyISO } from '@/util/formato'

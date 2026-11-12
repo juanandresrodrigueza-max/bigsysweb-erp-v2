@@ -8,7 +8,7 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <button @click="editarAbierto = true" class="btn-secondary"><Icono nombre="edit" clase="w-4 h-4" /> Editar</button>
-        <Link :href="`/proveedores/compras/nueva?contact_id=${proveedor.id}`" class="btn-secondary">Cargar factura</Link>
+        <Link :href="`/proveedores/compras/nueva?contact_id=${proveedor.id}`" class="btn-secondary">Nueva factura de compra</Link>
         <button @click="pagoAbierto = true" class="btn-primary">Registrar pago</button>
       </div>
     </div>

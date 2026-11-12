@@ -24,7 +24,7 @@
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 space-y-4">
         <div class="card p-0 overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Partes de obra</h2><button class="btn-primary !py-1 text-xs" @click="parteAbierto = true">Cargar parte</button></div>
+          <div class="flex items-center justify-between px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Partes de obra</h2><button class="btn-primary !py-1 text-xs" @click="parteAbierto = true">Nuevo parte</button></div>
           <table class="table text-sm">
             <thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th class="text-right">Cant.</th><th class="text-right">Costo</th><th class="text-right">Total</th><th></th></tr></thead>
             <tbody>

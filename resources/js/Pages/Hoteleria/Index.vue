@@ -74,7 +74,7 @@
           <tr v-for="h in habs" :key="h.id ?? 'n'">
             <td><input v-model="h.nombre" class="input !py-1 !w-20" /></td><td><select v-model="h.tipo" class="input !py-1"><option v-for="(l, k) in tipos" :key="k" :value="k">{{ l }}</option></select></td><td><input v-model.number="h.capacidad" type="number" min="1" class="input !py-1 !w-14 text-right" /></td><td><input v-model.number="h.tarifa" type="number" min="0" class="input !py-1 !w-24 text-right" /></td><td><input v-model="h.piso" class="input !py-1 !w-16" /></td>
             <td><select v-model="h.estado" class="input !py-1"><option v-for="(l, k) in estadosHab" :key="k" :value="k">{{ l }}</option></select></td>
-            <td class="text-right whitespace-nowrap"><label v-if="h.id" class="text-[10px] mr-1"><input v-model="h.activa" type="checkbox" class="accent-carmin" /> activa</label><button class="btn-primary !py-1 text-xs" :disabled="!h.nombre" @click="router.post(`/hoteleria/habitaciones/${h.id || ''}`, h, { preserveScroll: true, onSuccess: () => { if (!h.id) Object.assign(h, { nombre: '', piso: '' }) } })">{{ h.id ? 'Guardar' : 'Agregar' }}</button></td>
+            <td class="text-right whitespace-nowrap"><label v-if="h.id" class="text-[10px] mr-1"><input v-model="h.activa" type="checkbox" class="accent-carmin" /> activa</label><button class="btn-primary !py-1 text-xs" :disabled="!h.nombre" @click="router.post(`/hoteleria/habitaciones/${h.id || ''}`, h, { preserveScroll: true, onSuccess: () => { if (!h.id) Object.assign(h, { nombre: '', piso: '' }) } })">Guardar</button></td>
           </tr>
         </tbody>
       </table>

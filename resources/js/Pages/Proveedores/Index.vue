@@ -1,18 +1,11 @@
 <template>
   <AppLayout titulo="Proveedores">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <h1 class="page-title">Proveedores</h1>
-        <p class="page-subtitle">{{ entero(totales.proveedores) }} proveedores · por pagar {{ moneda(totales.por_pagar, 0) }} <span v-if="totales.vencido > 0" class="text-carmin font-semibold">· vencido {{ moneda(totales.vencido, 0) }}</span></p>
-      </div>
-      <div class="flex gap-2">
-        <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
-        <Link href="/proveedores/compras" class="btn-secondary">Compras</Link>
-        <Link v-if="puede('proveedores','crear')" href="/proveedores/compras/nueva" class="btn-secondary">Cargar factura</Link>
-        <a href="/configuracion/importar/exportar/proveedores" class="btn-secondary">Exportar CSV</a>
-        <button v-if="puede('proveedores','crear')" @click="editar(null)" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nuevo proveedor</button>
-      </div>
-    </div>
+    <PageHeader titulo="Proveedores"
+      :principal="puede('proveedores','crear') ? { label: 'Nuevo proveedor', click: () => editar(null) } : null"
+      :secundaria="puede('proveedores','crear') ? { label: 'Nueva factura de compra', href: '/proveedores/compras/nueva' } : null"
+      :mas="[{ label: 'Exportar CSV', href: '/configuracion/importar/exportar/proveedores', externo: true }]">
+      <template #subtitulo>{{ entero(totales.proveedores) }} proveedores · por pagar {{ moneda(totales.por_pagar, 0) }} <span v-if="totales.vencido > 0" class="text-carmin font-semibold">· vencido {{ moneda(totales.vencido, 0) }}</span></template>
+    </PageHeader>
 
     <div class="card mb-4 grid gap-2 sm:grid-cols-3">
       <input v-model="f.buscar" @keyup.enter="filtrar" class="input sm:col-span-2" placeholder="Buscar por nombre, CUIT o email…" />
@@ -45,6 +38,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import ProveedorModal from '@/Components/ProveedorModal.vue'

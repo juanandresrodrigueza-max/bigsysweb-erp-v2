@@ -2,7 +2,6 @@
   <AppLayout titulo="Compras">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/proveedores" class="text-xs text-marca-muted hover:text-carmin">← Proveedores</Link>
         <h1 class="page-title">Compras</h1>
         <p class="page-subtitle">Facturas de compra cargadas a mano, leídas con IA o importadas de AFIP.</p>
       </div>
@@ -10,7 +9,7 @@
         <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
         <button @click="importarAbierto = true" class="btn-secondary" data-e2e="importar-afip">Qué me falta cargar</button>
         <button @click="abrirReclamos" class="btn-secondary" data-e2e="reclamos">Reclamos <span v-if="reclamosAbiertos" class="ml-1 rounded-full bg-carmin text-white text-[10px] px-1.5 py-0.5">{{ reclamosAbiertos }}</span></button>
-        <Link href="/proveedores/compras/nueva" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Cargar factura</Link>
+        <Link href="/proveedores/compras/nueva" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva factura de compra</Link>
       </div>
     </div>
 
