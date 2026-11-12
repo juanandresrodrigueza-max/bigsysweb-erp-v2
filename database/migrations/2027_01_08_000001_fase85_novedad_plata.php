@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         if (app()->runningUnitTests() || ! Schema::hasTable('novedades') || DB::table('novedades')->where('titulo', 'Plata con nombres de todos los días')->exists()) return;
-        DB::table('novedades')->insert(['titulo' => 'Plata con nombres de todos los días', 'modulo' => 'fondos', 'url' => '/fondos/cierres',
+        DB::table('novedades')->insert(['titulo' => 'Plata con nombres de todos los días', 'modulo' => 'fondos', 'url' => '/ayuda/que-cambio',
             'texto' => 'En Plata, "Cierres" ahora es "Cerrar caja" (con el botón para cerrar la de hoy), "Cheques" y "Valores" son una sola sección "Cheques y valores" y "Previsiones" pasó a llamarse "Vencimientos previstos". En Stock, "Carnicería y pesables" es "Pesables y cortes" y "Consultor de precios" es "Simulador de precios"; las dos aparecen sólo si tu rubro las usa. La campana de alertas ahora es de todos los usuarios: ya no se asigna por rol.',
             'publicada_en' => now(), 'created_at' => now(), 'updated_at' => now()]);
     }

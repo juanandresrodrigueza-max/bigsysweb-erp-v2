@@ -4,6 +4,7 @@ namespace App\Services\Producto;
 
 use App\Models\Business;
 use App\Models\User;
+use App\Models\Ticket;
 use Illuminate\Support\Facades\DB;
 
 // Métricas de uso: qué módulos se usan, quién entra y qué empresas se están enfriando. Un contador por usuario, módulo y día.
@@ -62,6 +63,26 @@ class UsoService
         return DB::table('uso_diario')->where('business_id', $businessId)->where('fecha', '>=', today()->subDays($dias - 1)->toDateString())
             ->selectRaw('user_id, SUM(vistas) as vistas, SUM(acciones) as acciones, COUNT(DISTINCT fecha) as dias, MAX(fecha) as ultimo')->groupBy('user_id')->get()
             ->mapWithKeys(fn($r) => [$r->user_id => ['vistas' => (int) $r->vistas, 'acciones' => (int) $r->acciones, 'dias' => (int) $r->dias, 'ultimo' => $r->ultimo]])->all();
+    }
+
+    // Fase 86: medir antes y después del reordenamiento con lo que ya se registra. Para la ventana de los últimos $dias días y la anterior:
+    // pantallas distintas por persona y día (menos = encuentra más rápido), acciones por cada 100 vistas (más = menos clics hasta la acción)
+    // y tickets de "no encuentro" (la queja típica cuando algo se movió).
+    public function navegacion(int $dias = 7): array
+    {
+        $ventana = function (int $atras) use ($dias) {
+            $hasta = today()->subDays($atras * $dias); $desde = $hasta->copy()->subDays($dias - 1);
+            $q = fn() => DB::table('uso_diario')->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()]);
+            $porDia = $q()->selectRaw('COUNT(DISTINCT modulo) as n')->groupBy('user_id', 'fecha');
+            $pantallas = (float) (DB::query()->fromSub($porDia, 't')->avg('n') ?? 0);
+            $vistas = (int) $q()->sum('vistas'); $acciones = (int) $q()->sum('acciones');
+            $frases = ['%no encuentro%', '%no lo encuentro%', '%dónde está%', '%donde esta%', '%dónde quedó%', '%donde quedo%', '%no aparece%', '%desapareci%', '%no veo%'];
+            $tickets = Ticket::withoutGlobalScopes()->whereBetween('created_at', [$desde->startOfDay(), $hasta->copy()->endOfDay()])
+                ->where(function ($w) use ($frases) { foreach ($frases as $f) $w->orWhereRaw('LOWER(asunto) LIKE ?', [$f])->orWhereRaw('LOWER(CAST(mensajes AS TEXT)) LIKE ?', [$f]); })->count(); // LOWER: en PostgreSQL LIKE distingue mayúsculas
+            return ['desde' => $desde->format('d/m'), 'hasta' => $hasta->format('d/m'), 'usuarios' => (int) $q()->distinct()->count('user_id'),
+                'pantallas_por_dia' => round($pantallas, 1), 'acciones_por_100_vistas' => $vistas ? round($acciones * 100 / $vistas, 1) : 0.0, 'tickets_no_encuentro' => $tickets];
+        };
+        return ['ahora' => $ventana(0), 'antes' => $ventana(1)];
     }
 
     // Vista global para BigSys: empresas activas, en riesgo (sin uso), ranking y módulos.

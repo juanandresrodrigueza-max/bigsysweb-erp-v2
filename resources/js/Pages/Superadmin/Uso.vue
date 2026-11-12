@@ -4,6 +4,15 @@
       <div><h1 class="page-title">Métricas de uso</h1><p class="page-subtitle">Qué empresas usan el sistema, cuáles se están enfriando y qué módulos importan. Últimos {{ dias }} días.</p></div>
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1"><Link v-for="d in [7, 30, 90]" :key="d" :href="`/admin/uso?dias=${d}`" class="px-3 py-1 rounded-full text-xs font-semibold" :class="dias === d ? 'bg-carmin text-white' : 'text-marca-muted'">{{ d }} días</Link></div>
     </div>
+    <!-- Fase 86: antes y después del reordenamiento del menú, con lo que ya se mide. -->
+    <div v-if="navegacion" class="card mb-5 py-3" data-e2e="navegacion">
+      <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2"><h2 class="font-bold">Navegación: semana anterior → esta</h2><p class="text-xs text-marca-muted">{{ navegacion.antes.desde }}–{{ navegacion.antes.hasta }} → {{ navegacion.ahora.desde }}–{{ navegacion.ahora.hasta }}</p></div>
+      <div class="grid grid-cols-3 gap-3 text-sm">
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Pantallas por persona y día</p><p class="text-lg font-extrabold tabular-nums">{{ navegacion.antes.pantallas_por_dia }} → {{ navegacion.ahora.pantallas_por_dia }}</p><p class="text-xs text-marca-muted">Menos es mejor: encuentra más rápido.</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Acciones por cada 100 vistas</p><p class="text-lg font-extrabold tabular-nums">{{ navegacion.antes.acciones_por_100_vistas }} → {{ navegacion.ahora.acciones_por_100_vistas }}</p><p class="text-xs text-marca-muted">Más es mejor: menos clics hasta la acción.</p></div>
+        <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Tickets de «no encuentro»</p><p class="text-lg font-extrabold tabular-nums" :class="navegacion.ahora.tickets_no_encuentro > navegacion.antes.tickets_no_encuentro ? 'text-carmin' : ''">{{ navegacion.antes.tickets_no_encuentro }} → {{ navegacion.ahora.tickets_no_encuentro }}</p><p class="text-xs text-marca-muted">Si sube, algo se movió de más.</p></div>
+      </div>
+    </div>
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Empresas</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.empresas }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Activas en el período</p><p class="text-xl font-extrabold tabular-nums text-emerald-700">{{ kpis.activas_periodo }}</p></div>
@@ -48,6 +57,6 @@ import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
-const props = defineProps({ dias: Number, kpis: Object, ranking: Array, en_riesgo: Array, modulos: Array, serie: Array })
+const props = defineProps({ dias: Number, kpis: Object, ranking: Array, en_riesgo: Array, modulos: Array, serie: Array, navegacion: Object })
 const maxEmp = computed(() => Math.max(0, ...props.serie.map(p => p.empresas)))
 </script>
