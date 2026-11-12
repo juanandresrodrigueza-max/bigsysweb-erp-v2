@@ -30,7 +30,7 @@ return [
     // Roles del sistema: se crean para cada empresa nueva y el dueño puede ajustarlos.
     // Fase 79: el menú lateral, en el orden del día del negocio (vender → cobrar → entregar → comprar → stock → plata → contable → estadísticas).
     // Cada entrada apunta a una ruta y toma el permiso del módulo indicado; los permisos, los roles y la ayuda siguen usando 'modulos'.
-    // 'grupo' sólo se muestra como título cuando hace falta (Mi rubro). Alertas no está: vive en la campana del encabezado.
+    // Fase 88: los rubros habilitados (Big Restó, Servicio técnico…) son módulos como los demás, sin título de grupo. Alertas no está: vive en la campana del encabezado.
     'menu' => [
         ['key' => 'inicio',       'label' => 'Inicio',           'icono' => 'home',     'ruta' => '/dashboard',               'modulo' => 'dashboard'],
         ['key' => 'vender',       'label' => 'Vender',           'icono' => 'receipt',  'ruta' => '/comprobantes',            'modulo' => 'comprobantes'],
@@ -43,14 +43,14 @@ return [
         ['key' => 'contable',     'label' => 'Contable',         'icono' => 'book',     'ruta' => '/contable',                'modulo' => 'contable'],
         ['key' => 'sueldos',      'label' => 'Sueldos',          'icono' => 'idcard',   'ruta' => '/sueldos',                 'modulo' => 'sueldos', 'solo_sin' => 'contable'], // Fase 82: vive adentro de Contable; sola sólo para quien no ve Contable
         ['key' => 'estadisticas', 'label' => 'Estadísticas',     'icono' => 'chart',    'ruta' => '/estadisticas',            'modulo' => 'estadisticas'],
-        ['key' => 'gastronomia',  'label' => 'Big Restó',        'icono' => 'utensils', 'ruta' => '/gastronomia',             'modulo' => 'gastronomia', 'grupo' => 'Mi rubro'],
-        ['key' => 'retail',       'label' => 'Comercio',         'icono' => 'store',    'ruta' => '/retail',                  'modulo' => 'retail',      'grupo' => 'Mi rubro'],
-        ['key' => 'minimarket',   'label' => 'Minimarket',       'icono' => 'basket',   'ruta' => '/minimarket',              'modulo' => 'minimarket',  'grupo' => 'Mi rubro'],
-        ['key' => 'servicios',    'label' => 'Servicio técnico', 'icono' => 'wrench',   'ruta' => '/servicios',               'modulo' => 'servicios',   'grupo' => 'Mi rubro'],
-        ['key' => 'hoteleria',    'label' => 'Hotelería',        'icono' => 'bed',      'ruta' => '/hoteleria',               'modulo' => 'hoteleria',   'grupo' => 'Mi rubro'],
-        ['key' => 'obras',        'label' => 'Obras',            'icono' => 'hardhat',  'ruta' => '/obras',                   'modulo' => 'obras',       'grupo' => 'Mi rubro'],
-        ['key' => 'produccion',   'label' => 'Producción',       'icono' => 'factory',  'ruta' => '/produccion',              'modulo' => 'produccion',  'grupo' => 'Mi rubro'],
-        ['key' => 'agenda',       'label' => 'Agenda',           'icono' => 'calendar', 'ruta' => '/agenda',                  'modulo' => 'agenda',      'grupo' => 'Mi rubro'],
+        ['key' => 'gastronomia',  'label' => 'Big Restó',        'icono' => 'utensils', 'ruta' => '/gastronomia',             'modulo' => 'gastronomia'],
+        ['key' => 'retail',       'label' => 'Comercio',         'icono' => 'store',    'ruta' => '/retail',                  'modulo' => 'retail'],
+        ['key' => 'minimarket',   'label' => 'Minimarket',       'icono' => 'basket',   'ruta' => '/minimarket',              'modulo' => 'minimarket'],
+        ['key' => 'servicios',    'label' => 'Servicio técnico', 'icono' => 'wrench',   'ruta' => '/servicios',               'modulo' => 'servicios'],
+        ['key' => 'hoteleria',    'label' => 'Hotelería',        'icono' => 'bed',      'ruta' => '/hoteleria',               'modulo' => 'hoteleria'],
+        ['key' => 'obras',        'label' => 'Obras',            'icono' => 'hardhat',  'ruta' => '/obras',                   'modulo' => 'obras'],
+        ['key' => 'produccion',   'label' => 'Producción',       'icono' => 'factory',  'ruta' => '/produccion',              'modulo' => 'produccion'],
+        ['key' => 'agenda',       'label' => 'Agenda',           'icono' => 'calendar', 'ruta' => '/agenda',                  'modulo' => 'agenda'],
         ['key' => 'configuracion','label' => 'Configuración',    'icono' => 'settings', 'ruta' => '/configuracion',           'modulo' => 'configuracion'],
     ],
 
@@ -141,26 +141,29 @@ return [
             ['key' => 'activos',      'label' => 'Bienes de uso',         'ruta' => '/contable/activos',      'grupo' => 'Puesta a punto', 'palabras' => 'amortizaciones'],
             ['key' => 'conciliacion', 'label' => 'Conciliación',          'ruta' => '/contable/conciliacion', 'grupo' => 'Puesta a punto', 'palabras' => 'banco extracto'],
         ],
-        // Fase 83: "Mi rubro" es una sola entrada del menú; sus secciones son las pantallas de los verticales que la empresa tiene prendidos.
-        // Los mostradores (Comercio, Minimarket) son 'solo_link': van a pantalla completa.
-        'rubro' => [
-            ['key' => 'mesas',       'label' => 'Mesas',            'ruta' => '/gastronomia', 'exacto' => true, 'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
-            ['key' => 'cocina',      'label' => 'Cocina',           'ruta' => '/gastronomia/cocina',   'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
-            ['key' => 'carta',       'label' => 'Carta',            'ruta' => '/gastronomia/carta',    'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
-            ['key' => 'reservas',    'label' => 'Reservas',         'ruta' => '/gastronomia/reservas', 'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
-            ['key' => 'llamador',    'label' => 'Llamador',         'ruta' => '/gastronomia/llamador', 'modulo' => 'gastronomia', 'grupo' => 'Big Restó'],
-            ['key' => 'retail',      'label' => 'Mostrador',        'ruta' => '/retail',     'solo_link' => true, 'modulo' => 'retail',     'grupo' => 'Comercio'],
-            ['key' => 'minimarket',  'label' => 'Caja',             'ruta' => '/minimarket', 'solo_link' => true, 'modulo' => 'minimarket', 'grupo' => 'Minimarket'],
-            ['key' => 'servicios',   'label' => 'Órdenes',          'ruta' => '/servicios', 'exacto' => true, 'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
-            ['key' => 'mis-ordenes', 'label' => 'Mis órdenes',      'ruta' => '/servicios/mis-ordenes', 'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
-            ['key' => 'que-vuelvan', 'label' => 'Que vuelvan',      'ruta' => '/servicios/que-vuelvan', 'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
-            ['key' => 'tecnicos',    'label' => 'Técnicos',         'ruta' => '/servicios/tecnicos',    'modulo' => 'servicios', 'grupo' => 'Servicio técnico'],
-            ['key' => 'hoteleria',   'label' => 'Habitaciones',     'ruta' => '/hoteleria', 'modulo' => 'hoteleria', 'grupo' => 'Hotelería'],
-            ['key' => 'obras',       'label' => 'Obras',            'ruta' => '/obras', 'exacto' => true, 'modulo' => 'obras', 'grupo' => 'Obras'],
-            ['key' => 'produccion',  'label' => 'Órdenes',          'ruta' => '/produccion', 'exacto' => true, 'modulo' => 'produccion', 'grupo' => 'Producción'],
-            ['key' => 'formulas',    'label' => 'Fórmulas',         'ruta' => '/produccion/formulas', 'modulo' => 'produccion', 'grupo' => 'Producción'],
-            ['key' => 'agenda',      'label' => 'Agenda',           'ruta' => '/agenda', 'modulo' => 'agenda', 'grupo' => 'Agenda'],
+        // Fase 88: las pantallas de cada rubro cuelgan de su módulo en el menú. Los mostradores (Comercio, Minimarket) son 'solo_link': pantalla completa.
+        'gastronomia' => [
+            ['key' => 'mesas',       'label' => 'Mesas',       'ruta' => '/gastronomia', 'exacto' => true],
+            ['key' => 'cocina',      'label' => 'Cocina',      'ruta' => '/gastronomia/cocina'],
+            ['key' => 'carta',       'label' => 'Carta',       'ruta' => '/gastronomia/carta'],
+            ['key' => 'reservas',    'label' => 'Reservas',    'ruta' => '/gastronomia/reservas'],
+            ['key' => 'llamador',    'label' => 'Llamador',    'ruta' => '/gastronomia/llamador'],
         ],
+        'retail'     => [['key' => 'retail',     'label' => 'Mostrador', 'ruta' => '/retail',     'solo_link' => true]],
+        'minimarket' => [['key' => 'minimarket', 'label' => 'Caja',      'ruta' => '/minimarket', 'solo_link' => true]],
+        'servicios' => [
+            ['key' => 'servicios',   'label' => 'Órdenes',     'ruta' => '/servicios', 'exacto' => true],
+            ['key' => 'mis-ordenes', 'label' => 'Mis órdenes', 'ruta' => '/servicios/mis-ordenes'],
+            ['key' => 'que-vuelvan', 'label' => 'Que vuelvan', 'ruta' => '/servicios/que-vuelvan'],
+            ['key' => 'tecnicos',    'label' => 'Técnicos',    'ruta' => '/servicios/tecnicos'],
+        ],
+        'hoteleria'  => [['key' => 'hoteleria', 'label' => 'Habitaciones', 'ruta' => '/hoteleria']],
+        'obras'      => [['key' => 'obras',     'label' => 'Obras',        'ruta' => '/obras', 'exacto' => true]],
+        'produccion' => [
+            ['key' => 'produccion',  'label' => 'Órdenes',     'ruta' => '/produccion', 'exacto' => true],
+            ['key' => 'formulas',    'label' => 'Fórmulas',    'ruta' => '/produccion/formulas'],
+        ],
+        'agenda'     => [['key' => 'agenda', 'label' => 'Agenda', 'ruta' => '/agenda']],
         'sueldos' => [
             ['key' => 'liquidaciones', 'label' => 'Liquidaciones', 'ruta' => '/sueldos', 'exacto' => true],
             ['key' => 'recibos',       'label' => 'Recibos',       'ruta' => '/sueldos/recibos'],

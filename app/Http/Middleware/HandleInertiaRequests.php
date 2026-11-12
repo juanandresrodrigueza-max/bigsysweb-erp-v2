@@ -108,8 +108,8 @@ class HandleInertiaRequests extends Middleware
             if (! $grupos || end($grupos)['label'] !== $g) $grupos[] = ['label' => $g, 'items' => []];
             $grupos[array_key_last($grupos)]['items'][] = ['key' => $m['key'], 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'modulo' => $m['modulo'], 'disponible' => config("erp.modulos.{$m['modulo']}.disponible", true),
                 // Fase 82: las secciones también viajan en el menú, para que Ctrl K encuentre "Liquidaciones" o "Puntos de venta y AFIP".
-                'secciones' => array_map(fn($i) => ['key' => $i['key'], 'label' => $i['label'], 'ruta' => $i['ruta']], $this->itemsDe($m['key'], $m, $user, $visibles))]
-                + (isset($m['verticales']) ? ['verticales' => $m['verticales']] : []);
+                // Fase 88: cuelgan del módulo en el menú (con su grupo y su ayuda), así que viajan completas.
+                'secciones' => array_map(fn($i) => ['key' => $i['key'], 'label' => $i['label'], 'ruta' => $i['ruta'], 'grupo' => $i['grupo'], 'ayuda' => $i['ayuda']], $this->itemsDe($m['key'], $m, $user, $visibles))];
         }
         // Integración con el CRM activa: botón que pasa al CRM ya logueado (link externo, no Inertia), al final.
         if (\App\Services\Integraciones\CrmService::activo($user->business)) {
@@ -119,22 +119,14 @@ class HandleInertiaRequests extends Middleware
         return $grupos;
     }
 
-    // Las entradas del menú que este usuario ve, en orden. Fase 83: los verticales de "Mi rubro" se juntan en una sola entrada
-    // (con el nombre real del vertical si es uno solo; "Mi rubro" si son varios); la Agenda va adentro.
+    // Las entradas del menú que este usuario ve, en orden. Fase 88: cada rubro habilitado es una entrada más (ya no se juntan en "Mi rubro").
     private function entradas(array $visibles): array
     {
-        $out = []; $rubro = []; $pos = null;
+        $out = [];
         foreach (config('erp.menu') as $m) {
             if (! in_array($m['modulo'], $visibles, true)) continue;
             if (isset($m['solo_sin']) && in_array($m['solo_sin'], $visibles, true)) continue; // Fase 82: Sueldos vive adentro de Contable
-            if (($m['grupo'] ?? '') === 'Mi rubro') { $rubro[] = $m; $pos ??= count($out); continue; }
             $out[] = $m;
-        }
-        if ($rubro) {
-            $verticales = array_values(array_filter($rubro, fn($m) => $m['key'] !== 'agenda'));
-            $uno = count($verticales) === 1 ? $verticales[0] : null;
-            $primero = $verticales[0] ?? $rubro[0];
-            array_splice($out, $pos, 0, [['key' => 'rubro', 'label' => $uno ? $uno['label'] : 'Mi rubro', 'icono' => $uno ? $uno['icono'] : 'store', 'ruta' => $primero['ruta'], 'modulo' => $primero['modulo'], 'grupo' => 'Mi rubro', 'verticales' => array_column($rubro, 'key')]]);
         }
         return $out;
     }

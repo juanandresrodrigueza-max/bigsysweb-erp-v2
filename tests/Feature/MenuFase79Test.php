@@ -24,9 +24,9 @@ class MenuFase79Test extends ErpTestCase
         $this->assertSame(['Entregar', '/comprobantes/pendientes'], [$por['entregar']['label'], $por['entregar']['ruta']]);
         $this->assertSame(['Comprar', '/proveedores'], [$por['comprar']['label'], $por['comprar']['ruta']]);
         $this->assertSame(['Plata', '/fondos'], [$por['plata']['label'], $por['plata']['ruta']]);
-        // Los verticales van bajo "Mi rubro" y sólo los del rubro de la empresa (corralón: sin Big Restó).
-        $rubro = collect($nav)->where('grupo', 'Mi rubro')->pluck('key')->all();
-        $this->assertNotContains('gastronomia', $rubro); $this->assertSame('', $por['vender']['grupo'], 'Las entradas del ciclo no llevan título de grupo');
+        // Fase 88: los rubros son módulos como los demás (sin título de grupo) y sólo los del rubro de la empresa (corralón: sin Big Restó).
+        $this->assertNotContains('gastronomia', $keys); $this->assertSame('', $por['vender']['grupo'], 'Las entradas del ciclo no llevan título de grupo');
+        $this->assertEmpty(collect($nav)->where('grupo', 'Mi rubro'), 'Ya no hay grupo Mi rubro');
     }
 
     public function test_cada_rol_ve_solo_lo_suyo_con_los_nombres_nuevos(): void

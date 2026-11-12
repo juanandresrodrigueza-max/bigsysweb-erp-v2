@@ -170,7 +170,7 @@ class AyudaService
     {
         return match ($pantalla) {
             default => [
-                ['sel' => '[data-tour="menu"]', 'titulo' => 'El menú', 'texto' => 'Va en el orden del día: Vender, Cobrar, Entregar, Clientes, Comprar, Stock, Plata, Contable (con Sueldos adentro) y Estadísticas. Abajo, lo de tu rubro y Configuración. Lo que no está en tu plan no aparece.'],
+                ['sel' => '[data-tour="menu"]', 'titulo' => 'El menú', 'texto' => 'Va en el orden del día: Vender, Cobrar, Entregar, Clientes, Comprar, Stock, Plata, Contable (con Sueldos adentro), Estadísticas, los rubros que tengas prendidos (Big Restó, Servicio técnico…) y Configuración. Tocá un módulo y debajo se despliegan sus secciones; la flecha las pliega. Lo que no está en tu plan no aparece.'],
                 ['sel' => '[data-tour="sucursal"]', 'titulo' => 'Sucursal activa', 'texto' => 'Si tenés más de una sucursal, acá elegís en cuál estás trabajando. Cada venta, cobro y movimiento de stock queda en la sucursal activa.'],
                 ['sel' => '[data-tour="buscar"]', 'titulo' => 'Buscar todo', 'texto' => 'Ctrl+K abre el buscador: clientes, artículos, comprobantes por número, pantallas y acciones rápidas. Es la forma más rápida de moverse.'],
                 ['sel' => '[data-tour="alertas"]', 'titulo' => 'Alertas', 'texto' => 'Stock bajo, facturas vencidas, cheques por vencer, pedidos nuevos. Lo importante te busca a vos.'],
