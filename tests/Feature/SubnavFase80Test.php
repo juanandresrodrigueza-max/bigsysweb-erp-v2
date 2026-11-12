@@ -23,7 +23,7 @@ class SubnavFase80Test extends ErpTestCase
         $this->assertSame('plata', $s['key']); $this->assertSame('conciliar', collect($s['items'])->firstWhere('activo', true)['key']);
 
         $s = $this->subnav($this->dueno, '/stock');
-        $this->assertSame(['articulos', 'precios', 'inventario', 'movimientos', 'lotes', 'series', 'almacen', 'etiquetas', 'informes', 'desc-lista', 'catalogos', 'importar', 'despiece', 'consultor'], array_column($s['items'], 'key')); // Fase 83: Tienda online pasó a Vender
+        $this->assertSame(['articulos', 'precios', 'inventario', 'movimientos', 'lotes', 'series', 'almacen', 'etiquetas', 'informes', 'desc-lista', 'catalogos', 'importar'], array_column($s['items'], 'key')); // Fase 83: Tienda online pasó a Vender; Fase 85: pesables y simulador sólo para los rubros que los usan
         $this->assertSame('De vez en cuando', collect($s['items'])->firstWhere('key', 'catalogos')['grupo']);
     }
 

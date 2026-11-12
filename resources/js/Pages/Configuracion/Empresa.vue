@@ -1,5 +1,5 @@
 <template>
-  <AppLayout titulo="Configuración">
+  <AppLayout titulo="Empresa">
     <h1 class="page-title mb-4">Empresa</h1>
 
     <div class="grid lg:grid-cols-3 gap-4">

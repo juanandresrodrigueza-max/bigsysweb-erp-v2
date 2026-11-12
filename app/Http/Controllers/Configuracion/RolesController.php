@@ -14,7 +14,7 @@ class RolesController extends Controller
     public function index(Request $request)
     {
         $b = $request->user()->business;
-        $modulos = collect(config('erp.modulos'))->map(fn($m, $k) => ['key' => $k, 'label' => $m['label'], 'grupo' => $m['grupo'] ?? 'General'])->values();
+        $modulos = collect(config('erp.modulos'))->reject(fn($m) => ! empty($m['sin_permiso']))->map(fn($m, $k) => ['key' => $k, 'label' => $m['label'], 'grupo' => $m['grupo'] ?? 'General'])->values(); // Fase 85: Alertas es de todos
 
         return Inertia::render('Configuracion/Roles', [
             'roles' => $b->roles()->withCount('users')->orderByDesc('es_sistema')->orderBy('nombre')->get()->map(fn($r) => [

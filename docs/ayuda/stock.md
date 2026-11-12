@@ -27,7 +27,7 @@ Todas las etiquetas en un lugar, en hoja A4 (65, 24 u 8 por hoja), en rollo para
 - **Con el color de la empresa** usa el color de la marca de Configuración → Empresa.
 - El formato que elegís queda guardado en ese navegador.
 
-## Carnicería y pesables (Stock → Carnicería y pesables)
+## Pesables y cortes (Stock → Pesables y cortes; antes "Carnicería y pesables". Aparece para minimarkets y gastronomía, o apenas marcás un artículo como pesable)
 
 Para carnicerías, fiambrerías, verdulerías, panaderías y todo lo que se vende por peso.
 

@@ -114,6 +114,7 @@ class User extends Authenticatable
         if (! $this->business?->tieneModulo($modulo)) {
             return false;
         }
+        if ($accion === 'ver' && config("erp.modulos.$modulo.sin_permiso")) return true; // Fase 85: la campana de alertas es de todos
         return $this->rolActual()?->permite($modulo, $accion) ?? false;
     }
 

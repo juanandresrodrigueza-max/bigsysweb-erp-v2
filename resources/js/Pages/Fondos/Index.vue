@@ -1,5 +1,5 @@
 <template>
-  <AppLayout titulo="Fondos">
+  <AppLayout titulo="Plata">
     <PageHeader titulo="Plata"
       :principal="puede('fondos','crear') ? { label: 'Registrar gasto', click: () => abrirMov('egreso') } : null"
       :secundaria="puede('fondos','crear') ? { label: 'Registrar ingreso', click: () => abrirMov('ingreso') } : null"

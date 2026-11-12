@@ -1,10 +1,10 @@
 <template>
-  <AppLayout titulo="Consultor de precios">
+  <AppLayout titulo="Simulador de precios">
     <!-- Fase 32.4–32.5: precio y stock al toque. Empleados: buscar, las seis listas, el precio para un cliente, el simulador y la cotización
          por WhatsApp; el comprador ve además costo, margen y a qué proveedores comprar. Clientes: la pantalla del salón con su llave. -->
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <h1 class="page-title">Consultor de precios y stock</h1>
+        <h1 class="page-title">Simulador de precios y stock</h1>
         <p class="page-subtitle">Sólo consulta: no vende ni toca el stock. Pasá el código con la pistola o buscá por nombre.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-sm">

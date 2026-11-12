@@ -38,7 +38,7 @@ Cada cobro con tarjeta es un **cupón** pendiente de liquidación. Cuando llega 
 
 En el punto de venta se cobra en **cuotas** con recargo por plan (Configuración → Empresa → Tarjetas).
 
-## Previsiones: lo que se repite todos los meses (Fondos → Previsiones)
+## Vencimientos previstos: lo que se repite todos los meses (Plata → Vencimientos previstos; antes "Previsiones")
 
 Alquiler, seguros, monotributo, cuotas, servicios, un abono que cobrás por fuera: cargalos una vez con el importe, el día del mes y cada cuántos meses (todos los meses, cada 2, 3, 6 o 12). El sistema:
 
@@ -86,7 +86,7 @@ Si un concepto no se reconoce, lo clasificás una vez en el renglón y queda **a
 
 **Extractos en PDF**: un PDF no es una tabla. Por eso la **cadena de saldos** tiene que cerrar renglón por renglón (saldo anterior + movimiento = saldo siguiente). Si no cierra, el PDF no se importa y te dice en qué renglón falló: mejor "no pude" que conciliar con un número inventado.
 
-## Controlar la planilla de caja (Fondos → Cierres)
+## Controlar la planilla de caja (Plata → Cerrar caja → Más)
 
 Si las cajeras llevan una planilla en Excel, subila con **Controlar la planilla de caja**. Día por día compara ingresos y egresos contra lo cargado en la caja, los **arqueos** de la planilla contra el cierre del turno, la rendición de cada cajera, y los **recibos** por número: los que están en la planilla y no en el sistema, y al revés. No graba nada.
 
@@ -98,7 +98,7 @@ Lo que el cliente tiene para retirar no es deuda. Por cliente: lo acopiado, lo r
 
 ## Cierres por día y alertas del cierre
 
-- **Por día** (Fondos → Cierres): una fila por día y caja con quién cerró y a qué hora, cuántos comprobantes, lo cobrado, lo contado y la diferencia, con el total abajo. Si hubo varios cierres ese día, **×N** los abre uno por uno.
+- **Por día** (Plata → Cerrar caja): una fila por día y caja con quién cerró y a qué hora, cuántos comprobantes, lo cobrado, lo contado y la diferencia, con el total abajo. Si hubo varios cierres ese día, **×N** los abre uno por uno.
 - **Alertas al celular en cada cierre:** cuando un cierre sale de lo normal para esa caja (mucho efectivo comparado con los últimos cierres, cerró en cero habiendo cobrado, o con muchos menos comprobantes que de costumbre), queda una alerta y le llega al dueño al celular.
 
 ## Gastos que caen solos en su categoría (Fase 58)

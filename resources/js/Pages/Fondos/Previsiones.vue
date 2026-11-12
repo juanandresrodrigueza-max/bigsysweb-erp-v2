@@ -1,6 +1,10 @@
 <template>
-  <AppLayout titulo="Previsiones">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+  <AppLayout titulo="Vencimientos previstos">
+    <PageHeader titulo="Vencimientos previstos" :principal="puede('fondos','crear') ? { label: 'Nueva previsión', click: () => abrir() } : null"
+      :mas="[{ label: 'Cash flow 13 semanas', href: '/contable/cashflow' }, { label: 'Abonos a facturar', href: '/comprobantes/abonos', title: 'Lo recurrente que facturás a clientes' }]" compacto>
+      <template #subtitulo>Lo que se paga o se cobra todos los meses o cada X meses: alquiler, seguros, impuestos, cuotas, abonos. Avisa antes, entra en el cash flow y se registra con un clic.</template>
+    </PageHeader>
+    <div v-if="false" class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Previsiones</h1><p class="page-subtitle">Lo que se paga o se cobra todos los meses o cada X meses: alquiler, seguros, impuestos, cuotas, abonos. Avisa antes, entra en el cash flow y se registra en un clic (o solo).</p></div>
       <div class="flex flex-wrap gap-2"><Link href="/fondos" class="btn-secondary">Fondos</Link><Link href="/contable/cashflow" class="btn-secondary">Cash flow</Link><Link href="/comprobantes/abonos" class="btn-secondary" title="Lo recurrente que facturás a clientes">Abonos a facturar</Link><button v-if="puede('fondos','crear')" @click="abrir()" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva previsión</button></div>
     </div>
@@ -80,6 +84,7 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'

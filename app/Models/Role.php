@@ -54,7 +54,7 @@ class Role extends Model
         if (isset($p['*'])) {
             return $todos;
         }
-        return array_values(array_filter($todos, fn($m) => in_array('ver', (array) ($p[$m] ?? []), true)));
+        return array_values(array_filter($todos, fn($m) => ! empty(config("erp.modulos.$m.sin_permiso")) || in_array('ver', (array) ($p[$m] ?? []), true)));
     }
 
     public static function crearRolesSistema(int $businessId): void

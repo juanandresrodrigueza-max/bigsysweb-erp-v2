@@ -154,6 +154,22 @@ class Business extends Model
         return array_values(array_filter($modulos, fn($m) => (! in_array($m, self::VERTICALES_MODULOS, true) || in_array($m, $permitidos, true)) && ! in_array($m, $ocultos, true)));
     }
 
+    // Fase 85: pantallas que sólo tienen sentido para algunos rubros. Se muestran si el vertical las pide o si la empresa ya las usa.
+    // 'pesables' (Pesables y cortes): minimarket y gastronomía, o si hay artículos pesables o despieces cargados.
+    // 'consultor' (Simulador de precios): minimarket y comercio con salón, o si ya hay pantallas de consultor configuradas.
+    private array $usaCache = [];
+    public function usa(string $que): bool
+    {
+        return $this->usaCache[$que] ??= match ($que) {
+            'pesables' => in_array($this->vertical, ['minimarket', 'gastronomia'], true)
+                || Product::withoutGlobalScopes()->where('business_id', $this->id)->where('pesable', true)->exists()
+                || Despiece::withoutGlobalScopes()->where('business_id', $this->id)->exists(),
+            'consultor' => in_array($this->vertical, ['minimarket', 'retail'], true)
+                || CotizacionConsultor::withoutGlobalScopes()->where('business_id', $this->id)->exists(),
+            default => true,
+        };
+    }
+
     // Verticales visibles: los del rubro principal más los que el dueño habilitó a mano (una ferretería con cabañas, un taller con local).
     public function verticalesPermitidos(): array
     {
