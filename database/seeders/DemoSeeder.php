@@ -46,7 +46,7 @@ class DemoSeeder extends Seeder
             $central = BusinessLocation::create(['business_id' => $empresa->id, 'name' => 'Casa Central', 'short_name' => 'CC', 'city' => 'Córdoba', 'province' => 'Córdoba', 'address' => 'Av. Colón 1234', 'is_default' => true]);
             $norte   = BusinessLocation::create(['business_id' => $empresa->id, 'name' => 'Sucursal Norte', 'short_name' => 'NOR', 'city' => 'Villa Allende', 'province' => 'Córdoba', 'address' => 'Ruta E-53 km 4']);
 
-            $pro = Plan::where('slug', 'pro')->first() ?? Plan::first();
+            $pro = Plan::where('slug', 'negocio')->first() ?? Plan::where('slug', 'pro')->first() ?? Plan::first();
             Subscription::create(['business_id' => $empresa->id, 'plan_id' => $pro->id, 'status' => 'active', 'amount' => $pro->price_monthly, 'starts_at' => now()->subMonth(), 'ends_at' => now()->addDays(23)]);
 
             Role::crearRolesSistema($empresa->id);

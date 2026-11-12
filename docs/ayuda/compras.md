@@ -6,13 +6,13 @@ orden: 4
 resumen: Órdenes de compra, carga de facturas (a mano, con IA o desde ARCA), cuenta corriente de proveedores, pagos con retenciones y cheques propios.
 ---
 
-## Órdenes de compra (Proveedores → Órdenes)
+## Órdenes de compra (Comprar → Órdenes de compra)
 
 Lo que le pediste a cada proveedor y qué falta recibir. Se arman a mano o desde **Stock → Informes → Armar órdenes de compra**, que sugiere cantidades por lo que se vende y lo que hay. Al recibir la mercadería, la factura de compra se arma sola desde la orden.
 
 ### Comparar cotizaciones (Fase 62)
 
-Pediste precio a tres proveedores y cada uno te mandó lo suyo: una foto, un PDF, un mensaje de WhatsApp. En **Proveedores → Órdenes → ✦ Comparar cotizaciones** subís todo junto (o pegás los mensajes tal cual). La IA lee cada renglón, lo pasa a precio por unidad sin IVA (si decía "IVA incluido" lo descuenta; si cotizó por bulto, lo convierte y lo aclara), lo cruza con tus artículos y reconoce al proveedor por CUIT o nombre.
+Pediste precio a tres proveedores y cada uno te mandó lo suyo: una foto, un PDF, un mensaje de WhatsApp. En **Comprar → Órdenes de compra → ✦ Comparar cotizaciones** subís todo junto (o pegás los mensajes tal cual). La IA lee cada renglón, lo pasa a precio por unidad sin IVA (si decía "IVA incluido" lo descuenta; si cotizó por bulto, lo convierte y lo aclara), lo cruza con tus artículos y reconoce al proveedor por CUIT o nombre.
 
 Sale la tabla: un renglón por artículo, una columna por proveedor, el más barato de cada fila en verde, cuánto sale **todo en uno solo** y cuánto el **mixto** (cada cosa al más barato) con el ahorro. Podés cambiar a quién le comprás cada renglón o sacarlo. **Armar órdenes** crea una orden de compra en borrador por proveedor con lo que ganó cada uno; las condiciones que cotizaron (pago, envío, validez) quedan a la vista. Un proveedor que no tiene ficha se muestra igual pero no se le puede pedir hasta darlo de alta.
 
@@ -20,7 +20,7 @@ A Bigcito se le pegan los mensajes: "compará estas cotizaciones: …" y te dice
 
 ## Cargar una factura de compra
 
-**Proveedores → Compras → Nueva**. Tres formas:
+**Comprar → Facturas de compra → Nueva**. Tres formas:
 - **A mano**: cargá los datos tal como vienen en el comprobante (tipo, punto de venta, número, fecha, CAE) y los ítems.
 - **Con IA**: subí la foto o el PDF y el sistema lee proveedor, ítems e importes; revisás y confirmás.
 - **Desde ARCA**: importá el archivo de "Mis Comprobantes recibidos" y las facturas entran todas juntas.
@@ -35,13 +35,13 @@ En el formulario de compra elegí **Moneda: Dólares** y cargá la cotización d
 
 Desde la ficha del proveedor, **Registrar pago**: elegís facturas, medio (transferencia, efectivo, cheque propio, e-cheq) y el sistema **sugiere las retenciones** que corresponden (Ganancias con el mínimo mensual acumulado, IIBB según padrón, IVA). Se emite el certificado de retención y queda para el SICORE.
 
-Los cheques propios quedan en Fondos → Cheques hasta que se debitan; el sistema avisa los que vencen esta semana.
+Los cheques propios quedan en Plata → Cheques y valores hasta que se debitan; el sistema avisa los que vencen esta semana.
 
 - **Pago a cuenta**: podés pagar sin elegir facturas (anticipo). Después, en la pestaña **Pagos**, **Aplicar a facturas** lo imputa a las facturas que llegaron.
 
 ## Cuenta corriente y vencimientos
 
-La ficha del proveedor muestra saldo, facturas pendientes por vencimiento y el historial. **Proveedores → por pagar** ordena lo que vence esta semana y este mes para armar el flujo de fondos.
+La ficha del proveedor muestra saldo, facturas pendientes por vencimiento y el historial. **Comprar → Proveedores (por pagar)** ordena lo que vence esta semana y este mes para armar el flujo de fondos.
 
 ## Precios de proveedores
 
@@ -90,18 +90,18 @@ Es opcional. Sirve para asegurarte de que lo que bajó del camión es lo que dic
 
 Una pregunta concreta: **¿hay comprobantes de proveedores que ARCA tiene y tu sistema no?** Cada uno es IVA que no te estás tomando.
 
-- Entrá a **ARCA → Mis Comprobantes → Recibidos**, elegí el período y bajá el CSV. En Compras tocá **Qué me falta cargar** y subilo. El archivo se cruza contra lo cargado y se borra a la media hora.
+- Entrá a **ARCA → Mis Vender → Comprobantes (recibidos)**, elegí el período y bajá el CSV. En Compras tocá **Qué me falta cargar** y subilo. El archivo se cruza contra lo cargado y se borra a la media hora.
 - Te contesta cinco cosas: **las que faltan** (ordenadas de la que más IVA tiene a la que menos, con aviso de los proveedores que no tenés), **las cargadas sin el CUIT del proveedor** (por eso el libro de IVA no cruza solo; se arregla poniendo el CUIT en la ficha), **las cargadas por otro importe**, **las cargadas dos veces** (IVA computado de más) y **las que no cierran** (neto + exento + IVA + percepciones no da el total).
 - Tildás las que faltan y **Crear las que faltan**: quedan como borrador para completar los artículos, o registradas directamente si así lo elegís. Los proveedores nuevos se crean por CUIT.
 - Si al leer una factura con la cámara el proveedor tiene **una sola orden de compra abierta**, la comparación con la orden se hace sola. El pedido al proveedor sale por WhatsApp o mail desde la orden (también desde el pedido sugerido).
 
 ## Varias órdenes, otra empresa, unidades distintas y fecha de ingreso
 
-- **Una factura contra varias órdenes:** en Proveedores → Órdenes tildá las órdenes del mismo proveedor y tocá **Cargar una factura contra las N**. Los renglones vienen al precio de cada orden. Al registrar, lo recibido llena primero la orden más vieja.
+- **Una factura contra varias órdenes:** en Comprar → Órdenes de compra tildá las órdenes del mismo proveedor y tocá **Cargar una factura contra las N**. Los renglones vienen al precio de cada orden. Al registrar, lo recibido llena primero la orden más vieja.
 - **La mercadería entra en otra empresa:** si manejás varias empresas, en la factura elegí **La mercadería entra en**. La factura y la cuenta del proveedor quedan en esta empresa (sólo contable) y el stock y el costo entran en la otra.
 - **Factura por metro, artículo por pieza:** si el proveedor factura por metro (o kilo) y tu artículo es la pieza ("Caño 4 m"), la lectura divide la cantidad por el largo y multiplica el precio: 1.800 m de caño de 4 m = 450 caños. Queda aprendido para ese proveedor.
 - **Dos facturas en un archivo:** si el PDF o la foto trae dos facturas distintas, se lee sólo la primera y te avisa que cargues las otras por separado.
-- **Con qué fecha entra la mercadería:** en Proveedores → Compras elegí si entra al stock con el día en que se carga o con la fecha de la factura.
+- **Con qué fecha entra la mercadería:** en Comprar → Facturas de compra elegí si entra al stock con el día en que se carga o con la fecha de la factura.
 
 ## Ajustar stock con una planilla (Stock → Precios y datos en masa)
 

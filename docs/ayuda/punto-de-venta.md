@@ -8,7 +8,7 @@ resumen: Una sola pantalla para vender: en la calle con la ruta del día, en el 
 
 ## Dónde vendés hoy
 
-**Comprobantes → Vender** abre en el modo del vendedor (se configura en **Clientes → Vendedores**) y se cambia con un toque en la franja de arriba:
+**Vender → Mostrador** abre en el modo del vendedor (se configura en **Clientes → Vendedores**) y se cambia con un toque en la franja de arriba:
 
 - **En la calle**: arranca en tus clientes. La ruta del día los agrupa en *Agendados para hoy*, *Les toca comprar*, *Dejaron de comprar*, *Compran casi todos los días* y *Sin historial*. Al abrir uno ves su cuenta, sus condiciones (lista, descuentos pactados), lo que suele llevar, lo que hace rato no lleva y un pedido sugerido. Marcás productos, ajustás cantidades y lo mandás como **presupuesto, factura o remito** (lo decide el encargado en Clientes → Vendedores → *Cómo se vende en la calle*). Anda sin señal: descargás el paquete con wifi, vendés y se manda solo cuando vuelve la conexión. Cada venta y cada visita (*Llegué*, *No vendí* con motivo) queda registrada con la ubicación.
 - **En el local**: arranca buscando productos, consumidor final, cobrás y sale el ticket.

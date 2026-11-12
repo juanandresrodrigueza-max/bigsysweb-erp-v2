@@ -49,14 +49,14 @@ Alquiler, seguros, monotributo, cuotas, servicios, un abono que cobrás por fuer
 
 ## Recordatorios para facturar lo recurrente
 
-Los **abonos** (Comprobantes → Abonos) generan la factura de cada cuota solos, todos los días a las 7. Además, la campana avisa tres días antes de cada vencimiento ("Facturar: …") y, si la factura quedó en borrador para revisar, insiste hasta que la emitas. Así nada recurrente queda sin facturar.
+Los **abonos** (Vender → Abonos) generan la factura de cada cuota solos, todos los días a las 7. Además, la campana avisa tres días antes de cada vencimiento ("Facturar: …") y, si la factura quedó en borrador para revisar, insiste hasta que la emitas. Así nada recurrente queda sin facturar.
 
 ## Errores comunes
 
 - **El arqueo no cierra**: revisá los retiros y los cobros en efectivo del turno; el detalle está en el cierre.
-- **Transferencia que no aparece en el banco**: puede haberse cargado en otra cuenta; buscala por importe en Fondos → Movimientos.
+- **Transferencia que no aparece en el banco**: puede haberse cargado en otra cuenta; buscala por importe en Plata → Cajas y bancos → movimientos.
 
-## Conciliar tarjetas y billeteras (Fondos → Conciliar)
+## Conciliar tarjetas y billeteras (Plata → Conciliar)
 
 El cupón entra al fondo de la tarjeta cuando cobrás, pero cuando la procesadora acredita nadie registra la liquidación. Acá subís el archivo que te manda la procesadora y el sistema lo cruza contra tus cupones.
 
@@ -78,7 +78,7 @@ Debajo del extracto, el sistema reparte todo como lo hace el contador:
 
 1. **Está en los dos**: conciliado.
 2. **Está en el sistema y todavía no en el banco**: el cheque que emitiste y nadie cobró. Es normal; se muestra con los días que lleva.
-3. **Está en el banco y no en el sistema**: agrupado por concepto (impuestos, comisiones, IVA, intereses), con **Registrar todos** para cargar el grupo de una vez en Fondos, ya conciliado. Las **acreditaciones de tarjetas** quedan aparte (se concilian en Fondos → Conciliar) y lo que no es gasto va a "otros a revisar".
+3. **Está en el banco y no en el sistema**: agrupado por concepto (impuestos, comisiones, IVA, intereses), con **Registrar todos** para cargar el grupo de una vez en Fondos, ya conciliado. Las **acreditaciones de tarjetas** quedan aparte (se concilian en Plata → Conciliar) y lo que no es gasto va a "otros a revisar".
 
 Si un concepto no se reconoce, lo clasificás una vez en el renglón y queda **aprendido** para todos tus extractos.
 
@@ -111,7 +111,7 @@ No hace falta elegir categoría cada vez que cargás un gasto. El sistema la pon
 
 Dónde se nota:
 
-- **Fondos → gasto manual**: mientras escribís el concepto aparece la categoría "✦ sugerida". Si la cambiás, el sistema aprende tu elección. Si guardás sin categoría, se pone sola y el aviso te lo dice.
+- **Plata → Registrar gasto**: mientras escribís el concepto aparece la categoría "✦ sugerida". Si la cambiás, el sistema aprende tu elección. Si guardás sin categoría, se pone sola y el aviso te lo dice.
 - **Contable → Conciliación (extracto del banco)**: cada débito pendiente trae su categoría sugerida al lado. El botón **"✦ Clasificar con IA lo que no tiene categoría"** manda de una sola vez los que quedaron sin categoría (una pregunta por concepto, no por renglón). Al registrar un renglón sin elegir categoría, toma la sugerida.
 - **Bigcito**: "registrá un gasto de 3000 de recarga del celular" → lo propone con categoría *Internet y teléfono* sin que la nombres.
 

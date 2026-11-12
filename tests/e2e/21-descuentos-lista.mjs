@@ -11,7 +11,7 @@ await bus.click(); await bus.fill('ladr'); await page.waitForTimeout(900)
 const art = (await page.locator('.shadow-pop button').first().textContent()).trim().split(' · ')[0]
 await page.locator('.shadow-pop button').first().dispatchEvent('mousedown')
 await page.fill('[data-e2e="min"]', '10'); await page.fill('[data-e2e="pct"]', '12')
-await f.locator('button:has-text("Agregar")').click(); await idle(); await page.waitForTimeout(600)
+await f.locator('button:has-text("Guardar")').click(); await idle(); await page.waitForTimeout(600) // Fase 80: los tres verbos
 console.log('  regla cargada:', await page.locator('tbody tr', { hasText: 'Lista' }).count() + await page.locator('tbody tr').count() > 0, '· artículo:', art)
 await shot('01-reglas')
 // Factura a consumidor final (lista 1): con 1 unidad no hay descuento, con 10 sí.
