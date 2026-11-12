@@ -45,7 +45,9 @@
         <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
 
         <!-- Selector de sucursal -->
-        <div class="relative min-w-0" ref="selRef" data-tour="sucursal">
+        <!-- Fase 84: con una sola sucursal no hay nada que cambiar: el nombre va fijo, sin flecha ni menú. -->
+        <div v-if="(sucursales?.lista?.length ?? 0) < 2 && !sucursales?.puede_consolidar" class="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm text-marca-muted min-w-0" data-tour="sucursal"><Icono nombre="pin" clase="w-4 h-4 text-carmin" /><span class="font-semibold truncate max-w-[160px]">{{ sucursales?.actual?.nombre ?? empresa?.nombre }}</span></div>
+        <div v-else class="relative min-w-0" ref="selRef" data-tour="sucursal">
           <button @click="selAbierto = !selAbierto" class="flex items-center gap-2 max-w-full min-w-0 px-3 py-1.5 rounded-full border border-marca-borde hover:border-carmin/50 text-sm">
             <Icono nombre="pin" clase="w-4 h-4 text-carmin" />
             <span class="font-semibold max-w-[90px] sm:max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span><span v-if="sucursales?.consolidado" class="badge bg-violeta-light text-violeta !py-0 text-[10px]">consolidado</span>
@@ -83,6 +85,7 @@
           </div>
         </div>
 
+        <Link v-if="user?.es_dueno && !page.url.startsWith('/dueno')" href="/dueno" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-violeta hover:bg-lavanda-light" title="Lo importante de un vistazo"><Icono nombre="home" clase="w-4 h-4" /> Mi negocio</Link>
         <div class="flex-1"></div>
 
         <button type="button" @click="paleta?.abrir()" data-tour="buscar" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde text-sm text-marca-muted hover:border-carmin/50" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">

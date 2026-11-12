@@ -280,17 +280,20 @@ import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util
 
 const dias = [{ k: 'lun', t: 'Lun' }, { k: 'mar', t: 'Mar' }, { k: 'mie', t: 'Mié' }, { k: 'jue', t: 'Jue' }, { k: 'vie', t: 'Vie' }, { k: 'sab', t: 'Sáb' }, { k: 'dom', t: 'Dom' }]
 const agendaOpciones = { dia: 'Todo el día', man: 'A la mañana', tar: 'A la tarde', '1er': '1ª semana', '2do': '2ª semana', '3er': '3ª semana', ult: 'Última semana' }
-const props = defineProps({ crm: { type: Object, default: () => ({ activo: false }) }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
+const props = defineProps({ usaAcopios: Boolean, usaPactados: Boolean, crm: { type: Object, default: () => ({ activo: false }) }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : (m.medio === 'retencion' ? { impuesto: 'iibb', jurisdiccion: '', certificado: '' } : {})) }
 const envio = ref(null)
 function enviarDoc(modelo, id) { envio.value = { modelo, id } }
-const tab = ref('cc')
+const tab = ref(props.cc?.length || props.pendientes?.length ? 'cc' : 'datos') // sin movimientos todavía: la ficha
 const agenda = reactive(Object.fromEntries(dias.map(d => [d.k, props.cliente.visitas?.[d.k] ?? 'no'])))
 function guardarAgenda() { router.post(`/clientes/${props.cliente.id}/agenda`, { visitas: { ...agenda } }, { preserveScroll: true, preserveState: true }) }
+// Fase 84: Ficha primero (es lo que busca quien acaba de crear el cliente), después lo de plata; Acopios y Precios pactados sólo si la empresa los usa.
 const tabs = computed(() => [
-  { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' },
-  { key: 'cobros', label: 'Cobros' }, { key: 'acopios', label: 'Acopios', n: props.acopios.length }, { key: 'precios', label: 'Precios pactados' }, { key: 'contactos', label: 'Contactos' }, { key: 'documentos', label: 'Documentos' }, ...(props.crm?.activo ? [{ key: 'crm', label: 'CRM' }] : []), { key: 'datos', label: 'Datos' },
+  { key: 'datos', label: 'Ficha' }, { key: 'cc', label: 'Cuenta corriente' }, { key: 'pendientes', label: 'Pendientes', n: props.pendientes.length }, { key: 'comprobantes', label: 'Comprobantes' }, { key: 'cobros', label: 'Cobros' },
+  ...(props.acopios.length || props.usaAcopios ? [{ key: 'acopios', label: 'Acopios', n: props.acopios.length }] : []),
+  ...(props.usaPactados || Number(props.cliente.descuento) > 0 ? [{ key: 'precios', label: 'Precios pactados' }] : []),
+  { key: 'contactos', label: 'Contactos' }, { key: 'documentos', label: 'Documentos' }, ...(props.crm?.activo ? [{ key: 'crm', label: 'CRM' }] : []),
 ])
 const totalAnt = computed(() => Object.values(props.antiguedad).reduce((a, b) => a + b, 0))
 const pct = v => totalAnt.value ? v / totalAnt.value * 100 : 0
@@ -339,6 +342,7 @@ function abrirRetiro(a) { retiro.items = a.items.map(i => ({ acopio_item_id: i.i
 
 onMounted(() => {
   const q = new URLSearchParams(location.search)
+  if (q.get('cobro')) { cobroAbierto.value = true; tab.value = 'pendientes' }
   if (q.get('cobrar')) { const id = Number(q.get('cobrar')); const p = props.pendientes.find(x => x.id === id); if (p) { imput[p.id] = p.saldo; cobro.medios[0].monto = p.saldo } cobroAbierto.value = true; tab.value = 'pendientes' }
   if (q.get('retirar')) { const a = props.acopios.find(x => x.id === Number(q.get('retirar'))); if (a) { tab.value = 'acopios'; abrirRetiro(a) } }
 })

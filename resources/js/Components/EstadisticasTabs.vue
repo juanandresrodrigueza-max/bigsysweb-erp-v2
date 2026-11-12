@@ -9,8 +9,8 @@ import { Link, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 defineProps({ activa: String })
 const todas = [
-  { key: 'resumen', label: 'Resumen', href: '/estadisticas' }, { key: 'ventas', label: 'Ventas', href: '/estadisticas/ventas' }, { key: 'rentabilidad', label: 'Rentabilidad', href: '/estadisticas/rentabilidad' }, { key: 'stock', label: 'Stock y compras', href: '/estadisticas/stock' }, { key: 'plata', label: 'Plata', href: '/estadisticas/plata' }, { key: 'que-hacer', label: 'Qué hacer', href: '/estadisticas/que-hacer' },
-  { key: 'vendedores', label: 'Vendedores', href: '/estadisticas/vendedores' }, { key: 'gastronomia', label: 'Big Restó', href: '/estadisticas/gastronomia', solo: 'gastronomia' }, { key: 'analista', label: '✦ Analista IA', href: '/estadisticas/analista' },
+  { key: 'resumen', label: 'Resumen', href: '/estadisticas' }, { key: 'analista', label: '✦ Analista IA', href: '/estadisticas/analista' }, { key: 'ventas', label: 'Ventas', href: '/estadisticas/ventas' }, { key: 'rentabilidad', label: 'Rentabilidad', href: '/estadisticas/rentabilidad' }, { key: 'stock', label: 'Stock y compras', href: '/estadisticas/stock' }, { key: 'plata', label: 'Plata', href: '/estadisticas/plata' }, { key: 'que-hacer', label: 'Qué hacer', href: '/estadisticas/que-hacer' },
+  { key: 'vendedores', label: 'Vendedores', href: '/estadisticas/vendedores' }, { key: 'gastronomia', label: 'Big Restó', href: '/estadisticas/gastronomia', solo: 'gastronomia' },
 ]
 // Fase 44.3: sólo las partes del tablero que el perfil tiene habilitadas.
 const page = usePage()

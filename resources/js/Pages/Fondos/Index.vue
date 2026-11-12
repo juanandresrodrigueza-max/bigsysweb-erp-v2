@@ -180,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
@@ -215,6 +215,15 @@ function abrirMov(tipo) { mv.tipo = tipo; mv.cuenta_fondos_id = props.cuentaActu
 const transfAbierto = ref(false)
 const tf = useForm({ desde: props.cuentaActual, hasta: null, monto: null, fecha: hoyISO(), referencia: '' })
 const turnoAbierto = ref(false), cierreAbierto = ref(false), catAbierto = ref(false), arqueoAbierto = ref(false), retiroAbierto = ref(false)
+// Fase 84: Inicio → "Cerrar caja" llega con ?cerrar=1 (abre el cierre de la caja con turno; si la cuenta actual no tiene, salta a la primera que sí); la paleta llega con ?nuevo=egreso|ingreso.
+onMounted(() => {
+  const q = new URLSearchParams(location.search)
+  if (q.get('nuevo') === 'egreso' || q.get('nuevo') === 'ingreso') abrirMov(q.get('nuevo'))
+  if (q.get('cerrar')) {
+    if (cuenta.value?.turno) cierreAbierto.value = true
+    else { const con = props.cuentas.find(c => c.turno); if (con && con.id !== props.cuentaActual) router.get('/fondos', { cuenta: con.id, cerrar: 1 }, { preserveState: false }) }
+  }
+})
 const aq = useForm({ contado: null, notas: '' })
 const rt = useForm({ monto: null, destino_id: props.cuentas.find(c => c.tipo === 'banco')?.id ?? null, referencia: '' })
 const ta = useForm({ saldo_inicial: 0 })
