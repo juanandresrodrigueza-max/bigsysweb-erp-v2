@@ -116,3 +116,8 @@ Dónde se nota:
 - **Bigcito**: "registrá un gasto de 3000 de recarga del celular" → lo propone con categoría *Internet y teléfono* sin que la nombres.
 
 Como cada categoría tiene su cuenta contable (5.2.x), el asiento también sale solo. Si una categoría quedó mal, cambiala en el movimiento: el sistema aprende la corrección.
+
+## Arqueo ciego (Plata → Cerrar caja → Más, Fase 89)
+
+Con el arqueo ciego activado, el cajero cierra el turno **contando sin ver lo esperado**: completa lo que hay por cada medio y el sistema guarda la diferencia, que ve el encargado en Cerrar caja. Quien tiene permiso de editar en Plata (dueño, encargado) sigue viendo lo esperado. Lo activa y desactiva el encargado desde el menú Más de Cerrar caja.
+

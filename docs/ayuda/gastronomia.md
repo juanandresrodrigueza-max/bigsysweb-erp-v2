@@ -89,3 +89,10 @@ El QR de cada mesa, que se imprime en Big Restó → Reservas y QR, abre la cart
 - **Parte del dueño:** el resumen diario por WhatsApp suma el bloque de Big Restó: lo vendido en el salón, el ticket, los cubiertos, las propinas, el plato estrella, la estación más lenta, las opiniones del día y, con IA, una línea con qué conviene cambiar mañana.
 - **Ingeniería de menú:** cada plato por popularidad y margen (precio neto menos el costo de la receta): **estrellas** (destacalos), **caballitos** (salen pero dejan poco: subí el precio o cambiá la receta), **rompecabezas** (rinden pero pocos los piden: ponelos arriba, con foto) y **perros** (sacalos o rehacelos). Con IA, «✦ 3 acciones para esta semana» con números concretos.
 - **Carta QR que vende mejor:** al agregar un plato, el QR sugiere el acompañante que más se pide con él («Va bien con Coca Cola +$2.500»), según los últimos 90 días. Y con «🌐 Traducir carta» en Big Restó → Carta, la carta queda en inglés o portugués y el QR muestra el botón para cambiar de idioma.
+
+## Plano del salón, asientos y cortesías (Fase 89)
+
+- **Plano:** el salón se ve como un plano por sector. Con **Acomodar mesas** las arrastrás a su lugar y **Guardar plano** lo deja fijo; cada mesa puede ser cuadrada, redonda o larga (engranaje → mesa). **Lista** es la vista de antes.
+- **Pedir por asiento:** arriba de la carta elegís «La mesa» o un número de asiento (tantos como cubiertos, y con «+» agregás). Lo que pidas queda marcado (A1, A2…). Al cobrar con **Cada uno lo suyo**, tocás el asiento y se arma sola su parte.
+- **Cortesía:** en un plato, 🎁 lo marca como invitación de la casa, consumo del personal o error de cocina. Sale igual y descuenta su receta, pero va a $ 0; el costo queda en **Stock → Mermas y cortesías**, por motivo y por mozo. Lo puede hacer quien tenga permiso de editar en Big Restó.
+

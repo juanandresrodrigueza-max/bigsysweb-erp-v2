@@ -130,14 +130,15 @@
       <template #pie><button class="btn-secondary" @click="retiroAbierto = false">Cancelar</button><button class="btn-primary" :disabled="rt.processing || !rt.monto || !rt.destino_id" @click="rt.post(`/fondos/turnos/${cuenta.turno.id}/retiro`, { preserveScroll: true, onSuccess: () => { retiroAbierto = false; rt.reset() } })">Retirar</button></template>
     </Modal>
     <Modal :abierto="cierreAbierto" :titulo="`Cerrar turno · ${cuenta?.nombre}`" ancho="max-w-2xl" @cerrar="cierreAbierto = false">
-      <p class="text-sm text-marca-muted mb-3">Contá lo que hay por cada medio de pago. El sistema compara con lo que registró en el turno y deja asentada la diferencia. Lo que no completes no se controla.</p>
+      <p v-if="cuenta?.turno?.ciego" class="text-sm text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mb-3" data-e2e="arqueo-ciego">Arqueo ciego: contá lo que hay sin mirar lo esperado. La diferencia la ve el encargado en Cerrar caja.</p>
+      <p v-else class="text-sm text-marca-muted mb-3">Contá lo que hay por cada medio de pago. El sistema compara con lo que registró en el turno y deja asentada la diferencia. Lo que no completes no se controla.</p>
       <div class="rounded-xl border border-marca-borde divide-y divide-marca-borde/60">
         <div v-for="(esp, medio) in cuenta?.turno?.esperado ?? {}" :key="medio" class="grid grid-cols-[1fr_120px_130px_100px] gap-2 items-center px-3 py-2 text-sm">
           <span class="font-medium">{{ nombreMedio(medio) }}<span v-if="medio === 'efectivo'" class="block text-[10px] text-marca-muted">saldo de caja</span></span>
-          <span class="tabular-nums text-right text-marca-muted">{{ moneda(esp) }}</span>
+          <span class="tabular-nums text-right text-marca-muted">{{ esp === null ? '—' : moneda(esp) }}</span>
           <input v-if="medio === 'efectivo'" v-model.number="tc.saldo_contado" type="number" step="any" min="0" class="input !py-1 text-right" placeholder="contado" />
           <input v-else v-model.number="tc.rendicion[medio]" type="number" step="any" min="0" class="input !py-1 text-right" placeholder="declarado" />
-          <span class="tabular-nums text-right text-xs font-semibold" :class="dif(medio, esp) === null ? 'text-marca-muted' : Math.abs(dif(medio, esp)) < 0.005 ? 'text-emerald-700' : 'text-carmin'">{{ dif(medio, esp) === null ? '' : moneda(dif(medio, esp)) }}</span>
+          <span class="tabular-nums text-right text-xs font-semibold" :class="esp === null || dif(medio, esp) === null ? 'text-marca-muted' : Math.abs(dif(medio, esp)) < 0.005 ? 'text-emerald-700' : 'text-carmin'">{{ esp === null || dif(medio, esp) === null ? '' : moneda(dif(medio, esp)) }}</span>
         </div>
       </div>
       <div v-if="cuenta?.turno?.stock?.length" class="mt-4" data-e2e="stock-turno">

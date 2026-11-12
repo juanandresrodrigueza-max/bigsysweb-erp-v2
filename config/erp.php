@@ -101,6 +101,7 @@ return [
             ['key' => 'precios',      'label' => 'Precios y datos en masa','ruta' => '/stock/precios', 'accion' => 'editar'],
             ['key' => 'inventario',   'label' => 'Inventario',            'ruta' => '/stock/inventario', 'accion' => 'editar'],
             ['key' => 'movimientos',  'label' => 'Movimientos',           'ruta' => '/stock/movimientos'],
+            ['key' => 'mermas',       'label' => 'Mermas y cortesías',   'ruta' => '/stock/mermas', 'palabras' => 'tirado vencido roto invitación consumo del personal desperdicio'], // Fase 89
             ['key' => 'lotes',        'label' => 'Lotes y vencimientos',  'ruta' => '/stock/lotes'],
             ['key' => 'series',       'label' => 'Números de serie',      'ruta' => '/stock/series'],
             ['key' => 'almacen',      'label' => 'Almacén',               'ruta' => '/stock/almacen'],

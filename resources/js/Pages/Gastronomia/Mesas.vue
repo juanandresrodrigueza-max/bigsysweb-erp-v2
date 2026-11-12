@@ -22,6 +22,32 @@
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Propinas hoy</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.propinas_hoy, 0) }}</p></div>
     </div>
 
+    <!-- Fase 89: el plano del salón (cada mesa en su lugar, se acomoda arrastrando) o la lista de siempre. -->
+    <div v-if="mesas.length" class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 text-xs font-semibold" data-e2e="vista-salon">
+        <button class="px-3 py-1 rounded-full" :class="vista === 'plano' ? 'bg-carmin text-white' : 'text-marca-muted'" @click="cambiarVista('plano')">Plano</button>
+        <button class="px-3 py-1 rounded-full" :class="vista === 'lista' ? 'bg-carmin text-white' : 'text-marca-muted'" @click="cambiarVista('lista')">Lista</button>
+      </div>
+      <div v-if="vista === 'plano' && puede('gastronomia','editar')" class="flex gap-2">
+        <button v-if="!acomodando" class="btn-secondary !py-1 text-xs" @click="empezarAcomodo" data-e2e="acomodar">Acomodar mesas</button>
+        <template v-else><button class="btn-ghost !py-1 text-xs" @click="acomodando = false">Cancelar</button><button class="btn-primary !py-1 text-xs" :disabled="guardandoPlano" @click="guardarPlano" data-e2e="guardar-plano">Guardar plano</button></template>
+      </div>
+    </div>
+    <template v-if="vista === 'plano'">
+      <div v-for="(grupo, sector) in porSector" :key="sector" class="mb-5">
+        <p class="label">{{ sector }}<span v-if="acomodando" class="text-marca-muted font-normal normal-case"> · arrastrá cada mesa a su lugar</span></p>
+        <div class="relative w-full rounded-2xl border border-marca-borde bg-white overflow-hidden select-none touch-none" style="aspect-ratio: 16 / 7; background-image: radial-gradient(#e7e2db 1px, transparent 1px); background-size: 24px 24px" :ref="el => (planos[sector] = el)" :data-plano="sector">
+          <button v-for="m in grupo" :key="m.id" :data-mesa="m.id" type="button" class="absolute -translate-x-1/2 -translate-y-1/2 border-2 flex flex-col items-center justify-center shadow-sm transition-colors" :class="[claseMesa(m), m.forma === 'redonda' ? 'rounded-full' : 'rounded-xl', acomodando ? 'cursor-move ring-2 ring-violeta/30' : '']" :style="estiloMesa(m)" @pointerdown="acomodando && arrastrar($event, m, sector)" @click="!acomodando && abrirMesa(m)">
+            <span class="text-lg font-black leading-none">{{ m.nombre }}</span>
+            <span v-if="m.comanda" class="text-[10px] font-bold tabular-nums leading-tight mt-0.5">{{ moneda(m.comanda.total, 0) }} · {{ m.comanda.minutos }}'</span>
+            <span v-else class="text-[10px] opacity-60 leading-tight mt-0.5">{{ m.capacidad }}p</span>
+            <span v-if="m.comanda?.llamado" class="absolute -top-2 -right-2 text-base animate-pulse" data-llamado>{{ m.comanda.llamado === 'cuenta' ? '🧾' : '🙋' }}</span>
+            <span v-else-if="m.comanda?.listos" class="absolute -top-2 -right-2 text-base">🔔</span>
+          </button>
+        </div>
+      </div>
+    </template>
+    <template v-else>
     <div v-for="(grupo, sector) in porSector" :key="sector" class="mb-5">
       <p class="label">{{ sector }}</p>
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-8 gap-3">
@@ -39,6 +65,7 @@
         </button>
       </div>
     </div>
+    </template>
     <div v-if="!mesas.length" class="card text-center text-marca-muted py-12">Todavía no hay mesas en esta sucursal. Creá las primeras con el engranaje de arriba.</div>
 
     <div v-if="otras.length" class="mb-5">
@@ -61,19 +88,20 @@
     </Modal>
 
     <Modal :abierto="configAbierto" titulo="Mesas de esta sucursal" @cerrar="configAbierto = false">
-      <div v-for="m in mesas" :key="m.id" class="flex items-center gap-2 py-1.5 border-b border-marca-borde/60 text-sm"><span class="font-bold w-10">{{ m.nombre }}</span><span class="text-marca-muted flex-1">{{ m.sector }} · {{ m.capacidad }} personas</span><button @click="Object.assign(mf, { id: m.id, nombre: m.nombre, sector: m.sector, capacidad: m.capacidad, activa: m.activa })" class="text-xs text-violeta">editar</button><Link v-if="!m.comanda" :href="`/gastronomia/mesas/${m.id}`" method="delete" as="button" preserve-scroll class="text-xs text-carmin">quitar</Link></div>
-      <div class="mt-3 p-3 rounded-xl bg-marca-fondo grid grid-cols-3 gap-2 items-end">
+      <div v-for="m in mesas" :key="m.id" class="flex items-center gap-2 py-1.5 border-b border-marca-borde/60 text-sm"><span class="font-bold w-10">{{ m.nombre }}</span><span class="text-marca-muted flex-1">{{ m.sector }} · {{ m.capacidad }} personas</span><button @click="Object.assign(mf, { forma: m.forma || 'cuadrada', id: m.id, nombre: m.nombre, sector: m.sector, capacidad: m.capacidad, activa: m.activa })" class="text-xs text-violeta">editar</button><Link v-if="!m.comanda" :href="`/gastronomia/mesas/${m.id}`" method="delete" as="button" preserve-scroll class="text-xs text-carmin">quitar</Link></div>
+      <div class="mt-3 p-3 rounded-xl bg-marca-fondo grid grid-cols-4 gap-2 items-end">
         <div><label class="label">{{ mf.id ? 'Editar' : 'Nueva' }} mesa</label><input v-model="mf.nombre" class="input !py-1.5" placeholder="Nº" /></div>
         <div><label class="label">Sector</label><input v-model="mf.sector" class="input !py-1.5" placeholder="Salón" list="sectores" /><datalist id="sectores"><option v-for="s in Object.keys(porSector)" :key="s" :value="s" /></datalist></div>
         <div><label class="label">Personas</label><input v-model.number="mf.capacidad" type="number" min="1" class="input !py-1.5" /></div>
-        <div class="col-span-3 flex gap-2"><button class="btn-primary !py-1 text-xs" :disabled="!mf.nombre" @click="mf.post(`/gastronomia/mesas${mf.id ? '/' + mf.id : ''}`, { preserveScroll: true, onSuccess: () => mf.reset() })">Guardar</button><button v-if="mf.id" class="btn-ghost !py-1 text-xs" @click="mf.reset()">Cancelar</button></div>
+        <div><label class="label">Forma</label><select v-model="mf.forma" class="input !py-1.5"><option value="cuadrada">Cuadrada</option><option value="redonda">Redonda</option><option value="larga">Larga</option></select></div>
+        <div class="col-span-4 flex gap-2"><button class="btn-primary !py-1 text-xs" :disabled="!mf.nombre" @click="mf.post(`/gastronomia/mesas${mf.id ? '/' + mf.id : ''}`, { preserveScroll: true, onSuccess: () => mf.reset() })">Guardar</button><button v-if="mf.id" class="btn-ghost !py-1 text-xs" @click="mf.reset()">Cancelar</button></div>
       </div>
     </Modal>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
@@ -86,8 +114,31 @@ const porSector = computed(() => { const g = {}; for (const m of props.mesas) { 
 const claseMesa = m => !m.activa ? 'opacity-40 border-marca-borde bg-white' : !m.comanda ? 'bg-white border-marca-borde hover:border-emerald-400 text-marca-texto' : m.comanda.estado === 'cuenta' ? 'bg-violeta text-white border-violeta' : m.comanda.listos ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-carmin-light border-carmin/60 text-carmin-dark'
 function abrirMesa(m) { if (m.comanda) router.visit(`/gastronomia/comandas/${m.comanda.id}`); else if (puede('gastronomia', 'crear')) router.post('/gastronomia/comandas', { mesa_id: m.id, cubiertos: 2 }) }
 const nueva = ref(null), configAbierto = ref(false)
-const mf = useForm({ id: null, nombre: '', sector: 'Salón', capacidad: 4, activa: true })
+const mf = useForm({ id: null, nombre: '', sector: 'Salón', capacidad: 4, activa: true, forma: 'cuadrada' })
 let timer
-onMounted(() => { timer = setInterval(() => { if (!nueva.value && !configAbierto.value) router.reload({ only: ['mesas', 'otras', 'kpis'] }) }, 15000) })
+onMounted(() => { timer = setInterval(() => { if (!nueva.value && !configAbierto.value && !acomodando.value) router.reload({ only: ['mesas', 'otras', 'kpis'] }) }, 15000); try { vista.value = localStorage.getItem('bs.salon.vista') || 'plano' } catch {} })
+// Fase 89: plano del salón. Las mesas sin posición se reparten solas en una grilla; "Acomodar" deja arrastrarlas y guarda el % dentro del sector.
+const vista = ref('plano'), acomodando = ref(false), guardandoPlano = ref(false), planos = reactive({}), pos = reactive({})
+function cambiarVista(v) { vista.value = v; try { localStorage.setItem('bs.salon.vista', v) } catch {} }
+const TAM = { cuadrada: [76, 76], redonda: [76, 76], larga: [124, 64] }
+function posicion(m) {
+  if (pos[m.id]) return pos[m.id]
+  if (m.pos_x !== null && m.pos_x !== undefined) return { x: m.pos_x, y: m.pos_y }
+  const grupo = porSector.value[m.sector] ?? []; const i = grupo.indexOf(m); const cols = 7
+  return { x: 9 + (i % cols) * 13.5, y: 22 + Math.floor(i / cols) * 36 }
+}
+function estiloMesa(m) { const p = posicion(m); const [w, h] = TAM[m.forma] ?? TAM.cuadrada; return { left: p.x + '%', top: p.y + '%', width: w + 'px', height: h + 'px' } }
+function empezarAcomodo() { for (const m of props.mesas) pos[m.id] = { ...posicion(m) }; acomodando.value = true }
+function arrastrar(e, m, sector) {
+  const cont = planos[sector]; if (!cont) return
+  e.preventDefault(); const r = cont.getBoundingClientRect(); const el = e.currentTarget; el.setPointerCapture?.(e.pointerId)
+  const mover = ev => { const x = Math.min(96, Math.max(4, (ev.clientX - r.left) / r.width * 100)); const y = Math.min(92, Math.max(8, (ev.clientY - r.top) / r.height * 100)); pos[m.id] = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 } }
+  const soltar = () => { el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar); el.removeEventListener('pointercancel', soltar) }
+  el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar)
+}
+function guardarPlano() {
+  guardandoPlano.value = true
+  router.post('/gastronomia/mesas/plano', { mesas: props.mesas.map(m => ({ id: m.id, pos_x: posicion(m).x, pos_y: posicion(m).y })) }, { preserveScroll: true, onFinish: () => { guardandoPlano.value = false; acomodando.value = false } })
+}
 onBeforeUnmount(() => clearInterval(timer))
 </script>

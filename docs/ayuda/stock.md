@@ -186,3 +186,8 @@ Cada pase tiene su **PDF de control** y un link para mandarlo por WhatsApp a qui
 - **Escanear y poner la cantidad:** al escanear, el cursor queda en la cantidad de ese renglón; Enter vuelve al lector.
 - **Filtros:** por tipo, estado, sucursal, fecha y un buscador por número o artículo.
 - **Pases en viaje:** si un pase lleva más de 2 días en viaje sin que nadie lo reciba, aparece un aviso en Alertas.
+
+## Mermas y cortesías (Stock → Mermas y cortesías, Fase 89)
+
+Lo que se pierde, con nombre: **vencido, roto, se tiró, error de cocina, cortesía, consumo del personal**. **Registrar merma** baja el stock y guarda el motivo, la nota y el costo; la pantalla muestra cuánto se perdió en el período, por motivo y qué artículos se pierden más. A Bigcito: «tiré dos kilos de tomate», «se rompieron tres botellas de vino». Las cortesías de Big Restó caen acá solas.
+

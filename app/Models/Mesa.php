@@ -10,7 +10,7 @@ class Mesa extends Model
 {
     use BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'business_location_id', 'nombre', 'sector', 'capacidad', 'orden', 'activa'];
+    protected $fillable = ['business_id', 'business_location_id', 'nombre', 'sector', 'capacidad', 'orden', 'activa', 'pos_x', 'pos_y', 'forma'];
     protected $casts = ['activa' => 'boolean'];
 
     public function comandaAbierta(): HasOne

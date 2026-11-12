@@ -23,7 +23,7 @@ class Business extends Model
     public const VERTICALES_MODULOS = ['gastronomia', 'retail', 'minimarket', 'hoteleria', 'servicios'];
 
     protected $casts = ['marca' => 'array', 'inicio_actividades' => 'date', 
-        'verticales_extra' => 'array', 'modulos_contratados' => 'array', 'bigconnect' => 'encrypted:array', 'sueldos' => 'array', 'lotes_config' => 'array', 'rentabilidad' => 'array', 'tarjetas' => 'array', 'conciliacion' => 'array', 'servicios_config' => 'array', 'estudio' => 'array',
+        'verticales_extra' => 'array', 'modulos_contratados' => 'array', 'caja_config' => 'array', 'bigconnect' => 'encrypted:array', 'sueldos' => 'array', 'lotes_config' => 'array', 'rentabilidad' => 'array', 'tarjetas' => 'array', 'conciliacion' => 'array', 'servicios_config' => 'array', 'estudio' => 'array',
         'is_active'            => 'boolean',
         'recordatorios'        => 'array',
         'impuestos'            => 'array',

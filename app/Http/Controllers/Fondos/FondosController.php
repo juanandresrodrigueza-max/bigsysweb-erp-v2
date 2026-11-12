@@ -30,13 +30,15 @@ class FondosController extends Controller
             ->orderByDesc('fecha')->orderByDesc('id')->paginate(40)->withQueryString()
             ->through(fn($m) => ['id' => $m->id, 'fecha' => $m->fecha->format('d/m/Y'), 'origen' => $m->origen, 'concepto' => $m->concepto, 'categoria' => $m->categoria?->name, 'ingreso' => (float) $m->ingreso, 'egreso' => (float) $m->egreso, 'referencia' => $m->referencia, 'usuario' => $m->user?->name, 'conciliado' => $m->conciliado, 'origen_id' => $m->origen_id]) : null;
 
+        // Fase 89: arqueo ciego: el cajero cuenta sin ver lo esperado; el encargado (fondos.editar) lo ve igual.
+        $ciego = ! empty($request->user()->business->caja_config['arqueo_ciego']) && ! $request->user()->puede('fondos', 'editar');
         $hoy = today();
         $chequesCartera = Cheque::enCartera()->sum('monto');
         $chequesPropios = Cheque::propiosPendientes()->sum('monto');
 
         return Inertia::render('Fondos/Index', [
             'cuentas' => $cuentas->map(fn($c) => ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombre, 'banco' => $c->banco, 'cbu' => $c->cbu, 'alias' => $c->alias, 'saldo' => (float) $c->saldo, 'saldo_minimo' => (float) $c->saldo_minimo, 'activa' => $c->activa, 'es_default' => $c->es_default, 'business_location_id' => $c->business_location_id, 'sucursal' => $c->location?->name,
-                'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial, 'esperado' => $this->service->esperadoPorMedio($c->turnoAbierto), 'stock' => app(\App\Services\Fondos\StockTurnoService::class)->planilla($c->turnoAbierto), 'cobrado' => (float) $c->turnoAbierto->movimientos()->where('origen', 'cobro')->sum('ingreso')] : null]),
+                'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial, 'esperado' => $ciego ? array_map(fn($v) => null, $this->service->esperadoPorMedio($c->turnoAbierto)) : $this->service->esperadoPorMedio($c->turnoAbierto), 'ciego' => $ciego, 'stock' => app(\App\Services\Fondos\StockTurnoService::class)->planilla($c->turnoAbierto), 'cobrado' => (float) $c->turnoAbierto->movimientos()->where('origen', 'cobro')->sum('ingreso')] : null]),
             'turnosCerrados' => TurnoCaja::whereNotNull('cierre')->with('user:id,name', 'cuenta:id,nombre')->orderByDesc('cierre')->limit(8)->get()->map(fn($t) => ['id' => $t->id, 'caja' => $t->cuenta?->nombre, 'usuario' => $t->user?->name, 'apertura' => $t->apertura->format('d/m H:i'), 'cierre' => $t->cierre->format('d/m H:i'), 'esperado' => (float) $t->saldo_esperado, 'contado' => (float) $t->saldo_contado, 'diferencia' => (float) $t->diferencia, 'stock_diferencia' => $t->stock_diferencia !== null ? (float) $t->stock_diferencia : null]),
             'cuentaActual' => $cuentaId, 'movimientos' => $movs, 'filtros' => $request->only('cuenta', 'desde', 'hasta'),
             'totales' => ['disponible' => (float) $cuentas->where('activa', true)->sum('saldo'), 'cheques_cartera' => (float) $chequesCartera, 'cheques_propios' => (float) $chequesPropios,
@@ -133,5 +135,14 @@ class FondosController extends Controller
         $data = array_filter($data, fn($v) => $v !== null) + ExpenseCategory::sugerir($data['name']);
         ExpenseCategory::create($data + ['business_id' => $request->user()->business_id]);
         return back()->with('success', 'Categoría creada.');
+    }
+
+    // Fase 89: preferencias de caja de la empresa (por ahora, el arqueo ciego).
+    public function config(Request $request)
+    {
+        $d = $request->validate(['arqueo_ciego' => 'required|boolean']);
+        $b = $request->user()->business;
+        $b->forceFill(['caja_config' => array_merge($b->caja_config ?? [], ['arqueo_ciego' => (bool) $d['arqueo_ciego']])])->save();
+        return back()->with('success', $d['arqueo_ciego'] ? 'Arqueo ciego activado: el cajero cuenta sin ver lo esperado.' : 'Arqueo ciego desactivado.');
     }
 }

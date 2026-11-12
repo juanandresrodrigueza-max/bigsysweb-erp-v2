@@ -49,7 +49,7 @@ class ComandaService
         $item = $c->items()->create([
             'product_id' => $p?->id, 'estacion' => $p?->estacion ?: (Auth::user()->business->estacionesCocina()[0]['nombre'] ?? 'Cocina'), 'descripcion' => mb_substr($desc, 0, 250), 'cantidad' => $it['cantidad'] ?? 1, 'modificadores' => $mods ?: null,
             'precio_unit' => $precio,
-            'alicuota_iva' => $al, 'notas' => $it['notas'] ?? null, 'va_cocina' => $p ? $p->va_cocina : true, 'ronda' => $enviados ? $ronda + 1 : max(1, $ronda), 'estado' => 'pedido',
+            'alicuota_iva' => $al, 'notas' => $it['notas'] ?? null, 'va_cocina' => $p ? $p->va_cocina : true, 'ronda' => $enviados ? $ronda + 1 : max(1, $ronda), 'asiento' => $it['asiento'] ?? null, 'estado' => 'pedido',
         ]);
         $c->recalcular();
         if ($c->estado === 'cuenta') $c->update(['estado' => 'abierta', 'cuenta_en' => null]);
@@ -173,6 +173,20 @@ class ComandaService
                 AuditLog::registrar('cerrar_comanda', $c, "Cerró {$c->titulo()} por $ " . number_format((float) $c->total, 2, ',', '.') . (count($pagos) > 1 ? ' en ' . count($pagos) . ' partes' : ''));
             }
             return $venta + ['comanda' => $c->fresh(), 'cerrada' => ! $falta];
+        });
+    }
+
+    // Fase 89: cortesía. El plato sigue saliendo (y descontando su receta al facturar a $ 0), pero no se cobra; la merma guarda el costo y el motivo.
+    public function cortesia(ComandaItem $item, string $motivo, ?string $notas = null): void
+    {
+        abort_if($item->estado === 'anulado', 422, 'El ítem está anulado.');
+        abort_if((float) $item->pagado > 0, 422, 'Ese ítem ya se cobró.');
+        abort_if($item->cortesia, 422, 'Ya es cortesía.');
+        DB::transaction(function () use ($item, $motivo, $notas) {
+            $item->update(['precio_unit' => 0, 'cortesia' => true, 'cortesia_motivo' => $motivo, 'notas' => trim(($item->notas ? $item->notas . ' · ' : '') . 'Cortesía' . ($notas ? ": {$notas}" : ''))]);
+            if ($item->product) app(\App\Services\Stock\MermasService::class)->registrar(Auth::user(), $item->product, (float) $item->cantidad, $motivo, null, $notas ?: $item->comanda->titulo(), $item->id, false);
+            $item->comanda->recalcular();
+            AuditLog::registrar('cortesia', $item->comanda, Auth::user()->name . " marcó como cortesía {$item->descripcion} ({$motivo})");
         });
     }
 
