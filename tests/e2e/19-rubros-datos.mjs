@@ -5,7 +5,7 @@ const idle = () => _idle(page); const shot = n => _shot(page, 'rub-' + n)
 await _login(page, 'demo@bigsys.com.ar')
 await page.click('button:has-text("Saltar")').catch(() => {})
 await page.goto(`${BASE}/stock`); await idle()
-await page.locator('[class*="btn-ghost"]').filter({ has: page.locator('svg') }).first().click(); await page.waitForTimeout(400)
+await page.click('[data-e2e="mas"]'); await page.click('[role=menuitem]:has-text("Preferencias de stock")'); await page.waitForTimeout(400) // Fase 80: el engranaje vive en Más
 await page.locator('[data-e2e="editar-rubro"]').first().click(); await page.waitForTimeout(200)
 const det = page.locator('[data-e2e="rubro-datos"]')
 if (!(await det.evaluate(e => e.open))) await det.locator('summary').click()

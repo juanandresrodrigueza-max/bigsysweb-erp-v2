@@ -27,7 +27,7 @@ Tené a mano:
 5. **Configuración → Sucursales**: si tenés más de un local, creá cada sucursal con su depósito y su punto de venta.
 6. **Configuración → Impuestos**: si sos agente de percepción o retención, activá lo que corresponda. Si no, dejalo como está.
 
-**Prueba del día**: entrá a Comprobantes → Nueva factura, elegí Consumidor Final, cargá un ítem cualquiera a mano y emití. Tiene que salir un comprobante (simulado o con CAE) que se pueda imprimir. Después anulalo con nota de crédito o dejalo: es la prueba.
+**Prueba del día**: entrá a Vender → Nueva factura, elegí Consumidor Final, cargá un ítem cualquiera a mano y emití. Tiene que salir un comprobante (simulado o con CAE) que se pueda imprimir. Después anulalo con nota de crédito o dejalo: es la prueba.
 
 ## Día 2 · Artículos y precios
 
@@ -67,7 +67,7 @@ Tené a mano:
 
 ## Día 5 · Canales, avisos y contador
 
-1. **Configuración → Tienda y canales**: tienda online propia, WhatsApp, Mercado Libre, Tiendanube o el que uses. Los pedidos entran en Comprobantes → Pedidos.
+1. **Configuración → Tienda y canales**: tienda online propia, WhatsApp, Mercado Libre, Tiendanube o el que uses. Los pedidos entran en Vender → Pedidos web.
 2. **Configuración → Empresa → Avisos al dueño**: resumen diario por WhatsApp y alertas críticas.
 3. **Contable → Contador**: dale acceso al estudio con su email. Ve libros, exportaciones y todo lo que necesita cada mes sin pedirte nada.
 4. **Configuración → Copias de seguridad**: verificá que la copia automática esté encendida y bajá una para guardarla afuera.
@@ -78,7 +78,7 @@ Tené a mano:
 - Elegí un día de corte (idealmente inicio de mes). Hasta ese día se opera en el sistema viejo; desde ese día, todo acá.
 - Los saldos que importaste tienen que ser los del cierre del día anterior al corte.
 - Si en los días de transición facturaste en papel, cargá esas facturas como **Manual de talonario** con su número y fecha: entran en el libro de IVA sin pedir CAE.
-- Durante la primera semana revisá cada tarde **Comprobantes → Pendientes** (entregado sin facturar, facturado sin entregar) y **Fondos → Control de cajas**.
+- Durante la primera semana revisá cada tarde **Entregar → Por entregar** (entregado sin facturar, facturado sin entregar) y **Plata → Cerrar caja**.
 - A fin del primer mes, el contador entra a **Contable → Contador**, corre el checklist y exporta los asientos. Si algo no cierra, aparece ahí.
 
 ## Cuándo pedir ayuda

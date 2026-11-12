@@ -44,7 +44,7 @@ await page.goto(`${BASE}/configuracion/importar`); await idle()
 console.log('  perfiles:', (await page.locator('select.input >> nth=1').locator('option').allTextContents()).join(' | '))
 // 6. Sueldos F.931 y dictado
 await page.goto(`${BASE}/sueldos`); await idle(); console.log('  F.931:', await page.locator('a:has-text("F.931")').count())
-await page.locator('button[aria-label="Asistente"]').click(); await page.waitForTimeout(300); console.log('  micrófono asistente:', await page.locator('button[title="Dictar por voz"]').count())
+await page.locator('button[aria-label="Bigcito"]').click(); await page.waitForTimeout(300); console.log('  micrófono asistente:', await page.locator('button[title="Dictar por voz"]').count())
 // 7. Superadmin: IA y correo
 await page.goto(`${BASE}/dashboard`); await idle(); await salir(page)
 await _login(page, 'super@bigsys.com.ar')

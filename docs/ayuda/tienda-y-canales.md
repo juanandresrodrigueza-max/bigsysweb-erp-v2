@@ -8,7 +8,7 @@ resumen: Tienda propia con carrito y link de pago, pedidos por WhatsApp, Mercado
 
 ## Tienda online propia
 
-**Configuración → Tienda y canales → Tienda online**: activala, elegí el nombre del link, qué artículos se publican (por rubro o uno por uno), retiro o envío, costo de envío y formas de pago (link de Mercado Pago, transferencia, efectivo al recibir). Tu tienda queda en un link para compartir por WhatsApp o redes. Los pedidos entran en **Comprobantes → Pedidos**.
+**Configuración → Tienda y canales → Tienda online**: activala, elegí el nombre del link, qué artículos se publican (por rubro o uno por uno), retiro o envío, costo de envío y formas de pago (link de Mercado Pago, transferencia, efectivo al recibir). Tu tienda queda en un link para compartir por WhatsApp o redes. Los pedidos entran en **Vender → Pedidos web**.
 
 También salen de acá el link del **menú QR** (gastronomía) y el de **reservas** (turnos, hotelería).
 
@@ -49,7 +49,7 @@ Al conectar se crean solos los **avisos de venta** en la tienda. Si un aviso se 
 
 **Ajustes de cada tienda**: la cuenta (cliente) a la que van las ventas, el **colchón** de stock que te guardás, la **lista de precios** de la tienda (con IVA), un recargo sólo para esa tienda, desde qué fecha entran las ventas, si entran solas, si se pausa la publicación al quedar sin stock, qué partes del producto le manda el ERP (precio, stock, nombre, descripción, foto, categoría) y, en MercadoLibre, **quién factura** (la factura de ML → la venta entra como remito; la del ERP → entra como factura y apagás la automática en ML).
 
-## Publicar desde el catálogo (Stock → Tienda online)
+## Publicar desde el catálogo (Vender → Tienda online)
 
 Elegís la tienda, un rubro (o buscás productos en todos), tildás y tocás **Revisar y publicar**: cada producto con su precio, cuánto se va a ofrecer y de qué rubro es, con una ✕ para sacar lo que no quieras. La lista de precios se decide en tres lugares, del más general al más fino: la de la tienda, la del rubro en esa tienda y la del artículo al revisar; queda guardada con la publicación. **Sin precio en esa lista no se publica** (lo ves marcado). Lo que ya estaba en la tienda con el mismo código se **actualiza** en vez de duplicarse.
 
@@ -59,7 +59,7 @@ En **MercadoLibre** cada rubro necesita su **categoría**: ML la propone a parti
 
 ## Lo que ya tenés en la tienda: atar, adoptar, desatar
 
-En **Stock → Tienda online → Las que ya tenés en la tienda** se leen todas las publicaciones (activas y pausadas) con foto, precio, stock y cuántas vendieron. Cada una viene con el artículo **propuesto**: por código (si el SKU de la tienda es tu código), por código de barras, por memoria ("ya lo ataste antes") o por nombre. **Segura**: un botón *Es «tal artículo»*. **Dudosa**: dos o tres candidatos (una cantidad distinta, "25 KG" contra "5 kg", baja la sugerencia a dudosa). **Ninguna**: *Decir cuál artículo es* abre un buscador por nombre, descripción, código o barras. **Nada se ata solo.**
+En **Vender → Tienda online → Las que ya tenés en la tienda** se leen todas las publicaciones (activas y pausadas) con foto, precio, stock y cuántas vendieron. Cada una viene con el artículo **propuesto**: por código (si el SKU de la tienda es tu código), por código de barras, por memoria ("ya lo ataste antes") o por nombre. **Segura**: un botón *Es «tal artículo»*. **Dudosa**: dos o tres candidatos (una cantidad distinta, "25 KG" contra "5 kg", baja la sugerencia a dudosa). **Ninguna**: *Decir cuál artículo es* abre un buscador por nombre, descripción, código o barras. **Nada se ata solo.**
 
 - **Atar**: sus ventas entran con el artículo puesto y se pueden facturar; la web no se toca. Al atar, la foto de la tienda pasa al catálogo si el artículo no tenía, las ventas pendientes de esa publicación quedan con el artículo, y el sistema se acuerda del título para la próxima.
 - **Adoptar**: además, el precio (lista de la tienda, con IVA) y el stock (menos el colchón) los manda el ERP desde ese momento; lo que la web tenía se pisa. *Emparejar las N seguras* ata y adopta de un clic; *Adoptar las N atadas* hace todas juntas. Una publicación **con variantes** se ata pero no se adopta.
@@ -67,15 +67,15 @@ En **Stock → Tienda online → Las que ya tenés en la tienda** se leen todas 
 
 ## Vender y facturar
 
-Cada venta pagada entra a **Comprobantes → Pedidos** con el CUIT y la condición de IVA del comprador cuando la tienda los trae, y con **avisos** cuando hay algo que mirar (condición desconocida, descuento o envío que no van en la factura, envío a convenir, artículo atado a mano). **Confirmar** la lleva a la cuenta de la tienda con los datos del comprador, que deciden la letra. En MercadoLibre primero elegís **quién factura** (Ajustes de la tienda): *la factura MercadoLibre* → la venta entra como **remito** (baja el stock, no se factura dos veces); *la factura del ERP* → sale con CAE y la **subís a la venta de ML** (sólo PDF, hasta 1 MB) y se la **mandás al comprador** por el mensaje de la venta. Una venta anterior a la **fecha de corte** o con un renglón **sin artículo** no se confirma, y el pedido dice por qué.
+Cada venta pagada entra a **Vender → Pedidos web** con el CUIT y la condición de IVA del comprador cuando la tienda los trae, y con **avisos** cuando hay algo que mirar (condición desconocida, descuento o envío que no van en la factura, envío a convenir, artículo atado a mano). **Confirmar** la lleva a la cuenta de la tienda con los datos del comprador, que deciden la letra. En MercadoLibre primero elegís **quién factura** (Ajustes de la tienda): *la factura MercadoLibre* → la venta entra como **remito** (baja el stock, no se factura dos veces); *la factura del ERP* → sale con CAE y la **subís a la venta de ML** (sólo PDF, hasta 1 MB) y se la **mandás al comprador** por el mensaje de la venta. Una venta anterior a la **fecha de corte** o con un renglón **sin artículo** no se confirma, y el pedido dice por qué.
 
 **Las ventas entran solas** (modo automático, en Ajustes): la que llega con todo en orden se confirma sola; la que no, queda por confirmar con lo que le falta. Si la tienda **cancela** la venta, vuelve el stock: con remito, como ingreso de stock; con factura, como nota de crédito. Si entró sola la devolución también sale sola; si no, el pedido muestra *Devolver al stock*. **Marcar como enviado** con el número de seguimiento avisa en la tienda (WooCommerce, Tienda Nube, Shopify) y la tienda le manda el mail al comprador.
 
 ## Cargos de MercadoLibre, exportar y Empretienda
 
-Cada venta de ML muestra el **resumen de cargos** (cargo por vender, cuotas, envío a tu cargo, retenciones, lo que recibís, cuándo se libera) y cuánto te deja contra el costo. En **Stock → Tienda online → Cargos de MercadoLibre** está el mes junto, *Bajar para el contador* (una línea por venta) y *Cargar como compra*: los cargos del mes como compra en borrador a MERCADO LIBRE S.R.L., para completar con la factura real. Las retenciones son pagos a cuenta, no gasto.
+Cada venta de ML muestra el **resumen de cargos** (cargo por vender, cuotas, envío a tu cargo, retenciones, lo que recibís, cuándo se libera) y cuánto te deja contra el costo. En **Vender → Tienda online → Cargos de MercadoLibre** está el mes junto, *Bajar para el contador* (una línea por venta) y *Cargar como compra*: los cargos del mes como compra en borrador a MERCADO LIBRE S.R.L., para completar con la factura real. Las retenciones son pagos a cuenta, no gasto.
 
-**Exportar pedidos** (botón en Pedidos): período, plataforma y estado, cuántos van a salir antes de bajar, CSV o Excel, con los renglones aparte si querés, y la opción *Para Excel en español*. **Empretienda** no tiene API: en Stock → Tienda online se baja la planilla con sus encabezados exactos (SKU = código, precio de vidriera, categoría = rubro, stock menos colchón) y un ZIP con las fotos nombradas por producto. **Datos personales** (Tienda Nube): si un comprador pide borrar sus datos, el sistema los borra de sus compras (el comprobante queda); si pide verlos, te aparece en Configuración → Tienda y canales para contestarle y marcar *Ya le contesté*.
+**Exportar pedidos** (botón en Pedidos): período, plataforma y estado, cuántos van a salir antes de bajar, CSV o Excel, con los renglones aparte si querés, y la opción *Para Excel en español*. **Empretienda** no tiene API: en Vender → Tienda online se baja la planilla con sus encabezados exactos (SKU = código, precio de vidriera, categoría = rubro, stock menos colchón) y un ZIP con las fotos nombradas por producto. **Datos personales** (Tienda Nube): si un comprador pide borrar sus datos, el sistema los borra de sus compras (el comprobante queda); si pide verlos, te aparece en Configuración → Tienda y canales para contestarle y marcar *Ya le contesté*.
 
 ## Colchón fijo o mínimo (Fase 44)
 

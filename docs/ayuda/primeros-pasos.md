@@ -30,7 +30,7 @@ Un usuario por persona, cada uno con su rol (vendedor, cajero, depósito, contad
 
 ## 6. Primera factura
 
-Hacé una de prueba desde **Comprobantes → Nueva factura**. Se puede anular después. Vas a ver cómo impacta en cuenta corriente, stock y contabilidad.
+Hacé una de prueba desde **Vender → Nueva factura**. Se puede anular después. Vas a ver cómo impacta en cuenta corriente, stock y contabilidad.
 
 ## Cómo moverse
 

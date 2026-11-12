@@ -5,9 +5,9 @@ const idle = () => _idle(page); const shot = n => _shot(page, 'sue-' + n)
 await _login(page, 'demo@bigsys.com.ar')
 await page.click('button:has-text("Saltar")').catch(() => {})
 await page.goto(`${BASE}/sueldos`); await idle()
-await page.click('button:has-text("Conceptos")'); await page.waitForTimeout(300)
+await page.click('[data-e2e="mas"]'); await page.click('[role=menuitem]:has-text("Conceptos")'); await page.waitForTimeout(300) // Fase 80: en el menú Más
 await page.click('[data-e2e="plantilla"]'); await page.click('[data-e2e="plantilla-ok"]'); await idle(); await page.waitForTimeout(500)
-await page.click('button:has-text("Conceptos")'); await page.waitForTimeout(300)
+await page.click('[data-e2e="mas"]'); await page.click('[role=menuitem]:has-text("Conceptos")'); await page.waitForTimeout(300) // Fase 80: en el menú Más
 console.log('  conceptos Comercio:', await page.locator('.fixed tbody td.font-mono').count(), '· tiene 1238:', await page.locator('.fixed td.font-mono:has-text("1238")').count() === 1)
 await shot('01-conceptos')
 await page.keyboard.press('Escape'); await page.goto(`${BASE}/sueldos`); await idle()

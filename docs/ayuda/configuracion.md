@@ -36,7 +36,7 @@ Percepciones y retenciones de IIBB, IVA y Ganancias, padrones por jurisdicción,
 
 ## Tienda y canales
 
-Tienda online propia, portal de clientes, WhatsApp, Mercado Libre, Tiendanube, WooCommerce, Shopify, PedidosYa y Rappi. Los pedidos entran en **Comprobantes → Pedidos** y se confirman con un clic.
+Tienda online propia, portal de clientes, WhatsApp, Mercado Libre, Tiendanube, WooCommerce, Shopify, PedidosYa y Rappi. Los pedidos entran en **Vender → Pedidos web** y se confirman con un clic.
 
 ## CRM (integración con el CRM de BigSys)
 

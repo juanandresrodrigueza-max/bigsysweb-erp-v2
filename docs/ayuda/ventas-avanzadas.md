@@ -6,7 +6,7 @@ orden: 2
 resumen: Pedidos que entran por canales, hojas de reparto con rendición del chofer, precios pactados por cliente, facturación por lote, abonos mensuales y los controles de lo que falta entregar o facturar.
 ---
 
-## Pedidos (Comprobantes → Pedidos)
+## Pedidos (Vender → Pedidos web)
 
 Acá caen los pedidos de la tienda online, el portal de clientes, WhatsApp, Mercado Libre, Tiendanube, WooCommerce, Shopify, PedidosYa, Rappi y el menú QR. Cada uno muestra cliente, ítems, forma de entrega y de pago.
 
@@ -15,11 +15,11 @@ Acá caen los pedidos de la tienda online, el portal de clientes, WhatsApp, Merc
 - **Pedido por WhatsApp**: pegá el mensaje (o dictalo) y el sistema identifica artículos y cantidades; revisás y creás el pedido.
 - Con Mercado Envíos, desde el pedido se baja la etiqueta y se consulta el estado del envío.
 
-## Hojas de reparto (Comprobantes → Entregas)
+## Hojas de reparto (Entregar → Hojas de reparto)
 
 Agrupá las entregas del día por repartidor, imprimí la hoja con direcciones y bultos, y al volver marcá cada entrega como hecha o con novedad. Cada remito o factura con entrega pendiente aparece hasta que se entrega.
 
-## Rendición del reparto (Comprobantes → Entregas → la hoja)
+## Rendición del reparto (Entregar → Hojas de reparto → la hoja)
 
 Cierra la caja del camión al volver del viaje.
 
@@ -29,15 +29,15 @@ Cierra la caja del camión al volver del viaje.
 
 Al rendir, cada entrega cobrada genera su recibo imputado a la factura. El efectivo entra a la caja, los cheques a la cartera y las transferencias al banco. Los viáticos salen como gasto de la caja y la diferencia queda como faltante o sobrante de caja. Rinde quien puede cargar movimientos de fondos. Una hoja rendida no se puede volver a rendir ni sumar cobros, y la hoja impresa muestra la rendición.
 
-## Facturación por lote (Comprobantes → Facturar en lote)
+## Facturación por lote (Vender → Facturación por lote)
 
 Elegí presupuestos aprobados o remitos emitidos de uno o varios clientes y facturalos todos juntos. Cada remito queda vinculado a su factura y el pendiente de facturar baja a cero.
 
-## Abonos (Comprobantes → Abonos)
+## Abonos (Vender → Abonos)
 
 Cuotas, alquileres, mantenimientos, servicios mensuales: se define cliente, ítems, importe y día del mes, y la factura sale sola ese día (con aviso por mail o WhatsApp al cliente si lo activás). Se pueden pausar, cambiar el importe o terminar.
 
-## Pendientes (Comprobantes → Pendientes)
+## Pendientes (Entregar → Por entregar)
 
 Dos listas que deberían tender a cero: lo **entregado sin facturar** (remitos sin factura) y lo **facturado sin entregar** (facturas con entrega pendiente). Es el control diario del dueño o del encargado.
 
@@ -91,7 +91,7 @@ A Bigcito se le pide por voz: "¿qué dice el contrato de López sobre la mora?"
 
 Los documentos que ya estaban cargados antes de esta función se leen solos la primera vez que alguien pregunta.
 
-## Armar el viaje del camión (Comprobantes → Entregas → Armar viaje)
+## Armar el viaje del camión (Entregar → Hojas de reparto → Armar viaje)
 
 Aparece todo lo pendiente de entregar, agrupado por cliente: facturas con entrega pendiente, remitos y **retiros de acopio**. Tildá lo que lleva el camión; si va una parte, cambiá la cantidad de cada artículo. Podés sumar **paradas a mano** (retirar cheques, pasar por el banco). A la derecha, la **planilla de carga**: todo lo que sube al camión, sumado por artículo.
 

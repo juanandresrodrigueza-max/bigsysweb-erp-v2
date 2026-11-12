@@ -99,7 +99,7 @@ El stock se mueve solo con cada factura, remito, compra y producción. Para ajus
 
 ## Compras
 
-**Proveedores → Nueva compra**: cargás la factura del proveedor con sus ítems. Entra el stock, se actualiza el costo (y el precio si tiene margen) y queda la deuda en la cuenta corriente del proveedor. Al pagar, el sistema sugiere las **retenciones** que corresponden (Ganancias, IIBB, IVA) y emite el certificado.
+**Comprar → Nueva factura de compra**: cargás la factura del proveedor con sus ítems. Entra el stock, se actualiza el costo (y el precio si tiene margen) y queda la deuda en la cuenta corriente del proveedor. Al pagar, el sistema sugiere las **retenciones** que corresponden (Ganancias, IIBB, IVA) y emite el certificado.
 
 Podés cargar la compra con **IA** desde una foto o PDF de la factura: la lee y arma los ítems para que revises.
 

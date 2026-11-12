@@ -23,7 +23,7 @@
       <component v-if="secundaria" :is="tag(secundaria)" v-bind="attrs(secundaria)" class="btn-secondary" @click="elegir(secundaria, false)">
         <Icono v-if="secundaria.icono" :nombre="secundaria.icono" clase="w-4 h-4" />{{ secundaria.label }}
       </component>
-      <component v-if="principal" :is="tag(principal)" v-bind="attrs(principal)" class="btn-primary" data-e2e="accion-principal" @click="elegir(principal, false)">
+      <component v-if="principal" :is="tag(principal)" v-bind="attrs(principal)" class="btn-primary" :data-e2e="principal.e2e || 'accion-principal'" @click="elegir(principal, false)">
         <Icono :nombre="principal.icono ?? 'plus'" clase="w-4 h-4" />{{ principal.label }}
       </component>
     </div>

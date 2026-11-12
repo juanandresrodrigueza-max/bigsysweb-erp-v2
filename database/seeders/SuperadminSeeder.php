@@ -25,8 +25,9 @@ class SuperadminSeeder extends Seeder
 
         Auth::login($super);
         $svc = app(SuscripcionService::class);
-        $starter = Plan::where('slug', 'starter')->first();
-        $pro = Plan::where('slug', 'pro')->first();
+        // Los planes se renombraron (PR #57): Inicial y Negocio reemplazan a starter y pro. Se aceptan los dos nombres.
+        $starter = Plan::where('slug', 'inicial')->first() ?? Plan::where('slug', 'starter')->first() ?? Plan::where('is_active', true)->orderBy('price_monthly')->first();
+        $pro = Plan::where('slug', 'negocio')->first() ?? Plan::where('slug', 'pro')->first() ?? Plan::where('is_active', true)->orderByDesc('price_monthly')->first();
         $free = Plan::where('slug', 'free')->first();
 
         // Demo (corralón) ya existe: le damos historial de pagos.

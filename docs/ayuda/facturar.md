@@ -8,7 +8,7 @@ resumen: Cómo hacer una factura, un presupuesto o un remito, cargar una factura
 
 ## La factura paso a paso
 
-1. **Comprobantes → Nueva factura** (o Alt+N).
+1. **Vender → Nueva factura** (o Alt+N).
 2. Elegí el **cliente**. Si es responsable inscripto sale Factura A; si no, B (o C si vos sos monotributista). Podés dejarlo en Consumidor Final.
 3. Cargá los **ítems**: buscá el artículo por nombre o código, escribí la cantidad y Enter. El precio sale de la lista del cliente; se puede cambiar.
 4. **Condición**: contado o cuenta corriente. En cuenta corriente, el vencimiento sale de los días de pago del cliente.
@@ -31,7 +31,7 @@ Si el cliente no está cargado, no hace falta salir de la factura: tocá **+ Cli
 ## Presupuestos y remitos
 
 - **Presupuesto**: no mueve nada. Se manda al cliente por link o WhatsApp y desde ahí lo aprueba o rechaza. Aprobado, se convierte en factura o remito con un clic.
-- **Remito**: descuenta stock sin facturar. Después se factura uno o varios remitos juntos (Comprobantes → Facturar en lote). Para traslados en Provincia de Buenos Aires, el remito lleva datos de transporte y se pide el **COT** en ARBA desde el mismo remito.
+- **Remito**: descuenta stock sin facturar. Después se factura uno o varios remitos juntos (Vender → Facturación por lote). Para traslados en Provincia de Buenos Aires, el remito lleva datos de transporte y se pide el **COT** en ARBA desde el mismo remito.
 - **Entrega pendiente**: se factura ahora y la mercadería sale después con remitos, en una o varias entregas.
 - **Acopio**: el cliente paga ahora y retira en partes; el stock se descuenta con cada retiro.
 
