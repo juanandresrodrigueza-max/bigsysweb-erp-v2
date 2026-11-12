@@ -53,7 +53,7 @@
         <div class="sm:col-span-2"><label class="label">Falla que reporta el cliente</label><textarea v-model="f.falla" rows="2" class="input"></textarea><p v-if="f.errors.falla" class="text-carmin text-xs mt-1">{{ f.errors.falla }}</p></div>
         <div><label class="label">{{ config.tecnico }}</label><select v-model="f.tecnico_id" class="input"><option :value="null">{{ config.tecnico }}: asignar después</option><option v-for="t in tecnicos" :key="t.id" :value="t.id">{{ t.name }}</option></select></div><div><label class="label">Fecha prometida</label><input v-model="f.fecha_prometida" type="date" class="input" /></div>
       </div>
-      <template #pie><button class="btn-secondary" @click="modal = false">Cancelar</button><button class="btn-primary" :disabled="f.processing || !f.equipo || !f.falla || (!f.contact_id && !f.nombre)" @click="f.post('/servicios')">Crear orden</button></template>
+      <template #pie><button class="btn-secondary" @click="modal = false">Cancelar</button><button class="btn-primary" :disabled="f.processing || !f.equipo || !f.falla || (!f.contact_id && !f.nombre)" @click="f.post('/servicios')">Nueva orden</button></template>
     </Modal>
     <Modal :abierto="cfgAbierto" titulo="¿Qué reparás?" @cerrar="cfgAbierto = false">
       <div class="grid sm:grid-cols-2 gap-3 text-sm">

@@ -14,7 +14,6 @@
     </Modal>
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/clientes" class="text-xs text-marca-muted hover:text-carmin">← Clientes</Link>
         <h1 class="page-title">Cobranzas</h1>
         <p class="page-subtitle">Quién debe, hace cuánto, y los avisos que salen solos por mail o WhatsApp.</p>
       </div>

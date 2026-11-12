@@ -1,20 +1,9 @@
 <template>
   <AppLayout titulo="Comprobantes">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <h1 class="page-title">Comprobantes</h1>
-        <p class="page-subtitle">Facturas, notas de crédito y débito, remitos y presupuestos de venta.</p>
-      </div>
-      <div v-if="puede('comprobantes', 'crear')" class="flex gap-2">
-        <Link href="/vender" class="btn-secondary !border-sky-700 !text-sky-700" data-e2e="ir-vender">Vender</Link>
-        <Link href="/comprobantes/pedidos" class="btn-secondary">Pedidos web</Link>
-        <Link href="/comprobantes/pendientes" class="btn-secondary">Pendientes</Link>
-        <Link href="/comprobantes/abonos" class="btn-secondary">Abonos</Link>
-        <Link href="/comprobantes/lote" class="btn-secondary">Facturación por lote</Link>
-        <Link href="/comprobantes/nuevo?tipo=PRE" class="btn-secondary">Presupuesto</Link>
-        <Link href="/comprobantes/nuevo" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva factura</Link>
-      </div>
-    </div>
+    <PageHeader titulo="Comprobantes" subtitulo="Facturas, notas de crédito y débito, remitos y presupuestos de venta."
+      :principal="puede('comprobantes', 'crear') ? { label: 'Vender', href: '/vender', icono: 'receipt', e2e: 'ir-vender', title: 'Mostrador: cobrar y facturar en el momento' } : null"
+      :secundaria="puede('comprobantes', 'crear') ? { label: 'Nueva factura', href: '/comprobantes/nuevo', icono: 'plus' } : null"
+      :mas="[{ label: 'Nuevo presupuesto', href: '/comprobantes/nuevo?tipo=PRE', cuando: puede('comprobantes', 'crear') }]" />
 
     <div v-if="!afipConfigurado" class="mb-4 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex flex-wrap items-center gap-2">
       <Icono nombre="alert" clase="w-4 h-4" /> Sin certificado AFIP: las facturas se emiten <b>simuladas</b> (sin CAE). <Link href="/configuracion/puntos-venta" class="underline font-semibold">Configurar AFIP</Link>
@@ -75,6 +64,7 @@
 import { reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Paginacion from '@/Components/Paginacion.vue'
 import { moneda, entero, estadoCobro, estadoComprobante } from '@/util/formato'

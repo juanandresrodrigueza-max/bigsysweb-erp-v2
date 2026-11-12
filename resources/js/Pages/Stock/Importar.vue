@@ -2,7 +2,6 @@
   <AppLayout titulo="Importar lista de precios">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Importar lista de precios</h1>
         <p class="page-subtitle">Subí el Excel o CSV del proveedor: se crean los artículos que falten y se actualizan los precios de los que ya existen.</p>
       </div>

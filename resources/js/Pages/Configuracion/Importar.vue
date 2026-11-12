@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Importar datos">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Importar datos</h1>
 
     <div class="card mb-4" data-e2e="bigconnect">
       <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Traer todo desde BIG Connect</h2><span class="badge" :class="bigconnect?.conectado ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light'">{{ bigconnect?.conectado ? 'Conectado · ' + bigconnect.clave + (bigconnect.ultima ? ' · última migración ' + bigconnect.ultima : '') : 'Sin conectar' }}</span></div>
@@ -111,7 +110,6 @@
 import { computed, watch } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import { hoyISO } from '@/util/formato'
 const props = defineProps({ entidades: Array, historial: Array, bigconnect: Object, migracion: Object })
 // Fase 41: migrar desde BIG Connect (primero la prueba, después la de verdad).

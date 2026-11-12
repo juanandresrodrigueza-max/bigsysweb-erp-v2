@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Sucursales">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Sucursales</h1>
 
     <div class="flex items-center justify-between mb-4">
       <p class="text-sm text-marca-muted">{{ limite.usadas }} de {{ limite.max < 0 ? '∞' : limite.max }} sucursales del plan. La casa central ve el consolidado de todas desde el selector de sucursal.</p>
@@ -84,7 +83,6 @@
 import { ref } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 

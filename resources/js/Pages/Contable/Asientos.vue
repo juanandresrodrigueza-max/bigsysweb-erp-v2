@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Asientos</h1><p class="page-subtitle">Libro diario. Los automáticos llevan al comprobante que los generó.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="filtros" />
     </div>
-    <ContableTabs />
 
     <div class="card mb-4 flex flex-wrap gap-2 items-center">
       <input v-model="f.buscar" @keyup.enter="filtrar" class="input flex-1 min-w-[200px]" placeholder="Concepto…" />
@@ -54,7 +53,6 @@
 import { ref, reactive, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'

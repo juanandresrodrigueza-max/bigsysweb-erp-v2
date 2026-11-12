@@ -2,7 +2,6 @@
   <AppLayout titulo="Descuentos por lista">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <Link href="/stock" class="text-xs text-marca-muted hover:text-carmin">← Stock</Link>
         <h1 class="page-title">Descuentos por lista</h1>
         <p class="page-subtitle">Precio especial o % para un artículo o un rubro entero, en una lista de precios, desde una cantidad mínima y con vigencia. Vale para todos los clientes de esa lista; el precio pactado de un cliente sigue mandando.</p>
       </div>
@@ -21,7 +20,7 @@
       <div><label class="label">Descuento %</label><input v-model.number="form.descuento" type="number" min="-100" max="100" step="any" class="input text-right" placeholder="—" data-e2e="pct" /></div>
       <div><label class="label">Desde</label><input v-model="form.vigente_desde" type="date" class="input" /></div>
       <div><label class="label">Hasta</label><input v-model="form.vigente_hasta" type="date" class="input" /></div>
-      <button class="btn-primary" :disabled="form.processing || !(form.product_id || form.rubro_id)">{{ form.id ? 'Guardar' : 'Agregar' }}</button>
+      <button class="btn-primary" :disabled="form.processing || !(form.product_id || form.rubro_id)">Guardar</button>
       <p v-if="Object.keys(form.errors).length" class="text-xs text-carmin sm:col-span-8">{{ Object.values(form.errors).join(' ') }}</p>
     </form>
 

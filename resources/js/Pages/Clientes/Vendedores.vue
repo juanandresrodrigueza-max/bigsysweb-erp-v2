@@ -2,7 +2,6 @@
   <AppLayout titulo="Vendedores">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/clientes" class="text-xs text-marca-muted hover:text-carmin">← Clientes</Link>
         <h1 class="page-title">Vendedores y comisiones</h1>
         <p class="page-subtitle">Cada factura y cada cobro llevan un vendedor. Acá se liquidan las comisiones por período.</p>
       </div>

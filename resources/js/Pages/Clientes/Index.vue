@@ -1,19 +1,10 @@
 <template>
   <AppLayout titulo="Clientes">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <h1 class="page-title">Clientes</h1>
-        <p class="page-subtitle">{{ entero(totales.clientes) }} clientes · por cobrar {{ moneda(totales.por_cobrar, 0) }}</p>
-      </div>
-      <div class="flex gap-2">
-        <a href="/configuracion/importar/exportar/clientes" class="btn-secondary">Exportar CSV</a>
-        <Link href="/clientes/fidelizacion" class="btn-secondary">Puntos</Link>
-        <Link href="/clientes/cobranzas" class="btn-secondary">Cobranzas</Link>
-        <Link href="/clientes/vendedores" class="btn-secondary">Vendedores</Link>
-        <button @click="tiposAbierto = true" class="btn-secondary">Tipos de cliente</button>
-        <button @click="editar(null)" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nuevo cliente</button>
-      </div>
-    </div>
+    <PageHeader titulo="Clientes"
+      :principal="{ label: 'Nuevo cliente', click: () => editar(null) }"
+      :mas="[{ label: 'Tipos de cliente', click: () => tiposAbierto = true }, { label: 'Exportar CSV', href: '/configuracion/importar/exportar/clientes', externo: true }]">
+      <template #subtitulo>{{ entero(totales.clientes) }} clientes · por cobrar {{ moneda(totales.por_cobrar, 0) }}</template>
+    </PageHeader>
 
     <div class="card mb-4 grid gap-2 sm:grid-cols-4">
       <input v-model="f.buscar" @keyup.enter="filtrar" class="input sm:col-span-2" placeholder="Buscar por nombre, CUIT, email o teléfono…" />
@@ -69,6 +60,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import Paginacion from '@/Components/Paginacion.vue'

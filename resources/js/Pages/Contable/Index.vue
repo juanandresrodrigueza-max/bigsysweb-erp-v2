@@ -1,10 +1,8 @@
 <template>
   <AppLayout titulo="Contable">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><h1 class="page-title">Contable</h1><p class="page-subtitle">Los asientos se arman solos con cada venta, compra, cobro, pago y movimiento de fondos.</p></div>
-      <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" />
-    </div>
-    <ContableTabs />
+    <PageHeader titulo="Contable" subtitulo="Los asientos se arman solos con cada venta, compra, cobro, pago y movimiento de fondos." compacto>
+      <template #extra><PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" /></template>
+    </PageHeader>
 
     <div v-if="pendientes" class="mb-4 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3">
       <Icono nombre="alert" clase="w-5 h-5 shrink-0" /><span>Hay <b>{{ pendientes }}</b> operaciones sin asiento.</span>
@@ -67,7 +65,7 @@
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import Icono from '@/Components/Icono.vue'
 import { moneda } from '@/util/formato'

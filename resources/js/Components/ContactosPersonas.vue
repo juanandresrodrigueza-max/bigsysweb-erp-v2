@@ -2,7 +2,7 @@
   <div class="card" data-e2e="personas">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
       <div><h2 class="font-bold">Contactos</h2><p class="text-xs text-marca-muted">Las personas con las que hablás y qué documentos le llegan a cada una. Al enviar, el sistema sugiere a quien corresponde.</p></div>
-      <button class="btn-secondary !py-1 text-xs" @click="editar()">Agregar contacto</button>
+      <button class="btn-secondary !py-1 text-xs" @click="editar()">Nuevo contacto</button>
     </div>
     <div v-if="cargando" class="text-sm text-marca-muted py-4 text-center">Cargando…</div>
     <div v-else class="grid sm:grid-cols-2 gap-3">

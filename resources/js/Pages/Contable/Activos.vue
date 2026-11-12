@@ -1,6 +1,5 @@
 <template>
   <AppLayout titulo="Bienes de uso">
-    <ContableTabs />
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Bienes de uso y amortizaciones</h1><p class="page-subtitle">Rodados, máquinas, muebles, equipos. Cada mes se amortizan en forma lineal y el asiento sale solo.</p></div>
       <div class="flex flex-wrap gap-2">
@@ -69,7 +68,6 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 const props = defineProps({ activos: Array, categorias: Object, estados: Object, filtros: Object, resumen: Object, periodo: String, proveedores: Array })

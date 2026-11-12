@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Flujo de fondos">
     <div class="mb-4"><h1 class="page-title">Flujo de fondos</h1><p class="page-subtitle">Plata que entró y salió de cajas, bancos y billeteras, mes a mes, y lo que viene en los próximos 30 días.</p></div>
-    <ContableTabs />
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Disponible hoy</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(disponible, 0) }}</p></div>
@@ -24,7 +23,6 @@
 <script setup>
 import { computed } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ meses: Array, filas: Array, neto: Object, disponible: Number, proyeccion: Object })
 const proyectado = computed(() => props.disponible + props.proyeccion.por_cobrar_30 + props.proyeccion.cheques_cobrar - props.proyeccion.por_pagar_30 - props.proyeccion.cheques_pagar)

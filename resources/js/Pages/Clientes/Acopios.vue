@@ -2,7 +2,7 @@
   <AppLayout titulo="Acopios">
     <!-- Fase 35.6: lo que el cliente tiene para retirar no es deuda. -->
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><Link href="/clientes/cobranzas" class="text-xs text-marca-muted hover:text-carmin">← Cobranzas</Link><h1 class="page-title">Acopios</h1><p class="page-subtitle">Lo que cada cliente tiene para retirar, separado de lo que debe de verdad. En plata y en kilos.</p></div>
+      <div><h1 class="page-title">Acopios</h1><p class="page-subtitle">Lo que cada cliente tiene para retirar, separado de lo que debe de verdad. En plata y en kilos.</p></div>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" data-e2e="totales">
       <div class="card py-3"><p class="lbl">Para retirar</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(totales.pendiente, 0) }}</p><p class="text-xs text-marca-muted">{{ totales.clientes }} clientes</p></div>

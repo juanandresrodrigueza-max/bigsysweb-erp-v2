@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Panel del contador</h1><p class="page-subtitle">Todo lo que el estudio pide cada mes, en un lugar, en el formato de su sistema.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" />
     </div>
-    <ContableTabs />
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Asientos</p><p class="text-xl font-extrabold tabular-nums">{{ resumen.asientos }}</p></div>
@@ -44,7 +43,6 @@
 <script setup>
 import { Link, useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 defineProps({ periodo: Object, formatos: Object, contadores: Array, resumen: Object, checklist: Array })
 const inv = useForm({ name: '', email: '', password: '' })

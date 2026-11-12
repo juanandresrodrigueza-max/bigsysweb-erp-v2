@@ -1,23 +1,11 @@
 <template>
   <AppLayout titulo="Fondos">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-      <div>
-        <h1 class="page-title">Fondos</h1>
-        <p class="page-subtitle">Cajas, bancos y billeteras. Disponible {{ moneda(totales.disponible, 0) }} · cheques en cartera {{ moneda(totales.cheques_cartera, 0) }} · cheques propios a debitar {{ moneda(totales.cheques_propios, 0) }}</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <Link href="/fondos/tarjetas" class="btn-secondary">Tarjetas</Link><Link href="/fondos/conciliar" class="btn-secondary" data-ir-conciliar>Conciliar</Link>
-        <Link href="/fondos/cheques" class="btn-secondary">Cheques</Link>
-        <Link href="/fondos/valores" class="btn-secondary" title="De dónde vino y a dónde fue cada cheque o cupón">Valores</Link>
-        <Link href="/fondos/moneda" class="btn-secondary" title="Cuentas en dólares, cotización y diferencia de cambio">Dólares</Link>
-        <Link href="/fondos/cierres" class="btn-secondary" title="Historial de cierres, diferencias por cajero y por caja">Cierres</Link>
-        <Link href="/fondos/previsiones" class="btn-secondary" title="Gastos e ingresos que se repiten todos los meses o cada X meses">Previsiones</Link>
-        <button v-if="puede('fondos','crear')" @click="transfAbierto = true" class="btn-secondary">Transferir</button>
-        <button v-if="puede('fondos','crear')" @click="abrirMov('egreso')" class="btn-secondary">Gasto</button>
-        <button v-if="puede('fondos','crear')" @click="abrirMov('ingreso')" class="btn-secondary">Ingreso</button>
-        <button v-if="puede('fondos','editar')" @click="abrirCuenta()" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Cuenta</button>
-      </div>
-    </div>
+    <PageHeader titulo="Plata"
+      :principal="puede('fondos','crear') ? { label: 'Registrar gasto', click: () => abrirMov('egreso') } : null"
+      :secundaria="puede('fondos','crear') ? { label: 'Registrar ingreso', click: () => abrirMov('ingreso') } : null"
+      :mas="[{ label: 'Transferir entre cuentas', click: () => transfAbierto = true, cuando: puede('fondos','crear') }, { label: 'Nueva cuenta', click: () => abrirCuenta(), cuando: puede('fondos','editar') }]">
+      <template #subtitulo>Cajas, bancos y billeteras. Disponible {{ moneda(totales.disponible, 0) }} · cheques en cartera {{ moneda(totales.cheques_cartera, 0) }} · cheques propios a debitar {{ moneda(totales.cheques_propios, 0) }}</template>
+    </PageHeader>
 
     <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
       <button v-for="c in cuentas" :key="c.id" @click="verCuenta(c.id)" class="card text-left transition hover:border-carmin/40" :class="{ 'ring-2 ring-carmin': c.id === cuentaActual, 'opacity-50': !c.activa }">
@@ -195,6 +183,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import Paginacion from '@/Components/Paginacion.vue'

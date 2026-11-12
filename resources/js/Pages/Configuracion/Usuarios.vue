@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Usuarios">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Usuarios</h1>
 
     <div class="flex items-center justify-between mb-4">
       <p class="text-sm text-marca-muted">{{ limite.usados }} de {{ limite.max < 0 ? '∞' : limite.max }} usuarios del plan.</p>
@@ -86,7 +85,6 @@
 import { ref, computed, reactive } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 

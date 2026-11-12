@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Copias de seguridad">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Copias de seguridad</h1>
 
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
       <div class="card">
@@ -54,7 +53,6 @@
 import { ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import Modal from '@/Components/Modal.vue'
 defineProps({ backups: Array, backupAuto: Boolean, tablas: Array })
 const bk = useForm({})

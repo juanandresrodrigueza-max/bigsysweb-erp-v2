@@ -52,7 +52,7 @@
         <div><label class="label">Programada para</label><input v-model="nueva.scheduled_at" type="date" class="input" /></div>
         <div class="sm:col-span-2"><label class="label">Notas</label><input v-model="nueva.notes" class="input" placeholder="Para qué pedido, quién la hace…" /></div>
       </div>
-      <template #pie><button class="btn-secondary" @click="nuevaAbierta = false">Cancelar</button><button class="btn-primary" :disabled="nueva.processing || !nueva.quantity" @click="nueva.post('/produccion/ordenes', { preserveScroll: true, onSuccess: () => { nuevaAbierta = false; nueva.reset('quantity', 'notes') } })">Crear orden</button></template>
+      <template #pie><button class="btn-secondary" @click="nuevaAbierta = false">Cancelar</button><button class="btn-primary" :disabled="nueva.processing || !nueva.quantity" @click="nueva.post('/produccion/ordenes', { preserveScroll: true, onSuccess: () => { nuevaAbierta = false; nueva.reset('quantity', 'notes') } })">Nueva orden</button></template>
     </Modal>
 
     <Modal :abierto="!!terminar" :titulo="`Terminar ${terminar?.numero}`" @cerrar="terminar = null">

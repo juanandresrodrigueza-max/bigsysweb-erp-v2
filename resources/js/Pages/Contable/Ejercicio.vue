@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Cierre de ejercicio</h1><p class="page-subtitle">Refundición de resultados, asientos de cierre y apertura, y ajuste por inflación con IPC.</p></div>
       <a :href="`/contable/diario?desde=${actual.desde}&hasta=${actual.hasta}`" target="_blank" class="btn-secondary">Libro diario del ejercicio</a>
     </div>
-    <ContableTabs />
 
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
       <div class="card">
@@ -62,7 +61,6 @@
 import { ref } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ actual: Object, cierreMes: Number, ejercicios: Array, ipcCierre: Number, periodoCierre: String, ajustes: Array, ajusteDefault: String })

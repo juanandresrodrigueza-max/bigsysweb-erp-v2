@@ -2,7 +2,6 @@
   <AppLayout titulo="Órdenes de compra">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/proveedores" class="text-xs text-marca-muted hover:text-carmin">← Proveedores</Link>
         <h1 class="page-title">Órdenes de compra</h1>
         <p class="page-subtitle">Lo que pediste a cada proveedor y qué falta recibir. Al recibir, la factura se arma sola.</p>
       </div>

@@ -7,7 +7,6 @@
         <button v-if="puede('contable','crear')" @click="impAbierto = true" class="btn-primary">Importar extracto</button>
       </div>
     </div>
-    <ContableTabs />
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Saldo según sistema</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(resumen.saldo_sistema, 0) }}</p></div>
@@ -133,7 +132,6 @@
 import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'

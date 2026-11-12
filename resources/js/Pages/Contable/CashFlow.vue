@@ -1,6 +1,5 @@
 <template>
   <AppLayout titulo="Cash flow 13 semanas">
-    <ContableTabs />
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div><h1 class="page-title">Cash flow proyectado</h1><p class="page-subtitle">Con lo que hay hoy en caja y bancos, lo que está por cobrar y lo que hay que pagar, semana por semana. Es una proyección: sirve para ver el bache antes de que llegue.</p></div>
       <a href="/contable/cashflow?export=1" class="btn-secondary">Exportar CSV</a>
@@ -40,7 +39,6 @@
 <script setup>
 import { computed } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import { moneda } from '@/util/formato'
 const props = defineProps({ p: Object })
 const n = v => Number(v ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })

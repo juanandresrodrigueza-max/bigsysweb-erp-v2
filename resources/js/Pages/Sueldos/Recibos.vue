@@ -2,7 +2,7 @@
   <AppLayout titulo="Sueldos · Firmas y recibos">
     <!-- Fase 38: el estado de firma de cada recibo, los PDF que vienen de afuera, la firma del empleador y los datos del período. -->
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><Link href="/sueldos" class="text-xs text-marca-muted hover:text-carmin">← Sueldos</Link><h1 class="page-title">Firmas y recibos</h1><p class="page-subtitle">Quién recibió, vio y firmó su recibo. Los PDF de otro programa o del contador también se mandan y se firman.</p></div>
+      <div><h1 class="page-title">Firmas y recibos</h1><p class="page-subtitle">Quién recibió, vio y firmó su recibo. Los PDF de otro programa o del contador también se mandan y se firman.</p></div>
       <a :href="`/sueldos/recibos?csv=1${periodo ? '&periodo=' + periodo : ''}`" class="btn-secondary">Bajar historial (Excel)</a>
     </div>
     <div class="flex gap-1.5 text-xs mb-3"><button v-for="t in [['firmas', 'Firmas'], ['externos', 'Recibos externos'], ['periodo', 'Datos del período'], ['empleador', 'Firma del empleador']]" :key="t[0]" class="rounded-full px-3 py-1 font-semibold border" :class="tab === t[0] ? 'bg-marca-texto text-white border-marca-texto' : 'border-marca-borde'" @click="tab = t[0]" :data-tab="t[0]">{{ t[1] }}</button></div>

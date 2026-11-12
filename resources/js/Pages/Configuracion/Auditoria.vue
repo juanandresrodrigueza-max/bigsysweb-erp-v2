@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Auditoría">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Auditoría</h1>
 
     <div class="card mb-4 flex flex-wrap gap-2">
       <select v-model="f.usuario" @change="filtrar" class="input w-auto"><option value="">Todos los usuarios</option><option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.name }}</option></select>
@@ -33,7 +32,6 @@
 import { reactive } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 const props = defineProps({ logs: Object, usuarios: Array, filtros: Object })
 const f = reactive({ usuario: props.filtros.usuario ?? '', accion: props.filtros.accion ?? '' })
 function filtrar() { router.get('/configuracion/auditoria', f, { preserveState: true, replace: true }) }

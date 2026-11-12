@@ -4,7 +4,6 @@
       <div><h1 class="page-title">Fiscal</h1><p class="page-subtitle">Retenciones, percepciones, Libro IVA Digital y cruce con ARCA. Todo listo para el contador.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" />
     </div>
-    <ContableTabs />
 
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
       <div class="card">
@@ -95,7 +94,6 @@
 import { ref } from 'vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ContableTabs from '@/Components/ContableTabs.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { moneda } from '@/util/formato'
 import { computed as computedS } from 'vue'

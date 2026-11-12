@@ -48,6 +48,7 @@ class HandleInertiaRequests extends Middleware
                 'consolidado' => (bool) $user->ver_consolidado, 'puede_consolidar' => $user->esDueno() || $user->puede('estadisticas'),
             ] : null,
             'nav' => fn() => $user ? $this->nav($user) : [],
+            'subnav' => fn() => $user && $user->business_id ? $this->subnav($user, $request) : null, // Fase 80
             // Contador con varias empresas: selector en el encabezado.
             'empresas' => fn() => $user && ($user->business_id) ? (function () use ($user) { $l = $user->empresasAccesibles(); return $l->count() > 1 ? $l->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name, 'cuit' => $b->cuit])->values() : null; })() : null,
             'tour' => fn() => $user && $user->business_id && ! $user->tour_visto_en ? \App\Services\Producto\AyudaService::tour() : null,
@@ -113,5 +114,35 @@ class HandleInertiaRequests extends Middleware
             $grupos[array_key_last($grupos)]['items'][] = ['key' => 'crm', 'label' => 'CRM', 'icono' => 'idcard', 'ruta' => '/integraciones/crm/ir', 'modulo' => 'configuracion', 'disponible' => true, 'externo' => true];
         }
         return $grupos;
+    }
+
+    // Fase 80: la sub-navegación de la pantalla actual. Gana el ítem de ruta más larga que coincide con la URL (así /stock/pases
+    // es de Entregar y no de Stock); las fichas y formularios no la llevan. Se filtra por módulo visible y, si el ítem lo pide, por acción.
+    public function subnav($user, Request $request): ?array
+    {
+        $url = '/' . trim($request->path(), '/');
+        $mejor = null;
+        foreach (config('erp.secciones', []) as $key => $items) {
+            foreach ($items as $it) {
+                $r = $it['ruta'];
+                $coincide = $url === $r || (empty($it['exacto']) && str_starts_with($url, $r . '/'));
+                if ($coincide && ($mejor === null || strlen($r) > strlen($mejor[1]))) $mejor = [$key, $r];
+            }
+        }
+        if (! $mejor) return null;
+        [$key, $activa] = $mejor;
+        $resto = array_filter(explode('/', substr($url, strlen($activa))));
+        if (array_intersect($resto, config('erp.secciones_sin', []))) return null;
+        $entrada = collect(config('erp.menu'))->firstWhere('key', $key);
+        $visibles = $user->modulosVisibles();
+        if (! $entrada || ! in_array($entrada['modulo'], $visibles, true)) return null;
+        $items = [];
+        foreach (config("erp.secciones.$key") as $it) {
+            $modulo = $it['modulo'] ?? $entrada['modulo'];
+            if (! in_array($modulo, $visibles, true)) continue;
+            if (isset($it['accion']) && ! $user->puede($modulo, $it['accion'])) continue;
+            $items[] = ['key' => $it['key'], 'label' => $it['label'], 'ruta' => $it['ruta'], 'activo' => $it['ruta'] === $activa, 'grupo' => $it['grupo'] ?? '', 'ayuda' => $it['ayuda'] ?? null];
+        }
+        return ['key' => $key, 'titulo' => $entrada['label'], 'icono' => $entrada['icono'], 'ruta' => $entrada['ruta'], 'items' => $items];
     }
 }

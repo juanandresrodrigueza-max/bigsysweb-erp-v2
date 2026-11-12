@@ -2,7 +2,6 @@
   <AppLayout titulo="Cheques">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/fondos" class="text-xs text-marca-muted hover:text-carmin">← Fondos</Link>
         <h1 class="page-title">Cartera de cheques</h1>
         <p class="page-subtitle">Los cheques de terceros entran por cobros; los propios salen por órdenes de pago.</p>
       </div>

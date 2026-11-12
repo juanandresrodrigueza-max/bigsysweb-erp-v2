@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Impuestos">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs />
+    <h1 class="page-title mb-4">Impuestos</h1>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card lg:col-span-2">
@@ -113,7 +112,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 import { entero } from '@/util/formato'
 const props = defineProps({ arba: { type: Object, default: () => ({}) }, config: Object, cbu_fce: String, cierre_mes: Number, jurisdicciones: Object, padrones: Array, ipc: Array })
 const ipc_lista = props.ipc

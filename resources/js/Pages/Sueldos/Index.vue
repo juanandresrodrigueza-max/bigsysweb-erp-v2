@@ -1,15 +1,9 @@
 <template>
   <AppLayout titulo="Sueldos">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><h1 class="page-title">Sueldos</h1><p class="page-subtitle">Legajos, liquidación mensual con los conceptos de tu convenio (o la que manda el contador), recibos, asiento y pago desde fondos.</p></div>
-      <div class="flex flex-wrap gap-2">
-        <button class="btn-secondary" @click="configAbierto = true">Configuración</button>
-        <button class="btn-secondary" @click="conceptosAbierto = true">Conceptos</button>
-        <button class="btn-secondary" @click="importarAbierto = true">Importar del contador</button>
-        <button class="btn-secondary" @click="abrirEmpleado()">Nuevo empleado</button>
-        <button class="btn-primary" @click="abrirLiquidar">Liquidar</button>
-      </div>
-    </div>
+    <PageHeader titulo="Sueldos" subtitulo="Legajos, liquidación mensual con los conceptos de tu convenio (o la que manda el contador), recibos, asiento y pago desde fondos." compacto
+      :principal="{ label: 'Liquidar', icono: 'cash', click: abrirLiquidar }"
+      :secundaria="{ label: 'Nuevo empleado', click: () => abrirEmpleado() }"
+      :mas="[{ label: 'Importar del contador', click: () => importarAbierto = true }, { label: 'Conceptos', click: () => conceptosAbierto = true }, { label: 'Preferencias de sueldos', icono: 'settings', click: () => configAbierto = true }]" />
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Empleados activos</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.activos }}</p><p class="text-xs text-marca-muted">básicos {{ moneda(kpis.masa, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Última liquidación</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.ultimo_neto, 0) }}</p><p class="text-xs text-marca-muted">{{ kpis.ultimo_periodo || 'todavía ninguna' }} · neto</p></div>
@@ -260,6 +254,7 @@
 import { ref, reactive } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { useDictado } from '@/util/dictado'

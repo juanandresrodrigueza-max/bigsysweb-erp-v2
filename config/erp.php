@@ -57,6 +57,102 @@ return [
     // Nombres viejos → nuevos, para que la ayuda y Bigcito entiendan los dos durante un tiempo.
     'nombres_viejos' => ['Comprobantes' => 'Vender', 'Fondos' => 'Plata', 'Proveedores' => 'Comprar'],
 
+    // Fase 80: la sub-navegación de cada entrada del menú (columna izquierda en la compu, chips arriba en el celular).
+    // La clave es la de 'menu'; cada ítem toma el permiso del módulo de esa entrada salvo que diga 'modulo'/'accion'.
+    // 'exacto' => la raíz sólo se marca con la URL justa (así /comprobantes/123 queda a pantalla completa, sin sub-menú).
+    // 'grupo' arma títulos dentro de la columna (Fase 82 los usa en Configuración y Contable). Las fichas y formularios
+    // (/nuevo, /nueva, /editar, /armar) van siempre a pantalla completa.
+    'secciones_sin' => ['nuevo', 'nueva', 'editar', 'armar'],
+    'secciones' => [
+        'vender' => [
+            ['key' => 'comprobantes', 'label' => 'Comprobantes',         'ruta' => '/comprobantes', 'exacto' => true, 'ayuda' => 'Facturas, notas, remitos y presupuestos'],
+            ['key' => 'pedidos',      'label' => 'Pedidos web',          'ruta' => '/comprobantes/pedidos'],
+            ['key' => 'abonos',       'label' => 'Abonos',               'ruta' => '/comprobantes/abonos'],
+            ['key' => 'lote',         'label' => 'Facturación por lote', 'ruta' => '/comprobantes/lote'],
+        ],
+        'cobrar' => [
+            ['key' => 'cobranzas', 'label' => 'Cobranzas', 'ruta' => '/clientes/cobranzas', 'exacto' => true],
+            ['key' => 'acopios',   'label' => 'Acopios',   'ruta' => '/clientes/acopios', 'ayuda' => 'Lo que el cliente pagó por adelantado y todavía no retiró'],
+        ],
+        'entregar' => [
+            ['key' => 'pendientes', 'label' => 'Pendientes',             'ruta' => '/comprobantes/pendientes', 'ayuda' => 'Entregado sin facturar y facturado sin entregar'],
+            ['key' => 'entregas',   'label' => 'Hojas de reparto',       'ruta' => '/comprobantes/entregas'],
+            ['key' => 'pases',      'label' => 'Pases entre sucursales', 'ruta' => '/stock/pases', 'modulo' => 'stock'],
+        ],
+        'clientes' => [
+            ['key' => 'clientes',   'label' => 'Clientes',   'ruta' => '/clientes', 'exacto' => true],
+            ['key' => 'vendedores', 'label' => 'Vendedores', 'ruta' => '/clientes/vendedores'],
+            ['key' => 'puntos',     'label' => 'Puntos',     'ruta' => '/clientes/fidelizacion'],
+        ],
+        'comprar' => [
+            ['key' => 'proveedores', 'label' => 'Proveedores',        'ruta' => '/proveedores', 'exacto' => true],
+            ['key' => 'ordenes',     'label' => 'Órdenes de compra',  'ruta' => '/proveedores/ordenes'],
+            ['key' => 'compras',     'label' => 'Facturas de compra', 'ruta' => '/proveedores/compras'],
+        ],
+        'stock' => [
+            ['key' => 'articulos',    'label' => 'Artículos',             'ruta' => '/stock', 'exacto' => true],
+            ['key' => 'precios',      'label' => 'Precios y datos en masa','ruta' => '/stock/precios', 'accion' => 'editar'],
+            ['key' => 'inventario',   'label' => 'Inventario',            'ruta' => '/stock/inventario', 'accion' => 'editar'],
+            ['key' => 'movimientos',  'label' => 'Movimientos',           'ruta' => '/stock/movimientos'],
+            ['key' => 'lotes',        'label' => 'Lotes y vencimientos',  'ruta' => '/stock/lotes'],
+            ['key' => 'series',       'label' => 'Números de serie',      'ruta' => '/stock/series'],
+            ['key' => 'almacen',      'label' => 'Almacén',               'ruta' => '/stock/almacen'],
+            ['key' => 'etiquetas',    'label' => 'Etiquetas',             'ruta' => '/stock/etiquetas'],
+            ['key' => 'informes',     'label' => 'Informes',              'ruta' => '/stock/informes'],
+            ['key' => 'desc-lista',   'label' => 'Descuentos por lista',  'ruta' => '/stock/descuentos-lista', 'grupo' => 'De vez en cuando'],
+            ['key' => 'catalogos',    'label' => 'Catálogos',             'ruta' => '/stock/catalogos',        'grupo' => 'De vez en cuando'],
+            ['key' => 'tienda-online','label' => 'Tienda online',         'ruta' => '/stock/tienda-online',    'grupo' => 'De vez en cuando'],
+            ['key' => 'importar',     'label' => 'Importar lista',        'ruta' => '/stock/importar',         'grupo' => 'De vez en cuando', 'accion' => 'editar'],
+            ['key' => 'despiece',     'label' => 'Carnicería y pesables', 'ruta' => '/stock/despiece',         'grupo' => 'De vez en cuando'],
+            ['key' => 'consultor',    'label' => 'Consultor de precios',  'ruta' => '/stock/consultor',        'grupo' => 'De vez en cuando', 'ayuda' => 'Precio y stock al toque, también para la pantalla del salón'],
+        ],
+        'plata' => [
+            ['key' => 'cuentas',     'label' => 'Cajas y bancos',  'ruta' => '/fondos', 'exacto' => true],
+            ['key' => 'cierres',     'label' => 'Cierres de caja', 'ruta' => '/fondos/cierres', 'ayuda' => 'Historial de cierres, diferencias por cajero y por caja'],
+            ['key' => 'cheques',     'label' => 'Cheques',         'ruta' => '/fondos/cheques'],
+            ['key' => 'valores',     'label' => 'Valores',         'ruta' => '/fondos/valores', 'ayuda' => 'De dónde vino y a dónde fue cada cheque o cupón'],
+            ['key' => 'tarjetas',    'label' => 'Tarjetas',        'ruta' => '/fondos/tarjetas'],
+            ['key' => 'conciliar',   'label' => 'Conciliar',       'ruta' => '/fondos/conciliar'],
+            ['key' => 'dolares',     'label' => 'Dólares',         'ruta' => '/fondos/moneda', 'ayuda' => 'Cuentas en dólares, cotización y diferencia de cambio'],
+            ['key' => 'previsiones', 'label' => 'Previsiones',     'ruta' => '/fondos/previsiones', 'ayuda' => 'Gastos e ingresos que se repiten todos los meses'],
+        ],
+        'contable' => [
+            ['key' => 'resumen',      'label' => 'Resumen',               'ruta' => '/contable', 'exacto' => true],
+            ['key' => 'asientos',     'label' => 'Asientos',              'ruta' => '/contable/asientos'],
+            ['key' => 'mayor',        'label' => 'Mayor',                 'ruta' => '/contable/mayor'],
+            ['key' => 'iva',          'label' => 'Libros IVA',            'ruta' => '/contable/iva'],
+            ['key' => 'balance',      'label' => 'Balance',               'ruta' => '/contable/balance'],
+            ['key' => 'flujo',        'label' => 'Flujo de fondos',       'ruta' => '/contable/flujo'],
+            ['key' => 'cashflow',     'label' => 'Cash flow 13 semanas',  'ruta' => '/contable/cashflow'],
+            ['key' => 'activos',      'label' => 'Bienes de uso',         'ruta' => '/contable/activos'],
+            ['key' => 'conciliacion', 'label' => 'Conciliación',          'ruta' => '/contable/conciliacion'],
+            ['key' => 'fiscal',       'label' => 'Fiscal',                'ruta' => '/contable/fiscal'],
+            ['key' => 'ejercicio',    'label' => 'Ejercicio',             'ruta' => '/contable/ejercicio'],
+            ['key' => 'contador',     'label' => 'Contador',              'ruta' => '/contable/contador'],
+            ['key' => 'plan',         'label' => 'Plan de cuentas',       'ruta' => '/contable/plan'],
+        ],
+        'sueldos' => [
+            ['key' => 'liquidaciones', 'label' => 'Liquidaciones', 'ruta' => '/sueldos', 'exacto' => true],
+            ['key' => 'recibos',       'label' => 'Recibos',       'ruta' => '/sueldos/recibos'],
+        ],
+        'configuracion' => [
+            ['key' => 'empresa',      'label' => 'Empresa',                 'ruta' => '/configuracion', 'exacto' => true],
+            ['key' => 'sucursales',   'label' => 'Sucursales',              'ruta' => '/configuracion/sucursales'],
+            ['key' => 'usuarios',     'label' => 'Usuarios',                'ruta' => '/configuracion/usuarios'],
+            ['key' => 'roles',        'label' => 'Roles y permisos',        'ruta' => '/configuracion/roles'],
+            ['key' => 'puntos-venta', 'label' => 'Puntos de venta y AFIP',  'ruta' => '/configuracion/puntos-venta'],
+            ['key' => 'impuestos',    'label' => 'Impuestos',               'ruta' => '/configuracion/impuestos'],
+            ['key' => 'tienda',       'label' => 'Tienda y canales',        'ruta' => '/configuracion/tienda'],
+            ['key' => 'crm',          'label' => 'CRM',                     'ruta' => '/configuracion/crm'],
+            ['key' => 'importar',     'label' => 'Importar datos',          'ruta' => '/configuracion/importar'],
+            ['key' => 'datos',        'label' => 'Copias de seguridad',     'ruta' => '/configuracion/datos'],
+            ['key' => 'seguridad',    'label' => 'Seguridad y API',         'ruta' => '/configuracion/seguridad'],
+            ['key' => 'conexiones-ia','label' => 'Conexiones IA',           'ruta' => '/conexiones-ia'],
+            ['key' => 'auditoria',    'label' => 'Auditoría',               'ruta' => '/configuracion/auditoria'],
+            ['key' => 'suscripcion',  'label' => 'Suscripción',             'ruta' => '/suscripcion', 'exacto' => true],
+        ],
+    ],
+
     'roles_sistema' => [
         'dueno' => [
             'nombre' => 'Dueño',

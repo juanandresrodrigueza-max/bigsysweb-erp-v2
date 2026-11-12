@@ -1,7 +1,6 @@
 <template>
   <AppLayout titulo="Conexiones IA">
-    <h1 class="page-title mb-4">Configuración</h1>
-    <ConfigTabs v-if="conTabs" />
+    <h1 class="page-title mb-4">Conexiones IA</h1>
 
     <div class="card mb-4" data-e2e="ia-empresa">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -61,7 +60,7 @@
         <form class="space-y-2" @submit.prevent="nuevo.post('/conexiones-ia/token', { preserveScroll: true, onSuccess: () => nuevo.reset('nombre') })">
           <div><label class="label">Nombre</label><input v-model="nuevo.nombre" class="input" placeholder="Claude Code de la oficina" data-e2e="token-nombre" /></div>
           <div><label class="label">Puede</label><select v-model="nuevo.modo" class="input" data-e2e="token-modo"><option v-for="(t, k) in modos" :key="k" :value="k">{{ t }}</option></select></div>
-          <button class="btn-primary" :disabled="!nuevo.nombre || nuevo.processing" data-e2e="crear-token">Crear token</button>
+          <button class="btn-primary" :disabled="!nuevo.nombre || nuevo.processing" data-e2e="crear-token">Nuevo token</button>
         </form>
       </div>
     </div>
@@ -107,7 +106,6 @@
 <script setup>
 import { useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import ConfigTabs from '@/Components/ConfigTabs.vue'
 
 const props = defineProps({ ia: Object, url: String, esDueno: Boolean, conTabs: Boolean, modos: Object, tokenNuevo: String, conexiones: Array, llamadas: Array, propuestas: Array, herramientas: Array })
 const nuevo = useForm({ nombre: '', modo: 'lectura' })

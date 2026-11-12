@@ -2,7 +2,7 @@
   <AppLayout titulo="Pases entre sucursales">
     <!-- Fase 37.4 y 42: pases entre depósitos, pedidos de la sucursal al depósito y cambios o devoluciones a proveedor. -->
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><Link href="/stock/movimientos" class="text-xs text-marca-muted hover:text-carmin">← Movimientos</Link><h1 class="page-title">Pases entre sucursales</h1><p class="page-subtitle">Lo que sale se cuenta al salir y al llegar. Las sucursales piden al depósito y lo que va al proveedor queda anotado hasta que vuelve.</p></div>
+      <div><h1 class="page-title">Pases entre sucursales</h1><p class="page-subtitle">Lo que sale se cuenta al salir y al llegar. Las sucursales piden al depósito y lo que va al proveedor queda anotado hasta que vuelve.</p></div>
     </div>
     <div class="grid lg:grid-cols-[1fr_1fr] gap-4">
       <div class="card" data-e2e="armar">

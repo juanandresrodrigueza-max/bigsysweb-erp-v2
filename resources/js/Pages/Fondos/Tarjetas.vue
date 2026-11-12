@@ -2,7 +2,6 @@
   <AppLayout titulo="Tarjetas">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <Link href="/fondos" class="text-xs text-marca-muted hover:text-carmin">← Fondos</Link>
         <h1 class="page-title">Cupones y liquidaciones de tarjeta</h1>
         <p class="page-subtitle">Cada cobro con tarjeta deja un cupón. Cuando el emisor acredita, cargás la liquidación: bruto − comisión − IVA − retenciones = neto al banco.</p>
       </div>
