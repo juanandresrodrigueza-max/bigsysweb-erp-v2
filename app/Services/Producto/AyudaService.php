@@ -147,7 +147,7 @@ class AyudaService
     {
         return match ($pantalla) {
             default => [
-                ['sel' => '[data-tour="menu"]', 'titulo' => 'El menú', 'texto' => 'Todo el sistema está acá, agrupado por lo que hacés: vender, comprar, operar, finanzas. Lo que no está en tu plan no aparece.'],
+                ['sel' => '[data-tour="menu"]', 'titulo' => 'El menú', 'texto' => 'Va en el orden del día: Vender, Cobrar, Entregar, Clientes, Comprar, Stock, Plata, Contable y Estadísticas. Abajo, lo de tu rubro y Configuración. Lo que no está en tu plan no aparece.'],
                 ['sel' => '[data-tour="sucursal"]', 'titulo' => 'Sucursal activa', 'texto' => 'Si tenés más de una sucursal, acá elegís en cuál estás trabajando. Cada venta, cobro y movimiento de stock queda en la sucursal activa.'],
                 ['sel' => '[data-tour="buscar"]', 'titulo' => 'Buscar todo', 'texto' => 'Ctrl+K abre el buscador: clientes, artículos, comprobantes por número, pantallas y acciones rápidas. Es la forma más rápida de moverse.'],
                 ['sel' => '[data-tour="alertas"]', 'titulo' => 'Alertas', 'texto' => 'Stock bajo, facturas vencidas, cheques por vencer, pedidos nuevos. Lo importante te busca a vos.'],

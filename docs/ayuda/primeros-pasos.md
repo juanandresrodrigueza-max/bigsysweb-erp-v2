@@ -34,11 +34,13 @@ Hacé una de prueba desde **Comprobantes → Nueva factura**. Se puede anular de
 
 ## Cómo moverse
 
+El menú de la izquierda va **en el orden del día del negocio**: Inicio, **Vender** (facturas, presupuestos, mostrador), **Cobrar** (cobranzas y recibos), **Entregar** (pendientes de entrega y reparto), **Clientes**, **Comprar** (proveedores, órdenes y facturas de compra), **Stock**, **Plata** (cajas, bancos, cheques, cierres), **Contable**, **Sueldos** y **Estadísticas**. Abajo, **Mi rubro** (Big Restó, Comercio, Servicio técnico, Hotelería, Obras, Producción, Agenda: sólo lo que tu empresa usa) y **Configuración**. Si venís de versiones anteriores: *Comprobantes* ahora es *Vender*, *Fondos* es *Plata* y *Proveedores* es *Comprar*; adentro no cambió nada. Las alertas viven en la **campanita** del encabezado.
+
 - **Ctrl+K** abre el buscador de todo: clientes, artículos, comprobantes por número, pantallas.
 - **Alt+N** factura nueva, **Alt+P** punto de venta, **Alt+C** clientes, **Alt+S** stock, **Alt+F** fondos.
 - El **signo de pregunta** del encabezado abre la ayuda de la pantalla en la que estás.
 - El **asistente** (botón violeta abajo a la derecha) responde preguntas y hace cosas: "¿cuánto me debe López?", "cobrale 5000 a Pérez en efectivo".
-- En el celular, la barra de abajo lleva a **Mi negocio**, ventas, buscar y cobrar.
+- En el celular, la barra de abajo lleva a **Mi negocio**, **Vender**, **Buscar**, **Cobrar** y el menú.
 
 ## En el celular
 

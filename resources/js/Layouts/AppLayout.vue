@@ -101,7 +101,7 @@
       <!-- Barra inferior en el celular: lo que más se usa, a un toque -->
       <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-marca-borde grid grid-cols-5 text-[10px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
         <Link href="/dueno" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/dueno') ? 'text-carmin' : ''"><Icono nombre="home" clase="w-5 h-5" />Mi negocio</Link>
-        <Link href="/comprobantes" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/comprobantes') ? 'text-carmin' : ''"><Icono nombre="receipt" clase="w-5 h-5" />Ventas</Link>
+        <Link href="/comprobantes" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/comprobantes') ? 'text-carmin' : ''"><Icono nombre="receipt" clase="w-5 h-5" />Vender</Link>
         <button type="button" @click="paleta?.abrir()" class="flex flex-col items-center py-2 gap-0.5"><span class="-mt-5 w-11 h-11 rounded-full bg-marca-grad text-white grid place-items-center shadow-pop"><Icono nombre="search" clase="w-5 h-5" /></span>Buscar</button>
         <Link href="/clientes/cobranzas" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/clientes') ? 'text-carmin' : ''"><Icono nombre="users" clase="w-5 h-5" />Cobrar</Link>
         <button type="button" @click="movil = true" class="flex flex-col items-center py-2 gap-0.5"><Icono nombre="menu" clase="w-5 h-5" />Menú</button>
@@ -191,10 +191,14 @@ const paleta = ref(null), ayuda = ref(null), tourRef = ref(null), empAbierto = r
 
 const iniciales = computed(() => (user.value?.name ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase())
 
-function activo(item) {
+// La entrada activa es la de ruta más larga que coincide con la URL: así Cobrar (/clientes/cobranzas) gana sobre Clientes (/clientes)
+// y Entregar (/comprobantes/pendientes) sobre Vender (/comprobantes).
+const rutaActiva = computed(() => {
   const url = page.url.split('?')[0]
-  return url === item.ruta || (item.ruta !== '/dashboard' && url.startsWith(item.ruta + '/')) || (item.ruta === '/configuracion' && url.startsWith('/configuracion'))
-}
+  const rutas = nav.value.flatMap(g => g.items).map(i => i.ruta).filter(r => url === r || url.startsWith(r + '/') || (r === '/configuracion' && url.startsWith('/configuracion')))
+  return rutas.sort((a, b) => b.length - a.length)[0] ?? null
+})
+function activo(item) { return item.ruta === rutaActiva.value }
 function clickAfuera(e) { if (selRef.value && !selRef.value.contains(e.target)) selAbierto.value = false; if (empRef.value && !empRef.value.contains(e.target)) empAbierto.value = false }
 onMounted(() => {
   document.addEventListener('click', clickAfuera)

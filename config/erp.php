@@ -7,27 +7,56 @@ return [
 
     'modulos' => [
         'dashboard'     => ['label' => 'Inicio',         'icono' => 'home',      'grupo' => null,        'ruta' => '/dashboard',     'core' => true,  'disponible' => true],
-        'comprobantes'  => ['label' => 'Comprobantes',   'icono' => 'receipt',   'grupo' => 'Comercial', 'ruta' => '/comprobantes',  'core' => true,  'disponible' => true],
-        'clientes'      => ['label' => 'Clientes',       'icono' => 'users',     'grupo' => 'Comercial', 'ruta' => '/clientes',      'core' => true,  'disponible' => true],
-        'proveedores'   => ['label' => 'Proveedores',    'icono' => 'truck',     'grupo' => 'Compras',   'ruta' => '/proveedores',   'core' => true,  'disponible' => true],
-        'stock'         => ['label' => 'Stock',          'icono' => 'boxes',     'grupo' => 'Operación', 'ruta' => '/stock',         'core' => true,  'disponible' => true],
-        'agenda'        => ['label' => 'Agenda',         'icono' => 'calendar',  'grupo' => 'Operación', 'ruta' => '/agenda',        'core' => false, 'disponible' => true],
-        'obras'         => ['label' => 'Obras',          'icono' => 'hardhat',   'grupo' => 'Operación', 'ruta' => '/obras',         'core' => false, 'disponible' => true],
-        'produccion'    => ['label' => 'Producción',     'icono' => 'factory',   'grupo' => 'Operación', 'ruta' => '/produccion',    'core' => false, 'disponible' => true],
-        'fondos'        => ['label' => 'Fondos',         'icono' => 'wallet',    'grupo' => 'Finanzas',  'ruta' => '/fondos',        'core' => true,  'disponible' => true],
-        'sueldos'       => ['label' => 'Sueldos',        'icono' => 'idcard',    'grupo' => 'Finanzas',  'ruta' => '/sueldos',       'core' => false, 'disponible' => true],
-        'contable'      => ['label' => 'Contable',       'icono' => 'book',      'grupo' => 'Finanzas',  'ruta' => '/contable',      'core' => false, 'disponible' => true],
-        'estadisticas'  => ['label' => 'Estadísticas',   'icono' => 'chart',     'grupo' => 'Finanzas',  'ruta' => '/estadisticas',  'core' => true,  'disponible' => true],
-        'gastronomia'   => ['label' => 'Big Restó',      'icono' => 'utensils',  'grupo' => 'Verticales','ruta' => '/gastronomia',   'core' => false, 'disponible' => true],
-        'retail'        => ['label' => 'Comercio',       'icono' => 'store',     'grupo' => 'Verticales','ruta' => '/retail',        'core' => false, 'disponible' => true],
-        'servicios'     => ['label' => 'Servicio técnico','icono' => 'wrench',   'grupo' => 'Verticales','ruta' => '/servicios',     'core' => false, 'disponible' => true],
-        'hoteleria'     => ['label' => 'Hotelería',      'icono' => 'bed',       'grupo' => 'Verticales','ruta' => '/hoteleria',     'core' => false, 'disponible' => true],
-        'minimarket'    => ['label' => 'Minimarket',     'icono' => 'basket',    'grupo' => 'Verticales','ruta' => '/minimarket',    'core' => false, 'disponible' => true],
+        'comprobantes'  => ['label' => 'Ventas',         'icono' => 'receipt',   'grupo' => 'Vender y cobrar', 'ruta' => '/comprobantes',  'core' => true,  'disponible' => true],
+        'clientes'      => ['label' => 'Clientes',       'icono' => 'users',     'grupo' => 'Vender y cobrar', 'ruta' => '/clientes',      'core' => true,  'disponible' => true],
+        'proveedores'   => ['label' => 'Compras',        'icono' => 'basket',    'grupo' => 'Comprar',   'ruta' => '/proveedores',   'core' => true,  'disponible' => true],
+        'stock'         => ['label' => 'Stock',          'icono' => 'boxes',     'grupo' => 'Stock', 'ruta' => '/stock',         'core' => true,  'disponible' => true],
+        'agenda'        => ['label' => 'Agenda',         'icono' => 'calendar',  'grupo' => 'Mi rubro', 'ruta' => '/agenda',        'core' => false, 'disponible' => true],
+        'obras'         => ['label' => 'Obras',          'icono' => 'hardhat',   'grupo' => 'Mi rubro', 'ruta' => '/obras',         'core' => false, 'disponible' => true],
+        'produccion'    => ['label' => 'Producción',     'icono' => 'factory',   'grupo' => 'Mi rubro', 'ruta' => '/produccion',    'core' => false, 'disponible' => true],
+        'fondos'        => ['label' => 'Plata',          'icono' => 'wallet',    'grupo' => 'Plata y contable',  'ruta' => '/fondos',        'core' => true,  'disponible' => true],
+        'sueldos'       => ['label' => 'Sueldos',        'icono' => 'idcard',    'grupo' => 'Plata y contable',  'ruta' => '/sueldos',       'core' => false, 'disponible' => true],
+        'contable'      => ['label' => 'Contable',       'icono' => 'book',      'grupo' => 'Plata y contable',  'ruta' => '/contable',      'core' => false, 'disponible' => true],
+        'estadisticas'  => ['label' => 'Estadísticas',   'icono' => 'chart',     'grupo' => 'Estadísticas',  'ruta' => '/estadisticas',  'core' => true,  'disponible' => true],
+        'gastronomia'   => ['label' => 'Big Restó',      'icono' => 'utensils',  'grupo' => 'Mi rubro','ruta' => '/gastronomia',   'core' => false, 'disponible' => true],
+        'retail'        => ['label' => 'Comercio',       'icono' => 'store',     'grupo' => 'Mi rubro','ruta' => '/retail',        'core' => false, 'disponible' => true],
+        'servicios'     => ['label' => 'Servicio técnico','icono' => 'wrench',   'grupo' => 'Mi rubro','ruta' => '/servicios',     'core' => false, 'disponible' => true],
+        'hoteleria'     => ['label' => 'Hotelería',      'icono' => 'bed',       'grupo' => 'Mi rubro','ruta' => '/hoteleria',     'core' => false, 'disponible' => true],
+        'minimarket'    => ['label' => 'Minimarket',     'icono' => 'basket',    'grupo' => 'Mi rubro','ruta' => '/minimarket',    'core' => false, 'disponible' => true],
         'alertas'       => ['label' => 'Alertas',        'icono' => 'bell',      'grupo' => 'Sistema',   'ruta' => '/alertas',       'core' => true,  'disponible' => true],
         'configuracion' => ['label' => 'Configuración',  'icono' => 'settings',  'grupo' => 'Sistema',   'ruta' => '/configuracion', 'core' => true,  'disponible' => true],
     ],
 
     // Roles del sistema: se crean para cada empresa nueva y el dueño puede ajustarlos.
+    // Fase 79: el menú lateral, en el orden del día del negocio (vender → cobrar → entregar → comprar → stock → plata → contable → estadísticas).
+    // Cada entrada apunta a una ruta y toma el permiso del módulo indicado; los permisos, los roles y la ayuda siguen usando 'modulos'.
+    // 'grupo' sólo se muestra como título cuando hace falta (Mi rubro). Alertas no está: vive en la campana del encabezado.
+    'menu' => [
+        ['key' => 'inicio',       'label' => 'Inicio',           'icono' => 'home',     'ruta' => '/dashboard',               'modulo' => 'dashboard'],
+        ['key' => 'vender',       'label' => 'Vender',           'icono' => 'receipt',  'ruta' => '/comprobantes',            'modulo' => 'comprobantes'],
+        ['key' => 'cobrar',       'label' => 'Cobrar',           'icono' => 'cash',     'ruta' => '/clientes/cobranzas',      'modulo' => 'clientes'],
+        ['key' => 'entregar',     'label' => 'Entregar',         'icono' => 'truck',    'ruta' => '/comprobantes/pendientes', 'modulo' => 'comprobantes'],
+        ['key' => 'clientes',     'label' => 'Clientes',         'icono' => 'users',    'ruta' => '/clientes',                'modulo' => 'clientes'],
+        ['key' => 'comprar',      'label' => 'Comprar',          'icono' => 'basket',   'ruta' => '/proveedores',             'modulo' => 'proveedores'],
+        ['key' => 'stock',        'label' => 'Stock',            'icono' => 'boxes',    'ruta' => '/stock',                   'modulo' => 'stock'],
+        ['key' => 'plata',        'label' => 'Plata',            'icono' => 'wallet',   'ruta' => '/fondos',                  'modulo' => 'fondos'],
+        ['key' => 'contable',     'label' => 'Contable',         'icono' => 'book',     'ruta' => '/contable',                'modulo' => 'contable'],
+        ['key' => 'sueldos',      'label' => 'Sueldos',          'icono' => 'idcard',   'ruta' => '/sueldos',                 'modulo' => 'sueldos'],
+        ['key' => 'estadisticas', 'label' => 'Estadísticas',     'icono' => 'chart',    'ruta' => '/estadisticas',            'modulo' => 'estadisticas'],
+        ['key' => 'gastronomia',  'label' => 'Big Restó',        'icono' => 'utensils', 'ruta' => '/gastronomia',             'modulo' => 'gastronomia', 'grupo' => 'Mi rubro'],
+        ['key' => 'retail',       'label' => 'Comercio',         'icono' => 'store',    'ruta' => '/retail',                  'modulo' => 'retail',      'grupo' => 'Mi rubro'],
+        ['key' => 'minimarket',   'label' => 'Minimarket',       'icono' => 'basket',   'ruta' => '/minimarket',              'modulo' => 'minimarket',  'grupo' => 'Mi rubro'],
+        ['key' => 'servicios',    'label' => 'Servicio técnico', 'icono' => 'wrench',   'ruta' => '/servicios',               'modulo' => 'servicios',   'grupo' => 'Mi rubro'],
+        ['key' => 'hoteleria',    'label' => 'Hotelería',        'icono' => 'bed',      'ruta' => '/hoteleria',               'modulo' => 'hoteleria',   'grupo' => 'Mi rubro'],
+        ['key' => 'obras',        'label' => 'Obras',            'icono' => 'hardhat',  'ruta' => '/obras',                   'modulo' => 'obras',       'grupo' => 'Mi rubro'],
+        ['key' => 'produccion',   'label' => 'Producción',       'icono' => 'factory',  'ruta' => '/produccion',              'modulo' => 'produccion',  'grupo' => 'Mi rubro'],
+        ['key' => 'agenda',       'label' => 'Agenda',           'icono' => 'calendar', 'ruta' => '/agenda',                  'modulo' => 'agenda',      'grupo' => 'Mi rubro'],
+        ['key' => 'configuracion','label' => 'Configuración',    'icono' => 'settings', 'ruta' => '/configuracion',           'modulo' => 'configuracion'],
+    ],
+
+    // Nombres viejos → nuevos, para que la ayuda y Bigcito entiendan los dos durante un tiempo.
+    'nombres_viejos' => ['Comprobantes' => 'Vender', 'Fondos' => 'Plata', 'Proveedores' => 'Comprar'],
+
     'roles_sistema' => [
         'dueno' => [
             'nombre' => 'Dueño',
