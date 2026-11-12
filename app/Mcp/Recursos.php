@@ -12,7 +12,8 @@ class Recursos
         $b = $u->business;
         return "Estás conectado al ERP BigSys de {$b?->name} como {$u->name}. Moneda: pesos argentinos. Usá las herramientas de consulta libremente. "
             . 'Las acciones NO se ejecutan solas: devuelven una propuesta con propuesta_id; mostrale al usuario el título y el detalle y llamá a confirmar_accion solo si dice que sí. '
-            . 'Si una herramienta devuelve error, explicáselo al usuario en palabras simples. Respondé en español rioplatense.'
+            . 'Si una herramienta devuelve error, explicáselo al usuario en palabras simples. Respondé en español rioplatense. '
+            . 'El menú del ERP va en el orden del día: Vender (antes Comprobantes), Cobrar, Entregar, Clientes, Comprar (antes Proveedores), Stock, Plata (antes Fondos), Contable, Estadísticas, Mi rubro y Configuración; si el usuario usa el nombre viejo, entendelo igual.'
             . (\App\Services\Integraciones\CrmService::activo($b) ? ' Esta empresa también usa el CRM BigSys: para lo comercial (qué habló el vendedor, oportunidades, tareas, etapa) usá cliente_en_crm, conversaciones_crm, oportunidades_crm y pendientes_crm; lo contable (saldo, vencido, stock, facturas) está en el ERP.' : '');
     }
 

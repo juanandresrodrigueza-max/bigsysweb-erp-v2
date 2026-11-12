@@ -97,18 +97,21 @@ class HandleInertiaRequests extends Middleware
 
     private function nav($user): array
     {
+        // Fase 79: el menú sale de erp.menu (orden del día del negocio); el permiso, del módulo de cada entrada.
         $visibles = $user->modulosVisibles();
+        // Los grupos son tramos consecutivos del menú (el orden manda): el ciclo sin título, "Mi rubro" con título, y Configuración al final.
         $grupos = [];
-        foreach (config('erp.modulos') as $key => $m) {
-            if (! in_array($key, $visibles, true)) {
-                continue;
-            }
-            $grupos[$m['grupo'] ?? ''][] = [
-                'key' => $key, 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'disponible' => $m['disponible'],
-            ];
+        foreach (config('erp.menu') as $m) {
+            if (! in_array($m['modulo'], $visibles, true)) continue;
+            $g = $m['grupo'] ?? '';
+            if (! $grupos || end($grupos)['label'] !== $g) $grupos[] = ['label' => $g, 'items' => []];
+            $grupos[array_key_last($grupos)]['items'][] = ['key' => $m['key'], 'label' => $m['label'], 'icono' => $m['icono'], 'ruta' => $m['ruta'], 'modulo' => $m['modulo'], 'disponible' => config("erp.modulos.{$m['modulo']}.disponible", true)];
         }
-        // Integración con el CRM activa: botón que pasa al CRM ya logueado (link externo, no Inertia).
-        if (\App\Services\Integraciones\CrmService::activo($user->business)) $grupos['Sistema'][] = ['key' => 'crm', 'label' => 'CRM', 'icono' => 'idcard', 'ruta' => '/integraciones/crm/ir', 'disponible' => true, 'externo' => true];
-        return collect($grupos)->map(fn($items, $label) => ['label' => $label, 'items' => $items])->values()->all();
+        // Integración con el CRM activa: botón que pasa al CRM ya logueado (link externo, no Inertia), al final.
+        if (\App\Services\Integraciones\CrmService::activo($user->business)) {
+            if (! $grupos || end($grupos)['label'] !== '') $grupos[] = ['label' => '', 'items' => []];
+            $grupos[array_key_last($grupos)]['items'][] = ['key' => 'crm', 'label' => 'CRM', 'icono' => 'idcard', 'ruta' => '/integraciones/crm/ir', 'modulo' => 'configuracion', 'disponible' => true, 'externo' => true];
+        }
+        return $grupos;
     }
 }
