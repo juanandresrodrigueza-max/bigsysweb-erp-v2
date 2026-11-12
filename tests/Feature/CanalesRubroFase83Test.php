@@ -54,21 +54,17 @@ class CanalesRubroFase83Test extends ErpTestCase
         $this->assertSame('comprar', $p['subnav']['key']);
     }
 
-    public function test_mi_rubro_es_una_sola_entrada_con_los_verticales_adentro(): void
+    public function test_cada_rubro_es_un_modulo_del_menu_con_sus_pantallas_debajo(): void
     {
-        $nav = $this->props($this->dueno, '/dashboard')['nav'];
-        $rubro = collect($nav)->firstWhere('label', 'Mi rubro');
+        // Fase 88: ya no hay "Mi rubro"; cada vertical prendido es una entrada con sus secciones.
+        $nav = collect($this->props($this->dueno, '/dashboard')['nav'])->flatMap(fn($g) => $g['items'])->keyBy('key');
+        $this->assertArrayNotHasKey('rubro', $nav->all());
         $verticales = array_values(array_intersect(['gastronomia', 'retail', 'minimarket', 'servicios', 'hoteleria', 'obras', 'produccion', 'agenda'], $this->dueno->modulosVisibles()));
-        if (! $verticales) { $this->assertNull($rubro); return; }
-        $this->assertCount(1, $rubro['items'], 'Una sola entrada, no una por vertical');
-        $e = $rubro['items'][0];
-        $this->assertSame('rubro', $e['key']); $this->assertSame($verticales, $e['verticales']);
-        $sinAgenda = array_values(array_diff($verticales, ['agenda']));
-        $this->assertSame(count($sinAgenda) === 1 ? config('erp.modulos.' . $sinAgenda[0] . '.label') : 'Mi rubro', $e['label']);
-        $this->assertNotEmpty($e['secciones']);
-        // La sub-navegación del vertical cuelga de esa entrada (los mostradores van a pantalla completa, así que se prueba otra sección).
-        $sec = collect($e['secciones'])->first(fn($x) => ! in_array($x['key'], ['retail', 'minimarket'], true));
-        if ($sec) $this->assertSame('rubro', $this->props($this->dueno, $sec['ruta'])['subnav']['key']);
+        foreach ($verticales as $v) { $this->assertArrayHasKey($v, $nav->all()); $this->assertSame('', $nav[$v]['grupo'] ?? '', 'Sin título de grupo'); }
+        if (isset($nav['servicios'])) {
+            $this->assertSame(['servicios', 'mis-ordenes', 'que-vuelvan', 'tecnicos'], array_column($nav['servicios']['secciones'], 'key'));
+            $this->assertSame('servicios', $this->props($this->dueno, '/servicios/tecnicos')['subnav']['key']);
+        }
     }
 
     public function test_ctrl_k_y_bigcito_saben_de_los_cambios(): void

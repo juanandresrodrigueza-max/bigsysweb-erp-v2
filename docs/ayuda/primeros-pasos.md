@@ -38,9 +38,9 @@ El menú de la izquierda va **en el orden del día del negocio**: Inicio, **Vend
 
 - Si venís de antes del reordenamiento y no encontrás algo, la guía **Qué cambió** (Ayuda → Qué cambió) dice dónde quedó cada cosa.
 - **Inicio** arranca con los accesos del día: Vender, Cobrar, Entregar y Cerrar caja. Si sos dueño, **Mi negocio** (lo importante de un vistazo) está al lado del nombre de la sucursal.
-- **Vender** arranca por el Mostrador y agrupa los **canales** (Pedidos web, Tienda online). **Comprar** arranca por **Qué reponer** (lo que está en el mínimo, por proveedor, con un botón para armar la orden) y termina en **Pagos**. Lo de tu rubro es **una sola entrada** del menú, con sus pantallas adentro.
-- **Configuración** va en cuatro grupos: *Mi empresa*, *Ventas y fiscal*, *Integraciones* y *Datos y cuenta*. Arriba de la columna hay un buscador: escribí "afip", "backup" o "2fa" y te lleva.
-- Adentro de cada módulo, las **secciones** van en una columna a la izquierda (en el celular, chips arriba): por ejemplo en Stock, Artículos, Precios, Inventario, Movimientos… Las fichas y los formularios se abren a pantalla completa.
+- **Vender** arranca por el Mostrador y agrupa los **canales** (Pedidos web, Tienda online). **Comprar** arranca por **Qué reponer** (lo que está en el mínimo, por proveedor, con un botón para armar la orden) y termina en **Pagos**. Cada rubro prendido es **un módulo más** del menú, con sus pantallas debajo.
+- **Configuración** va en cuatro grupos: *Mi empresa*, *Ventas y fiscal*, *Integraciones* y *Datos y cuenta*. Con Ctrl K escribís "afip", "backup" o "2fa" y te lleva.
+- Tocá un módulo y debajo, en el mismo menú, se despliegan sus **secciones**: en Stock, Artículos, Precios, Inventario, Movimientos… La flecha de la derecha las pliega. Los rubros que tengas prendidos (Big Restó, Servicio técnico…) son módulos como los demás, con sus pantallas debajo.
 - Cada pantalla tiene **una acción principal** (el botón rojo) y un botón **Más** con el resto. Los botones dicen siempre lo mismo: **Nuevo/a** para algo que no existía, **Registrar** para un hecho (un gasto, un cobro, un pago) y **Guardar** en los formularios.
 - **Ctrl+K** abre el buscador de todo: clientes, artículos, comprobantes por número, pantallas.
 - **Alt+N** factura nueva, **Alt+P** punto de venta, **Alt+C** clientes, **Alt+S** stock, **Alt+F** fondos.

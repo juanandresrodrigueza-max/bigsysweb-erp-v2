@@ -54,7 +54,7 @@ class GruposFase82Test extends ErpTestCase
         $this->assertContains('Puntos de venta y AFIP', array_column($nav['configuracion']['secciones'], 'label'));
         $this->assertSame([], $nav['inicio']['secciones']);
         $this->assertStringContainsString('secciones', file_get_contents(resource_path('js/Components/Paleta.vue')));
-        $this->assertStringContainsString('subnav-buscar', file_get_contents(resource_path('js/Components/SubNav.vue')));
+        $this->assertStringContainsString('data-secciones', file_get_contents(resource_path('js/Components/MenuLateral.vue'))); // Fase 88: las secciones cuelgan del menú
         $this->assertStringContainsString('cuatro grupos', \App\Mcp\Recursos::instrucciones($this->dueno));
         $this->assertStringContainsString('cuatro grupos', file_get_contents(base_path('database/migrations/2027_01_05_000001_fase82_novedad_grupos.php')));
     }

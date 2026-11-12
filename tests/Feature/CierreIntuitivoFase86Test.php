@@ -56,7 +56,7 @@ class CierreIntuitivoFase86Test extends ErpTestCase
         $r = $this->actingAs($this->dueno)->get('/ayuda/que-cambio')->assertOk();
         $a = $r->viewData('page')['props']['articulo'];
         $this->assertStringContainsString('Qué cambió', $a['titulo']);
-        foreach (['Vender', 'Plata', 'Comprar', 'Cerrar caja', 'Cheques y valores', 'Vencimientos previstos', 'Pesables y cortes', 'Simulador de precios', 'Mi rubro', 'Qué reponer'] as $x) $this->assertStringContainsString($x, $a['html'] ?? $a['contenido'] ?? json_encode($a));
+        foreach (['Vender', 'Plata', 'Comprar', 'Cerrar caja', 'Cheques y valores', 'Vencimientos previstos', 'Pesables y cortes', 'Simulador de precios', 'Un módulo cada uno', 'Qué reponer'] as $x) $this->assertStringContainsString($x, $a['html'] ?? $a['contenido'] ?? json_encode($a));
         foreach (glob(database_path('migrations/2027_01_0*_fase*_novedad_*.php')) as $f) $this->assertStringContainsString("'url' => '/ayuda/que-cambio'", file_get_contents($f), basename($f));
         $this->assertStringContainsString('que-cambio', \App\Mcp\Recursos::instrucciones($this->dueno));
     }

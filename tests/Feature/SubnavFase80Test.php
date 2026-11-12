@@ -63,7 +63,7 @@ class SubnavFase80Test extends ErpTestCase
 
     public function test_bigcito_y_la_ayuda_cuentan_la_sub_navegacion(): void
     {
-        $this->assertStringContainsString('columna', \App\Mcp\Recursos::instrucciones($this->dueno));
+        $this->assertStringContainsString('cuelgan de él en el menú', \App\Mcp\Recursos::instrucciones($this->dueno)); // Fase 88
         $this->assertStringContainsString('Más', file_get_contents(base_path('docs/ayuda/primeros-pasos.md')));
         $this->assertStringContainsString('sub-navegación', file_get_contents(base_path('database/migrations/2027_01_03_000001_fase80_novedad_subnav.php')));
     }
