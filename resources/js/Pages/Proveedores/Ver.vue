@@ -223,5 +223,5 @@ function enviarAplicar() {
   aplicar.post(`/proveedores/pagos/${aplicarDe.value.id}/aplicar`, { preserveScroll: true, onSuccess: () => (aplicarDe.value = null) })
 }
 function anularPago(k) { const motivo = window.prompt(`Motivo para anular ${k.numero}:`); if (motivo) router.post(`/proveedores/pagos/${k.id}/anular`, { motivo }, { preserveScroll: true }) }
-onMounted(() => { const q = new URLSearchParams(location.search); if (q.get('pagar')) { const p = props.pendientes.find(x => x.id === Number(q.get('pagar'))); if (p) { imput[p.id] = p.saldo; pago.medios[0].monto = p.saldo } pagoAbierto.value = true; tab.value = 'pendientes' } })
+onMounted(() => { const q = new URLSearchParams(location.search); if (q.get('pago')) { pagoAbierto.value = true; tab.value = 'pendientes' } if (q.get('pagar')) { const p = props.pendientes.find(x => x.id === Number(q.get('pagar'))); if (p) { imput[p.id] = p.saldo; pago.medios[0].monto = p.saldo } pagoAbierto.value = true; tab.value = 'pendientes' } })
 </script>

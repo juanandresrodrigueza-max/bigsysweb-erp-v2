@@ -10,6 +10,29 @@ use Illuminate\Http\Request;
 
 class PagosController extends Controller
 {
+    // Fase 83: la sección Pagos de Comprar: todas las órdenes de pago a proveedores, con filtros y el total del período.
+    public function index(Request $request)
+    {
+        $q = \App\Models\Pago::with(['contact:id,name', 'medios'])
+            ->when($request->contact_id, fn($q, $c) => $q->where('contact_id', $c))
+            ->when($request->desde, fn($q, $d) => $q->where('fecha', '>=', $d))
+            ->when($request->hasta, fn($q, $h) => $q->where('fecha', '<=', $h))
+            ->when($request->estado, fn($q, $e) => $e === 'anulado' ? $q->where('estado', 'anulado') : $q->where('estado', '!=', 'anulado'))
+            ->when($request->buscar, fn($q, $b) => $q->where(fn($w) => $w->where('numero', 'like', "%{$b}%")->orWhereHas('contact', fn($c) => $c->where('name', 'like', "%{$b}%"))))
+            ->orderByDesc('fecha')->orderByDesc('id');
+        $vigentes = (clone $q)->where('estado', '!=', 'anulado');
+        return \Inertia\Inertia::render('Proveedores/Pagos', [
+            'lista' => $q->paginate(25)->withQueryString()->through(fn($p) => [
+                'id' => $p->id, 'numero' => $p->numeroFormateado(), 'fecha' => $p->fecha?->toDateString(), 'proveedor' => $p->contact?->name, 'contact_id' => $p->contact_id,
+                'total' => (float) $p->total, 'a_cuenta' => (float) $p->a_cuenta, 'estado' => $p->estado, 'notas' => $p->notas,
+                'medios' => $p->medios->map(fn($m) => \App\Models\Pago::MEDIOS[$m->medio] ?? $m->medio)->unique()->values()->all(),
+            ]),
+            'resumen' => ['cantidad' => (clone $vigentes)->count(), 'total' => (float) (clone $vigentes)->sum('total')],
+            'filtros' => $request->only('contact_id', 'desde', 'hasta', 'estado', 'buscar'),
+            'proveedores' => \App\Models\Contact::suppliers()->orderBy('name')->get(['id', 'name', 'balance']),
+        ]);
+    }
+
     public function store(Request $request, int $contactId, PagoService $service)
     {
         $proveedor = Contact::suppliers()->findOrFail($contactId);

@@ -16,14 +16,14 @@ class SubnavFase80Test extends ErpTestCase
     {
         $s = $this->subnav($this->dueno, '/comprobantes');
         $this->assertSame(['vender', 'Vender', '/comprobantes'], [$s['key'], $s['titulo'], $s['ruta']]);
-        $this->assertSame(['comprobantes', 'pedidos', 'abonos', 'lote'], array_column($s['items'], 'key'));
+        $this->assertSame(['mostrador', 'comprobantes', 'abonos', 'lote', 'pedidos', 'tienda-online', 'canales'], array_column($s['items'], 'key')); // Fase 83: mostrador y canales
         $this->assertSame('comprobantes', collect($s['items'])->firstWhere('activo', true)['key']);
 
         $s = $this->subnav($this->dueno, '/fondos/conciliar');
         $this->assertSame('plata', $s['key']); $this->assertSame('conciliar', collect($s['items'])->firstWhere('activo', true)['key']);
 
         $s = $this->subnav($this->dueno, '/stock');
-        $this->assertSame(['articulos', 'precios', 'inventario', 'movimientos', 'lotes', 'series', 'almacen', 'etiquetas', 'informes', 'desc-lista', 'catalogos', 'tienda-online', 'importar', 'despiece', 'consultor'], array_column($s['items'], 'key'));
+        $this->assertSame(['articulos', 'precios', 'inventario', 'movimientos', 'lotes', 'series', 'almacen', 'etiquetas', 'informes', 'desc-lista', 'catalogos', 'importar', 'despiece', 'consultor'], array_column($s['items'], 'key')); // Fase 83: Tienda online pasó a Vender
         $this->assertSame('De vez en cuando', collect($s['items'])->firstWhere('key', 'catalogos')['grupo']);
     }
 

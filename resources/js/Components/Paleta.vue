@@ -36,9 +36,15 @@ let timer = null
 const page = usePage()
 
 const norm = s => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+function buscarMostrador() {
+  const items = props.nav.flatMap(g => g.items)
+  const sec = items.flatMap(i => (i.secciones ?? []).map(s => ({ ...s, icono: i.icono }))).find(s => ['retail', 'minimarket'].includes(s.key))
+  return sec ? { label: sec.label === 'Mostrador' || sec.label === 'Caja' ? 'Mostrador' : sec.label, ruta: sec.ruta, icono: sec.icono } : items.find(i => ['retail', 'minimarket'].includes(i.key))
+}
 const acciones = computed(() => {
-  const tiene = key => props.nav.some(g => g.items.some(i => i.key === key && i.disponible !== false))
-  const pos = props.nav.flatMap(g => g.items).find(i => ['retail', 'minimarket'].includes(i.key))
+  // Fase 83: se mira el módulo (las claves del menú son vender/cobrar/…) y el mostrador se busca entre las secciones de "Mi rubro".
+  const tiene = modulo => props.nav.some(g => g.items.some(i => i.modulo === modulo && i.disponible !== false))
+  const pos = buscarMostrador()
   return [
     tiene('comprobantes') && { titulo: 'Nueva factura', sub: 'Comprobantes → nuevo', url: '/comprobantes/nuevo', icono: 'plus', atajo: 'Alt+N', color: 'bg-carmin-light text-carmin' },
     tiene('comprobantes') && { titulo: 'Nuevo presupuesto', url: '/comprobantes/nuevo?tipo=PRE', icono: 'plus' },
@@ -85,7 +91,7 @@ function teclas(e) {
   if (e.key === '/') { e.preventDefault(); abrir(); return }
   if (e.key === '?') { e.preventDefault(); abrir(); q.value = ''; return }
   if (e.altKey && !e.ctrlKey && !e.metaKey) {
-    const k = e.key.toLowerCase(); const pos = props.nav.flatMap(g => g.items).find(i => ['retail', 'minimarket'].includes(i.key))
+    const k = e.key.toLowerCase(); const pos = buscarMostrador()
     const map = { n: '/comprobantes/nuevo', p: pos?.ruta, c: '/clientes', s: '/stock', f: '/fondos', d: '/dashboard', v: '/proveedores' }
     if (map[k]) { e.preventDefault(); router.visit(map[k]) }
   }
