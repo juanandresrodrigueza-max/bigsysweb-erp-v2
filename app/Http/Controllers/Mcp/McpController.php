@@ -40,7 +40,7 @@ class McpController extends Controller
         $t = PersonalAccessToken::findToken($plano);
         if (! $t || ! $t->can('mcp') || ($t->expires_at && $t->expires_at->isPast())) return [null, null];
         $u = $t->tokenable;
-        if (! $u instanceof User || $u->is_superadmin || ! $u->business_id || ! ($u->is_active ?? true)) return [null, null];
+        if (! $u instanceof User || ! $u->business_id || ! ($u->is_active ?? true)) return [null, null]; // Fase 87: el superadmin con su empresa propia también
         $con = McpConexion::withoutGlobalScopes()->where('token_id', $t->id)->where('user_id', $u->id)->whereNull('revocada_en')->first();
         if (! $con || $con->business_id !== $u->business_id) return [null, null];
 

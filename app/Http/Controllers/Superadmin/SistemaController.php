@@ -57,7 +57,7 @@ class SistemaController extends Controller
             'activar' => $u->forceFill(['status' => 'active'])->save(),
             'desactivar' => $u->forceFill(['status' => 'inactive'])->save(),
             'password' => $u->forceFill(['password' => $d['password']])->save(),
-            'superadmin' => $u->forceFill(['is_superadmin' => true])->save(),
+            'superadmin' => $u->forceFill(['is_superadmin' => true])->save() && (app(\App\Services\Suscripciones\EmpresaBigSysService::class)->sumar($u) ?? true),
             'quitar_superadmin' => $u->forceFill(['is_superadmin' => false])->save(),
         };
         AuditLog::registrar('editar', $u, "Usuario {$u->email}: {$d['accion']} (superadmin)");
@@ -68,6 +68,7 @@ class SistemaController extends Controller
     {
         $d = $request->validate(['name' => 'required|string|max:120', 'email' => 'required|email|unique:users,email', 'password' => 'required|string|min:6']);
         $u = User::create($d + ['status' => 'active', 'is_superadmin' => true]);
+        app(\App\Services\Suscripciones\EmpresaBigSysService::class)->sumar($u); // Fase 87
         AuditLog::registrar('crear', $u, "Nuevo superadmin {$u->email}");
         return back()->with('success', 'Superadmin creado.');
     }
@@ -83,8 +84,20 @@ class SistemaController extends Controller
                 'mail_host' => $c['mail_host'], 'mail_port' => $c['mail_port'], 'mail_username' => $c['mail_username'], 'mail_password_set' => (bool) $c['mail_password'], 'mail_encryption' => $c['mail_encryption'], 'mail_from_address' => $c['mail_from_address'] ?: config('mail.from.address'), 'mail_from_name' => $c['mail_from_name'], 'mail_env' => env('MAIL_MAILER', 'log'), 'mail_activo' => config('mail.default')],
             'mantenimiento' => $c['mantenimiento'] ?? SistemaConfig::DEFAULTS['mantenimiento'],
             'ia' => (bool) config('services.anthropic.api_key'),
+            // Fase 87: la empresa propia de BigSys (los superadmins saltan entre el panel y ella).
+            'bigsys' => ($b = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual()) ? ['id' => $b->id, 'nombre' => $b->name] : null,
+            'empresasParaBigsys' => Business::whereNull('suspended_at')->orderBy('name')->get(['id', 'name']),
             'version' => ['php' => PHP_VERSION, 'laravel' => app()->version(), 'db' => config('database.default')],
         ]);
+    }
+
+    // Fase 87: crear la empresa propia de BigSys o usar una existente. Todos los superadmins quedan adentro.
+    public function empresaBigsys(Request $request, \App\Services\Suscripciones\EmpresaBigSysService $svc)
+    {
+        $d = $request->validate(['business_id' => 'nullable|integer|exists:businesses,id', 'nombre' => 'nullable|string|max:80']);
+        $b = ! empty($d['business_id']) ? Business::findOrFail($d['business_id']) : $svc->crear($request->user(), ($d['nombre'] ?? null) ?: 'BigSysWeb');
+        if (! empty($d['business_id'])) $svc->vincular($b, $request->user());
+        return back()->with('success', "Listo: {$b->name} es la empresa de BigSys. Entrás con el botón de arriba y volvés al panel desde el encabezado.");
     }
 
     public function guardarConfiguracion(Request $request)

@@ -26,6 +26,8 @@
         <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
         <p class="text-sm text-marca-muted hidden sm:block">Panel de control de <b class="text-marca-texto">BigSysWeb</b> · todas las empresas</p>
         <div class="flex-1"></div>
+        <!-- Fase 87: saltar a la empresa propia de BigSys -->
+        <Link v-if="empresa" href="/dashboard" class="btn-secondary !py-1.5 text-xs" data-e2e="ir-bigsys" :title="`Entrar a ${empresa.nombre} (tu empresa en el ERP)`"><Icono nombre="building" clase="w-4 h-4" /> {{ empresa.nombre }}</Link>
         <Link href="/admin/empresas?nueva=1" class="btn-primary !py-1.5 text-xs"><Icono nombre="plus" clase="w-4 h-4" /> Nueva empresa</Link>
       </header>
       <!-- El resultado de una acción flota a la vista aunque la página esté scrolleada (los botones de "Probar" suelen estar abajo de todo). -->
@@ -54,6 +56,7 @@ import Logo from '@/Components/Logo.vue'
 defineProps({ titulo: { type: String, default: '' } })
 const page = usePage()
 const user = computed(() => page.props.auth?.user)
+const empresa = computed(() => page.props.empresa)
 const flash = computed(() => page.props.flash)
 // Cada respuesta con mensaje lo muestra como aviso flotante; se va solo a los 10 segundos (los errores se quedan hasta que se cierran).
 const aviso = ref(null); let temporizador = null

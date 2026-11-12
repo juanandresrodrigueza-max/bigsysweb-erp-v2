@@ -90,7 +90,8 @@ class UsoService
     {
         $desde = today()->subDays($dias - 1)->toDateString();
         $porEmpresa = DB::table('uso_diario')->where('fecha', '>=', $desde)->selectRaw('business_id, SUM(vistas) as vistas, SUM(acciones) as acciones, COUNT(DISTINCT user_id) as usuarios, COUNT(DISTINCT fecha) as dias, MAX(fecha) as ultimo')->groupBy('business_id')->get()->keyBy('business_id');
-        $empresas = Business::whereNull('suspended_at')->with('subscription')->withCount('users')->orderBy('name')->get();
+        $bigsys = (int) \App\Models\SistemaConfig::get(\App\Services\Suscripciones\EmpresaBigSysService::CLAVE); // Fase 87: la empresa propia no es un cliente
+        $empresas = Business::whereNull('suspended_at')->when($bigsys, fn($q) => $q->where('id', '!=', $bigsys))->with('subscription')->withCount('users')->orderBy('name')->get();
         $filas = $empresas->map(function ($b) use ($porEmpresa) {
             $u = $porEmpresa[$b->id] ?? null;
             $ultimo = $u?->ultimo ? \Carbon\Carbon::parse($u->ultimo) : null;
