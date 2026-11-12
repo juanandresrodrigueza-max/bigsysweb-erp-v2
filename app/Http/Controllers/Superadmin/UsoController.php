@@ -13,6 +13,6 @@ class UsoController extends Controller
     public function index(Request $request, UsoService $uso)
     {
         $dias = in_array((int) $request->dias, [7, 30, 90], true) ? (int) $request->dias : 30;
-        return Inertia::render('Superadmin/Uso', $uso->global($dias));
+        return Inertia::render('Superadmin/Uso', $uso->global($dias) + ['navegacion' => $uso->navegacion(7)]); // Fase 86
     }
 }

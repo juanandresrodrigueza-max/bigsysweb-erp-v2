@@ -21,6 +21,9 @@ class ResumenSemanalSistema extends Mailable
             . '<p><b>Salud ahora:</b> ' . e($r['salud']['estado']) . '.</p>' . $li(array_map(fn($c) => '<b>' . e($c['nombre']) . '</b>: ' . e($c['detalle']), $r['salud']['con_problemas']))
             . '<p><b>Copias de seguridad:</b> ' . (int) $r['copias']['hechas'] . ' en la semana' . ($r['copias']['sin_copia_48h'] ? '; <b>sin copia en 48 h</b>: ' . e(implode(', ', $r['copias']['sin_copia_48h'])) : '; todas las empresas con copia al día') . '.</p>'
             . '<p><b>Soporte:</b> ' . (int) $r['soporte']['abiertos'] . ' ticket(s) abiertos, ' . (int) $r['soporte']['nuevos'] . ' nuevos en la semana.</p>'
+            . (isset($r['navegacion']) ? '<p><b>Navegación (semana anterior → esta):</b> pantallas por persona y día ' . e($r['navegacion']['antes']['pantallas_por_dia']) . ' → ' . e($r['navegacion']['ahora']['pantallas_por_dia'])
+                . ' · acciones por cada 100 vistas ' . e($r['navegacion']['antes']['acciones_por_100_vistas']) . ' → ' . e($r['navegacion']['ahora']['acciones_por_100_vistas'])
+                . ' · tickets de «no encuentro» ' . (int) $r['navegacion']['antes']['tickets_no_encuentro'] . ' → ' . (int) $r['navegacion']['ahora']['tickets_no_encuentro'] . '.</p>' : '')
             . '<p>Paneles: ' . e(url('/admin/uso')) . ' · ' . e(url('/admin/salud')) . '</p>';
         return $this->subject('BigSysWeb · resumen semanal: ' . (int) $r['uso']['activas'] . ' empresas activas, ' . (int) $r['errores']['total'] . ' errores')->html($html);
     }

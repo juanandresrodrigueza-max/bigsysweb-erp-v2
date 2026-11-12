@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         if (app()->runningUnitTests() || ! Schema::hasTable('novedades') || DB::table('novedades')->where('titulo', 'Canales en Vender, reposición y pagos en Comprar')->exists()) return;
-        DB::table('novedades')->insert(['titulo' => 'Canales en Vender, reposición y pagos en Comprar', 'modulo' => 'dashboard', 'url' => '/proveedores/reponer',
+        DB::table('novedades')->insert(['titulo' => 'Canales en Vender, reposición y pagos en Comprar', 'modulo' => 'dashboard', 'url' => '/ayuda/que-cambio',
             'texto' => 'Vender arranca por el Mostrador y tiene un grupo Canales con Pedidos web, Tienda online y la configuración de canales. Comprar arranca por "Qué reponer" (lo que está en el mínimo, por proveedor, con el botón para armar la orden) y termina en "Pagos" (todas las órdenes de pago a proveedores). Y lo de tu rubro quedó en una sola entrada del menú, con sus pantallas adentro. Las direcciones no cambian.',
             'publicada_en' => now(), 'created_at' => now(), 'updated_at' => now()]);
     }

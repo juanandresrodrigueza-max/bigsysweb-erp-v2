@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         if (app()->runningUnitTests() || ! Schema::hasTable('novedades') || DB::table('novedades')->where('titulo', 'Los listados vacíos te dicen qué hacer')->exists()) return;
-        DB::table('novedades')->insert(['titulo' => 'Los listados vacíos te dicen qué hacer', 'modulo' => 'dashboard', 'url' => '/ayuda/primeros-pasos',
+        DB::table('novedades')->insert(['titulo' => 'Los listados vacíos te dicen qué hacer', 'modulo' => 'dashboard', 'url' => '/ayuda/que-cambio',
             'texto' => 'Cuando una lista está vacía ahora dice si es porque todavía no hay nada (y qué hacer para empezar) o porque no hay nada con los filtros puestos (con un botón para limpiarlos). Y a cada usuario nuevo le mostramos un consejo por día durante la primera semana: Ctrl K, el ?, el asistente, los atajos.',
             'publicada_en' => now(), 'created_at' => now(), 'updated_at' => now()]);
     }

@@ -29,6 +29,7 @@ class ResumenSemanalService
                 'principales' => $err->take(5)->map(fn($e) => ['codigo' => substr($e->hash, 0, 8), 'que' => class_basename($e->clase) . ': ' . \Illuminate\Support\Str::limit($e->mensaje, 100), 'donde' => "{$e->archivo}:{$e->linea}", 'veces' => $e->veces])->values()->all()],
             'salud' => ['estado' => $s['estado'], 'con_problemas' => array_values(array_filter($s['controles'], fn($c) => $c['estado'] !== 'ok'))],
             'copias' => ['hechas' => Backup::withoutGlobalScopes()->where('created_at', '>=', $desde)->count(), 'sin_copia_48h' => $sinCopia],
+            'navegacion' => $this->uso->navegacion(7), // Fase 86: antes y después del reordenamiento
             'soporte' => ['abiertos' => Ticket::withoutGlobalScopes()->where('estado', '!=', 'cerrado')->count(), 'nuevos' => Ticket::withoutGlobalScopes()->where('created_at', '>=', $desde)->count()],
         ];
     }
