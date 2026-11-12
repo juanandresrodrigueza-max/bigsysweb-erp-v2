@@ -16,7 +16,7 @@ class MenuFase79Test extends ErpTestCase
     {
         $nav = $this->nav($this->dueno);
         $keys = array_column($nav, 'key');
-        $this->assertSame(['inicio', 'vender', 'cobrar', 'entregar', 'clientes', 'comprar', 'stock', 'plata', 'contable', 'sueldos', 'estadisticas'], array_slice($keys, 0, 11));
+        $this->assertSame(['inicio', 'vender', 'cobrar', 'entregar', 'clientes', 'comprar', 'stock', 'plata', 'contable', 'estadisticas'], array_slice($keys, 0, 10)); // Fase 82: Sueldos vive adentro de Contable
         $this->assertSame('configuracion', end($keys)); $this->assertNotContains('alertas', $keys, 'Las alertas viven en la campana');
         $por = collect($nav)->keyBy('key');
         $this->assertSame(['Vender', '/comprobantes'], [$por['vender']['label'], $por['vender']['ruta']]);
