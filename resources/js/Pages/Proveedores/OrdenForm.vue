@@ -34,7 +34,7 @@
                   <td><input v-model.number="it.cantidad" type="number" min="0" step="any" class="input text-right" /></td>
                   <td><input v-model.number="it.precio_unit" type="number" min="0" step="any" class="input text-right" /></td>
                   <td class="text-right font-semibold tabular-nums pt-3">{{ moneda((it.cantidad || 0) * (it.precio_unit || 0)) }}</td>
-                  <td class="pt-2"><button type="button" @click="form.items.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="trash" clase="w-4 h-4" /></button></td>
+                  <td class="pt-2"><button type="button" @click="form.items.splice(i,1)" class="text-marca-muted hover:text-carmin" title="Eliminar" aria-label="Eliminar"><Icono nombre="trash" clase="w-4 h-4" /></button></td>
                 </tr>
                 <tr v-if="!form.items.length"><td colspan="6" class="text-center text-marca-muted py-8">Agregá artículos o usá "Sugerir pedido".</td></tr>
               </tbody>

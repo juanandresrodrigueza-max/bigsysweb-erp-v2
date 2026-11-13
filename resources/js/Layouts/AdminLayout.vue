@@ -4,7 +4,7 @@
     <aside class="hidden md:flex w-64 flex-col shrink-0 text-white bg-sidebar-grad">
       <div class="h-16 flex items-center px-5 gap-3 border-b border-white/10">
         <Logo negativo clase="h-7" />
-        <span class="ml-auto text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md bg-white/15">Admin</span>
+        <span class="ml-auto text-[11px] font-bold uppercase tracking-widest px-2 py-1 rounded-md bg-white/15">Admin</span>
       </div>
       <nav class="flex-1 py-4">
         <Link v-for="i in items" :key="i.href" :href="i.href" class="relative flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded-xl text-sm transition" :class="activo(i) ? 'bg-white text-ciruela-800 font-semibold shadow-card' : 'text-white/80 hover:bg-white/10 hover:text-white'">
@@ -23,7 +23,7 @@
 
     <div class="flex-1 flex flex-col min-w-0">
       <header class="h-16 bg-white/85 backdrop-blur-md border-b border-marca-borde flex items-center px-4 md:px-6 gap-3 sticky top-0 z-30">
-        <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
+        <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Menú" aria-label="Menú"><Icono nombre="menu" /></button>
         <p class="text-sm text-marca-muted hidden sm:block">Panel de control de <b class="text-marca-texto">BigSysWeb</b> · todas las empresas</p>
         <div class="flex-1"></div>
         <!-- Fase 87: saltar a la empresa propia de BigSys -->
@@ -40,7 +40,7 @@
     <div v-if="movil" class="fixed inset-0 z-40 md:hidden">
       <div class="absolute inset-0 bg-black/50" @click="movil = false"></div>
       <div class="absolute left-0 top-0 bottom-0 w-72 text-white p-4 bg-sidebar-grad">
-        <div class="flex items-center justify-between mb-4"><Logo negativo clase="h-7" /><button @click="movil = false"><Icono nombre="x" /></button></div>
+        <div class="flex items-center justify-between mb-4"><Logo negativo clase="h-7" /><button @click="movil = false" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" /></button></div>
         <Link v-for="i in items" :key="i.href" :href="i.href" @click="movil = false" class="flex items-center gap-3 px-2 py-2 rounded-lg text-sm" :class="activo(i) ? 'bg-white/10 font-semibold' : 'text-white/80'"><Icono :nombre="i.icono" clase="w-5 h-5" /> {{ i.label }}</Link>
         <Link href="/logout" method="post" as="button" class="mt-6 flex items-center gap-2 text-sm text-white/70"><Icono nombre="logout" clase="w-4 h-4" /> Salir</Link>
       </div>

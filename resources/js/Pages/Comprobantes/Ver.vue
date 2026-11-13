@@ -126,7 +126,7 @@
             <div class="min-w-0 flex-1">
               <a :href="c.url_publica" target="_blank" class="text-violeta font-semibold break-all text-xs">{{ c.url_publica }}</a>
               <p class="text-[11px] text-marca-muted mt-1">{{ c.tipo === 'PRE' ? 'El cliente ve el presupuesto y lo aprueba o rechaza desde ahí.' : 'El cliente ve el comprobante y descarga el PDF.' }}</p>
-              <template v-if="c.link_pago"><a :href="c.link_pago" target="_blank" class="btn-primary !py-1 text-xs mt-2 inline-flex">Pagar {{ moneda(c.saldo) }}</a><p v-if="c.link_pago_simulado" class="text-[10px] text-amber-700 mt-1">Link simulado: sin credenciales de MercadoPago en Configuración.</p></template>
+              <template v-if="c.link_pago"><a :href="c.link_pago" target="_blank" class="btn-primary !py-1 text-xs mt-2 inline-flex">Pagar {{ moneda(c.saldo) }}</a><p v-if="c.link_pago_simulado" class="text-[11px] text-amber-700 mt-1">Link simulado: sin credenciales de MercadoPago en Configuración.</p></template>
               <button @click="copiar" class="btn-ghost !px-2 text-xs mt-1">{{ copiado ? 'Copiado ✓' : 'Copiar link' }}</button>
             </div>
           </div>

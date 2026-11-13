@@ -41,7 +41,7 @@
       <!-- Vista previa en vivo: misma estructura que la factura impresa -->
       <div>
         <p class="label mb-1">Vista previa</p>
-        <div class="rounded-xl border border-marca-borde overflow-hidden bg-white text-[10px] text-[#1c1a18] shadow-sm" data-preview>
+        <div class="rounded-xl border border-marca-borde overflow-hidden bg-white text-[11px] text-[#1c1a18] shadow-sm" data-preview>
           <div class="grid grid-cols-[1fr_52px_1fr]" :style="f.estilo === 'banda' ? { background: f.color_primario, color: txtP } : f.estilo === 'minimo' ? { borderBottom: `2px solid ${f.color_primario}` } : { borderBottom: '1px solid #d6d1ca' }">
             <div class="p-2.5">
               <img v-if="marca.logo_uri && f.mostrar.logo" :src="marca.logo_uri" class="max-h-8 max-w-[90px] mb-1" alt="" />

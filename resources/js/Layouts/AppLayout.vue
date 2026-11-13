@@ -7,7 +7,7 @@
       <div class="h-16 flex items-center px-4 gap-3 border-b border-white/10">
         <Logo v-if="abierto" negativo clase="h-7" />
         <Logo v-else variante="iso" negativo clase="h-8" />
-        <button @click="abierto = !abierto" class="ml-auto p-1.5 rounded-lg hover:bg-white/10 text-white/70"><Icono nombre="menu" clase="w-4 h-4" /></button>
+        <button @click="abierto = !abierto" class="ml-auto p-1.5 rounded-lg hover:bg-white/10 text-white/70" title="Menú" aria-label="Menú"><Icono nombre="menu" clase="w-4 h-4" /></button>
       </div>
       <p v-if="abierto" class="px-4 pt-3 text-[11px] font-semibold text-white/60 truncate">{{ empresa?.nombre }}</p>
 
@@ -30,7 +30,7 @@
     <!-- Contenido -->
     <div class="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
       <header class="h-16 bg-white/85 backdrop-blur-md border-b border-marca-borde flex items-center px-3 md:px-6 gap-1.5 sm:gap-3 sticky top-0 z-30">
-        <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
+        <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Menú" aria-label="Menú"><Icono nombre="menu" /></button>
 
         <!-- Selector de sucursal -->
         <!-- Fase 84: con una sola sucursal no hay nada que cambiar: el nombre va fijo, sin flecha ni menú. -->
@@ -38,11 +38,11 @@
         <div v-else class="relative min-w-0" ref="selRef" data-tour="sucursal">
           <button @click="selAbierto = !selAbierto" class="flex items-center gap-2 max-w-full min-w-0 px-3 py-1.5 rounded-full border border-marca-borde hover:border-carmin/50 text-sm">
             <Icono nombre="pin" clase="w-4 h-4 text-carmin" />
-            <span class="font-semibold max-w-[90px] sm:max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span><span v-if="sucursales?.consolidado" class="badge bg-violeta-light text-violeta !py-0 text-[10px]">consolidado</span>
+            <span class="font-semibold max-w-[90px] sm:max-w-[160px] truncate">{{ sucursales?.actual?.nombre ?? 'Sin sucursal' }}</span><span v-if="sucursales?.consolidado" class="badge bg-violeta-light text-violeta !py-0 text-[11px]">consolidado</span>
             <Icono v-if="(sucursales?.lista?.length ?? 0) > 1" nombre="chevron" clase="w-4 h-4 text-marca-muted" />
           </button>
           <div v-if="selAbierto && sucursales?.lista?.length > 1" class="absolute left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
-            <p class="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-marca-muted border-b border-marca-borde">Cambiar sucursal</p>
+            <p class="px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-marca-muted border-b border-marca-borde">Cambiar sucursal</p>
             <Link v-for="s in sucursales.lista" :key="s.id" :href="`/sucursal/${s.id}`" method="post" as="button" preserve-scroll
                   class="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-marca-fondo text-sm" @click="selAbierto = false">
               <span class="w-2 h-2 rounded-full" :class="s.id === sucursales.actual?.id ? 'bg-carmin' : 'bg-marca-borde'"></span>
@@ -63,7 +63,7 @@
             <Icono nombre="building" clase="w-4 h-4" /><span class="font-semibold max-w-[160px] truncate hidden sm:inline">{{ empresa?.nombre }}</span><Icono nombre="chevron" clase="w-4 h-4" />
           </button>
           <div v-if="empAbierto" class="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
-            <p class="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-marca-muted border-b border-marca-borde">Cambiar empresa</p>
+            <p class="px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-marca-muted border-b border-marca-borde">Cambiar empresa</p>
             <Link v-for="e in empresas" :key="e.id" :href="`/empresa/${e.id}`" method="post" as="button" class="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-marca-fondo text-sm" @click="empAbierto = false">
               <span class="w-2 h-2 rounded-full" :class="e.id === empresa?.id ? 'bg-carmin' : 'bg-marca-borde'"></span>
               <span class="flex-1 min-w-0"><span class="font-semibold block truncate">{{ e.nombre }}</span><span v-if="e.cuit" class="text-marca-muted text-xs">{{ e.cuit }}</span></span>
@@ -77,7 +77,7 @@
         <div class="flex-1"></div>
 
         <button type="button" @click="paleta?.abrir()" data-tour="buscar" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde bg-marca-fondo/70 text-sm text-marca-muted hover:border-magenta/50 hover:bg-white transition" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">
-          <Icono nombre="search" clase="w-4 h-4" /><span>Buscar…</span><kbd class="text-[10px] px-1.5 py-0.5 rounded-md border border-marca-borde bg-white">Ctrl K</kbd>
+          <Icono nombre="search" clase="w-4 h-4" /><span>Buscar…</span><kbd class="text-[11px] px-1.5 py-0.5 rounded-md border border-marca-borde bg-white">Ctrl K</kbd>
         </button>
         <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
 
@@ -92,7 +92,7 @@
       <AyudaPanel ref="ayuda" @tour="p => tourRef?.iniciar(p)" />
       <Tour ref="tourRef" :pasos-iniciales="tourInicial" />
       <!-- Barra inferior en el celular: lo que más se usa, a un toque -->
-      <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-marca-borde grid grid-cols-5 text-[10px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
+      <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-marca-borde grid grid-cols-5 text-[11px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
         <Link href="/dueno" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/dueno') ? 'text-carmin' : ''"><Icono nombre="home" clase="w-5 h-5" />Mi negocio</Link>
         <Link href="/comprobantes" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/comprobantes') ? 'text-carmin' : ''"><Icono nombre="receipt" clase="w-5 h-5" />Vender</Link>
         <button type="button" @click="paleta?.abrir()" class="flex flex-col items-center py-2 gap-0.5"><span class="-mt-5 w-11 h-11 rounded-full bg-marca-grad text-white grid place-items-center shadow-glow"><Icono nombre="search" clase="w-5 h-5" /></span>Buscar</button>
@@ -144,7 +144,7 @@
       <div class="absolute left-0 top-0 bottom-0 w-72 text-white p-4 overflow-y-auto bg-sidebar-grad">
         <div class="flex items-center justify-between mb-4">
           <Logo negativo clase="h-7" />
-          <button @click="movil = false"><Icono nombre="x" /></button>
+          <button @click="movil = false" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" /></button>
         </div>
         <div class="-mx-2"><MenuLateral :nav="nav" :abierto="true" :ruta-activa="rutaActiva" :subnav="subnav" @navegar="movil = false" /></div>
         <Link href="/ayuda" @click="movil = false" class="mt-6 flex items-center gap-2 text-sm text-white/70 hover:text-white"><Icono nombre="info" clase="w-4 h-4" /> Ayuda</Link>

@@ -87,9 +87,9 @@
             <div class="max-h-[60vh] overflow-y-auto divide-y divide-marca-borde">
               <div v-for="p in productos" :key="p.id" class="px-4 py-2 flex items-center gap-2 text-sm" :data-e2e="`prod-${p.id}`">
                 <input type="checkbox" class="accent-carmin w-4 h-4" :checked="!!sel[p.id]" :disabled="p.motivos.some(m => m.includes('categoría'))" @change="toggle(p)" />
-                <img v-if="p.foto" :src="p.foto" class="w-9 h-9 rounded object-cover bg-marca-fondo" /><div v-else class="w-9 h-9 rounded bg-marca-fondo grid place-items-center text-[10px] text-marca-muted">sin foto</div>
+                <img v-if="p.foto" :src="p.foto" class="w-9 h-9 rounded object-cover bg-marca-fondo" /><div v-else class="w-9 h-9 rounded bg-marca-fondo grid place-items-center text-[11px] text-marca-muted">sin foto</div>
                 <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ p.nombre }}</p><p class="text-[11px] text-marca-muted">{{ p.sku }} · {{ p.rubro }} · {{ p.stock }} u.<span v-if="p.publicada" class="text-emerald-700"> · publicado</span><span v-for="m in p.motivos" :key="m" class="text-amber-700"> · {{ m }}</span></p></div>
-                <div class="text-right"><p class="font-bold tabular-nums">{{ p.precio != null ? moneda(p.precio) : '—' }}</p><p class="text-[10px] text-marca-muted">lista {{ p.lista }}</p></div>
+                <div class="text-right"><p class="font-bold tabular-nums">{{ p.precio != null ? moneda(p.precio) : '—' }}</p><p class="text-[11px] text-marca-muted">lista {{ p.lista }}</p></div>
               </div>
               <p v-if="!productos.length" class="px-4 py-8 text-center text-xs text-marca-muted">{{ cargando ? 'Cargando…' : 'Elegí un rubro o buscá un producto.' }}</p>
             </div>
@@ -104,7 +104,7 @@
           <div v-for="p in publicacionesVisibles" :key="p.id" class="px-4 py-2 flex items-center gap-2" :data-e2e="`pub-${p.id}`">
             <img v-if="p.foto" :src="p.foto" class="w-9 h-9 rounded object-cover bg-marca-fondo" /><div v-else class="w-9 h-9 rounded bg-marca-fondo"></div>
             <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ p.nombre }}</p><p class="text-[11px] text-marca-muted">{{ p.sku }} · {{ p.origen === 'publicada' ? 'publicada desde acá' : p.adoptada ? 'tuya, adoptada (el ERP le manda precio y stock)' : 'tuya, atada a mano' }} · lista {{ p.lista ?? actual.cfg.lista ?? 1 }} · {{ p.sync ?? 'sin sincronizar' }}<span v-if="p.error" class="text-carmin"> · {{ p.error }}</span></p></div>
-            <div class="text-right"><p class="font-bold tabular-nums">{{ moneda(p.precio ?? 0) }}</p><p class="text-[10px] tabular-nums" :class="p.stock > 0 ? 'text-marca-muted' : 'text-carmin'">{{ p.stock ?? 0 }} u. · {{ p.estado }}</p></div>
+            <div class="text-right"><p class="font-bold tabular-nums">{{ moneda(p.precio ?? 0) }}</p><p class="text-[11px] tabular-nums" :class="p.stock > 0 ? 'text-marca-muted' : 'text-carmin'">{{ p.stock ?? 0 }} u. · {{ p.estado }}</p></div>
             <a v-if="p.permalink" :href="p.permalink" target="_blank" class="text-violeta text-xs font-semibold">ver</a>
             <button class="btn-ghost !px-2 text-xs" @click="pausar(p)">{{ p.estado === 'pausada' ? 'Activar' : 'Pausar' }}</button>
           </div>
@@ -171,7 +171,7 @@
             <div class="flex items-center gap-2"><input v-model="mesCargos" type="month" class="input !py-1 w-auto text-xs" @change="cargarCargos" /><a :href="`/stock/tienda-online/${canal}/cargos?mes=${mesCargos}&csv=1`" class="btn-secondary !py-1 text-xs">Bajar para el contador</a><button v-if="cargos && !cargos.compra_id && cargos.cargo_venta + cargos.cuotas + cargos.envio > 0" class="btn-primary !py-1 text-xs" @click="compraCargos" data-e2e="compra-cargos">Registrar como compra</button><Link v-else-if="cargos?.compra_id" :href="`/proveedores/compras/${cargos.compra_id}`" class="btn-secondary !py-1 text-xs">Ver la compra del mes</Link></div>
           </div>
           <div v-if="cargos" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mt-3 text-center">
-            <div v-for="k in [['ventas','Ventas',false],['vendido','Vendido'],['cargo_venta','Cargo por vender'],['cuotas','Cuotas'],['envio','Envíos'],['retenciones','Retenciones'],['recibe','Recibís'],['deja','Te deja']]" :key="k[0]" class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">{{ k[1] }}</p><p class="font-extrabold tabular-nums" :class="k[0] === 'deja' && cargos.deja < 0 ? 'text-carmin' : ''">{{ k[2] === false ? cargos[k[0]] : moneda(cargos[k[0]], 0) }}</p></div>
+            <div v-for="k in [['ventas','Ventas',false],['vendido','Vendido'],['cargo_venta','Cargo por vender'],['cuotas','Cuotas'],['envio','Envíos'],['retenciones','Retenciones'],['recibe','Recibís'],['deja','Te deja']]" :key="k[0]" class="rounded-xl bg-marca-fondo p-2"><p class="text-[11px] uppercase tracking-wider text-marca-muted">{{ k[1] }}</p><p class="font-extrabold tabular-nums" :class="k[0] === 'deja' && cargos.deja < 0 ? 'text-carmin' : ''">{{ k[2] === false ? cargos[k[0]] : moneda(cargos[k[0]], 0) }}</p></div>
           </div>
         </div>
         <div v-if="cargos" class="card p-0 overflow-x-auto"><table class="table text-xs"><thead><tr><th>Fecha</th><th>Venta</th><th>Comprador</th><th>Comprobante</th><th class="text-right">Precio</th><th class="text-right">Cargo</th><th class="text-right">Cuotas</th><th class="text-right">Envío</th><th class="text-right">Retenc.</th><th class="text-right">Recibís</th><th>Libera</th><th class="text-right">Te deja</th></tr></thead>

@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Auditoría">
-    <h1 class="page-title mb-4">Auditoría</h1>
+    <div class="mb-5"><h1 class="page-title">Auditoría</h1><p class="page-subtitle">Quién hizo qué y cuándo: cada cambio importante queda anotado con usuario, fecha y dirección.</p></div>
 
     <div class="card mb-4 flex flex-wrap gap-2">
       <select v-model="f.usuario" @change="filtrar" class="input w-auto"><option value="">Todos los usuarios</option><option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.name }}</option></select>

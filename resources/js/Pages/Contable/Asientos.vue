@@ -40,7 +40,7 @@
         <BuscadorSelect v-model="l.cuenta_id" :opciones="opcionesCuentas" placeholder="Cuenta…" />
         <input v-model.number="l.debe" type="number" step="any" min="0" class="input text-right" placeholder="Debe" />
         <input v-model.number="l.haber" type="number" step="any" min="0" class="input text-right" placeholder="Haber" />
-        <button @click="form.lineas.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+        <button @click="form.lineas.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
       </div>
       <div class="flex items-center justify-between"><button @click="form.lineas.push({ cuenta_id: null, debe: null, haber: null })" class="btn-ghost !px-2 text-xs">+ Línea</button><p class="text-sm tabular-nums" :class="Math.abs(tDebe - tHaber) < 0.005 ? 'text-emerald-700' : 'text-carmin'">Debe {{ moneda(tDebe) }} · Haber {{ moneda(tHaber) }}{{ Math.abs(tDebe - tHaber) < 0.005 ? ' ✓' : ' · no balancea' }}</p></div>
       <p v-if="form.errors.lineas" class="text-carmin text-xs mt-1">{{ form.errors.lineas }}</p>

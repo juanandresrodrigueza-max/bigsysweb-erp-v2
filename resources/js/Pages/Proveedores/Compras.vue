@@ -8,7 +8,7 @@
       <div v-if="puede('proveedores','crear')" class="flex gap-2">
         <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
         <button @click="importarAbierto = true" class="btn-secondary" data-e2e="importar-afip">Qué me falta cargar</button>
-        <button @click="abrirReclamos" class="btn-secondary" data-e2e="reclamos">Reclamos <span v-if="reclamosAbiertos" class="ml-1 rounded-full bg-carmin text-white text-[10px] px-1.5 py-0.5">{{ reclamosAbiertos }}</span></button>
+        <button @click="abrirReclamos" class="btn-secondary" data-e2e="reclamos">Reclamos <span v-if="reclamosAbiertos" class="ml-1 rounded-full bg-carmin text-white text-[11px] px-1.5 py-0.5">{{ reclamosAbiertos }}</span></button>
         <Link href="/proveedores/compras/nueva" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva factura de compra</Link>
       </div>
     </div>

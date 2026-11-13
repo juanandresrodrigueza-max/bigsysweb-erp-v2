@@ -23,7 +23,7 @@
               <td class="whitespace-nowrap">{{ m.fecha }}</td>
               <td><p class="font-semibold">{{ m.articulo }}</p><p class="text-xs text-marca-muted">{{ m.sku }}<span v-if="m.deposito"> · {{ m.deposito }}</span><span v-if="m.notas"> · {{ m.notas }}</span></p></td>
               <td class="text-right tabular-nums">{{ cantidad(m.cantidad) }} {{ m.unidad }}</td>
-              <td><span class="badge" :class="m.motivo_key === 'cortesia' || m.motivo_key === 'consumo_personal' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ m.motivo }}</span><span v-if="m.comanda" class="text-[10px] text-marca-muted ml-1">desde la comanda</span></td>
+              <td><span class="badge" :class="m.motivo_key === 'cortesia' || m.motivo_key === 'consumo_personal' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ m.motivo }}</span><span v-if="m.comanda" class="text-[11px] text-marca-muted ml-1">desde la comanda</span></td>
               <td class="text-right tabular-nums font-semibold">{{ moneda(m.importe) }}</td>
               <td class="text-xs text-marca-muted">{{ m.usuario }}</td>
             </tr>

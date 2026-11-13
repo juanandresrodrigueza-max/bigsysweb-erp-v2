@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Conexiones IA">
-    <h1 class="page-title mb-4">Conexiones IA</h1>
+    <div class="mb-5"><h1 class="page-title">Conexiones IA</h1><p class="page-subtitle">Conectá Bigcito a Claude o ChatGPT para manejar tu negocio por voz y texto desde donde ya hablás con la IA.</p></div>
 
     <div class="card mb-4" data-e2e="ia-empresa">
       <div class="flex flex-wrap items-start justify-between gap-3">

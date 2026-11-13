@@ -2,10 +2,10 @@
   <AppLayout :titulo="'Vender · ' + modos[modo]">
     <!-- La franja dice siempre en qué modo estás y a nombre de quién vendés: cambiar de modo es un toque. -->
     <div class="rounded-2xl px-4 py-2.5 mb-4 flex flex-wrap items-center justify-between gap-2 text-white" :class="franja[modo]" data-e2e="franja">
-      <div class="flex items-center gap-3 min-w-0">
-        <h1 class="font-extrabold text-lg">Vender</h1>
-        <button class="rounded-full bg-white/20 hover:bg-white/30 px-3 py-1 text-sm font-semibold" @click="selector = true" data-e2e="cambiar-modo">{{ modos[modo] }} <span class="opacity-70">· cambiar</span></button>
-        <span class="text-xs opacity-90 truncate">{{ vendedor ? `a nombre de ${vendedor.nombre}` : 'tu usuario no es vendedor: las ventas van sin vendedor' }}</span>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+        <h1 class="font-display font-medium text-xl">Vender</h1>
+        <button class="rounded-full bg-white/20 hover:bg-white/30 px-3 py-1 text-sm font-semibold whitespace-nowrap shrink-0" @click="selector = true" data-e2e="cambiar-modo">{{ modos[modo] }} <span class="opacity-70">· cambiar</span></button>
+        <span class="text-xs opacity-90 basis-full sm:basis-auto">{{ vendedor ? `a nombre de ${vendedor.nombre}` : 'tu usuario no es vendedor: las ventas van sin vendedor' }}</span>
       </div>
       <Link href="/comprobantes" class="text-xs opacity-80 hover:opacity-100">← Comprobantes</Link>
     </div>

@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Usuarios">
-    <h1 class="page-title mb-4">Usuarios</h1>
+    <div class="mb-5"><h1 class="page-title">Usuarios</h1><p class="page-subtitle">Quién entra al sistema, con qué rol y en qué sucursal. Invitá a tu equipo y a tu contador.</p></div>
 
     <div class="flex items-center justify-between mb-4">
       <p class="text-sm text-marca-muted">{{ limite.usados }} de {{ limite.max < 0 ? '∞' : limite.max }} usuarios del plan.</p>
@@ -23,7 +23,7 @@
             <td><span class="badge" :class="u.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-marca-fondo text-marca-muted'">{{ u.status === 'active' ? 'Activo' : 'Inactivo' }}</span></td>
             <td class="text-marca-muted text-xs">{{ u.ultimo_acceso ?? 'Nunca' }}</td>
             <td class="text-xs"><template v-if="u.actividad"><span class="font-semibold tabular-nums">{{ u.actividad.dias }}</span> días · <span class="tabular-nums">{{ u.actividad.acciones }}</span> acciones</template><span v-else class="text-marca-muted">Sin uso</span></td>
-            <td class="text-right"><button @click="abrir(u)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+            <td class="text-right"><button @click="abrir(u)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
         </tbody>
       </table>

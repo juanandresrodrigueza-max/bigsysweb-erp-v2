@@ -46,7 +46,7 @@
       <div class="flex items-end gap-1 h-32">
         <div v-for="m in comparativo.mensual" :key="m.mes" class="flex-1 flex flex-col items-center justify-end h-full min-w-0" :title="`${m.mes}: ${moneda(m.actual, 0)} · año anterior ${moneda(m.anterior, 0)}`">
           <div class="w-full flex items-end gap-px h-full"><div class="flex-1 rounded-t bg-marca-borde" :style="{ height: Math.max(1, m.anterior / maxComp * 100) + '%' }"></div><div class="flex-1 rounded-t bg-marca-grad" :style="{ height: Math.max(1, (pesosHoy && m.actual_hoy !== null ? m.actual_hoy : m.actual) / maxComp * 100) + '%' }"></div></div>
-          <span class="text-[9px] text-marca-muted mt-1 truncate w-full text-center">{{ m.mes }}</span>
+          <span class="text-[11px] text-marca-muted mt-1 truncate w-full text-center">{{ m.mes }}</span>
         </div>
       </div>
       <p class="text-[11px] text-marca-muted mt-1">Gris: mismo mes del año anterior · Color: últimos 12 meses.</p>
@@ -66,7 +66,7 @@
         <div class="flex items-end gap-1 h-44">
           <div v-for="s in serie" :key="s.label" class="flex-1 flex flex-col items-center justify-end h-full min-w-0" :title="`${s.label}: ${moneda(s.monto, 0)} (${s.n})`">
             <div class="w-full rounded-t bg-marca-grad" :style="{ height: Math.max(2, s.monto / maxSerie * 100) + '%' }"></div>
-            <span class="text-[9px] text-marca-muted mt-1 truncate w-full text-center">{{ s.label }}</span>
+            <span class="text-[11px] text-marca-muted mt-1 truncate w-full text-center">{{ s.label }}</span>
           </div>
           <p v-if="!serie.length" class="w-full text-center text-sm text-marca-muted self-center">Sin ventas en el período.</p>
         </div>
@@ -87,7 +87,7 @@
       <div class="card"><h2 class="font-bold mb-3">A quién le compramos</h2><Barras :items="proveedores.map(p => ({ label: p.nombre, valor: Number(p.monto), sub: p.n + ' facturas', url: `/proveedores/${p.id}` }))" color="bg-amber-500" /></div>
       <div class="card"><h2 class="font-bold mb-3">Horas de venta</h2>
         <div class="flex items-end gap-0.5 h-28">
-          <div v-for="h in 24" :key="h" class="flex-1 flex flex-col items-center justify-end h-full" :title="`${h - 1}:00 · ${horaN(h - 1)} comp.`"><div class="w-full rounded-t bg-lavanda-dark" :style="{ height: Math.max(horaN(h - 1) ? 4 : 1, horaN(h - 1) / maxHora * 100) + '%' }"></div><span v-if="(h - 1) % 4 === 0" class="text-[9px] text-marca-muted">{{ h - 1 }}</span></div>
+          <div v-for="h in 24" :key="h" class="flex-1 flex flex-col items-center justify-end h-full" :title="`${h - 1}:00 · ${horaN(h - 1)} comp.`"><div class="w-full rounded-t bg-lavanda-dark" :style="{ height: Math.max(horaN(h - 1) ? 4 : 1, horaN(h - 1) / maxHora * 100) + '%' }"></div><span v-if="(h - 1) % 4 === 0" class="text-[11px] text-marca-muted">{{ h - 1 }}</span></div>
         </div>
       </div>
     </div>

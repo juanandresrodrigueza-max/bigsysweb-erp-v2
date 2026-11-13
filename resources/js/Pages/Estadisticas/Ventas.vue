@@ -34,7 +34,7 @@
           <p v-if="!cuando.celdas.length" class="text-marca-muted">Sin comprobantes con hora en el período.</p>
         </div>
         <!-- mapa de calor: filas = días, columnas = horas de 6 a 23 -->
-        <div class="overflow-x-auto"><table class="text-[10px] tabular-nums border-separate" style="border-spacing:2px">
+        <div class="overflow-x-auto"><table class="text-[11px] tabular-nums border-separate" style="border-spacing:2px">
           <thead><tr><th></th><th v-for="h in horas" :key="h" class="text-marca-muted font-normal w-5">{{ h }}</th></tr></thead>
           <tbody><tr v-for="d in [1,2,3,4,5,6,0]" :key="d"><td class="text-marca-muted pr-1">{{ dias[d] }}</td><td v-for="h in horas" :key="h" class="w-5 h-5 rounded" :style="{ background: color(celda(d, h)) }" :title="`${dias[d]} ${h}:00 · ${moneda(celda(d, h), 0)}`"></td></tr></tbody>
         </table></div>
@@ -54,7 +54,7 @@
         <div class="flex items-center justify-between mb-2"><h2 class="font-bold">Lo que se frenó de golpe</h2><span class="text-marca-muted cursor-help" :title="frenados.como">ⓘ</span></div>
         <p class="text-xs text-marca-muted mb-2">Se vendían seguido, tienen stock y hace dos semanas que no sale nada: un precio mal cargado, mal ubicado, vencido.</p>
         <table class="table text-sm"><thead><tr><th>Artículo</th><th class="text-right">Por semana</th><th class="text-right">Stock</th><th class="text-right">Precio</th></tr></thead>
-          <tbody><tr v-for="f in frenados.items" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="hover:text-carmin">{{ f.nombre }}</Link> <span class="text-xs text-marca-muted">{{ f.sku }} · {{ f.semanas }} de 6 semanas</span></td><td class="text-right tabular-nums">{{ cantidad(f.por_semana) }}</td><td class="text-right tabular-nums">{{ cantidad(f.stock) }}</td><td class="text-right tabular-nums">{{ moneda(f.precio) }}<span v-if="f.actualizado" class="block text-[10px] text-marca-muted">precio del {{ f.actualizado }}</span></td></tr>
+          <tbody><tr v-for="f in frenados.items" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="hover:text-carmin">{{ f.nombre }}</Link> <span class="text-xs text-marca-muted">{{ f.sku }} · {{ f.semanas }} de 6 semanas</span></td><td class="text-right tabular-nums">{{ cantidad(f.por_semana) }}</td><td class="text-right tabular-nums">{{ cantidad(f.stock) }}</td><td class="text-right tabular-nums">{{ moneda(f.precio) }}<span v-if="f.actualizado" class="block text-[11px] text-marca-muted">precio del {{ f.actualizado }}</span></td></tr>
           <tr v-if="!frenados.items.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Nada se frenó: lo que se vendía, se sigue vendiendo." compacto /></td></tr></tbody></table>
       </div>
     </div>

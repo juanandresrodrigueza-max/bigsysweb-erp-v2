@@ -2,7 +2,7 @@
   <div class="relative" ref="root">
     <button @click="alternar" class="relative p-2 rounded-full hover:bg-marca-fondo text-marca-texto" aria-label="Novedades" data-e2e="novedades">
       <Icono nombre="sparkles" />
-      <span v-if="sinLeer" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-violeta text-white text-[10px] font-bold flex items-center justify-center">{{ sinLeer }}</span>
+      <span v-if="sinLeer" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-violeta text-white text-[11px] font-bold flex items-center justify-center">{{ sinLeer }}</span>
     </button>
     <div v-if="abierto" class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
       <p class="px-4 py-2.5 text-sm font-bold border-b border-marca-borde">Novedades de BigSys</p>

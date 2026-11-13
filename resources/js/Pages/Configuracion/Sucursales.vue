@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Sucursales">
-    <h1 class="page-title mb-4">Sucursales</h1>
+    <div class="mb-5"><h1 class="page-title">Sucursales</h1><p class="page-subtitle">Tus locales y depósitos. Cada uno con su punto de venta, su caja y su stock.</p></div>
 
     <div class="flex items-center justify-between mb-4">
       <p class="text-sm text-marca-muted">{{ limite.usadas }} de {{ limite.max < 0 ? '∞' : limite.max }} sucursales del plan. La casa central ve el consolidado de todas desde el selector de sucursal.</p>

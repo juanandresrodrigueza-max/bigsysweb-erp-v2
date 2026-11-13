@@ -14,7 +14,7 @@
             <td><span class="badge" :class="{ activo: 'bg-emerald-50 text-emerald-700', pasivo: 'bg-carmin-light text-carmin', patrimonio: 'bg-lavanda-light text-violeta', ingreso: 'bg-emerald-50 text-emerald-700', egreso: 'bg-amber-50 text-amber-700' }[c.tipo]">{{ tipos[c.tipo] }}</span></td>
             <td class="text-xs text-marca-muted">{{ c.clave ? roles[c.clave] ?? c.clave : '' }}</td>
             <td class="text-right tabular-nums" :class="c.saldo < 0 ? 'text-carmin' : ''">{{ c.imputable && c.movimientos ? moneda(c.saldo, 0) : '' }}</td>
-            <td class="text-right"><button v-if="puede('contable','editar')" @click="abrir(c)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+            <td class="text-right"><button v-if="puede('contable','editar')" @click="abrir(c)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
         </tbody>
       </table>

@@ -1,6 +1,7 @@
-export const moneda = (n, dec = 2) => '$ ' + Number(n ?? 0).toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec })
+export const moneda = (n, dec = 2) => '$\u00a0' + Number(n ?? 0).toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec })
 export const entero = n => Number(n ?? 0).toLocaleString('es-AR')
 export const cantidad = n => Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 3 })
+export const tiempo = m => { m = Math.round(Number(m ?? 0)); if (m < 90) return `${m}'`; const h = Math.floor(m / 60), r = m % 60; return r ? `${h} h ${String(r).padStart(2, '0')}` : `${h} h` }
 export const hoyISO = () => new Date().toISOString().slice(0, 10)
 
 export const estadoCobro = {

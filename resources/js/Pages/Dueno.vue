@@ -26,13 +26,13 @@
       <!-- Plata -->
       <div class="card">
         <div class="grid grid-cols-3 gap-2 text-center">
-          <div><p class="text-[10px] font-bold uppercase tracking-widest text-marca-muted">Caja</p><p class="font-extrabold tabular-nums">{{ moneda(fondos.caja, 0) }}</p></div>
-          <div><p class="text-[10px] font-bold uppercase tracking-widest text-marca-muted">Banco</p><p class="font-extrabold tabular-nums">{{ moneda(fondos.banco, 0) }}</p></div>
-          <div><p class="text-[10px] font-bold uppercase tracking-widest text-marca-muted">Billeteras</p><p class="font-extrabold tabular-nums">{{ moneda(fondos.billetera, 0) }}</p></div>
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Caja</p><p class="font-extrabold tabular-nums">{{ moneda(fondos.caja, 0) }}</p></div>
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Banco</p><p class="font-extrabold tabular-nums">{{ moneda(fondos.banco, 0) }}</p></div>
+          <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Billeteras</p><p class="font-extrabold tabular-nums">{{ moneda(fondos.billetera, 0) }}</p></div>
         </div>
         <div class="grid grid-cols-2 gap-2 mt-3 text-sm">
-          <Link href="/clientes/cobranzas" class="p-2 rounded-xl bg-marca-fondo"><p class="text-[10px] font-bold uppercase tracking-widest text-marca-muted">Por cobrar</p><p class="font-bold tabular-nums">{{ moneda(cobrar.por_cobrar, 0) }}</p><p v-if="cobrar.vencido > 0" class="text-xs text-carmin font-semibold">vencido {{ moneda(cobrar.vencido, 0) }} · {{ cobrar.deudores }} clientes</p></Link>
-          <Link href="/proveedores?estado=deudores" class="p-2 rounded-xl bg-marca-fondo"><p class="text-[10px] font-bold uppercase tracking-widest text-marca-muted">Por pagar</p><p class="font-bold tabular-nums">{{ moneda(pagar.total, 0) }}</p><p v-if="pagar.vencido > 0" class="text-xs text-carmin font-semibold">vencido {{ moneda(pagar.vencido, 0) }}</p></Link>
+          <Link href="/clientes/cobranzas" class="p-2 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Por cobrar</p><p class="font-bold tabular-nums">{{ moneda(cobrar.por_cobrar, 0) }}</p><p v-if="cobrar.vencido > 0" class="text-xs text-carmin font-semibold">vencido {{ moneda(cobrar.vencido, 0) }} · {{ cobrar.deudores }} clientes</p></Link>
+          <Link href="/proveedores?estado=deudores" class="p-2 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Por pagar</p><p class="font-bold tabular-nums">{{ moneda(pagar.total, 0) }}</p><p v-if="pagar.vencido > 0" class="text-xs text-carmin font-semibold">vencido {{ moneda(pagar.vencido, 0) }}</p></Link>
         </div>
       </div>
 

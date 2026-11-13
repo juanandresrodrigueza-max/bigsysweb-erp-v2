@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Puntos de venta y AFIP">
-    <h1 class="page-title mb-4">Puntos de venta y AFIP</h1>
+    <div class="mb-5"><h1 class="page-title">Puntos de venta y AFIP</h1><p class="page-subtitle">Los puntos de venta habilitados en ARCA y el certificado para facturar electrónicamente.</p></div>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card">
@@ -12,7 +12,7 @@
             <tr v-for="p in puntos" :key="p.id">
               <td class="font-extrabold tabular-nums">{{ String(p.numero).padStart(4, '0') }}</td><td>{{ p.sucursal ?? 'General' }}</td><td class="capitalize text-marca-muted">{{ p.modo }}</td>
               <td><span class="badge" :class="p.activo ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ p.activo ? 'Activo' : 'Inactivo' }}</span></td>
-              <td class="text-right"><button @click="abrir(p)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+              <td class="text-right"><button @click="abrir(p)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
             </tr>
             <tr v-if="!puntos.length"><td colspan="5" class="!py-0"><EstadoVacio texto="Sin puntos de venta. Creá el 0001 para empezar." compacto /></td></tr>
           </tbody>

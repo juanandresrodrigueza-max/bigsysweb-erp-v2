@@ -25,7 +25,7 @@
             <p class="text-xs mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
               <span v-if="c.zona" class="badge bg-lavanda-light text-violeta !px-1.5 !py-0">{{ c.zona }} · {{ moneda(c.costo_envio, 0) }}</span>
               <span v-else-if="zonas.length" class="text-amber-700">sin zona</span>
-              <span v-if="col.key === 'preparando' || col.key === 'listos'" class="text-marca-muted">hace {{ c.minutos }}'</span>
+              <span v-if="col.key === 'preparando' || col.key === 'listos'" class="text-marca-muted">hace {{ tiempo(c.minutos) }}</span>
               <span v-if="c.en_camino_min !== null" class="text-violeta font-semibold">en camino {{ c.en_camino_min }}'<span v-if="c.repartidor"> · {{ c.repartidor }}</span></span>
               <span v-if="c.entregado" class="text-emerald-700">entregado {{ c.entregado }}<span v-if="c.repartidor"> · {{ c.repartidor }}</span></span>
               <span v-if="c.pagado" class="text-emerald-700">pagado</span>
@@ -41,7 +41,7 @@
               <template v-if="col.key === 'en_camino' && puede('gastronomia','crear')">
                 <button v-for="(l, m) in medios" :key="m" class="!py-1 !px-2.5 text-xs" :class="c.pagado ? 'hidden' : 'btn-secondary'" @click="entregado(c, m)" :data-entregado="`${c.id}-${m}`">{{ l }}</button>
                 <button v-if="c.pagado" class="btn-primary !py-1 !px-3 text-xs" @click="entregado(c, 'efectivo')" :data-entregado="`${c.id}-ok`">Entregado ✓</button>
-                <span v-else class="text-[10px] text-marca-muted w-full">Tocá cómo pagó: se cobra y se cierra.</span>
+                <span v-else class="text-[11px] text-marca-muted w-full">Tocá cómo pagó: se cobra y se cierra.</span>
               </template>
             </div>
           </div>
@@ -86,7 +86,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Modal from '@/Components/Modal.vue'
-import { moneda, cantidad } from '@/util/formato'
+import { moneda, cantidad, tiempo } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 const props = defineProps({ tablero: Object, zonas: Array, repartidores: Array, medios: Object })
 const { puede } = usePermisos()

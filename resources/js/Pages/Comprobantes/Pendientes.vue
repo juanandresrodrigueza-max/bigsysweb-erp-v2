@@ -13,7 +13,7 @@
           <tr v-for="c in lista" :key="c.id">
             <td><Link :href="`/comprobantes/${c.id}`" class="font-semibold hover:text-carmin">{{ c.nombre }} {{ c.numero }}</Link></td>
             <td>{{ c.cliente }}</td>
-            <td class="tabular-nums text-marca-muted">{{ c.fecha }}<span v-if="c.dias > 15" class="block text-[10px] text-amber-700">{{ c.dias }} días</span></td>
+            <td class="tabular-nums text-marca-muted">{{ c.fecha }}<span v-if="c.dias > 15" class="block text-[11px] text-amber-700">{{ c.dias }} días</span></td>
             <td class="text-xs"><p v-for="i in c.items" :key="i.id">{{ cantidad(i.pendiente) }} {{ i.unidad }} {{ i.descripcion }}<span class="text-marca-muted"> de {{ cantidad(i.cantidad) }}</span></p></td>
             <td class="text-right tabular-nums">{{ moneda(c.total) }}</td>
             <td class="text-right"><button v-if="puede('comprobantes','crear')" @click="abrir(c)" class="btn-primary !py-1 text-xs">{{ tab === 'remitos' ? 'Facturar' : 'Entregar' }}</button></td>

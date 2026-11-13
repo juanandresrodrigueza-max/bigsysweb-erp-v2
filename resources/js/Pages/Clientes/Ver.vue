@@ -26,7 +26,7 @@
         <div class="flex gap-0.5 h-3 rounded-full overflow-hidden bg-gris-light mt-2" :title="`Al día ${moneda(antiguedad.al_dia,0)} · 1-30 ${moneda(antiguedad.v30,0)} · 31-60 ${moneda(antiguedad.v60,0)} · 61-90 ${moneda(antiguedad.v90,0)} · +90 ${moneda(antiguedad.mas90,0)}`">
           <div v-for="(k, i) in ['al_dia','v30','v60','v90','mas90']" :key="k" :style="{ width: `${pct(antiguedad[k])}%`, background: ['#1f9d5b','#c5bcdd','#a42785','#e4003f','#7a0020'][i] }"></div>
         </div>
-        <p class="text-[10px] text-marca-muted mt-1">verde al día · rojo +60 días</p>
+        <p class="text-[11px] text-marca-muted mt-1">verde al día · rojo +60 días</p>
       </div>
     </div>
 
@@ -144,7 +144,7 @@
           <div v-for="n in notasCalle" :key="n.id" class="text-sm py-1 border-t border-marca-borde first:border-0" :class="n.listo ? 'text-marca-muted line-through' : ''">{{ n.texto }} <span class="text-[11px] text-marca-muted no-underline">· {{ n.quien }} · {{ n.cuando }}</span></div>
           <p v-if="!notasCalle.length" class="text-xs text-marca-muted">Ninguna.</p></div>
         <div><p class="label">Relevamiento con fotos</p>
-          <div class="grid grid-cols-3 gap-2 mt-1"><a v-for="r in relevamientos" :key="r.id" :href="`/estadisticas/vendedores/relevamiento/${r.id}/foto`" target="_blank" class="block rounded-lg overflow-hidden border border-marca-borde" :title="`${r.tipo} · ${r.quien} · ${r.cuando}${r.nota ? ' · ' + r.nota : ''}`"><img :src="`/estadisticas/vendedores/relevamiento/${r.id}/foto`" class="w-full h-20 object-cover bg-marca-fondo" loading="lazy" /><p class="text-[10px] px-1 py-0.5 truncate">{{ r.tipo }} · {{ r.cuando.slice(0, 5) }}</p></a></div>
+          <div class="grid grid-cols-3 gap-2 mt-1"><a v-for="r in relevamientos" :key="r.id" :href="`/estadisticas/vendedores/relevamiento/${r.id}/foto`" target="_blank" class="block rounded-lg overflow-hidden border border-marca-borde" :title="`${r.tipo} · ${r.quien} · ${r.cuando}${r.nota ? ' · ' + r.nota : ''}`"><img :src="`/estadisticas/vendedores/relevamiento/${r.id}/foto`" class="w-full h-20 object-cover bg-marca-fondo" loading="lazy" /><p class="text-[11px] px-1 py-0.5 truncate">{{ r.tipo }} · {{ r.cuando.slice(0, 5) }}</p></a></div>
           <p v-if="!relevamientos.length" class="text-xs text-marca-muted">Nada relevado.</p></div>
       </div>
       <div class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="agenda-visitas">
@@ -168,7 +168,7 @@
             <div class="grid grid-cols-[1fr_110px_28px] gap-2">
               <select v-model="m.medio" class="input" @change="cambiarMedio(m)"><option v-for="(lbl, k) in medios" :key="k" :value="k">{{ lbl }}</option></select>
               <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right" placeholder="0" />
-              <button @click="cobro.medios.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+              <button @click="cobro.medios.splice(i,1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
             <div v-if="m.medio === 'retencion'" class="grid grid-cols-3 gap-2" data-retencion>
               <select v-model="m.datos.impuesto" class="input !py-1 text-xs"><option value="iibb">IIBB</option><option value="ganancias">Ganancias</option><option value="iva">IVA</option><option value="suss">SUSS</option></select>
@@ -188,16 +188,16 @@
             </div>
             <div v-if="m.medio === 'cheque'" class="grid grid-cols-2 gap-2">
               <input v-model="m.datos.numero" class="input !py-1 text-xs" placeholder="N° cheque" /><input v-model="m.datos.banco" class="input !py-1 text-xs" placeholder="Banco" />
-              <div><label class="text-[10px] text-marca-muted">Fecha de pago</label><input v-model="m.datos.fecha_pago" type="date" class="input !py-1 text-xs" /></div>
-              <div><label class="text-[10px] text-marca-muted">Emisor (si no es el cliente)</label><input v-model="m.datos.emisor" class="input !py-1 text-xs" :placeholder="cliente.name" /></div>
+              <div><label class="text-[11px] text-marca-muted">Fecha de pago</label><input v-model="m.datos.fecha_pago" type="date" class="input !py-1 text-xs" /></div>
+              <div><label class="text-[11px] text-marca-muted">Emisor (si no es el cliente)</label><input v-model="m.datos.emisor" class="input !py-1 text-xs" :placeholder="cliente.name" /></div>
               <label class="flex items-center gap-1.5 text-xs col-span-2"><input v-model="m.datos.echeq" type="checkbox" class="accent-carmin" /> Es eCheq</label>
             </div>
             <input v-if="!['efectivo','cheque'].includes(m.medio)" v-model="m.referencia" class="input !py-1 text-xs" placeholder="Referencia / N° operación" />
           </div>
           <button @click="cobro.medios.push({ medio: 'transferencia', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {}, moneda: 'ARS', cotizacion: null })" class="btn-ghost !px-2 text-xs">+ Otro medio</button>
           <div class="mt-3 grid grid-cols-2 gap-2">
-            <div><label class="label">Descuento otorgado</label><input v-model.number="cobro.descuento" type="number" step="any" min="0" class="input" placeholder="0" /><p class="text-[10px] text-marca-muted mt-0.5">Cancela deuda sin cobrarse.</p></div>
-            <div><label class="label">Interés cobrado</label><input v-model.number="cobro.interes" type="number" step="any" min="0" class="input" placeholder="0" /><p v-if="cliente.interes_calculado > 0" class="text-[10px] text-amber-700 mt-0.5 cursor-pointer" @click="cobro.interes = cliente.interes_calculado">Mora sugerida: {{ moneda(cliente.interes_calculado) }} ({{ cliente.interes_mora }}% mensual)</p><p v-else class="text-[10px] text-marca-muted mt-0.5">Se cobra además de la deuda.</p></div>
+            <div><label class="label">Descuento otorgado</label><input v-model.number="cobro.descuento" type="number" step="any" min="0" class="input" placeholder="0" /><p class="text-[11px] text-marca-muted mt-0.5">Cancela deuda sin cobrarse.</p></div>
+            <div><label class="label">Interés cobrado</label><input v-model.number="cobro.interes" type="number" step="any" min="0" class="input" placeholder="0" /><p v-if="cliente.interes_calculado > 0" class="text-[11px] text-amber-700 mt-0.5 cursor-pointer" @click="cobro.interes = cliente.interes_calculado">Mora sugerida: {{ moneda(cliente.interes_calculado) }} ({{ cliente.interes_mora }}% mensual)</p><p v-else class="text-[11px] text-marca-muted mt-0.5">Se cobra además de la deuda.</p></div>
           </div>
           <div class="mt-2 grid grid-cols-2 gap-2"><div><label class="label">Fecha</label><input v-model="cobro.fecha" type="date" class="input" /></div><div><label class="label">Notas</label><input v-model="cobro.notas" class="input" /></div></div>
           <div class="mt-2"><label class="label">Vendedor (cobranza)</label><select v-model="cobro.vendedor_id" class="input !py-1 text-xs"><option :value="null">{{ cliente.vendedor ? 'El del cliente: ' + cliente.vendedor : 'Sin vendedor' }}</option><option v-for="v in vendedores" :key="v.id" :value="v.id">{{ v.nombre }}</option></select></div>
@@ -214,7 +214,7 @@
             </div>
             <p v-if="!pendientes.length" class="px-3 py-4 text-sm text-marca-muted">No hay comprobantes pendientes: el cobro queda a cuenta.</p>
           </div>
-          <p class="text-[10px] text-marca-muted mt-1">Podés dejar todo sin aplicar: el recibo queda a cuenta y se imputa a las facturas después desde el listado de cobros.</p>
+          <p class="text-[11px] text-marca-muted mt-1">Podés dejar todo sin aplicar: el recibo queda a cuenta y se imputa a las facturas después desde el listado de cobros.</p>
           <div v-if="pendientes.some(p => p.saldo_usd)" class="mt-2 flex items-center gap-2 text-xs"><span class="text-marca-muted">Cotización del recibo (USD)</span><input v-model.number="cobro.cotizacion" type="number" step="any" min="0" class="input !py-1 !w-28 text-right tabular-nums" /><span class="text-marca-muted">la diferencia con la de la factura se registra como diferencia de cambio</span></div>
           <div class="mt-3 text-sm space-y-1 bg-marca-fondo rounded-xl p-3">
             <div class="flex justify-between"><span>Total cobrado</span><b class="tabular-nums">{{ moneda(totalCobro) }}</b></div>

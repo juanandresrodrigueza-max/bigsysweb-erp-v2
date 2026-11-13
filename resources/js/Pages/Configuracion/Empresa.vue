@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Empresa">
-    <h1 class="page-title mb-4">Empresa</h1>
+    <div class="mb-5"><h1 class="page-title">Empresa</h1><p class="page-subtitle">Los datos de tu empresa: nombre, CUIT, condición de IVA y lo que sale impreso en la factura. También el plan y los rubros habilitados.</p></div>
 
     <div class="grid lg:grid-cols-3 gap-4">
       <form @submit.prevent="form.post('/configuracion/empresa', { preserveScroll: true })" class="card lg:col-span-2 space-y-4">

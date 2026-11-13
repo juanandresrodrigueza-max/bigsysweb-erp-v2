@@ -2,7 +2,7 @@
   <AppLayout titulo="Inventario">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div><h1 class="page-title">Inventario físico</h1><p class="page-subtitle">Contá lo que hay en el depósito; lo que difiere del sistema se ajusta al cerrar.</p></div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
         <select :value="depositoId" @change="cambiar({ deposito: $event.target.value })" class="input w-auto"><option v-for="d in depositos.filter(x => x.activo)" :key="d.id" :value="d.id">{{ d.nombre }} · {{ d.sucursal }}</option></select>
         <select :value="filtros.rubro ?? ''" @change="cambiar({ rubro: $event.target.value })" class="input w-auto"><option value="">Todos los rubros</option><option v-for="r in rubros" :key="r.id" :value="r.id">{{ r.completo }}</option></select>
       </div>

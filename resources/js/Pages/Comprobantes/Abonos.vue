@@ -18,11 +18,11 @@
           <tr v-for="a in abonos" :key="a.id" :class="!a.activo ? 'opacity-50' : ''">
             <td><p class="font-semibold">{{ a.descripcion }}</p><p class="text-xs text-marca-muted">{{ a.emitir_auto ? 'Emite sola' : 'Genera borrador' }} · {{ a.condicion === 'contado' ? 'contado' : 'cta. cte.' }}</p></td>
             <td>{{ a.cliente }}</td>
-            <td class="capitalize">{{ a.frecuencia }} · día {{ a.dia_emision }}<span v-if="a.meses_excluidos.length" class="block text-[10px] text-marca-muted">sin {{ a.meses_excluidos.map(m => meses[m - 1]).join(', ') }}</span></td>
+            <td class="capitalize">{{ a.frecuencia }} · día {{ a.dia_emision }}<span v-if="a.meses_excluidos.length" class="block text-[11px] text-marca-muted">sin {{ a.meses_excluidos.map(m => meses[m - 1]).join(', ') }}</span></td>
             <td class="text-right tabular-nums font-semibold">{{ moneda(a.importe) }}</td>
-            <td class="tabular-nums" :class="a.vence ? 'text-carmin font-semibold' : ''">{{ a.proximo ?? '—' }}<span v-if="a.vence" class="block text-[10px]">vencida</span></td>
+            <td class="tabular-nums" :class="a.vence ? 'text-carmin font-semibold' : ''">{{ a.proximo ?? '—' }}<span v-if="a.vence" class="block text-[11px]">vencida</span></td>
             <td class="text-right tabular-nums">{{ a.emitidos }}<span class="text-xs text-marca-muted"> / cuota {{ a.cuota_actual }}</span></td>
-            <td class="text-right whitespace-nowrap"><button v-if="a.activo && puede('comprobantes','crear')" @click="router.post(`/comprobantes/abonos/${a.id}/emitir`)" class="btn-ghost !px-2 text-xs">Emitir ahora</button><button v-if="puede('comprobantes','crear')" @click="abrir(a)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+            <td class="text-right whitespace-nowrap"><button v-if="a.activo && puede('comprobantes','crear')" @click="router.post(`/comprobantes/abonos/${a.id}/emitir`)" class="btn-ghost !px-2 text-xs">Emitir ahora</button><button v-if="puede('comprobantes','crear')" @click="abrir(a)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
           <tr v-if="!abonos.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Todavía no hay abonos. Creá el primero." /></td></tr>
         </tbody>
@@ -47,7 +47,7 @@
           <input v-model.number="it.cantidad" type="number" step="any" min="0" class="input !py-1 text-xs text-right" />
           <input v-model.number="it.precio_unit" type="number" step="any" min="0" class="input !py-1 text-xs text-right" placeholder="precio neto" />
           <select v-model.number="it.alicuota_iva" class="input !py-1 !px-1 text-xs"><option v-for="a in [0,10.5,21,27]" :key="a" :value="a">{{ a }}%</option></select>
-          <button type="button" @click="form.items.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+          <button type="button" @click="form.items.splice(i,1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
         </div>
         <p class="text-[11px] text-marca-muted">Ejemplo de descripción: "Cuota {cuota} · {periodo}" sale como "Cuota 3 · Octubre 2026". Total con IVA: <b class="tabular-nums">{{ moneda(totalItems) }}</b></p>
         <p v-if="form.errors.items" class="text-carmin text-xs mt-1">{{ form.errors.items }}</p>

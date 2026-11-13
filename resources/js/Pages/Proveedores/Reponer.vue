@@ -19,7 +19,7 @@
               <td><p class="font-semibold">{{ i.nombre }}</p><p class="text-xs text-marca-muted">{{ i.sku }}</p></td>
               <td class="text-right tabular-nums" :class="i.stock <= 0 ? 'text-carmin font-bold' : 'text-amber-600 font-semibold'">{{ cantidad(i.stock) }} {{ i.unidad }}</td>
               <td class="text-right tabular-nums text-marca-muted">{{ i.stock_min ? cantidad(i.stock_min) : '—' }}</td>
-              <td class="text-right tabular-nums font-semibold">{{ i.sugerido !== null ? cantidad(i.sugerido) : '—' }}<p v-if="i.sugerido === null" class="text-[10px] font-normal text-marca-muted">sin mínimo</p></td>
+              <td class="text-right tabular-nums font-semibold">{{ i.sugerido !== null ? cantidad(i.sugerido) : '—' }}<p v-if="i.sugerido === null" class="text-[11px] font-normal text-marca-muted">sin mínimo</p></td>
               <td class="text-right tabular-nums text-marca-muted">{{ moneda(i.costo) }}</td>
             </tr>
           </tbody>

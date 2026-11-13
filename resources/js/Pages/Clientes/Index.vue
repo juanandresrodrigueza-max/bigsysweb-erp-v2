@@ -21,8 +21,8 @@
             <td><span v-if="c.tipo" class="badge text-white" :style="{ background: c.tipo.color || '#6f6a62' }">{{ c.tipo.nombre }}</span></td>
             <td class="text-marca-muted">{{ c.condicion_iva }}</td>
             <td class="text-marca-muted text-xs">{{ c.phone }}<br>{{ c.email }}</td>
-            <td class="text-right tabular-nums font-semibold" :class="c.balance > 0 ? 'text-carmin' : c.balance < 0 ? 'text-emerald-700' : 'text-marca-muted'">{{ moneda(c.balance) }}<p v-if="c.credit_limit > 0" class="text-[10px] font-normal text-marca-muted">límite {{ moneda(c.credit_limit, 0) }}</p></td>
-            <td class="text-right"><button @click.stop="editar(c)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+            <td class="text-right tabular-nums font-semibold" :class="c.balance > 0 ? 'text-carmin' : c.balance < 0 ? 'text-emerald-700' : 'text-marca-muted'">{{ moneda(c.balance) }}<p v-if="c.credit_limit > 0" class="text-[11px] font-normal text-marca-muted">límite {{ moneda(c.credit_limit, 0) }}</p></td>
+            <td class="text-right"><button @click.stop="editar(c)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
           <tr v-if="!lista.data.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Todavía no hay clientes." :filtros="f" :accion="{ label: 'Nuevo cliente', click: () => editar(null) }" /></td></tr>
         </tbody>
@@ -40,7 +40,7 @@
           <tr v-for="t in tipos" :key="t.id">
             <td><span class="inline-block w-2.5 h-2.5 rounded-full mr-2" :style="{ background: t.color || '#6f6a62' }"></span>{{ t.nombre }}</td>
             <td class="text-right">{{ t.lista_precios }}</td><td class="text-right">{{ t.dias_pago }}</td><td class="text-right">{{ t.descuento }}%</td><td class="text-right tabular-nums">{{ moneda(t.limite_credito, 0) }}</td><td class="text-right">{{ t.contacts_count }}</td>
-            <td class="text-right whitespace-nowrap"><button @click="tipoForm.id = t.id; Object.assign(tipoForm, t)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button><button @click="borrarTipo(t)" class="btn-ghost !px-2 text-xs text-carmin"><Icono nombre="trash" clase="w-4 h-4" /></button></td>
+            <td class="text-right whitespace-nowrap"><button @click="tipoForm.id = t.id; Object.assign(tipoForm, t)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button><button @click="borrarTipo(t)" class="btn-ghost !px-2 text-xs text-carmin" title="Eliminar" aria-label="Eliminar"><Icono nombre="trash" clase="w-4 h-4" /></button></td>
           </tr>
         </tbody>
       </table>

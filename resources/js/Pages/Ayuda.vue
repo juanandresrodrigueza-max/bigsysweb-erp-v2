@@ -8,14 +8,14 @@
     <div class="grid lg:grid-cols-4 gap-4">
       <div class="space-y-3">
         <div class="card p-2">
-          <p class="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-widest text-marca-muted">Por sección</p>
+          <p class="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-widest text-marca-muted">Por sección</p>
           <details v-for="a in indice" :key="a.slug" :open="articulo?.slug === a.slug" class="group">
             <summary class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm cursor-pointer hover:bg-marca-fondo list-none" :class="articulo?.slug === a.slug ? 'bg-lavanda-light text-violeta font-semibold' : ''"><Icono nombre="chevron" clase="w-3.5 h-3.5 shrink-0 transition group-open:rotate-180" /><Link :href="`/ayuda/${a.slug}`" class="flex-1 min-w-0 truncate" @click.stop>{{ a.titulo }}</Link></summary>
             <Link v-for="s in a.secciones" :key="s.ancla" :href="`/ayuda/${a.slug}#${s.ancla}`" class="block pl-8 pr-3 py-1 text-xs text-marca-muted hover:text-carmin truncate" @click="irSeccion(a.slug, s)">{{ s.titulo }}</Link>
           </details>
         </div>
         <div v-if="guias.length" class="card p-2">
-          <p class="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-widest text-marca-muted">Guías técnicas</p>
+          <p class="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-widest text-marca-muted">Guías técnicas</p>
           <Link v-for="g in guias" :key="g" :href="`/ayuda/guia/${g}`" class="block px-3 py-1.5 rounded-xl text-sm hover:bg-marca-fondo" :class="articulo?.slug === 'guia-' + g ? 'bg-lavanda-light text-violeta font-semibold' : ''">{{ { arca: 'ARCA y factura electrónica', asistente: 'Asistente con IA', atajos: 'Atajos de teclado', 'mercado-argentino': 'Percepciones, COT, cuotas, Mercado Pago', seguridad: 'Seguridad', api: 'API para desarrolladores' }[g] ?? g }}</Link>
           <a href="/api/docs" target="_blank" class="block px-3 py-1.5 rounded-xl text-sm hover:bg-marca-fondo">Referencia de la API ↗</a>
         </div>

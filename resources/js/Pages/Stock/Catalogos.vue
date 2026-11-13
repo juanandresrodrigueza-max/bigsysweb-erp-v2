@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
         <Link href="/stock" class="text-xs text-marca-muted">← Stock</Link>
-        <h1 class="page-title">Catálogos</h1>
+        <h1 class="page-title">Catálogos</h1><p class="page-subtitle">Listas de precios para compartir con un link, con los colores de tu empresa y lo que elijas mostrar.</p>
         <p class="text-sm text-marca-muted max-w-2xl">Un catálogo con tus artículos, tu logo y tus colores para mandar a los clientes. Cada uno se arma con una lista de precios; si lo mandás a un cliente, ve sus propios precios (su lista, sus pactados y sus descuentos por rubro).</p>
       </div>
       <button v-if="puede('stock', 'editar')" class="btn-primary" @click="nuevo()" data-nuevo-catalogo><Icono nombre="plus" clase="w-4 h-4" /> Nuevo catálogo</button>

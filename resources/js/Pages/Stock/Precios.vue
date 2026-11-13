@@ -97,7 +97,7 @@
               <template v-if="que === 'precios'"><th class="text-right">Antes</th><th class="text-right">Después</th><th class="text-right">Var.</th><th class="text-right">Costo</th></template><th v-else>Cambios</th></tr></thead>
               <tbody><tr v-for="f in prev.filas" :key="f.id" :class="f.alerta ? 'bg-red-50' : ''">
                 <td><input type="checkbox" v-model="f.incluir" /></td>
-                <td>{{ f.nombre }} <span class="text-xs text-marca-muted">{{ f.sku }}</span><span v-if="f.alerta" class="ml-1 badge bg-carmin-light text-carmin text-[10px]">{{ { bajo_costo: 'bajo costo', cero: 'cero', mucho: 'cambia mucho' }[f.alerta] }}</span></td>
+                <td>{{ f.nombre }} <span class="text-xs text-marca-muted">{{ f.sku }}</span><span v-if="f.alerta" class="ml-1 badge bg-carmin-light text-carmin text-[11px]">{{ { bajo_costo: 'bajo costo', cero: 'cero', mucho: 'cambia mucho' }[f.alerta] }}</span></td>
                 <template v-if="que === 'precios'"><td class="text-right tabular-nums">{{ moneda(f.antes) }}</td><td class="text-right tabular-nums font-semibold">{{ moneda(f.despues) }}</td><td class="text-right tabular-nums" :class="f.var > 0 ? 'text-emerald-700' : f.var < 0 ? 'text-carmin' : ''">{{ f.var === null ? '—' : (f.var > 0 ? '+' : '') + f.var + '%' }}</td><td class="text-right tabular-nums text-marca-muted">{{ moneda(f.costo) }}</td></template>
                 <td v-else class="text-xs"><span v-for="(c, k) in f.cambios" :key="k" class="mr-2">{{ campos[k] ?? k }}: <s class="text-marca-muted">{{ c.antes ?? '—' }}</s> → <b>{{ c.despues }}</b></span></td>
               </tr></tbody></table>

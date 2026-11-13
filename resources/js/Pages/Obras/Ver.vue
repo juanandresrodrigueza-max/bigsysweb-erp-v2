@@ -70,7 +70,7 @@
         <div class="sm:col-span-2"><label class="label">Descripción</label><input v-model="pf.descripcion" class="input" :placeholder="pf.tipo === 'mano_obra' ? 'Colocación de cerámicos' : 'Detalle'" /></div>
         <div><label class="label">Cantidad</label><input v-model.number="pf.cantidad" type="number" step="any" min="0" class="input" /></div>
         <div><label class="label">Unidad</label><input v-model="pf.unidad" class="input" :placeholder="pf.tipo === 'mano_obra' ? 'h' : 'un'" /></div>
-        <div><label class="label">Costo unitario</label><input v-model.number="pf.costo_unit" type="number" step="any" min="0" class="input" /><p class="text-[10px] text-marca-muted mt-0.5">{{ pf.tipo === 'material' && pf.product_id ? 'Vacío = costo del artículo' : pf.tipo === 'mano_obra' ? 'Costo hora (básico / 200 × 1,5 por cargas)' : '' }}</p></div>
+        <div><label class="label">Costo unitario</label><input v-model.number="pf.costo_unit" type="number" step="any" min="0" class="input" /><p class="text-[11px] text-marca-muted mt-0.5">{{ pf.tipo === 'material' && pf.product_id ? 'Vacío = costo del artículo' : pf.tipo === 'mano_obra' ? 'Costo hora (básico / 200 × 1,5 por cargas)' : '' }}</p></div>
         <p class="sm:col-span-2 text-sm">Total: <b class="tabular-nums">{{ moneda((pf.cantidad || 0) * (pf.costo_unit || 0)) }}</b></p>
       </div>
       <template #pie><button class="btn-secondary" @click="parteAbierto = false">Cancelar</button><button class="btn-primary" :disabled="pf.processing || !pf.cantidad" @click="pf.post(`/obras/${obra.id}/partes`, { preserveScroll: true, onSuccess: () => { parteAbierto = false; pf.reset('descripcion', 'cantidad', 'costo_unit', 'product_id', 'empleado_id') } })">Cargar</button></template>

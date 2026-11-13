@@ -30,8 +30,8 @@
               <div class="flex-1 rounded-t bg-emerald-500" :style="{ height: (m.ingresos / maxMes * 100) + '%' }" :title="'Ingresos ' + moneda(m.ingresos, 0)"></div>
               <div class="flex-1 rounded-t bg-carmin" :style="{ height: (m.egresos / maxMes * 100) + '%' }" :title="'Egresos ' + moneda(m.egresos, 0)"></div>
             </div>
-            <span class="text-[10px] text-marca-muted uppercase">{{ m.mes }}</span>
-            <span class="text-[10px] font-bold tabular-nums" :class="m.resultado >= 0 ? 'text-emerald-700' : 'text-carmin'">{{ moneda(m.resultado / 1000, 0) }}k</span>
+            <span class="text-[11px] text-marca-muted uppercase">{{ m.mes }}</span>
+            <span class="text-[11px] font-bold tabular-nums" :class="m.resultado >= 0 ? 'text-emerald-700' : 'text-carmin'">{{ moneda(m.resultado / 1000, 0) }}k</span>
           </div>
         </div>
         <p class="text-[11px] text-marca-muted mt-2"><span class="inline-block w-2 h-2 rounded-sm bg-emerald-500"></span> ingresos · <span class="inline-block w-2 h-2 rounded-sm bg-carmin"></span> egresos · abajo el resultado</p>

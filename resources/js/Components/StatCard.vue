@@ -22,7 +22,7 @@ const props = defineProps({
   tendencia: { type: Number, default: null }, anio: { type: Number, default: null }, como: String, invertida: Boolean, url: String, alerta: Boolean,
 })
 const valorFormateado = computed(() => {
-  if (props.formato === 'moneda') return '$ ' + Number(props.valor ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+  if (props.formato === 'moneda') return '$\u00a0' + Number(props.valor ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
   return Number(props.valor ?? 0).toLocaleString('es-AR')
 })
 const positiva = computed(() => props.invertida ? props.tendencia <= 0 : props.tendencia >= 0)

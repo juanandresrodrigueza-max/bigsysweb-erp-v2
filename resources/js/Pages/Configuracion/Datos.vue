@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Copias de seguridad">
-    <h1 class="page-title mb-4">Copias de seguridad</h1>
+    <div class="mb-5"><h1 class="page-title">Copias de seguridad</h1><p class="page-subtitle">Las copias automáticas de tus datos, su verificación y la descarga para guardarlas donde quieras.</p></div>
 
     <div class="grid lg:grid-cols-3 gap-4 mb-4">
       <div class="card">

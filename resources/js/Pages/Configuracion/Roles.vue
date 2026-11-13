@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Roles y permisos">
-    <h1 class="page-title mb-4">Roles y permisos</h1>
+    <div class="mb-5"><h1 class="page-title">Roles y permisos</h1><p class="page-subtitle">Qué puede ver y hacer cada rol en cada módulo. Los roles del sistema vienen armados; podés crear los tuyos.</p></div>
 
     <div class="flex items-center justify-between mb-4">
       <p class="text-sm text-marca-muted">Cada rol define qué módulos ve y qué puede hacer. Los roles del sistema se pueden ajustar pero no borrar.</p>
@@ -20,7 +20,7 @@
         <div class="flex items-center justify-between mt-3 text-sm">
           <span class="text-marca-muted">{{ r.usuarios }} usuario(s)</span>
           <div class="flex gap-1">
-            <button v-if="r.slug !== 'dueno'" @click="abrir(r)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button>
+            <button v-if="r.slug !== 'dueno'" @click="abrir(r)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button>
             <Link v-if="!r.es_sistema" :href="`/configuracion/roles/${r.id}`" method="delete" as="button" class="btn-ghost !px-2 text-xs text-carmin" @click.prevent="confirmarEliminar(r)"><Icono nombre="trash" clase="w-4 h-4" /></Link>
           </div>
         </div>

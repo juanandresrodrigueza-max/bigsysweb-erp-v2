@@ -26,7 +26,7 @@
       <div class="flex items-end gap-[3px] h-28">
         <div v-for="p in serie" :key="p.fecha" class="flex-1 rounded-t bg-violeta-grad min-w-[3px]" :style="{ height: (maxEmp ? p.empresas / maxEmp * 100 : 0) + '%' }" :title="`${p.fecha}: ${p.empresas} empresas · ${p.usuarios} usuarios · ${p.vistas} vistas`"></div>
       </div>
-      <div class="flex justify-between text-[10px] text-marca-muted mt-1"><span>{{ serie[0]?.fecha }}</span><span>{{ serie.at(-1)?.fecha }}</span></div>
+      <div class="flex justify-between text-[11px] text-marca-muted mt-1"><span>{{ serie[0]?.fecha }}</span><span>{{ serie.at(-1)?.fecha }}</span></div>
     </div>
 
     <div class="grid lg:grid-cols-3 gap-4">
