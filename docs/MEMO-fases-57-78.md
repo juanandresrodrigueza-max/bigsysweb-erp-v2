@@ -100,6 +100,7 @@ responde con los permisos de esa persona y audita a su nombre.
   propia del repo; una deploy key sirve para un solo repo, así que el ERP necesita la suya con alias `Host github.com-erp` si se pasa a SSH.
 - El dominio del CRM es **crm.bigsysweb.com**, único. El ERP no lo tiene grabado: cada empresa carga la URL en Configuración → CRM.
 - Bloque Intuitivo (fases 79 a 86, main en `fa38a62` o posterior): `git pull`, `composer install --no-dev`, `npm run build`, `php artisan migrate --force`, `php artisan config:cache`. Las migraciones nuevas sólo cargan siete novedades para la campanita y ponen `tour_visto_en` en null una vez (el tour se vuelve a ofrecer y se saltea con un clic). Ninguna URL cambió.
+- Fases 87 a 91 (empresa BigSys, menú con secciones, Big Restó a la altura de Fudo; main en `dd947da` o posterior): mismos pasos. Después, a mano: en Sistema apretar «Crear» para la empresa BigSysWeb (una sola vez, ya hecho en producción), y en cada local gastronómico cargar las **zonas de entrega** (Big Restó → Delivery → Zonas y repartidores) y la **capacidad por turno** de las reservas (Configuración → Tienda). Los mozos pueden usar el rol «Mozo» y entrar por Big Restó → Mozo de bolsillo.
 
 ## Para probar a mano una vez publicado
 
