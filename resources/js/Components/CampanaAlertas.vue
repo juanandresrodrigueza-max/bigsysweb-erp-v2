@@ -2,7 +2,7 @@
   <div class="relative" ref="root">
     <button @click="abierto = !abierto" class="relative p-2 rounded-full hover:bg-marca-fondo text-marca-texto" aria-label="Alertas">
       <Icono nombre="bell" />
-      <span v-if="alertas.sin_leer" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-carmin text-white text-[10px] font-bold flex items-center justify-center">{{ alertas.sin_leer > 99 ? '99+' : alertas.sin_leer }}</span>
+      <span v-if="alertas.sin_leer" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-carmin text-white text-[11px] font-bold flex items-center justify-center">{{ alertas.sin_leer > 99 ? '99+' : alertas.sin_leer }}</span>
     </button>
     <div v-if="abierto" class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-marca-borde overflow-hidden z-40">
       <div class="px-4 py-2.5 flex items-center justify-between border-b border-marca-borde">

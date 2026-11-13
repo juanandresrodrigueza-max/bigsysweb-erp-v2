@@ -5,7 +5,7 @@
       <div class="absolute rounded-xl transition-all duration-300 pointer-events-none" :style="{ left: caja.x + 'px', top: caja.y + 'px', width: caja.w + 'px', height: caja.h + 'px', boxShadow: '0 0 0 9999px rgba(36,28,54,.62)', border: '2px solid #e4003f' }"></div>
       <div class="absolute inset-0" @click="siguiente"></div>
       <div class="absolute bg-white rounded-2xl shadow-2xl p-4 w-[320px] max-w-[calc(100vw-24px)]" :style="{ left: tip.x + 'px', top: tip.y + 'px' }">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-violeta">Paso {{ i + 1 }} de {{ pasos.length }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-violeta">Paso {{ i + 1 }} de {{ pasos.length }}</p>
         <p class="font-extrabold text-base mt-0.5">{{ paso.titulo }}</p>
         <p class="text-sm text-marca-muted mt-1">{{ paso.texto }}</p>
         <div class="flex items-center gap-2 mt-3">

@@ -34,16 +34,16 @@
             <tbody>
               <tr v-for="i in enCurso.items" :key="i.id" class="cursor-pointer hover:bg-gris-light/40" @click="detalle = i">
                 <td><span class="font-medium">{{ i.empleado }}</span><span class="text-xs text-marca-muted"> · leg. {{ i.legajo }}</span></td><td class="text-right tabular-nums">{{ i.dias }}</td><td class="text-right tabular-nums">{{ moneda(i.bruto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(i.no_rem, 0) }}</td><td class="text-right tabular-nums text-carmin">{{ moneda(i.deducciones + i.anticipos, 0) }}</td><td class="text-right tabular-nums font-bold">{{ moneda(i.neto, 0) }}</td><td class="text-right tabular-nums text-marca-muted">{{ moneda(i.contribuciones, 0) }}</td>
-                <td class="text-right whitespace-nowrap"><span v-if="i.firma" class="badge !text-[10px] mr-1" :class="{ firmado: 'bg-emerald-50 text-emerald-700', disconforme: 'bg-carmin-light text-carmin', visto: 'bg-amber-50 text-amber-700', enviado: 'bg-gris-light text-marca-muted' }[i.firma]">{{ { firmado: 'firmado', disconforme: 'firmó disconforme', visto: 'lo vio', enviado: 'enviado' }[i.firma] }}</span><a :href="`/sueldos/${enCurso.id}/recibo/${i.id}`" target="_blank" class="text-xs text-violeta font-semibold" @click.stop>Recibo</a></td>
+                <td class="text-right whitespace-nowrap"><span v-if="i.firma" class="badge !text-[11px] mr-1" :class="{ firmado: 'bg-emerald-50 text-emerald-700', disconforme: 'bg-carmin-light text-carmin', visto: 'bg-amber-50 text-amber-700', enviado: 'bg-gris-light text-marca-muted' }[i.firma]">{{ { firmado: 'firmado', disconforme: 'firmó disconforme', visto: 'lo vio', enviado: 'enviado' }[i.firma] }}</span><a :href="`/sueldos/${enCurso.id}/recibo/${i.id}`" target="_blank" class="text-xs text-violeta font-semibold" @click.stop>Recibo</a></td>
               </tr>
             </tbody>
             <tfoot><tr class="font-bold bg-gris-light/50"><td>Totales</td><td></td><td class="text-right tabular-nums">{{ moneda(enCurso.bruto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.no_rem, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.deducciones, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.neto, 0) }}</td><td class="text-right tabular-nums">{{ moneda(enCurso.contribuciones, 0) }}</td><td></td></tr></tfoot>
           </table>
           <div class="flex flex-wrap items-end gap-2 px-4 py-3 border-t border-marca-borde text-xs" data-e2e="deposito">
             <span class="font-semibold text-marca-muted w-full sm:w-auto sm:mr-2">Último depósito de aportes (sale en el recibo)</span>
-            <div><label class="label !text-[10px]">Fecha</label><input v-model="dep.deposito_fecha" type="date" class="input !py-1" /></div>
-            <div><label class="label !text-[10px]">Banco</label><input v-model="dep.deposito_banco" class="input !py-1 !w-36" placeholder="BCO.REGIONAL" /></div>
-            <div><label class="label !text-[10px]">Mes</label><input v-model="dep.deposito_periodo" type="month" class="input !py-1" /></div>
+            <div><label class="label !text-[11px]">Fecha</label><input v-model="dep.deposito_fecha" type="date" class="input !py-1" /></div>
+            <div><label class="label !text-[11px]">Banco</label><input v-model="dep.deposito_banco" class="input !py-1 !w-36" placeholder="BCO.REGIONAL" /></div>
+            <div><label class="label !text-[11px]">Mes</label><input v-model="dep.deposito_periodo" type="month" class="input !py-1" /></div>
             <button class="btn-secondary !py-1 text-xs" :disabled="dep.processing" @click="dep.post(`/sueldos/${enCurso.id}/deposito`, { preserveScroll: true })">Guardar</button>
           </div>
           <p v-if="enCurso.notas" class="px-4 py-2 text-xs text-marca-muted border-t border-marca-borde">{{ enCurso.notas }}</p>
@@ -242,7 +242,7 @@
     <Modal :abierto="!!detalle" :titulo="detalle?.empleado" @cerrar="detalle = null">
       <table v-if="detalle" class="table text-sm">
         <tbody>
-          <tr v-for="(d, i) in detalle.detalle" :key="i"><td><span class="font-mono text-xs text-marca-muted mr-1">{{ d.codigo }}</span>{{ d.nombre }}<span v-if="d.cantidad != null" class="text-xs text-marca-muted"> · {{ d.cantidad }}</span></td><td class="text-right tabular-nums" :class="{ 'text-carmin': d.tipo === 'deduccion', 'text-marca-muted': d.tipo === 'contribucion' }">{{ d.tipo === 'deduccion' ? '−' : '' }}{{ moneda(d.monto) }}<span v-if="d.tipo === 'contribucion'" class="text-[10px] ml-1">(patronal)</span></td></tr>
+          <tr v-for="(d, i) in detalle.detalle" :key="i"><td><span class="font-mono text-xs text-marca-muted mr-1">{{ d.codigo }}</span>{{ d.nombre }}<span v-if="d.cantidad != null" class="text-xs text-marca-muted"> · {{ d.cantidad }}</span></td><td class="text-right tabular-nums" :class="{ 'text-carmin': d.tipo === 'deduccion', 'text-marca-muted': d.tipo === 'contribucion' }">{{ d.tipo === 'deduccion' ? '−' : '' }}{{ moneda(d.monto) }}<span v-if="d.tipo === 'contribucion'" class="text-[11px] ml-1">(patronal)</span></td></tr>
           <tr class="font-extrabold"><td>Neto</td><td class="text-right tabular-nums">{{ moneda(detalle.neto) }}</td></tr>
         </tbody>
       </table>

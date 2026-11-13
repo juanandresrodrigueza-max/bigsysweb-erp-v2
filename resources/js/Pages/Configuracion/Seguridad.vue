@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Seguridad y API">
-    <h1 class="page-title mb-4">Seguridad y API</h1>
+    <div class="mb-5"><h1 class="page-title">Seguridad y API</h1><p class="page-subtitle">Doble factor, sesiones abiertas, claves de API y la llave de sólo lectura para integraciones.</p></div>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card">

@@ -66,7 +66,7 @@
         </ul>
         <div class="overflow-x-auto">
           <table class="w-full text-xs" data-e2e="cot-tabla">
-            <thead><tr class="text-left text-marca-muted"><th class="py-1 pr-2">Artículo</th><th class="py-1 pr-2 text-right">Cant.</th><th v-for="p in cot.comparacion.proveedores" :key="p.i" class="py-1 px-2 text-right">{{ p.proveedor }}<span v-if="!p.proveedor_id" class="block text-[10px] font-normal text-carmin">sin ficha</span></th><th class="py-1 pl-2">Comprar a</th></tr></thead>
+            <thead><tr class="text-left text-marca-muted"><th class="py-1 pr-2">Artículo</th><th class="py-1 pr-2 text-right">Cant.</th><th v-for="p in cot.comparacion.proveedores" :key="p.i" class="py-1 px-2 text-right">{{ p.proveedor }}<span v-if="!p.proveedor_id" class="block text-[11px] font-normal text-carmin">sin ficha</span></th><th class="py-1 pl-2">Comprar a</th></tr></thead>
             <tbody>
               <tr v-for="f in cot.comparacion.filas" :key="f.clave" class="border-t border-marca-borde/60">
                 <td class="py-1 pr-2">{{ f.descripcion }}<span v-if="!f.product_id" class="text-marca-muted"> · no está en el stock</span></td>

@@ -61,7 +61,7 @@
               <input v-if="it.seriado" v-model="it.serie" class="input !py-0.5 mt-0.5 text-[11px] font-mono" :class="(it.serie || '').split(',').filter(x => x.trim()).length !== Math.round(it.cantidad) ? 'border-amber-400' : ''" placeholder="Serie(s), separadas por coma" data-e2e="pos-serie" /></div>
             <div class="flex items-center gap-1"><button @click="it.cantidad = Math.max(0, it.cantidad - 1); if (!it.cantidad) ticket.splice(i, 1)" class="w-7 h-7 rounded-lg bg-marca-fondo font-bold">−</button><input v-model.number="it.cantidad" type="number" step="any" min="0" class="input !py-1 w-16 text-center tabular-nums" /><button @click="it.cantidad++" class="w-7 h-7 rounded-lg bg-marca-fondo font-bold">+</button></div>
             <span class="w-24 text-right font-semibold tabular-nums">{{ moneda(it.cantidad * it.precio_unit * (1 - it.descuento / 100)) }}</span>
-            <button @click="ticket.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+            <button @click="ticket.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
           </div>
           <p v-if="!ticket.length" class="text-center text-marca-muted text-sm py-16">Ticket vacío. Escaneá o tocá un artículo.</p>
         </div>
@@ -87,7 +87,7 @@
         <div class="grid grid-cols-[1fr_130px_28px] gap-2">
           <select v-model="m.medio" class="input"><option v-for="(l, k) in mediosLabels" :key="k" :value="k">{{ l }}</option></select>
           <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right text-lg font-bold tabular-nums" @keydown.enter.prevent="cobrar" ref="montoInputs" />
-          <button @click="medios.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+          <button @click="medios.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
         </div>
         <div v-if="m.medio === 'tarjeta' && planesCuotas.length" class="grid grid-cols-2 gap-2 mt-1">
           <select v-model="m.datos.tarjeta" class="input !py-1 text-xs" @change="m.datos.cuotas = 1; aplicarCuotas(m)"><option v-for="t in planesCuotas" :key="t.nombre" :value="t.nombre">{{ t.nombre }}</option></select>

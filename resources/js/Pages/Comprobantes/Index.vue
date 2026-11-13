@@ -21,8 +21,8 @@
       <input v-model="f.hasta" @change="filtrar" type="date" class="input" />
     </div>
 
-    <div class="grid grid-cols-3 gap-3 mb-4">
-      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Comprobantes</p><p class="text-xl font-extrabold tabular-nums">{{ entero(resumen.cantidad) }}</p></div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+      <div class="card py-3 col-span-2 sm:col-span-1"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Comprobantes</p><p class="text-xl font-extrabold tabular-nums">{{ entero(resumen.cantidad) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Total emitido</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(resumen.total, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Saldo por cobrar</p><p class="text-xl font-extrabold tabular-nums" :class="resumen.saldo > 0 ? 'text-carmin' : ''">{{ moneda(resumen.saldo, 0) }}</p></div>
     </div>

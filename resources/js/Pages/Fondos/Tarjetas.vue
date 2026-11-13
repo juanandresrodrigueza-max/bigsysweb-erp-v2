@@ -26,7 +26,7 @@
           <tbody>
             <tr v-for="c in cupones" :key="c.id">
               <td v-if="!filtros.estado"><input v-model="seleccion" :value="c.id" type="checkbox" class="accent-carmin" /></td>
-              <td class="tabular-nums text-marca-muted">{{ c.fecha }}<span v-if="c.estado === 'cartera' && c.dias > 20" class="block text-[10px] text-amber-700">{{ c.dias }} días</span></td>
+              <td class="tabular-nums text-marca-muted">{{ c.fecha }}<span v-if="c.estado === 'cartera' && c.dias > 20" class="block text-[11px] text-amber-700">{{ c.dias }} días</span></td>
               <td class="font-medium">{{ c.tarjeta }}</td>
               <td class="tabular-nums text-xs">{{ c.numero ?? '—' }}<span v-if="c.lote" class="text-marca-muted"> · lote {{ c.lote }}</span></td>
               <td>{{ c.cliente }}<Link v-if="c.cobro_id" :href="`/clientes/cobros/${c.cobro_id}/imprimir`" class="block text-xs text-violeta">{{ c.recibo }}</Link></td>

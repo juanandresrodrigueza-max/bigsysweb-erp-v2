@@ -84,7 +84,7 @@
         <div v-if="serie.length" class="h-48 flex items-stretch gap-1">
           <div v-for="(d, i) in serie" :key="d.fecha" class="flex-1 flex flex-col justify-end items-center gap-1 group min-w-0" :title="`${d.label}: ${moneda(d.monto)}`">
             <div class="w-full rounded-t-lg transition group-hover:opacity-80" style="background: linear-gradient(180deg, #e4003f 0%, #a42785 100%)" :style="{ height: `${Math.max(3, d.monto / maxSerie * 100)}%` }"></div>
-            <span class="text-[9px] text-marca-muted h-3 leading-3">{{ serie.length <= 16 || i % 3 === 0 ? d.label : '' }}</span>
+            <span class="text-[11px] text-marca-muted h-3 leading-3 whitespace-nowrap"><span :class="serie.length > 6 && i % 3 !== 0 ? 'hidden sm:inline' : ''">{{ serie.length <= 16 || i % 3 === 0 ? d.label : '' }}</span></span>
           </div>
         </div>
         <p v-else class="text-sm text-marca-muted py-12 text-center">Sin ventas en este período.</p>
@@ -185,6 +185,6 @@ const periodos = [{ key: 'hoy', label: 'Hoy' }, { key: 'semana', label: 'Semana'
 const etiquetaPeriodo = computed(() => ({ hoy: 'hoy', semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este año' }[props.periodo]))
 const maxSerie = computed(() => Math.max(1, ...props.serie.map(d => d.monto)))
 const totalSerie = computed(() => props.serie.reduce((a, d) => a + d.monto, 0))
-const moneda = n => '$ ' + Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+const moneda = n => '$\u00a0' + Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
 function cambiar(p) { router.get('/dashboard', { periodo: p }, { preserveState: true, preserveScroll: true, replace: true }) }
 </script>

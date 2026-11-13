@@ -12,7 +12,7 @@
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Turnos cerrados</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.turnos }}</p><p class="text-xs text-marca-muted">{{ kpis.promedio_horas }} h promedio</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Con diferencia</p><p class="text-xl font-extrabold tabular-nums" :class="kpis.con_diferencia ? 'text-carmin' : 'text-emerald-700'">{{ kpis.con_diferencia }}</p><p class="text-xs text-marca-muted">{{ kpis.turnos ? Math.round(kpis.con_diferencia / kpis.turnos * 100) : 0 }}% de los turnos</p></div>
-      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Faltantes</p><p class="text-xl font-extrabold tabular-nums text-carmin">{{ moneda(kpis.faltantes, 0) }}</p></div>
+      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Faltantes</p><p class="text-xl font-extrabold tabular-nums text-carmin">{{ moneda(Math.abs(kpis.faltantes), 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Sobrantes</p><p class="text-xl font-extrabold tabular-nums text-emerald-700">{{ moneda(kpis.sobrantes, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Cobrado en caja</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.cobros, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Abiertos ahora</p><p class="text-xl font-extrabold tabular-nums" :class="abiertos.some(a => a.largo) ? 'text-amber-600' : ''">{{ kpis.abiertos }}</p></div>
@@ -45,7 +45,7 @@
           <rect v-for="(d, i) in porDia" :key="i" :x="x(i)" :width="bw" :y="Math.min(y(0), y(d.diferencia))" :height="Math.max(1, Math.abs(y(d.diferencia) - y(0)))" :fill="d.diferencia < 0 ? '#e4003f' : '#1f9d5b'" rx="2"><title>{{ d.fecha }}: {{ moneda(d.diferencia) }} · {{ d.turnos }} turnos</title></rect>
         </svg>
         <p v-else class="text-sm text-marca-muted py-8 text-center">Sin cierres en el período.</p>
-        <div class="flex justify-between text-[10px] text-marca-muted tabular-nums"><span>{{ porDia[0]?.fecha }}</span><span>{{ porDia[porDia.length - 1]?.fecha }}</span></div>
+        <div class="flex justify-between text-[11px] text-marca-muted tabular-nums"><span>{{ porDia[0]?.fecha }}</span><span>{{ porDia[porDia.length - 1]?.fecha }}</span></div>
       </div>
       <div class="card p-0 overflow-hidden">
         <div class="px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Por cajero</h2><p class="text-xs text-marca-muted">Ordenado del que más falta al que más sobra</p></div>

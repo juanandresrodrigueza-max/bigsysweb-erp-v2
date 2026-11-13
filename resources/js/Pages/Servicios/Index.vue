@@ -21,12 +21,12 @@
     <div v-if="para_revisar.length" class="card mb-4 border-amber-300" data-e2e="para-revisar"><h2 class="font-bold text-sm mb-1">Para revisar <span class="badge bg-amber-50 text-amber-700">{{ para_revisar.length }}</span></h2>
       <Link v-for="r in para_revisar.slice(0, 8)" :key="r.id" :href="`/servicios/${r.id}`" class="flex justify-between text-sm py-0.5 border-t border-marca-borde"><span><b>{{ r.numero }}</b> · {{ r.equipo }} · {{ r.cliente }}</span><span class="text-amber-700 text-xs">{{ r.motivo }}</span></Link></div>
     <div class="overflow-x-auto pb-2">
-      <div class="grid gap-3 min-w-[1100px]" style="grid-template-columns: repeat(7, minmax(0, 1fr))">
+      <div class="grid gap-3 min-w-[1540px]" style="grid-template-columns: repeat(7, minmax(0, 1fr))">
         <div v-for="k in columnas" :key="k" class="rounded-2xl bg-gris-light/60 p-2 min-h-[300px]">
           <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted px-1 mb-2">{{ estados[k] }} <span class="text-marca-texto">{{ (tablero[k] || []).length }}</span></p>
           <div class="space-y-2">
             <Link v-for="o in tablero[k] || []" :key="o.id" :href="`/servicios/${o.id}`" class="block bg-white rounded-xl border p-2.5 text-xs hover:shadow transition" :class="o.prioridad === 'alta' ? 'border-carmin/50' : o.atrasada ? 'border-amber-300' : 'border-marca-borde'">
-              <div class="flex justify-between items-start"><b class="tabular-nums">{{ o.numero }}</b><span v-if="o.prioridad === 'alta'" class="badge bg-red-50 text-carmin !text-[10px]">Urgente</span><span v-else-if="o.atrasada" class="badge bg-amber-50 text-amber-700 !text-[10px]">Atrasada</span></div>
+              <div class="flex justify-between items-start"><b class="tabular-nums">{{ o.numero }}</b><span v-if="o.prioridad === 'alta'" class="badge bg-red-50 text-carmin !text-[11px]">Urgente</span><span v-else-if="o.atrasada" class="badge bg-amber-50 text-amber-700 !text-[11px]">Atrasada</span></div>
               <p class="font-semibold mt-1 truncate">{{ o.equipo }}<span v-if="o.marca_modelo" class="font-normal text-marca-muted"> · {{ o.marca_modelo }}</span></p>
               <p class="truncate">{{ o.cliente }}</p>
               <p class="text-marca-muted truncate">{{ o.falla }}</p>

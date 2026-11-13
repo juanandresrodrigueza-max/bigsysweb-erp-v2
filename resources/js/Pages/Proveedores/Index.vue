@@ -22,7 +22,7 @@
             <td class="text-marca-muted">{{ c.dias_pago ? c.dias_pago + ' días' : 'Contado' }}</td>
             <td class="text-marca-muted text-xs">{{ c.phone }}<br>{{ c.email }}</td>
             <td class="text-right tabular-nums font-semibold" :class="c.balance > 0 ? 'text-carmin' : c.balance < 0 ? 'text-emerald-700' : 'text-marca-muted'">{{ moneda(c.balance) }}</td>
-            <td class="text-right"><button @click.stop="editar(c)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+            <td class="text-right"><button @click.stop="editar(c)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
           <tr v-if="!lista.data.length"><td colspan="6" class="!py-0"><EstadoVacio texto="Todavía no hay proveedores." :filtros="f" :accion="puede('proveedores','crear') ? { label: 'Nuevo proveedor', click: () => editar(null) } : null" /></td></tr>
         </tbody>

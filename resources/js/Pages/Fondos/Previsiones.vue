@@ -24,7 +24,7 @@
           <div class="rounded-b bg-carmin/80" :style="{ height: (maxMes ? m.egresos / maxMes * 100 : 0) + '%' }"></div>
         </div>
       </div>
-      <div class="flex justify-between text-[10px] text-marca-muted mt-1"><span v-for="m in calendario" :key="m.label" class="flex-1 text-center truncate">{{ m.label }}</span></div>
+      <div class="flex justify-between text-[11px] text-marca-muted mt-1"><span v-for="m in calendario" :key="m.label" class="flex-1 text-center truncate">{{ m.label }}</span></div>
     </div>
 
     <div class="card p-0 overflow-x-auto">

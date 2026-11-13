@@ -23,7 +23,7 @@
         <p v-if="res.sin_codigo" class="text-xs text-amber-700" data-e2e="sin-codigo">{{ res.sin_codigo }}</p>
         <div class="card p-0 overflow-hidden">
           <div v-for="(p, i) in res.items" :key="p.id" class="flex items-center gap-3 px-3 py-2 border-b border-marca-borde/60 cursor-pointer" :class="i === sel ? 'bg-violeta/5' : 'hover:bg-gris-light/60'" :data-e2e="`res-${p.id}`" @click="abrir(p)">
-            <img v-if="p.imagen" :src="p.imagen" class="w-10 h-10 rounded-lg object-cover bg-gris-light shrink-0" /><div v-else class="w-10 h-10 rounded-lg bg-gris-light shrink-0 grid place-items-center text-[10px] text-marca-muted">sin foto</div>
+            <img v-if="p.imagen" :src="p.imagen" class="w-10 h-10 rounded-lg object-cover bg-gris-light shrink-0" /><div v-else class="w-10 h-10 rounded-lg bg-gris-light shrink-0 grid place-items-center text-[11px] text-marca-muted">sin foto</div>
             <div class="flex-1 min-w-0"><p class="font-semibold truncate">{{ p.nombre }} <span v-if="p.discontinuado" class="badge bg-gris-light text-marca-muted">discontinuado</span></p><p class="text-xs text-marca-muted">{{ p.sku }}<span v-if="p.barcode"> · {{ p.barcode }}</span> · stock <b :class="p.controla && p.stock <= 0 ? 'text-carmin' : ''">{{ cantidad(p.stock) }} {{ p.unit }}</b><span v-if="p.promo"> · llevando {{ cantidad(p.promo.min) }} o más, {{ p.promo.pct }}% menos</span></p></div>
             <div class="text-right shrink-0">
               <template v-if="lista === 0"><p class="font-extrabold tabular-nums">{{ p.costo != null ? moneda(p.costo) : 'sin costo' }}</p><p class="text-xs" :class="margenClase(p.margen)">{{ p.margen != null ? 'margen ' + p.margen + '%' : '' }}</p></template>
@@ -43,7 +43,7 @@
               <div class="flex-1 min-w-0"><p class="font-medium truncate">{{ it.nombre }}</p><p class="text-xs text-marca-muted tabular-nums">{{ moneda(it.precio) }} {{ it.unit ? 'por ' + it.unit : 'c/u' }}</p></div>
               <input v-model.number="it.cantidad" type="number" step="any" min="0" class="input !py-1 w-20 text-right" @change="guardarSim" />
               <span class="w-24 text-right font-semibold tabular-nums">{{ moneda(it.cantidad * it.precio) }}</span>
-              <button class="text-marca-muted hover:text-carmin" @click="sim.splice(i, 1); guardarSim()"><Icono nombre="x" clase="w-4 h-4" /></button>
+              <button class="text-marca-muted hover:text-carmin" @click="sim.splice(i, 1); guardarSim()" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
             <p v-if="!sim.length" class="text-center text-sm text-marca-muted py-8">Pasá un código y Enter: entra uno. Escribí un número y Enter: es la cantidad del último.</p>
           </div>
@@ -72,7 +72,7 @@
             <div class="flex items-center gap-2 mt-3"><span class="text-xs text-marca-muted">Cantidad</span><input ref="cantInput" v-model.number="cantFicha" type="number" step="any" min="0.001" class="input !py-1 w-24 text-right" @keydown.enter.prevent="agregarFicha" /><button class="btn-primary !py-1" data-e2e="al-simulador" @click="agregarFicha">Al simulador · Enter</button></div>
           </div>
         </div>
-        <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mt-4"><div v-for="(v, l) in ficha.precios" :key="l" class="rounded-lg border p-1.5 text-center" :class="Number(l) === lista ? 'border-violeta bg-violeta/5' : 'border-marca-borde'"><p class="text-[10px] text-marca-muted">Lista {{ l }}</p><p class="font-bold tabular-nums text-xs">{{ moneda(v) }}</p></div></div>
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mt-4"><div v-for="(v, l) in ficha.precios" :key="l" class="rounded-lg border p-1.5 text-center" :class="Number(l) === lista ? 'border-violeta bg-violeta/5' : 'border-marca-borde'"><p class="text-[11px] text-marca-muted">Lista {{ l }}</p><p class="font-bold tabular-nums text-xs">{{ moneda(v) }}</p></div></div>
         <div class="grid sm:grid-cols-2 gap-3 mt-4">
           <div><p class="text-xs font-bold uppercase tracking-widest text-marca-muted">Stock</p><p class="font-bold" :class="ficha.controla && ficha.stock <= 0 ? 'text-carmin' : ''">{{ cantidad(ficha.stock) }} {{ ficha.unit }}</p><p v-for="d in ficha.depositos" :key="d.deposito" class="text-xs text-marca-muted">{{ d.deposito }}: {{ cantidad(d.cantidad) }}</p><p v-if="ficha.ultima_venta" class="text-xs text-marca-muted">última venta {{ ficha.ultima_venta }}</p></div>
           <div v-if="veCostos" data-e2e="costo"><p class="text-xs font-bold uppercase tracking-widest text-marca-muted">Costo y margen</p><p class="font-bold tabular-nums">{{ ficha.costo != null ? moneda(ficha.costo) : 'Sin costo cargado' }}</p><p v-if="ficha.margen != null" class="text-xs" :class="margenClase(ficha.margen)">margen {{ ficha.margen }}% sobre {{ ficha.cliente ? 'el precio del cliente' : 'la lista ' + lista }}</p></div>

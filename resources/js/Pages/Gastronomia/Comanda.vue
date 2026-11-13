@@ -44,7 +44,7 @@
           <button v-for="p in visibles" :key="p.id" @click="pedir(p)" :data-plato="p.id" class="card !p-3 text-left hover:border-carmin/50 active:scale-[0.98] transition relative">
             <span class="absolute top-2 right-2 w-2 h-2 rounded-full" :style="{ background: p.color || '#d6d1ca' }"></span>
             <p class="font-semibold text-sm leading-tight line-clamp-2 min-h-[2.4em]">{{ p.name }}</p>
-            <p class="text-lg font-extrabold tabular-nums mt-1">{{ moneda(p.price, 0) }}</p><p v-if="p.hh" class="text-[10px] font-bold text-carmin">{{ p.hh }}</p>
+            <p class="text-lg font-extrabold tabular-nums mt-1">{{ moneda(p.price, 0) }}</p><p v-if="p.hh" class="text-[11px] font-bold text-carmin">{{ p.hh }}</p>
             <p class="text-[11px] text-marca-muted">{{ p.va_cocina ? 'cocina' : 'directo' }}</p>
           </button>
         </div>
@@ -54,7 +54,7 @@
         <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">Comanda</h2><span class="text-xs text-marca-muted">{{ comanda.items.length }} ítems</span></div>
         <div class="flex-1 overflow-y-auto max-h-[60vh]">
           <template v-for="ronda in rondas" :key="ronda">
-            <p class="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-marca-muted">Pedido {{ ronda }}</p>
+            <p class="px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-widest text-marca-muted">Pedido {{ ronda }}</p>
             <div v-for="it in comanda.items.filter(i => i.ronda === ronda)" :key="it.id" class="flex items-center gap-2 px-4 py-2 border-b border-marca-borde/60 text-sm" :class="it.estado === 'anulado' ? 'opacity-40 line-through' : ''">
               <span class="w-8 text-right font-bold tabular-nums">{{ cantidad(it.cantidad) }}×</span>
               <div class="flex-1 min-w-0">
@@ -142,7 +142,7 @@
       <div v-for="(m, i) in cierre.medios" :key="i" class="grid grid-cols-[1fr_130px_28px] gap-2 mb-2">
         <select v-model="m.medio" class="input"><option v-for="(l, k) in medios" :key="k" :value="k">{{ l }}</option></select>
         <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right font-bold tabular-nums" />
-        <button @click="cierre.medios.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+        <button @click="cierre.medios.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
       </div>
       <button @click="cierre.medios.push({ medio: 'tarjeta', monto: 0 })" class="btn-ghost !px-2 text-xs">+ Otro medio de pago</button>
       <div class="mt-3 flex justify-between text-sm" :class="pagado >= totalCobrar + (cierre.propina || 0) - 0.005 ? 'text-emerald-700' : 'text-carmin'"><span>Pagado {{ moneda(pagado) }}</span><b>{{ pagado >= totalCobrar + (cierre.propina || 0) ? 'Vuelto ' + moneda(pagado - totalCobrar - (cierre.propina || 0)) : 'Falta ' + moneda(totalCobrar + (cierre.propina || 0) - pagado) }}</b></div>
@@ -152,7 +152,7 @@
     <!-- Fase 90: barra del pulgar en el celular: total, enviar y cobrar siempre a mano. -->
     <div v-if="abierta && puede('gastronomia','crear')" class="lg:hidden fixed bottom-16 inset-x-0 z-30 pl-3 pr-[80px] pointer-events-none" data-e2e="barra-mozo">
       <div class="pointer-events-auto mx-auto max-w-lg rounded-2xl bg-marca-texto text-white shadow-xl flex items-center gap-2 p-2 pl-4">
-        <div class="flex-1 min-w-0 leading-tight"><p class="text-[10px] uppercase tracking-widest opacity-70">{{ comanda.items.length }} ítem{{ comanda.items.length === 1 ? '' : 's' }}</p><p class="font-black tabular-nums text-lg">{{ moneda(comanda.total, 0) }}</p></div>
+        <div class="flex-1 min-w-0 leading-tight"><p class="text-[11px] uppercase tracking-widest opacity-70">{{ comanda.items.length }} ítem{{ comanda.items.length === 1 ? '' : 's' }}</p><p class="font-black tabular-nums text-lg">{{ moneda(comanda.total, 0) }}</p></div>
         <Link v-if="comanda.pendientes_envio" :href="`/gastronomia/comandas/${comanda.id}/enviar`" method="post" as="button" preserve-scroll class="btn-violeta !py-2.5 !px-3 text-sm" data-e2e="enviar-movil">Enviar ({{ comanda.pendientes_envio }})</Link>
         <Link v-else-if="comanda.estado === 'abierta' && comanda.items.length" :href="`/gastronomia/comandas/${comanda.id}/cuenta`" method="post" as="button" preserve-scroll class="btn-secondary !py-2.5 !px-3 text-sm !bg-white/10 !text-white !border-white/20">Cuenta</Link>
         <button class="btn-primary !py-2.5 !px-3 text-sm" :disabled="!comanda.items.length" @click="abrirCierre" data-e2e="cobrar-movil">Cobrar</button>

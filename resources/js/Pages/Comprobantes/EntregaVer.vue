@@ -50,7 +50,7 @@
             <td><p class="font-semibold">{{ i.cliente }}</p><p class="text-xs text-marca-muted">{{ i.direccion ?? 'sin dirección' }}<span v-if="i.telefono"> · {{ i.telefono }}</span><span v-if="!i.con_ubicacion" class="text-amber-700"> · sin ubicación</span></p><button v-if="i.seguimiento" class="text-[11px] text-violeta" @click="copiar(i.seguimiento)">copiar link del cliente</button><p v-if="i.recibio" class="text-[11px] text-emerald-700">recibió {{ i.recibio }}</p><p v-if="i.motivo" class="text-[11px] text-carmin">{{ i.motivo }}</p></td>
             <td><Link v-if="i.comprobante_id" :href="`/comprobantes/${i.comprobante_id}`" class="hover:text-carmin">{{ i.comprobante }}</Link><span v-else>{{ i.comprobante }}</span></td>
             <td class="text-xs max-w-xs">{{ i.lleva?.length ? i.lleva.map(l => l.cantidad + ' ' + l.descripcion).join(' · ') : i.detalle }}</td>
-            <td class="text-right tabular-nums">{{ i.saldo > 0 ? moneda(i.saldo) : '—' }}<p v-if="i.saldo_cliente > i.saldo + 0.01" class="text-[10px] text-marca-muted">debe {{ moneda(i.saldo_cliente, 0) }} en total</p></td>
+            <td class="text-right tabular-nums">{{ i.saldo > 0 ? moneda(i.saldo) : '—' }}<p v-if="i.saldo_cliente > i.saldo + 0.01" class="text-[11px] text-marca-muted">debe {{ moneda(i.saldo_cliente, 0) }} en total</p></td>
             <td class="text-xs">
               <p v-for="c in i.cobros" :key="c.id" class="flex items-center gap-1 whitespace-nowrap">{{ medios[c.medio] }} <b class="tabular-nums">{{ moneda(c.monto) }}</b><span v-if="c.datos?.numero" class="text-marca-muted">· ch. {{ c.datos.numero }}</span><span v-if="c.recibo" class="text-emerald-700">· {{ c.recibo }}</span><button v-else-if="!rendicion && puede('comprobantes','editar')" type="button" class="text-marca-muted hover:text-carmin" title="Quitar" @click="router.delete(`/comprobantes/entregas/cobros/${c.id}`, { preserveScroll: true })">✕</button></p>
               <button v-if="!rendicion && orden.estado !== 'cancelada' && puede('comprobantes','editar')" type="button" class="text-violeta font-semibold" @click="abrirCobro(i)" data-anotar-cobro>+ Cobro</button>
@@ -60,7 +60,7 @@
                 <button @click="marcar(i, 'entregado')" class="btn-primary !py-1 text-xs" data-entregado>Entregado</button>
                 <button @click="noEntregado = i; obs = ''" class="btn-ghost !py-1 text-xs text-carmin">No se pudo</button>
               </div>
-              <span v-else class="badge" :class="i.estado === 'entregado' ? 'bg-emerald-50 text-emerald-700' : 'bg-carmin-light text-carmin'">{{ i.estado === 'entregado' ? 'Entregado' : 'No entregado' }}<span v-if="i.observacion" class="block text-[10px] font-normal">{{ i.observacion }}</span></span>
+              <span v-else class="badge" :class="i.estado === 'entregado' ? 'bg-emerald-50 text-emerald-700' : 'bg-carmin-light text-carmin'">{{ i.estado === 'entregado' ? 'Entregado' : 'No entregado' }}<span v-if="i.observacion" class="block text-[11px] font-normal">{{ i.observacion }}</span></span>
             </td>
           </tr>
         </tbody>

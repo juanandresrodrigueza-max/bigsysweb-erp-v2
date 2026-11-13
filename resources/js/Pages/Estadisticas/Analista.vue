@@ -37,7 +37,7 @@
           <Link v-for="(h, i) in ordenados" :key="i" :href="h.url || '/estadisticas'" class="flex gap-3 px-4 py-3 border-b border-marca-borde last:border-0 hover:bg-gris-light/50 transition">
             <span class="mt-0.5 h-2.5 w-2.5 rounded-full shrink-0" :class="{ 'bg-carmin': h.sev === 'critica', 'bg-amber-400': h.sev === 'aviso', 'bg-violeta': h.sev === 'info', 'bg-emerald-500': h.sev === 'ok' }"></span>
             <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-2"><p class="font-semibold text-sm">{{ h.titulo }}</p><span class="badge bg-gris-light text-marca-muted text-[10px] uppercase">{{ h.cat }}</span></div>
+              <div class="flex flex-wrap items-center gap-2"><p class="font-semibold text-sm">{{ h.titulo }}</p><span class="badge bg-gris-light text-marca-muted text-[11px] uppercase">{{ h.cat }}</span></div>
               <p class="text-xs text-marca-muted mt-0.5">{{ h.detalle }}</p>
             </div>
             <span v-if="h.impacto" class="text-sm font-bold tabular-nums shrink-0">{{ moneda(h.impacto, 0) }}</span>
@@ -49,7 +49,7 @@
         <table class="table text-xs">
           <thead><tr><th>Artículo</th><th class="text-right">Días</th><th class="text-right">Pedir</th><th class="text-right">Costo</th></tr></thead>
           <tbody>
-            <tr v-for="f in compra.filas" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="font-medium hover:underline">{{ f.nombre }}</Link><p class="text-[10px] text-marca-muted">{{ f.proveedor || 'Sin proveedor' }}</p></td><td class="text-right tabular-nums" :class="f.dias_stock !== null && f.dias_stock < 7 ? 'text-carmin font-bold' : ''">{{ f.dias_stock ?? '∞' }}</td><td class="text-right tabular-nums">{{ f.pedir }}</td><td class="text-right tabular-nums">{{ moneda(f.costo, 0) }}</td></tr>
+            <tr v-for="f in compra.filas" :key="f.id"><td><Link :href="`/stock/${f.id}`" class="font-medium hover:underline">{{ f.nombre }}</Link><p class="text-[11px] text-marca-muted">{{ f.proveedor || 'Sin proveedor' }}</p></td><td class="text-right tabular-nums" :class="f.dias_stock !== null && f.dias_stock < 7 ? 'text-carmin font-bold' : ''">{{ f.dias_stock ?? '∞' }}</td><td class="text-right tabular-nums">{{ f.pedir }}</td><td class="text-right tabular-nums">{{ moneda(f.costo, 0) }}</td></tr>
             <tr v-if="!compra.filas.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Stock cubierto para los próximos 30 días." compacto /></td></tr>
           </tbody>
         </table>

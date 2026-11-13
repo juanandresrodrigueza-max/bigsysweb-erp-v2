@@ -10,7 +10,7 @@
       </section>
       <section>
         <h2 class="text-sm font-bold uppercase tracking-widest text-emerald-400 mb-3">Listos para retirar</h2>
-        <div class="flex flex-wrap gap-3"><div v-for="p in listos" :key="p.id" class="rounded-2xl px-6 py-4 min-w-[140px] text-center bg-emerald-500 text-white animate-pulse" :data-listo="p.id"><p class="text-5xl font-black tabular-nums">{{ p.corto }}</p><p class="text-sm font-semibold truncate max-w-[160px]">{{ p.cliente || p.numero }}</p><p v-if="p.avisado" class="text-[10px] opacity-80">avisado por WhatsApp</p>
+        <div class="flex flex-wrap gap-3"><div v-for="p in listos" :key="p.id" class="rounded-2xl px-6 py-4 min-w-[140px] text-center bg-emerald-500 text-white animate-pulse" :data-listo="p.id"><p class="text-5xl font-black tabular-nums">{{ p.corto }}</p><p class="text-sm font-semibold truncate max-w-[160px]">{{ p.cliente || p.numero }}</p><p v-if="p.avisado" class="text-[11px] opacity-80">avisado por WhatsApp</p>
           <button v-if="puede('gastronomia','crear')" class="mt-2 px-3 py-1 rounded-full bg-white/25 text-xs font-bold" @click="router.post(`/gastronomia/comandas/${p.id}/retirado`, {}, { preserveScroll: true })">Lo retiró</button></div></div>
         <p v-if="!listos.length" class="text-white/40 text-sm">Todavía no hay pedidos listos.</p>
       </section>

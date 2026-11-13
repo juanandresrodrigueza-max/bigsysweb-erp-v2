@@ -12,7 +12,7 @@
     <div v-else class="divide-y divide-marca-borde/60">
       <div v-for="d in docs" :key="d.id" class="flex items-center gap-3 py-2 text-sm">
         <a :href="d.url + '?ver=1'" target="_blank" class="w-10 h-10 rounded-lg bg-gris-light flex items-center justify-center overflow-hidden shrink-0">
-          <img v-if="d.imagen" :src="d.url + '?ver=1'" alt="" class="w-full h-full object-cover" /><span v-else class="text-[10px] font-bold text-marca-muted uppercase">{{ ext(d.nombre) }}</span>
+          <img v-if="d.imagen" :src="d.url + '?ver=1'" alt="" class="w-full h-full object-cover" /><span v-else class="text-[11px] font-bold text-marca-muted uppercase">{{ ext(d.nombre) }}</span>
         </a>
         <div class="flex-1 min-w-0">
           <a :href="d.url + '?ver=1'" target="_blank" class="font-medium hover:text-carmin truncate block">{{ d.nombre }}</a>

@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Tienda y canales">
-    <h1 class="page-title mb-4">Tienda y canales</h1>
+    <div class="mb-5"><h1 class="page-title">Tienda y canales</h1><p class="page-subtitle">Tu tienda online, el menú QR, las reservas web y los canales conectados: Mercado Libre, Tienda Nube y WhatsApp.</p></div>
     <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 w-fit mb-4"><button v-for="t in tabs" :key="t.k" class="px-4 py-1.5 rounded-full text-sm font-semibold" :class="tab === t.k ? 'bg-carmin text-white' : 'text-marca-muted'" @click="tab = t.k">{{ t.label }}</button></div>
 
     <!-- Tienda propia -->

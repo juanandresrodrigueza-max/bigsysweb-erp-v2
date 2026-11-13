@@ -5,7 +5,7 @@
       :mas="[
         { label: 'Transferir entre depósitos', click: () => transfAbierto = true, cuando: puede('stock','crear') },
         { label: 'Exportar CSV', href: '/configuracion/importar/exportar/articulos', externo: true, title: 'Todos los artículos con sus 6 listas, stock y descuentos' },
-        { label: cotizacion ? `Dólar U$S ${moneda(cotizacion.venta, 0).replace('$ ', '')}` : 'Cotización del dólar', click: () => dolarAbierto = true, cuando: puede('stock','editar'), title: cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización' },
+        { label: cotizacion ? `Dólar U$S ${moneda(cotizacion.venta, 0).replace(/^\$\s/, '')}` : 'Cotización del dólar', click: () => dolarAbierto = true, cuando: puede('stock','editar'), title: cotizacion ? `Dólar ${cotizacion.manual ? 'fijado' : 'automático'} del ${cotizacion.fecha}` : 'Sin cotización' },
         { label: 'Preferencias de stock', icono: 'settings', click: () => configAbierto = true, cuando: puede('stock','editar') },
       ]" />
 
@@ -38,12 +38,12 @@
             <td><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted tabular-nums">{{ p.sku }}<span v-if="p.marca"> · {{ p.marca }}</span><span v-if="p.tipo !== 'producto'" class="badge ml-1" :class="{ insumo: 'bg-gris-light text-marca-muted', elaborado: 'bg-violeta-light text-violeta', servicio: 'bg-lavanda-light text-violeta' }[p.tipo]">{{ p.tipo }}</span></p></td>
             <td><span v-if="p.rubro" class="badge text-white" :style="{ background: p.rubro_color || '#6f6a62' }">{{ p.rubro }}</span></td>
             <td class="text-right tabular-nums text-marca-muted">{{ moneda(p.cost) }}</td>
-            <td class="text-right tabular-nums font-semibold">{{ moneda(p.precio_pesos) }}<span v-if="p.moneda === 'USD'" class="block text-[10px] text-violeta font-normal">U$S {{ p.price }}</span></td>
+            <td class="text-right tabular-nums font-semibold">{{ moneda(p.precio_pesos) }}<span v-if="p.moneda === 'USD'" class="block text-[11px] text-violeta font-normal">U$S {{ p.price }}</span></td>
             <td v-for="d in depositosActivos" :key="d.id" class="text-right tabular-nums" :class="(p.por_deposito[d.id] ?? 0) < 0 ? 'text-carmin' : 'text-marca-muted'">{{ p.controla ? cantidad(p.por_deposito[d.id] ?? 0) : '' }}</td>
             <td class="text-right tabular-nums font-bold" :class="!p.controla ? 'text-marca-muted' : p.stock <= 0 ? 'text-carmin' : p.bajo ? 'text-amber-600' : ''">{{ p.controla ? cantidad(p.stock) + ' ' + p.unit : '—' }}</td>
             <td class="text-right tabular-nums text-marca-muted">{{ p.controla ? cantidad(p.stock_min) : '' }}</td>
             <td class="text-right tabular-nums">{{ p.controla ? moneda(p.valor, 0) : '' }}</td>
-            <td class="text-right"><button v-if="puede('stock','editar')" @click.stop="abrirArticulo(p)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
+            <td class="text-right"><button v-if="puede('stock','editar')" @click.stop="abrirArticulo(p)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
           </tr>
           <tr v-if="!lista.data.length"><td :colspan="9 + depositosActivos.length" class="!py-0"><EstadoVacio texto="Todavía no hay artículos. Cargalos de a uno o importá tu lista de precios." :filtros="f" :accion="puede('stock','crear') ? { label: 'Nuevo artículo', click: () => abrirArticulo() } : null" /></td></tr>
         </tbody>
@@ -68,7 +68,7 @@
       <div v-for="(it, i) in tf.items" :key="i" class="grid grid-cols-[1fr_110px_28px] gap-2 mb-2">
         <BuscadorSelect v-model="it.product_id" :opciones="opcionesArticulos" placeholder="Artículo…" />
         <input v-model.number="it.cantidad" type="number" step="any" min="0" class="input text-right" placeholder="Cant." />
-        <button @click="tf.items.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+        <button @click="tf.items.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
       </div>
       <button @click="tf.items.push({ product_id: null, cantidad: null })" class="btn-ghost !px-2 text-xs">+ Otro artículo</button>
       <input v-model="tf.notas" class="input mt-3" placeholder="Notas (camión, chofer, motivo…)" />
@@ -114,7 +114,7 @@
           <p class="label">Rubros</p>
           <div v-for="r in rubros" :key="r.id" class="flex items-center gap-2 py-1 text-sm" :style="{ paddingLeft: (r.nivel || 0) * 16 + 'px' }">
             <span class="w-2.5 h-2.5 rounded-full" :style="{ background: r.color || '#6f6a62' }"></span><span class="flex-1">{{ r.nombre }}</span>
-            <span v-if="r.articulos" class="text-[10px] text-marca-muted">{{ r.articulos }} art.</span>
+            <span v-if="r.articulos" class="text-[11px] text-marca-muted">{{ r.articulos }} art.</span>
             <button @click="editarRubro(r)" class="text-xs text-violeta" data-e2e="editar-rubro">editar</button>
             <Link :href="`/stock/rubros/${r.id}`" method="delete" as="button" preserve-scroll class="text-xs text-carmin">quitar</Link>
           </div>
@@ -126,13 +126,13 @@
               <summary class="cursor-pointer font-semibold text-violeta">Datos que heredan los artículos</summary>
               <p class="text-[11px] text-marca-muted my-1.5">Lo que dejes en "Hereda" lo toma del rubro de arriba. Un artículo nuevo arranca con estos datos; con <b>Aplicar</b> se llevan a los que ya existen.</p>
               <div class="grid grid-cols-2 gap-2">
-                <div><label class="label !text-[10px]">IVA</label><select v-model="rubro.iva" class="input !py-1"><option :value="null">Hereda{{ heredado('iva', v => v + ' %') }}</option><option v-for="a in [0, 2.5, 5, 10.5, 21, 27]" :key="a" :value="a">{{ a }} %</option></select></div>
-                <div><label class="label !text-[10px]">Tipo</label><select v-model="rubro.tipo" class="input !py-1"><option :value="null">Hereda{{ heredado('tipo', v => tipos[v]?.split(' (')[0]) }}</option><option v-for="(l, k) in tipos" :key="k" :value="k">{{ l.split(' (')[0] }}</option></select></div>
-                <div v-for="m in marcasRubro" :key="m.k"><label class="label !text-[10px]">{{ m.l }}</label><select v-model="rubro[m.k]" class="input !py-1" :data-e2e="`rubro-${m.k}`"><option :value="null">Hereda{{ heredado(m.k, v => v ? 'sí' : 'no') }}</option><option :value="true">Sí</option><option :value="false">No</option></select></div>
-                <div class="col-span-2"><label class="label !text-[10px]">Cuenta contable de ventas</label><select v-model="rubro.cuenta_ventas_id" class="input !py-1"><option :value="null">Hereda (o Ventas)</option><option v-for="c in cuentasVentas" :key="c.id" :value="c.id">{{ c.codigo }} · {{ c.nombre }}</option></select></div>
-                <div><label class="label !text-[10px]">Percepción IVA especial %</label><input v-model.number="rubro.perc_iva" type="number" step="0.01" min="0" class="input !py-1" placeholder="la general" /></div>
-                <div><label class="label !text-[10px]">Percepción IIBB especial %</label><input v-model.number="rubro.perc_iibb" type="number" step="0.01" min="0" class="input !py-1" placeholder="la general" /></div>
-                <div class="col-span-2"><label class="label !text-[10px]">Foto para la tienda (URL)</label><input v-model="rubro.imagen" class="input !py-1" placeholder="https://…" /></div>
+                <div><label class="label !text-[11px]">IVA</label><select v-model="rubro.iva" class="input !py-1"><option :value="null">Hereda{{ heredado('iva', v => v + ' %') }}</option><option v-for="a in [0, 2.5, 5, 10.5, 21, 27]" :key="a" :value="a">{{ a }} %</option></select></div>
+                <div><label class="label !text-[11px]">Tipo</label><select v-model="rubro.tipo" class="input !py-1"><option :value="null">Hereda{{ heredado('tipo', v => tipos[v]?.split(' (')[0]) }}</option><option v-for="(l, k) in tipos" :key="k" :value="k">{{ l.split(' (')[0] }}</option></select></div>
+                <div v-for="m in marcasRubro" :key="m.k"><label class="label !text-[11px]">{{ m.l }}</label><select v-model="rubro[m.k]" class="input !py-1" :data-e2e="`rubro-${m.k}`"><option :value="null">Hereda{{ heredado(m.k, v => v ? 'sí' : 'no') }}</option><option :value="true">Sí</option><option :value="false">No</option></select></div>
+                <div class="col-span-2"><label class="label !text-[11px]">Cuenta contable de ventas</label><select v-model="rubro.cuenta_ventas_id" class="input !py-1"><option :value="null">Hereda (o Ventas)</option><option v-for="c in cuentasVentas" :key="c.id" :value="c.id">{{ c.codigo }} · {{ c.nombre }}</option></select></div>
+                <div><label class="label !text-[11px]">Percepción IVA especial %</label><input v-model.number="rubro.perc_iva" type="number" step="0.01" min="0" class="input !py-1" placeholder="la general" /></div>
+                <div><label class="label !text-[11px]">Percepción IIBB especial %</label><input v-model.number="rubro.perc_iibb" type="number" step="0.01" min="0" class="input !py-1" placeholder="la general" /></div>
+                <div class="col-span-2"><label class="label !text-[11px]">Foto para la tienda (URL)</label><input v-model="rubro.imagen" class="input !py-1" placeholder="https://…" /></div>
               </div>
             </details>
             <div class="col-span-2 flex flex-wrap gap-2"><button class="btn-primary !py-1 text-xs" :disabled="!rubro.nombre" @click="guardarRubro">Guardar</button><button v-if="rubro.id" class="btn-ghost !py-1 text-xs" @click="rubro.reset()">Cancelar</button>

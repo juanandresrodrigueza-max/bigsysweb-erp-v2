@@ -31,7 +31,7 @@
               <button v-if="!cuenta.turno" @click="turnoAbierto = true" class="btn-primary !py-1 text-xs">Abrir turno</button>
               <template v-else><button @click="arqueoAbierto = true" class="btn-secondary !py-1 text-xs" title="Contar la caja sin cerrar el turno">Arqueo</button><button @click="retiroAbierto = true" class="btn-secondary !py-1 text-xs" title="Sacar efectivo a tesorería o banco">Retiro</button><button @click="cierreAbierto = true" class="btn-violeta !py-1 text-xs">Cerrar turno</button></template>
             </template>
-            <button v-if="cuenta && puede('fondos','editar')" @click="abrirCuenta(cuenta)" class="btn-ghost !px-2 text-xs"><Icono nombre="edit" clase="w-4 h-4" /></button>
+            <button v-if="cuenta && puede('fondos','editar')" @click="abrirCuenta(cuenta)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -134,7 +134,7 @@
       <p v-else class="text-sm text-marca-muted mb-3">Contá lo que hay por cada medio de pago. El sistema compara con lo que registró en el turno y deja asentada la diferencia. Lo que no completes no se controla.</p>
       <div class="rounded-xl border border-marca-borde divide-y divide-marca-borde/60">
         <div v-for="(esp, medio) in cuenta?.turno?.esperado ?? {}" :key="medio" class="grid grid-cols-[1fr_120px_130px_100px] gap-2 items-center px-3 py-2 text-sm">
-          <span class="font-medium">{{ nombreMedio(medio) }}<span v-if="medio === 'efectivo'" class="block text-[10px] text-marca-muted">saldo de caja</span></span>
+          <span class="font-medium">{{ nombreMedio(medio) }}<span v-if="medio === 'efectivo'" class="block text-[11px] text-marca-muted">saldo de caja</span></span>
           <span class="tabular-nums text-right text-marca-muted">{{ esp === null ? '—' : moneda(esp) }}</span>
           <input v-if="medio === 'efectivo'" v-model.number="tc.saldo_contado" type="number" step="any" min="0" class="input !py-1 text-right" placeholder="contado" />
           <input v-else v-model.number="tc.rendicion[medio]" type="number" step="any" min="0" class="input !py-1 text-right" placeholder="declarado" />
@@ -148,7 +148,7 @@
           <thead><tr><th>Artículo</th><th class="text-right">Inicial</th><th class="text-right">Entró</th><th class="text-right">Facturado</th><th class="text-right">Final contado</th><th class="text-right">Salió</th><th class="text-right">Sin facturar</th></tr></thead>
           <tbody>
             <tr v-for="f in cuenta.turno.stock" :key="f.product_id">
-              <td class="font-medium">{{ f.nombre }}<span class="block text-[10px] text-marca-muted">{{ moneda(f.precio) }} · inicial del {{ f.inicial_origen }}</span></td>
+              <td class="font-medium">{{ f.nombre }}<span class="block text-[11px] text-marca-muted">{{ moneda(f.precio) }} · inicial del {{ f.inicial_origen }}</span></td>
               <td class="text-right tabular-nums">{{ cant(f.inicial) }}</td><td class="text-right tabular-nums">{{ cant(f.entradas - f.otras_salidas) }}</td><td class="text-right tabular-nums">{{ cant(f.facturado) }}</td>
               <td><input v-model.number="tc.stock[f.product_id]" type="number" step="any" min="0" class="input !py-1 !w-20 text-right ml-auto" :placeholder="cant(f.esperado)" /></td>
               <td class="text-right tabular-nums">{{ salio(f) === null ? '' : cant(salio(f)) }}</td>

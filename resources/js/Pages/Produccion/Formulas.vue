@@ -9,7 +9,7 @@
       <div v-for="f in formulas" :key="f.id" class="card" :class="!f.is_active ? 'opacity-60' : ''">
         <div class="flex items-start justify-between gap-2">
           <div><h2 class="font-extrabold text-lg leading-tight">{{ f.name }}</h2><p class="text-sm text-marca-muted">Produce <b class="text-marca-texto">{{ cantidad(f.yield_quantity) }} {{ f.unit }}</b> de {{ f.producto }}<span v-if="f.tiempo_minutos"> · {{ f.tiempo_minutos }} min</span></p></div>
-          <button v-if="puede('produccion','editar')" @click="abrir(f)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button>
+          <button v-if="puede('produccion','editar')" @click="abrir(f)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button>
         </div>
         <table class="table mt-3 text-sm"><tbody>
           <tr v-for="i in f.items" :key="i.product_id"><td class="!py-1.5">{{ i.nombre }}<span v-if="i.notes" class="text-xs text-marca-muted"> · {{ i.notes }}</span></td><td class="!py-1.5 text-right tabular-nums">{{ cantidad(i.quantity) }} {{ i.unit }}</td><td class="!py-1.5 text-right tabular-nums text-marca-muted">{{ moneda(i.costo, 0) }}</td></tr>
@@ -35,7 +35,7 @@
             <BuscadorSelect v-model="it.product_id" :opciones="opcionesInsumos" :url="props.catalogoParcial.productos ? '/buscar/articulos/produccion' : null" @cargados="f => sumar(productosCat, f)" placeholder="Insumo…" @elegido="o => { if (o) it.unit = o.unit }" />
             <input v-model.number="it.quantity" type="number" step="any" min="0" class="input text-right" placeholder="Cant." />
             <select v-model="it.unit" class="input !px-1"><option v-for="(l, k) in unidades" :key="k" :value="k">{{ k }}</option></select>
-            <button @click="form.items.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+            <button @click="form.items.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
           </div>
           <button @click="form.items.push({ product_id: null, quantity: null, unit: 'un', notes: '' })" class="btn-ghost !px-2 text-xs">+ Insumo</button>
           <p v-if="form.errors.items" class="text-carmin text-xs mt-1">{{ form.errors.items }}</p>

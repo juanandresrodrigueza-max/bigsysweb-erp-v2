@@ -29,6 +29,27 @@
   .es-app aside.w-64, .es-app aside.w-\[72px\] { padding-top: env(safe-area-inset-top, 0px); }
   .es-app { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
   .es-app input, .es-app select, .es-app textarea { font-size: max(16px, 1em); } /* iOS no hace zoom al enfocar */
+
+  /* Fase 94: nada desborda el ancho del celular. Las grillas de una columna no se estiran por su contenido,
+     las filas de pestañas o filtros que no envuelven se deslizan, y los textos largos (links, códigos) cortan donde haga falta. */
+  main .grid { grid-auto-columns: minmax(0, 1fr); }
+  main .grid > * { min-width: 0; }
+  main .flex:not(.flex-wrap):not(.flex-col):has(> .whitespace-nowrap), main .flex:not(.flex-wrap):not(.flex-col):has(> .border-b-2) { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  main .flex:not(.flex-wrap):not(.flex-col):has(> .whitespace-nowrap)::-webkit-scrollbar { display: none; }
+  main code, main a.underline, main .break-urls { overflow-wrap: anywhere; }
+  main td.tabular-nums, main td.text-right, main th.text-right { white-space: nowrap; } /* los importes no se parten en dos líneas */
+  @media (max-width: 767px) {
+    /* En el celular las filas de botones, filtros y píldoras envuelven en vez de desbordar (salvo las que se deslizan a propósito). */
+    main .flex:not(.flex-col):not(.flex-nowrap):not(.overflow-x-auto):not(.overflow-x-scroll) { flex-wrap: wrap; }
+    main .flex > select.input, main .flex > input.input { min-width: 0; }
+    /* Las tablas se deslizan de costado con columnas legibles: nada se parte en tres líneas; lo muy largo se corta con puntos. */
+    main table.table { display: block; overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+    main table.table th, main table.table td { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+    main table.table td[colspan] { white-space: normal; max-width: none; }
+  /* cifras KPI en tarjetas angostas: que no se corten */
+  main .grid > .card > p.text-xl.font-extrabold { font-size: 1.05rem; line-height: 1.5rem; overflow-wrap: anywhere; }
+  main .grid.grid-cols-3 > .card > p.text-xl.font-extrabold { font-size: 0.95rem; }
+  }
 }
 
 @layer components {

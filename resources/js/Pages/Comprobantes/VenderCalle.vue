@@ -70,7 +70,7 @@
       <template v-if="reporte">
         <div class="card">
           <p class="label">Hoy, mientras trabajás</p>
-          <div class="grid grid-cols-4 gap-1 text-center"><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.hoy.total, 0) }}</p><p class="text-[10px] text-marca-muted">vendido</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.hoy.comprobantes }}</p><p class="text-[10px] text-marca-muted">comprob.</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.hoy.clientes }}</p><p class="text-[10px] text-marca-muted">clientes</p></div><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.hoy.ticket, 0) }}</p><p class="text-[10px] text-marca-muted">ticket</p></div></div>
+          <div class="grid grid-cols-4 gap-1 text-center"><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.hoy.total, 0) }}</p><p class="text-[11px] text-marca-muted">vendido</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.hoy.comprobantes }}</p><p class="text-[11px] text-marca-muted">comprob.</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.hoy.clientes }}</p><p class="text-[11px] text-marca-muted">clientes</p></div><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.hoy.ticket, 0) }}</p><p class="text-[11px] text-marca-muted">ticket</p></div></div>
         </div>
         <div v-if="reporte.objetivo" class="card" data-e2e="objetivo">
           <div class="flex justify-between items-baseline"><p class="label">Objetivo del mes</p><span class="text-xs font-bold" :class="reporte.objetivo.ritmo === 'adelantado' ? 'text-emerald-700' : 'text-carmin'">{{ reporte.objetivo.ritmo === 'adelantado' ? 'Vas adelantado' : 'Vas atrasado' }} para el día {{ reporte.objetivo.dia }}</span></div>
@@ -80,7 +80,7 @@
         </div>
         <div class="card">
           <p class="label">{{ reporte.periodo.opciones[reporte.periodo.k] }}</p>
-          <div class="grid grid-cols-3 gap-1 text-center text-sm"><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.periodo_resumen.total, 0) }}</p><p class="text-[10px] text-marca-muted">vendido</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.periodo_resumen.comprobantes }}</p><p class="text-[10px] text-marca-muted">comprobantes</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.periodo_resumen.visitas }}</p><p class="text-[10px] text-marca-muted">visitas<span v-if="reporte.periodo_resumen.no_vendi"> · {{ reporte.periodo_resumen.no_vendi }} sin venta</span></p></div></div>
+          <div class="grid grid-cols-3 gap-1 text-center text-sm"><div><p class="font-extrabold tabular-nums">{{ moneda(reporte.periodo_resumen.total, 0) }}</p><p class="text-[11px] text-marca-muted">vendido</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.periodo_resumen.comprobantes }}</p><p class="text-[11px] text-marca-muted">comprobantes</p></div><div><p class="font-extrabold tabular-nums">{{ reporte.periodo_resumen.visitas }}</p><p class="text-[11px] text-marca-muted">visitas<span v-if="reporte.periodo_resumen.no_vendi"> · {{ reporte.periodo_resumen.no_vendi }} sin venta</span></p></div></div>
           <div v-if="reporte.comision" class="mt-2 text-xs rounded-lg bg-marca-fondo px-2 py-1.5" data-e2e="comision"><b>Tu comisión:</b> {{ moneda(reporte.comision.por_ventas + reporte.comision.por_cobros) }} · {{ reporte.comision.venta_pct }}% de ventas = {{ moneda(reporte.comision.por_ventas) }} · {{ reporte.comision.cobro_pct }}% de cobranzas = {{ moneda(reporte.comision.por_cobros) }} ({{ reporte.comision.cobros }} recibos por {{ moneda(reporte.comision.cobrado, 0) }}). <span class="text-marca-muted">La liquidación que vale es la de la empresa; esto es para que sepas cómo venís.</span></div>
         </div>
         <div class="card">
@@ -100,9 +100,9 @@
         <div class="flex items-center justify-between"><h2 class="font-bold">Lo que tenés en mano</h2><button class="btn-ghost !px-2 text-xs" @click="pantalla = 'ruta'">← Ruta</button></div>
         <p class="text-xs text-marca-muted mb-2">Lo que cobraste ya bajó la deuda del cliente, pero la plata queda a tu nombre hasta que rendís y el encargado la recibe.</p>
         <div v-if="hoy" class="grid grid-cols-3 gap-2 text-center">
-          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">Efectivo</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.efectivo, 0) }}</p></div>
-          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">Transf.</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.transferencias, 0) }}</p></div>
-          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[10px] uppercase tracking-wider text-marca-muted">Cheques</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.cheques, 0) }}</p></div>
+          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[11px] uppercase tracking-wider text-marca-muted">Efectivo</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.efectivo, 0) }}</p></div>
+          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[11px] uppercase tracking-wider text-marca-muted">Transf.</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.transferencias, 0) }}</p></div>
+          <div class="rounded-xl bg-marca-fondo p-2"><p class="text-[11px] uppercase tracking-wider text-marca-muted">Cheques</p><p class="font-extrabold tabular-nums">{{ moneda(hoy.en_mano.cheques, 0) }}</p></div>
         </div>
         <button v-if="hoy?.en_mano?.total" class="btn-primary w-full mt-3 !py-3" :disabled="!online || rindiendo" @click="rendir" data-e2e="rendir">{{ rindiendo ? 'Rindiendo…' : 'Cerrar el turno y rendir' }}</button>
         <p v-if="hoy?.ultima_rendicion" class="text-[11px] text-marca-muted mt-2">Última rendición {{ hoy.ultima_rendicion.numero }} · {{ hoy.ultima_rendicion.cuando }} · {{ moneda(hoy.ultima_rendicion.total) }} · {{ hoy.ultima_rendicion.estado === 'recibida' ? 'recibida' : 'esperando que la reciban' }}</p>
@@ -167,7 +167,7 @@
               <p class="font-semibold text-sm leading-tight">{{ p.name }}</p>
               <p class="text-[11px] text-marca-muted">{{ p.controla ? `${cantidad(p.stock)} ${p.unit}` : p.sku }}<span v-if="p.promo"> · llevando {{ cantidad(p.promo.desde) }} o más: {{ p.promo.pct }}% menos</span><span v-if="p._motivo" class="text-violeta"> · {{ p._motivo }}</span></p>
             </div>
-            <div class="text-right"><p class="font-extrabold tabular-nums">{{ moneda(precioFinal(p)) }}</p><p v-if="origen(p) !== 'lista'" class="text-[10px] text-violeta">{{ origen(p) === 'pactado' ? 'pactado' : origen(p) === 'rubro' ? 'pactado (rubro)' : 'último' }}</p></div>
+            <div class="text-right"><p class="font-extrabold tabular-nums">{{ moneda(precioFinal(p)) }}</p><p v-if="origen(p) !== 'lista'" class="text-[11px] text-violeta">{{ origen(p) === 'pactado' ? 'pactado' : origen(p) === 'rubro' ? 'pactado (rubro)' : 'último' }}</p></div>
             <input v-if="sel[p.id]" v-model.number="sel[p.id].cantidad" type="number" step="any" min="0" class="input !py-1 w-16 text-center tabular-nums" @click.stop />
           </div>
           <p v-if="!listado.length" class="text-center text-sm text-marca-muted py-8">{{ qp ? 'Nada coincide.' : 'Sin historial: buscá o pasá a Todo el catálogo.' }}</p>
@@ -190,7 +190,7 @@
             <input v-model.number="it.cantidad" type="number" step="any" min="0" class="input !py-1 w-16 text-center tabular-nums" />
             <input v-if="puede.precios" v-model.number="it.descuento" type="number" step="any" min="0" max="100" class="input !py-1 w-14 text-center tabular-nums" :class="sobreTope(it) ? '!border-amber-500' : ''" title="Descuento %" @change="it.origen = it.descuento > (it._auto ?? 0) + 0.005 ? 'manual' : it._origenAuto" :data-e2e="`dto-${it.product_id}`" />
             <span class="w-20 text-right font-semibold tabular-nums">{{ moneda(it.cantidad * it.precio_unit * (1 - it.descuento / 100) * (ri ? 1 + it.alicuota_iva / 100 : 1)) }}</span>
-            <button @click="pedido.splice(i, 1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+            <button @click="pedido.splice(i, 1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
           </div>
           <p v-if="!pedido.length" class="text-center text-marca-muted text-sm py-10">Pedido vacío. Tildá lo que lleva.</p>
         </div>

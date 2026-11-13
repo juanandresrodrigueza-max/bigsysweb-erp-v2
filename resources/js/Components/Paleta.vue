@@ -7,16 +7,16 @@
         <Icono nombre="search" clase="w-4 h-4 text-marca-muted shrink-0" />
         <input ref="input" v-model="q" class="flex-1 py-3 text-base outline-none bg-transparent" placeholder="Buscar cliente, artículo, comprobante o pantalla…" autocomplete="off"
                @keydown.down.prevent="mover(1)" @keydown.up.prevent="mover(-1)" @keydown.enter.prevent="ir(plano[idx])" @keydown.esc.prevent="cerrar" />
-        <kbd class="text-[10px] px-1.5 py-0.5 rounded border border-marca-borde text-marca-muted">Esc</kbd>
+        <kbd class="text-[11px] px-1.5 py-0.5 rounded border border-marca-borde text-marca-muted">Esc</kbd>
       </div>
       <div class="max-h-[60vh] overflow-y-auto py-2">
         <template v-for="g in grupos" :key="g.label">
-          <p v-if="g.items.length" class="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-marca-muted">{{ g.label }}</p>
+          <p v-if="g.items.length" class="px-4 pt-2 pb-1 text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ g.label }}</p>
           <button v-for="it in g.items" :key="it.url + it.titulo" type="button" @mousedown.prevent="ir(it)" @mousemove="idx = it._i"
                   class="w-full text-left px-4 py-2 flex items-center gap-3 text-sm" :class="idx === it._i ? 'bg-marca-fondo' : ''">
             <span class="w-7 h-7 rounded-lg grid place-items-center shrink-0" :class="it.color ?? 'bg-marca-fondo text-violeta'"><Icono :nombre="it.icono ?? 'chevron'" clase="w-4 h-4" /></span>
             <span class="min-w-0 flex-1"><span class="font-medium block truncate">{{ it.titulo }}</span><span v-if="it.sub" class="text-xs text-marca-muted block truncate">{{ it.sub }}</span></span>
-            <kbd v-if="it.atajo" class="text-[10px] px-1.5 py-0.5 rounded border border-marca-borde text-marca-muted shrink-0">{{ it.atajo }}</kbd>
+            <kbd v-if="it.atajo" class="text-[11px] px-1.5 py-0.5 rounded border border-marca-borde text-marca-muted shrink-0">{{ it.atajo }}</kbd>
           </button>
         </template>
         <p v-if="!plano.length" class="px-4 py-6 text-sm text-marca-muted text-center">{{ cargando ? 'Buscando…' : (q ? 'Nada coincide.' : 'Escribí para buscar. Atajos: Alt+N factura · Alt+P punto de venta · Alt+C clientes · Alt+S stock · Alt+F fondos · ? ayuda') }}</p>

@@ -6,7 +6,7 @@
         <div class="flex items-center gap-2 px-4 py-3 border-b border-marca-borde">
           <span class="w-8 h-8 rounded-full bg-marca-grad text-white grid place-items-center font-black">?</span>
           <div class="flex-1 min-w-0"><p class="font-bold leading-tight">Ayuda</p><p class="text-[11px] text-marca-muted truncate">{{ articulo ? 'De esta pantalla: ' + articulo.titulo : 'Guías y búsqueda' }}</p></div>
-          <button class="p-1.5 rounded-lg hover:bg-marca-fondo" @click="cerrar"><Icono nombre="x" clase="w-5 h-5" /></button>
+          <button class="p-1.5 rounded-lg hover:bg-marca-fondo" @click="cerrar" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-5 h-5" /></button>
         </div>
         <div class="px-4 py-2 border-b border-marca-borde"><input v-model="q" class="input !py-1.5 text-sm" placeholder="Buscar en la ayuda… ej. anular factura" @input="buscar" /></div>
         <div class="flex-1 overflow-y-auto px-4 py-3 text-sm">

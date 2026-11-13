@@ -27,7 +27,7 @@
           <div class="rounded-lg bg-marca-fondo px-3 py-2"><p class="text-[11px] text-marca-muted">{{ modo === 'mover' ? 'Desde' : 'Ubicación' }}</p><p class="font-mono font-bold">{{ op.ubic?.codigo ?? '—' }}</p></div>
           <div v-if="modo === 'mover'" class="rounded-lg bg-marca-fondo px-3 py-2"><p class="text-[11px] text-marca-muted">Hacia</p><p class="font-mono font-bold">{{ op.hacia?.codigo ?? '—' }}</p></div>
           <div v-if="modo !== 'contar'" class="rounded-lg bg-marca-fondo px-3 py-2 col-span-2 sm:col-span-1"><p class="text-[11px] text-marca-muted">Artículo</p><p class="font-semibold">{{ op.art?.nombre ?? '—' }}</p></div>
-          <div v-if="modo !== 'contar'"><label class="label !text-[10px]">Cantidad (cada lectura suma 1)</label><input v-model.number="op.cantidad" type="number" step="any" min="0" class="input" data-e2e="op-cantidad" @keydown.enter.prevent="confirmar" /></div>
+          <div v-if="modo !== 'contar'"><label class="label !text-[11px]">Cantidad (cada lectura suma 1)</label><input v-model.number="op.cantidad" type="number" step="any" min="0" class="input" data-e2e="op-cantidad" @keydown.enter.prevent="confirmar" /></div>
         </div>
         <div v-if="modo === 'contar' && op.ubic" class="mt-3">
           <p class="text-xs text-marca-muted mb-1">Escaneá cada unidad (o cargá la cantidad). Lo que no escanees se toma como 0.</p>

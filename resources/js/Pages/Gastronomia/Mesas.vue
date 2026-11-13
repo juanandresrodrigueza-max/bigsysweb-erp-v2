@@ -10,7 +10,7 @@
         <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'mostrador', cliente: '', direccion: '', telefono: '' }" class="btn-secondary">Mostrador</button>
         <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'delivery', cliente: '', direccion: '', telefono: '', zona: '' }" class="btn-secondary">Delivery</button>
         <Link href="/gastronomia/delivery" class="btn-secondary" data-e2e="ir-delivery">Reparto</Link>
-        <button v-if="puede('gastronomia','editar')" @click="configAbierto = true" class="btn-ghost"><Icono nombre="settings" clase="w-4 h-4" /></button>
+        <button v-if="puede('gastronomia','editar')" @click="configAbierto = true" class="btn-ghost" title="Opciones" aria-label="Opciones"><Icono nombre="settings" clase="w-4 h-4" /></button>
       </div>
     </div>
 
@@ -54,9 +54,9 @@
         <div class="relative w-full rounded-2xl border border-marca-borde bg-white overflow-hidden select-none touch-none" style="aspect-ratio: 16 / 7; background-image: radial-gradient(#e7e2db 1px, transparent 1px); background-size: 24px 24px" :ref="el => (planos[sector] = el)" :data-plano="sector">
           <button v-for="m in grupo" :key="m.id" :data-mesa="m.id" type="button" class="absolute -translate-x-1/2 -translate-y-1/2 border-2 flex flex-col items-center justify-center shadow-sm transition-colors" :data-calor="vista === 'calor' ? (calorDe(m)?.calor ?? 0) : null" :class="[vista === 'calor' ? 'border-white/70 text-marca-texto' : claseMesa(m), m.forma === 'redonda' ? 'rounded-full' : 'rounded-xl', acomodando ? 'cursor-move ring-2 ring-violeta/30' : '']" :style="vista === 'calor' ? estiloCalor(m) : estiloMesa(m)" @pointerdown="acomodando && arrastrar($event, m, sector)" @click="!acomodando && abrirMesa(m)">
             <span class="text-lg font-black leading-none">{{ m.nombre }}</span>
-            <span v-if="vista === 'calor'" class="text-[10px] font-bold tabular-nums leading-tight mt-0.5">{{ calorDe(m)?.comandas ? moneda(calorDe(m).total, 0) + ' · ' + calorDe(m).comandas + '×' : 'sin uso' }}</span>
-            <span v-else-if="m.comanda" class="text-[10px] font-bold tabular-nums leading-tight mt-0.5">{{ moneda(m.comanda.total, 0) }} · {{ m.comanda.minutos }}'</span>
-            <span v-else class="text-[10px] opacity-60 leading-tight mt-0.5">{{ m.capacidad }}p</span>
+            <span v-if="vista === 'calor'" class="text-[11px] font-bold tabular-nums leading-tight mt-0.5">{{ calorDe(m)?.comandas ? moneda(calorDe(m).total, 0) + ' · ' + calorDe(m).comandas + '×' : 'sin uso' }}</span>
+            <span v-else-if="m.comanda" class="text-[11px] font-bold tabular-nums leading-tight mt-0.5">{{ moneda(m.comanda.total, 0) }} · {{ tiempo(m.comanda.minutos) }}</span>
+            <span v-else class="text-[11px] opacity-60 leading-tight mt-0.5">{{ m.capacidad }}p</span>
             <span v-if="m.comanda?.llamado" class="absolute -top-2 -right-2 text-base animate-pulse" data-llamado>{{ m.comanda.llamado === 'cuenta' ? '🧾' : '🙋' }}</span>
             <span v-else-if="m.comanda?.listos" class="absolute -top-2 -right-2 text-base">🔔</span>
           </button>
@@ -64,7 +64,7 @@
       </div>
     </template>
     <div v-if="vista === 'calor' && calor" class="grid lg:grid-cols-3 gap-4 mb-6" data-e2e="calor-tablas">
-      <div class="card"><h2 class="font-bold mb-2">Las que más rinden</h2><div v-for="m in calor.top.filter(x => x.comandas)" :key="m.id" class="flex justify-between py-1.5 border-t border-marca-borde/60 text-sm"><span>Mesa {{ m.nombre }} <span class="text-xs text-marca-muted">{{ m.sector }} · {{ m.comandas }}× · ticket {{ moneda(m.ticket, 0) }}<span v-if="m.minutos"> · {{ m.minutos }}'</span></span></span><b class="tabular-nums">{{ moneda(m.total, 0) }}</b></div><p v-if="!calor.top.some(x => x.comandas)" class="text-sm text-marca-muted">Todavía no hay comandas cerradas.</p></div>
+      <div class="card"><h2 class="font-bold mb-2">Las que más rinden</h2><div v-for="m in calor.top.filter(x => x.comandas)" :key="m.id" class="flex justify-between py-1.5 border-t border-marca-borde/60 text-sm"><span>Mesa {{ m.nombre }} <span class="text-xs text-marca-muted">{{ m.sector }} · {{ m.comandas }}× · ticket {{ moneda(m.ticket, 0) }}<span v-if="m.minutos"> · {{ tiempo(m.minutos) }}</span></span></span><b class="tabular-nums">{{ moneda(m.total, 0) }}</b></div><p v-if="!calor.top.some(x => x.comandas)" class="text-sm text-marca-muted">Todavía no hay comandas cerradas.</p></div>
       <div class="card"><h2 class="font-bold mb-2">Las frías</h2><p class="text-xs text-marca-muted mb-1">Las que menos se sientan: quizá están mal ubicadas, o sobran.</p><div v-for="m in calor.frias" :key="m.id" class="flex justify-between py-1.5 border-t border-marca-borde/60 text-sm"><span>Mesa {{ m.nombre }} <span class="text-xs text-marca-muted">{{ m.sector }} · {{ m.capacidad }}p</span></span><b class="tabular-nums" :class="m.comandas ? '' : 'text-amber-700'">{{ m.comandas ? moneda(m.total, 0) : 'sin uso' }}</b></div></div>
       <div class="card"><h2 class="font-bold mb-2">Por franja horaria</h2><div v-for="f in calor.franjas" :key="f.franja" class="py-1.5 border-t border-marca-borde/60 text-sm"><div class="flex justify-between"><span>{{ f.label }} <span class="text-xs text-marca-muted">{{ f.comandas }} comandas · {{ f.cubiertos }} cub.</span></span><b class="tabular-nums">{{ moneda(f.total, 0) }}</b></div><div class="h-1.5 rounded-full bg-gris-light mt-1"><div class="h-1.5 rounded-full bg-carmin" :style="{ width: (calor.total ? f.total / calor.total * 100 : 0) + '%' }"></div></div></div></div>
     </div>
@@ -73,7 +73,7 @@
       <p class="label">{{ sector }}</p>
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-8 gap-3">
         <button v-for="m in grupo" :key="m.id" @click="abrirMesa(m)" class="rounded-2xl p-3 text-left border-2 transition aspect-square flex flex-col justify-between" :class="claseMesa(m)">
-          <div class="flex items-start justify-between"><span class="text-2xl font-black">{{ m.nombre }}</span><span class="text-[10px] font-semibold opacity-70">{{ m.capacidad }}p</span></div>
+          <div class="flex items-start justify-between"><span class="text-2xl font-black">{{ m.nombre }}</span><span class="text-[11px] font-semibold opacity-70">{{ m.capacidad }}p</span></div>
           <div v-if="m.comanda" class="text-xs leading-tight">
             <p class="font-bold tabular-nums text-sm">{{ moneda(m.comanda.total, 0) }}</p>
             <p class="opacity-80">{{ m.comanda.minutos }} min · {{ m.comanda.cubiertos }} cub.</p>
@@ -128,7 +128,7 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
-import { moneda } from '@/util/formato'
+import { moneda, tiempo } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 const props = defineProps({ mesas: Array, otras: Array, kpis: Object, listaSucursales: Array, calor: Object, zonas: { type: Array, default: () => [] } })
 const { puede } = usePermisos()

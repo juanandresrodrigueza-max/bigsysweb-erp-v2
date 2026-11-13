@@ -114,7 +114,7 @@
             <div class="grid grid-cols-[1fr_110px_28px] gap-2">
               <select v-model="m.medio" class="input" @change="cambiarMedio(m)"><option v-for="(lbl, k) in medios" :key="k" :value="k">{{ lbl }}</option></select>
               <input v-model.number="m.monto" type="number" step="any" min="0" class="input text-right" placeholder="0" :disabled="m.medio === 'cheque_tercero'" />
-              <button @click="pago.medios.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+              <button @click="pago.medios.splice(i,1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
             <select v-if="['efectivo','transferencia','billetera','tarjeta','cheque_propio'].includes(m.medio)" v-model="m.cuenta_fondos_id" class="input !py-1 text-xs">
               <option :value="null">Cuenta: la predeterminada</option><option v-for="c in cuentasPara(m.medio)" :key="c.id" :value="c.id">{{ c.nombre }} · {{ c.moneda === 'USD' ? 'USD ' + Number(c.saldo).toLocaleString('es-AR') : moneda(c.saldo, 0) }}</option>
@@ -150,7 +150,7 @@
             </div>
             <p v-if="!pendientes.length" class="px-3 py-4 text-sm text-marca-muted">Sin facturas pendientes: el pago queda a cuenta.</p>
           </div>
-          <p class="text-[10px] text-marca-muted mt-1">Podés dejar todo sin aplicar: la orden de pago queda a cuenta y se imputa a las facturas después.</p>
+          <p class="text-[11px] text-marca-muted mt-1">Podés dejar todo sin aplicar: la orden de pago queda a cuenta y se imputa a las facturas después.</p>
           <div v-if="pendientes.some(p => p.saldo_usd)" class="mt-2 flex items-center gap-2 text-xs"><span class="text-marca-muted">Cotización del pago (USD)</span><input v-model.number="pago.cotizacion" type="number" step="any" min="0" class="input !py-1 !w-28 text-right tabular-nums" /><span class="text-marca-muted">la diferencia con la de la factura es diferencia de cambio</span></div>
           <div class="mt-3 text-sm space-y-1 bg-marca-fondo rounded-xl p-3">
             <div class="grid grid-cols-2 gap-2 mb-2"><div><label class="label">Descuento obtenido</label><input v-model.number="pago.descuento" type="number" step="any" min="0" class="input !py-1" placeholder="0" /></div><div><label class="label">Interés pagado</label><input v-model.number="pago.interes" type="number" step="any" min="0" class="input !py-1" placeholder="0" /></div></div>

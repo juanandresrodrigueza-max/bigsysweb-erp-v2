@@ -111,7 +111,7 @@
     <Modal :abierto="!!hist" :titulo="hist ? 'Historial · ' + hist.nombre : ''" ancho="max-w-2xl" @cerrar="hist = null">
       <template v-if="hist">
         <div class="flex items-end gap-1 h-32 mb-3 border-b border-marca-borde relative">
-          <div v-if="hist.minimo !== null" class="absolute left-0 right-0 border-t border-dashed border-carmin text-[10px] text-carmin" :style="{ bottom: Math.min(100, Math.max(0, hist.minimo / maxHist * 100)) + '%' }">mínimo {{ hist.minimo }}%</div>
+          <div v-if="hist.minimo !== null" class="absolute left-0 right-0 border-t border-dashed border-carmin text-[11px] text-carmin" :style="{ bottom: Math.min(100, Math.max(0, hist.minimo / maxHist * 100)) + '%' }">mínimo {{ hist.minimo }}%</div>
           <div v-for="(s, i) in hist.serie" :key="i" class="flex-1 flex flex-col items-center justify-end h-full" :title="`${s.fecha}: margen ${s.margen ?? '—'}%`"><div class="w-full max-w-[22px] rounded-t" :class="s.margen !== null && hist.minimo !== null && s.margen < hist.minimo ? 'bg-carmin' : 'bg-violeta'" :style="{ height: Math.max(2, ((s.margen ?? 0) / maxHist) * 100) + '%' }"></div></div>
         </div>
         <table class="table text-xs"><thead><tr><th>Fecha</th><th class="text-right">Precio</th><th class="text-right">Costo</th><th class="text-right">Margen</th><th>Quién</th></tr></thead><tbody><tr v-for="(s, i) in [...hist.serie].reverse()" :key="i"><td>{{ s.fecha }}{{ s.hoy ? ' (hoy)' : '' }}</td><td class="text-right tabular-nums">{{ moneda(s.precio) }}<span v-if="s.precio_antes !== undefined && s.precio_antes !== s.precio" class="text-marca-muted"> (antes {{ moneda(s.precio_antes) }})</span></td><td class="text-right tabular-nums">{{ moneda(s.costo) }}<span v-if="s.costo_antes !== undefined && s.costo_antes !== s.costo" class="text-marca-muted"> (antes {{ moneda(s.costo_antes) }})</span></td><td class="text-right tabular-nums font-semibold">{{ s.margen ?? '—' }}%</td><td class="text-marca-muted">{{ s.usuario ?? '' }}</td></tr></tbody></table>
@@ -128,7 +128,7 @@
             <div class="absolute left-1/4 right-1/4 rounded-t bg-violeta" :style="{ height: Math.max(0, m.margen_bruto / maxSerie * 100) + '%' }"></div>
             <div class="absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border-2 border-white" :class="m.resultado >= 0 ? 'bg-emerald-500' : 'bg-carmin'" :style="{ bottom: Math.max(0, Math.min(100, m.resultado / maxSerie * 100)) + '%' }"></div>
           </div>
-          <span class="text-[9px] text-marca-muted mt-1 truncate w-full text-center">{{ m.mes }}</span>
+          <span class="text-[11px] text-marca-muted mt-1 truncate w-full text-center">{{ m.mes }}</span>
         </div>
       </div>
     </div>

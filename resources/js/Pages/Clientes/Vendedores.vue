@@ -41,7 +41,7 @@
         <h2 class="font-bold mb-3">Vendedores</h2>
         <div v-for="v in vendedores" :key="v.id" class="flex items-center justify-between gap-2 py-2 border-t border-marca-borde first:border-0" :class="!v.activo ? 'opacity-50' : ''">
           <div class="min-w-0"><p class="font-semibold truncate">{{ v.nombre }}</p><p class="text-xs text-marca-muted">{{ v.comision_venta }}% venta · {{ v.comision_cobro }}% cobro<span v-if="v.usuario"> · usuario {{ v.usuario }}</span><span v-if="v.clientes"> · {{ v.clientes }} clientes</span></p></div>
-          <button v-if="puede('clientes','editar')" @click="abrir(v)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button>
+          <button v-if="puede('clientes','editar')" @click="abrir(v)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button>
         </div>
         <p v-if="!vendedores.length" class="text-sm text-marca-muted">Ninguno todavía.</p>
         <div class="border-t border-marca-borde mt-4 pt-3" data-e2e="config-calle">

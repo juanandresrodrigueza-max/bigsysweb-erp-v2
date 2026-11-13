@@ -22,7 +22,7 @@
           <a :href="c.url" target="_blank" class="ml-auto text-xs text-violeta">Abrir en el CRM ↗</a>
         </div>
         <div v-for="(m, i) in c.mensajes" :key="i" class="max-w-[85%] rounded-2xl px-3 py-1.5 text-xs mb-1" :class="m.direccion === 'outbound' ? 'bg-lavanda-light ml-auto' : 'bg-marca-fondo'">
-          <p class="whitespace-pre-wrap">{{ m.texto }}</p><p class="text-[10px] text-marca-muted">{{ m.direccion === 'outbound' ? 'Nosotros' : 'Cliente' }} · {{ m.cuando }}</p>
+          <p class="whitespace-pre-wrap">{{ m.texto }}</p><p class="text-[11px] text-marca-muted">{{ m.direccion === 'outbound' ? 'Nosotros' : 'Cliente' }} · {{ m.cuando }}</p>
         </div>
       </div>
     </div>

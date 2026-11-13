@@ -17,7 +17,7 @@
         <line :x1="0" :x2="W" :y1="y(0)" :y2="y(0)" stroke="#c5bcdd" stroke-width="1" />
         <rect v-for="(c, i) in p.columnas" :key="i" :x="x(i)" :width="bw" :y="Math.min(y(0), y(c.saldo))" :height="Math.max(1, Math.abs(y(c.saldo) - y(0)))" :fill="c.saldo < 0 ? '#e4003f' : '#4f3089'" rx="2" />
       </svg>
-      <div class="flex justify-between text-[10px] text-marca-muted mt-1 tabular-nums"><span v-for="c in p.columnas" :key="c.semana">{{ c.desde }}</span></div>
+      <div class="flex justify-between text-[11px] text-marca-muted mt-1 tabular-nums"><span v-for="c in p.columnas" :key="c.semana">{{ c.desde }}</span></div>
     </div>
     <div class="card p-0 overflow-x-auto">
       <table class="table text-xs whitespace-nowrap">

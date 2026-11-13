@@ -9,7 +9,7 @@
       <div v-for="p in planes" :key="p.id" class="card flex flex-col" :class="!p.is_active ? 'opacity-60' : ''">
         <div class="flex items-start justify-between gap-2">
           <div><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ p.is_free ? 'Gratis' : 'Plan' }}</p><h2 class="text-xl font-extrabold">{{ p.name }}</h2></div>
-          <button @click="abrir(p)" class="btn-ghost !px-2"><Icono nombre="edit" clase="w-4 h-4" /></button>
+          <button @click="abrir(p)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button>
         </div>
         <p class="text-sm text-marca-muted mt-1 min-h-[2.5rem]">{{ p.description }}</p>
         <p class="mt-3"><span class="text-2xl font-black tabular-nums">{{ moneda(p.price_monthly, 0) }}</span><span class="text-xs text-marca-muted"> /mes</span></p>
@@ -39,7 +39,7 @@
           <label class="label">Módulos incluidos</label>
           <label class="flex items-center gap-2 text-sm font-semibold mb-2"><input type="checkbox" class="accent-carmin" :checked="form.features.includes('*')" @change="toggle('*')" /> Todo (incluye lo que se agregue a futuro)</label>
           <div class="grid sm:grid-cols-3 gap-1.5" :class="form.features.includes('*') ? 'opacity-40 pointer-events-none' : ''">
-            <label v-for="m in modulos" :key="m.key" class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-carmin" :checked="m.core || form.features.includes(m.key)" :disabled="m.core" @change="toggle(m.key)" /> {{ m.label }}<span v-if="m.core" class="text-[10px] text-marca-muted">base</span></label>
+            <label v-for="m in modulos" :key="m.key" class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-carmin" :checked="m.core || form.features.includes(m.key)" :disabled="m.core" @change="toggle(m.key)" /> {{ m.label }}<span v-if="m.core" class="text-[11px] text-marca-muted">base</span></label>
             <label v-for="(l, k) in extras" :key="k" class="flex items-center gap-2 text-sm"><input type="checkbox" class="accent-carmin" :checked="form.features.includes(k)" @change="toggle(k)" /> {{ l }}</label>
           </div>
         </div>

@@ -15,7 +15,7 @@
       <div class="card lg:col-span-2" data-e2e="ranking">
         <h2 class="font-bold mb-2">Ranking <span class="text-marca-muted font-normal text-sm">· {{ periodo.desde }} a {{ periodo.hasta }}</span></h2>
         <div class="overflow-x-auto"><table class="table text-sm"><thead><tr><th>#</th><th>Vendedor</th><th class="text-right">Vendido</th><th class="text-right">Comp.</th><th class="text-right">Ticket</th><th class="text-right">Clientes</th><th>Objetivo del mes</th></tr></thead>
-          <tbody><tr v-for="(v, i) in ranking" :key="v.id"><td class="text-marca-muted">{{ i + 1 }}</td><td class="font-semibold">{{ v.nombre }}<span v-if="v.modo === 'calle'" class="badge bg-sky-50 text-sky-700 ml-1">calle</span></td><td class="text-right tabular-nums font-bold">{{ moneda(v.total, 0) }}<span v-if="v.devoluciones" class="block text-[10px] text-carmin">−{{ moneda(v.devoluciones, 0) }} devuelto</span></td><td class="text-right tabular-nums">{{ v.comprobantes }}</td><td class="text-right tabular-nums">{{ moneda(v.ticket, 0) }}</td><td class="text-right tabular-nums">{{ v.clientes }}</td>
+          <tbody><tr v-for="(v, i) in ranking" :key="v.id"><td class="text-marca-muted">{{ i + 1 }}</td><td class="font-semibold">{{ v.nombre }}<span v-if="v.modo === 'calle'" class="badge bg-sky-50 text-sky-700 ml-1">calle</span></td><td class="text-right tabular-nums font-bold">{{ moneda(v.total, 0) }}<span v-if="v.devoluciones" class="block text-[11px] text-carmin">−{{ moneda(v.devoluciones, 0) }} devuelto</span></td><td class="text-right tabular-nums">{{ v.comprobantes }}</td><td class="text-right tabular-nums">{{ moneda(v.ticket, 0) }}</td><td class="text-right tabular-nums">{{ v.clientes }}</td>
             <td><div v-if="v.objetivo" class="min-w-[9rem]"><div class="flex justify-between text-[11px]"><span class="tabular-nums">{{ v.objetivo.pct }}%</span><span :class="v.objetivo.ritmo === 'adelantado' ? 'text-emerald-700' : 'text-carmin'">{{ v.objetivo.ritmo }}</span></div><div class="h-1.5 rounded-full bg-marca-fondo overflow-hidden"><div class="h-full bg-marca-grad" :style="{ width: Math.min(100, v.objetivo.pct) + '%' }"></div></div></div><span v-else class="text-xs text-marca-muted">sin objetivo</span></td></tr>
           <tr v-if="!ranking.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin vendedores activos." /></td></tr></tbody></table></div>
       </div>
@@ -24,7 +24,7 @@
         <div class="flex items-end gap-px h-28">
           <div v-for="d in por_dia" :key="d.fecha" class="flex-1 flex flex-col items-center justify-end h-full min-w-0" :title="`${d.fecha}: ${moneda(d.monto, 0)}`"><div class="w-full rounded-t" :class="d.monto < 0 ? 'bg-carmin' : 'bg-marca-grad'" :style="{ height: Math.max(2, Math.abs(d.monto) / maxDia * 100) + '%' }"></div></div>
         </div>
-        <p class="text-[10px] text-marca-muted mt-1">{{ por_dia[0]?.fecha }} → {{ por_dia[por_dia.length - 1]?.fecha }} · una barra por día</p>
+        <p class="text-[11px] text-marca-muted mt-1">{{ por_dia[0]?.fecha }} → {{ por_dia[por_dia.length - 1]?.fecha }} · una barra por día</p>
         <h2 class="font-bold mt-4 mb-1">Por qué no se vendió</h2>
         <div v-if="Object.keys(motivos).length" class="space-y-1 text-sm"><div v-for="(n, m) in motivos" :key="m" class="flex justify-between"><span>{{ m }}</span><b class="tabular-nums">{{ n }}</b></div></div>
         <p v-else class="text-xs text-marca-muted">Ninguna visita sin venta en el período.</p>

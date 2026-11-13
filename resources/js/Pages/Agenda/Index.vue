@@ -25,12 +25,12 @@
           <div class="flex items-center justify-between mb-2"><p class="font-bold text-sm capitalize" :class="d.hoy ? 'text-carmin' : ''">{{ d.label }}</p><button class="btn-ghost !px-1.5 !py-0 text-xs" title="Agendar" @click="abrir(null, d.fecha)">+</button></div>
           <div class="space-y-1.5">
             <button v-for="t in porDia(d.fecha)" :key="t.id" class="w-full text-left rounded-lg border px-2 py-1.5 text-xs hover:shadow transition" :class="clase(t)" @click="ver(t)">
-              <div class="flex justify-between"><b class="tabular-nums">{{ t.hora }}</b><span class="text-[10px]">{{ estados[t.estado] }}</span></div>
+              <div class="flex justify-between"><b class="tabular-nums">{{ t.hora }}</b><span class="text-[11px]">{{ estados[t.estado] }}</span></div>
               <p class="font-medium truncate">{{ t.cliente }}</p>
               <p class="truncate opacity-80">{{ t.servicio || 'Sin servicio' }}<span v-if="t.profesional"> · {{ t.profesional }}</span></p>
             </button>
             <a v-for="k in crmDia(d.fecha)" :key="k.tipo + k.id" :href="k.url" class="block rounded-lg border border-dashed border-violeta/40 bg-violeta-light/40 px-2 py-1.5 text-xs hover:shadow transition" :title="(k.detalle || '') + ' · abre el CRM'">
-              <div class="flex justify-between"><b class="tabular-nums">{{ k.hora || 'Todo el día' }}</b><span class="text-[10px] text-violeta">{{ k.tipo === 'tarea' ? 'Tarea CRM' : 'Turno CRM' }}</span></div>
+              <div class="flex justify-between"><b class="tabular-nums">{{ k.hora || 'Todo el día' }}</b><span class="text-[11px] text-violeta">{{ k.tipo === 'tarea' ? 'Tarea CRM' : 'Turno CRM' }}</span></div>
               <p class="font-medium truncate">{{ k.titulo }}</p>
             </a>
             <p v-if="!porDia(d.fecha).length && !crmDia(d.fecha).length" class="text-[11px] text-marca-muted text-center pt-6">Libre</p>

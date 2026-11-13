@@ -47,7 +47,7 @@
               <template v-if="form.moneda === 'USD'"><span class="text-xs text-marca-muted">cotización</span><input v-model.number="form.cotizacion" type="number" step="any" min="0" class="input text-right tabular-nums" placeholder="$ por USD" /></template>
             </div>
             <p v-if="form.errors.cotizacion" class="text-carmin text-xs mt-1">{{ form.errors.cotizacion }}</p>
-            <p v-else-if="form.moneda === 'USD'" class="text-[10px] text-marca-muted mt-1">Cargá los precios en dólares: se guardan en pesos a esta cotización y la deuda queda en USD.</p>
+            <p v-else-if="form.moneda === 'USD'" class="text-[11px] text-marca-muted mt-1">Cargá los precios en dólares: se guardan en pesos a esta cotización y la deuda queda en USD.</p>
           </div>
           <div><label class="label">Condición</label><select v-model="form.condicion" class="input"><option value="cta_cte">Cuenta corriente</option><option value="contado">Contado</option></select></div>
         </div>
@@ -70,7 +70,7 @@
                   <td><input v-model.number="it.descuento" type="number" min="0" max="100" step="any" class="input text-right" /></td>
                   <td><select v-model.number="it.alicuota_iva" class="input !px-1"><option v-for="a in [0,2.5,5,10.5,21,27]" :key="a" :value="a">{{ a }}%</option></select></td>
                   <td class="text-right font-semibold tabular-nums pt-3">{{ moneda(totalItem(it)) }}</td>
-                  <td class="pt-2"><button type="button" @click="form.items.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="trash" clase="w-4 h-4" /></button></td>
+                  <td class="pt-2"><button type="button" @click="form.items.splice(i,1)" class="text-marca-muted hover:text-carmin" title="Eliminar" aria-label="Eliminar"><Icono nombre="trash" clase="w-4 h-4" /></button></td>
                 </tr>
                 <tr v-if="!form.items.length"><td colspan="7" class="text-center text-marca-muted py-8">Agregá ítems o leé la factura con IA.</td></tr>
               </tbody>
@@ -82,7 +82,7 @@
               <select v-model="imp.tipo" class="input !py-1 text-xs"><option value="iibb">Percepción IIBB</option><option value="iva">Percepción IVA</option><option value="ganancias">Percepción Ganancias</option><option value="otros">Otros / tasas</option></select>
               <select v-if="imp.tipo === 'iibb'" v-model="imp.jurisdiccion" class="input !py-1 text-xs" title="Jurisdicción (para SIFERE)" data-jurisdiccion><option value="">Jurisdicción…</option><option v-for="j in JURISDICCIONES" :key="j.sigla" :value="j.sigla">{{ j.nombre }}</option></select><span v-else></span>
               <input v-model.number="imp.monto" type="number" step="any" min="0" class="input !py-1 text-xs text-right" />
-              <button type="button" @click="form.impuestos.splice(i,1)" class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></button>
+              <button type="button" @click="form.impuestos.splice(i,1)" class="text-marca-muted hover:text-carmin" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button>
             </div>
           </div>
           <p v-if="form.errors.items" class="text-carmin text-xs px-4 pb-3">{{ form.errors.items }}</p>

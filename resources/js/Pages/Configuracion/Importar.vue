@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Importar datos">
-    <h1 class="page-title mb-4">Importar datos</h1>
+    <div class="mb-5"><h1 class="page-title">Importar datos</h1><p class="page-subtitle">Traé clientes, artículos y saldos desde Excel o desde el BigSys de escritorio, con una plantilla por tipo.</p></div>
 
     <div class="card mb-4" data-e2e="bigconnect">
       <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Traer todo desde BIG Connect</h2><span class="badge" :class="bigconnect?.conectado ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light'">{{ bigconnect?.conectado ? 'Conectado · ' + bigconnect.clave + (bigconnect.ultima ? ' · última migración ' + bigconnect.ultima : '') : 'Sin conectar' }}</span></div>

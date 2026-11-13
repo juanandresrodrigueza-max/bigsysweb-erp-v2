@@ -42,7 +42,7 @@
           <div v-for="a in altas" :key="a.mes" class="flex-1 flex flex-col items-center justify-end gap-1 h-full">
             <span class="text-xs font-bold tabular-nums">{{ a.n }}</span>
             <div class="w-full rounded-t-lg bg-violeta-grad" :style="{ height: (a.n / maxAltas * 100) + '%', minHeight: a.n ? '6px' : '2px' }"></div>
-            <span class="text-[10px] text-marca-muted uppercase">{{ a.mes }}</span>
+            <span class="text-[11px] text-marca-muted uppercase">{{ a.mes }}</span>
           </div>
         </div>
         <p class="text-xs text-marca-muted mt-3">{{ kpis.usuarios }} usuarios en total en todas las empresas.</p>

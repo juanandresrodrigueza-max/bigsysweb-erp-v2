@@ -7,7 +7,7 @@
     <EstadisticasTabs activa="gastronomia" />
 
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4" data-e2e="kpis-gastro">
-      <div v-for="k in tarjetas" :key="k[0]" class="card !py-3"><p class="text-[10px] font-bold uppercase tracking-widest text-marca-muted">{{ k[0] }}</p><p class="text-lg font-extrabold tabular-nums">{{ k[1] }}</p></div>
+      <div v-for="k in tarjetas" :key="k[0]" class="card !py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">{{ k[0] }}</p><p class="text-lg font-extrabold tabular-nums">{{ k[1] }}</p></div>
     </div>
 
     <div class="grid lg:grid-cols-2 gap-4 mb-4">
@@ -64,7 +64,7 @@
           <p class="text-2xl font-black">{{ opiniones.promedio }} <span class="text-amber-500">★</span> <span class="text-sm font-normal text-marca-muted">en {{ opiniones.cantidad }} opiniones</span></p>
           <div class="flex gap-1 text-xs my-1"><span v-for="(n, p) in opiniones.distribucion" :key="p" class="badge bg-marca-fondo">{{ p }}★ {{ n }}</span></div>
           <p v-if="opiniones.patron" class="rounded-lg bg-amber-50 text-amber-800 text-xs px-3 py-1.5 my-2">Las malas se concentran <b>los {{ opiniones.patron.cuando }}</b>: {{ opiniones.patron.cantidad }} de {{ opiniones.patron.de }}.</p>
-          <div v-if="opiniones.ia" class="rounded-lg bg-lavanda-light/50 text-sm px-3 py-2 my-2"><p class="text-[10px] font-bold uppercase text-violeta">✦ Resumen</p><ul class="list-disc pl-4"><li v-for="(x, i) in opiniones.ia.puntos" :key="i">{{ x }}</li></ul><p v-if="opiniones.ia.lo_mas_repetido" class="text-xs mt-1"><b>Lo más repetido:</b> {{ opiniones.ia.lo_mas_repetido }}</p><p v-if="opiniones.ia.elogios" class="text-xs"><b>Elogios:</b> {{ opiniones.ia.elogios }}</p></div>
+          <div v-if="opiniones.ia" class="rounded-lg bg-lavanda-light/50 text-sm px-3 py-2 my-2"><p class="text-[11px] font-bold uppercase text-violeta">✦ Resumen</p><ul class="list-disc pl-4"><li v-for="(x, i) in opiniones.ia.puntos" :key="i">{{ x }}</li></ul><p v-if="opiniones.ia.lo_mas_repetido" class="text-xs mt-1"><b>Lo más repetido:</b> {{ opiniones.ia.lo_mas_repetido }}</p><p v-if="opiniones.ia.elogios" class="text-xs"><b>Elogios:</b> {{ opiniones.ia.elogios }}</p></div>
           <div class="flex flex-wrap gap-1 text-xs mb-2"><span v-for="m in opiniones.por_mozo" :key="m.mozo" class="badge bg-marca-fondo">{{ m.mozo }} {{ m.promedio }}★ ({{ m.cantidad }})</span></div>
           <div class="max-h-40 overflow-y-auto text-xs space-y-1"><p v-for="(c, i) in opiniones.comentarios" :key="i" class="border-t border-marca-borde/60 pt-1"><span class="text-amber-500">{{ '★'.repeat(c.puntaje) }}</span> {{ c.texto }} <span class="text-marca-muted">· {{ c.fecha }}{{ c.mozo ? ' · ' + c.mozo : '' }}</span></p></div>
         </template>

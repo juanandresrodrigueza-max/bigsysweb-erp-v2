@@ -1,6 +1,6 @@
 <template>
   <AppLayout titulo="Impuestos">
-    <h1 class="page-title mb-4">Impuestos</h1>
+    <div class="mb-5"><h1 class="page-title">Impuestos</h1><p class="page-subtitle">Alícuotas de IVA, percepciones y retenciones que aplica tu empresa según el cliente y la provincia.</p></div>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card lg:col-span-2">

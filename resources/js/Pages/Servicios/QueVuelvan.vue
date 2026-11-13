@@ -8,7 +8,7 @@
       <div class="card p-0 overflow-x-auto" data-e2e="lista">
         <table class="table text-sm"><thead><tr><th>Cliente</th><th>{{ config.equipo }}</th><th>Le toca</th><th></th></tr></thead>
           <tbody><tr v-for="x in lista" :key="x.ot_id"><td>{{ x.cliente }}</td><td>{{ x.equipo }} <span class="text-xs text-marca-muted">{{ x.serie }}</span></td><td class="text-xs"><p v-for="m in x.motivos" :key="m">{{ m }}</p></td>
-            <td class="whitespace-nowrap text-right"><a v-if="x.whatsapp" :href="x.whatsapp" target="_blank" class="btn-secondary !py-1 text-xs" @click="router.post(`/servicios/${x.ot_id}/recordado`, {}, { preserveScroll: true })">WhatsApp</a><span v-if="x.recordado" class="block text-[10px] text-emerald-700">avisado {{ x.recordado }}</span></td></tr>
+            <td class="whitespace-nowrap text-right"><a v-if="x.whatsapp" :href="x.whatsapp" target="_blank" class="btn-secondary !py-1 text-xs" @click="router.post(`/servicios/${x.ot_id}/recordado`, {}, { preserveScroll: true })">WhatsApp</a><span v-if="x.recordado" class="block text-[11px] text-emerald-700">avisado {{ x.recordado }}</span></td></tr>
             <tr v-if="!lista.length"><td colspan="4" class="!py-0"><EstadoVacio texto="A nadie le toca en estos días." /></td></tr></tbody></table>
       </div>
       <div class="card self-start" data-e2e="piezas"><h2 class="font-bold mb-1">Alertas por pieza</h2><p class="text-xs text-marca-muted mb-2">Cada cuánto {{ (config.medidor || 'uso').toLowerCase() }} se cambia (la correa cada 60.000). Se mira la última vez que se cambió en cada {{ config.equipo.toLowerCase() }}.</p>

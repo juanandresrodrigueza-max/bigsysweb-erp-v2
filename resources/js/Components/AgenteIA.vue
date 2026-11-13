@@ -12,7 +12,7 @@
           </div>
           <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
           <a v-if="whatsappSoporte" :href="whatsappSoporte" target="_blank" class="p-1 rounded hover:bg-white/15 text-xs" title="Hablar con una persona de soporte por WhatsApp (con lo que venías preguntando)" data-e2e="bigcito-soporte">🙋</a>
-          <button @click="abierto = false" class="p-1 rounded hover:bg-white/15"><Icono nombre="x" clase="w-4 h-4" /></button></div>
+          <button @click="abierto = false" class="p-1 rounded hover:bg-white/15" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button></div>
         </div>
 
         <div ref="scroll" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-marca-fondo">
@@ -34,7 +34,7 @@
               <a v-if="m.url" :href="m.url" class="block mt-1 text-xs text-violeta font-semibold underline">Ver →</a>
               <!-- Fase 40.1: gráfico, planilla y repreguntas -->
               <div v-if="m.grafico?.valores?.length" class="mt-2" data-e2e="grafico"><p class="text-[11px] font-semibold text-marca-muted mb-1">{{ m.grafico.titulo }}</p>
-                <div v-for="(v, k) in m.grafico.valores" :key="k" class="flex items-center gap-1.5 text-[10px] leading-4"><span class="w-24 truncate text-marca-muted">{{ m.grafico.etiquetas[k] }}</span><div class="flex-1 h-2.5 rounded bg-gris-light"><div class="h-2.5 rounded" :class="String(m.grafico.etiquetas[k]).includes('proy') ? 'bg-violeta/50' : 'bg-violeta'" :style="{ width: Math.max(2, v / Math.max(...m.grafico.valores, 1) * 100) + '%' }"></div></div><span class="w-16 text-right tabular-nums">{{ abreviar(v) }}</span></div></div>
+                <div v-for="(v, k) in m.grafico.valores" :key="k" class="flex items-center gap-1.5 text-[11px] leading-4"><span class="w-24 truncate text-marca-muted">{{ m.grafico.etiquetas[k] }}</span><div class="flex-1 h-2.5 rounded bg-gris-light"><div class="h-2.5 rounded" :class="String(m.grafico.etiquetas[k]).includes('proy') ? 'bg-violeta/50' : 'bg-violeta'" :style="{ width: Math.max(2, v / Math.max(...m.grafico.valores, 1) * 100) + '%' }"></div></div><span class="w-16 text-right tabular-nums">{{ abreviar(v) }}</span></div></div>
               <button v-if="m.tabla?.filas?.length" class="mt-2 text-xs text-violeta font-semibold underline" @click="excel(m.tabla)" data-e2e="excel">Bajar la lista a Excel ({{ m.tabla.filas.length }} filas)</button>
               <div v-if="m.sugerencias?.length" class="flex flex-wrap gap-1 mt-2"><button v-for="q in m.sugerencias" :key="q" class="px-2 py-0.5 rounded-full bg-marca-fondo border border-marca-borde text-[11px] hover:border-violeta" @click="enviar(q)" data-e2e="repregunta">{{ q }}</button></div>
             </div>
@@ -49,7 +49,7 @@
           <button type="button" class="btn-secondary !px-3 rounded-full" :class="foto ? '!border-violeta !text-violeta' : ''" title="Mandar una foto" @click="fotoInput.click()" data-e2e="bigcito-foto">📷</button>
           <button v-if="!dictado.soportado && grabadorSoportado" type="button" class="btn-secondary !px-3 rounded-full" :class="grabando ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" :title="grabando ? 'Parar y mandar' : 'Mandar un audio'" @click="alternarGrabacion"><Icono nombre="mic" clase="w-4 h-4" /></button>
           <button v-if="dictado.soportado" type="button" class="btn-secondary !px-3 rounded-full" :class="dictado.escuchando.value ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" :title="dictado.escuchando.value ? 'Parar' : 'Dictar por voz'" @click="dictado.alternar()"><Icono nombre="mic" clase="w-4 h-4" /></button>
-          <button type="submit" class="btn-primary !px-3" :disabled="cargando || (!texto.trim() && !foto)"><Icono nombre="send" clase="w-4 h-4" /></button>
+          <button type="submit" class="btn-primary !px-3" :disabled="cargando || (!texto.trim() && !foto)" title="Enviar" aria-label="Enviar"><Icono nombre="send" clase="w-4 h-4" /></button>
         </form>
       </div>
     </transition>

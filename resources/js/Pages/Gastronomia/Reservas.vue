@@ -40,7 +40,7 @@
         <div class="flex items-center justify-between mb-1"><h2 class="font-bold">QR por mesa</h2><button class="btn-secondary !py-1 text-xs" @click="imprimir">Imprimir</button></div>
         <p class="text-xs text-marca-muted mb-3">El cliente escanea, ve la carta y pide: el pedido cae en la comanda de esa mesa y en cocina. <span :class="menuActivo ? 'text-emerald-700' : 'text-carmin'">{{ menuActivo ? 'Menú activo.' : 'Activá el menú en Configuración → Tienda y canales.' }}</span></p>
         <div id="qrs" class="grid grid-cols-2 gap-3">
-          <div v-for="m in mesas" :key="m.id" class="qr border border-marca-borde rounded-xl p-2 text-center"><canvas :ref="el => dibujar(el, m.url)"></canvas><p class="font-bold text-sm mt-1">{{ m.nombre }}</p><p class="text-[10px] text-marca-muted">{{ m.sector }} · escaneá para pedir</p></div>
+          <div v-for="m in mesas" :key="m.id" class="qr border border-marca-borde rounded-xl p-2 text-center"><canvas :ref="el => dibujar(el, m.url)"></canvas><p class="font-bold text-sm mt-1">{{ m.nombre }}</p><p class="text-[11px] text-marca-muted">{{ m.sector }} · escaneá para pedir</p></div>
         </div>
       </div>
       </div>
