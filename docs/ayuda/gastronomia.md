@@ -96,3 +96,9 @@ El QR de cada mesa, que se imprime en Big Restó → Reservas y QR, abre la cart
 - **Pedir por asiento:** arriba de la carta elegís «La mesa» o un número de asiento (tantos como cubiertos, y con «+» agregás). Lo que pidas queda marcado (A1, A2…). Al cobrar con **Cada uno lo suyo**, tocás el asiento y se arma sola su parte.
 - **Cortesía:** en un plato, 🎁 lo marca como invitación de la casa, consumo del personal o error de cocina. Sale igual y descuenta su receta, pero va a $ 0; el costo queda en **Stock → Mermas y cortesías**, por motivo y por mozo. Lo puede hacer quien tenga permiso de editar en Big Restó.
 
+## Mozo de bolsillo y mapa de calor (Fase 90)
+
+- **Mozo de bolsillo** (Big Restó → Mozo de bolsillo): la pantalla del mozo en el celular. Arriba, lo **listo para llevar** con el botón Entregado y las mesas que **lo llaman**; después **sus mesas** con lo que falta enviar, lo que está en cocina y el total, y los botones + Cargar, Enviar y Cuenta; abajo, las **mesas libres**: tocás una, decís cuántos son y ya está cargando. Se actualiza sola. Las mesas de otros mozos quedan plegadas al final.
+- **Barra del pulgar**: adentro de la comanda, en el celular, una barra abajo deja el total, Enviar y Cobrar siempre a mano.
+- **Mapa de calor** (Salón → Calor): el mismo plano, pintado por lo que vendió cada mesa en los últimos 30 días (de lavanda a rojo), con las que más rinden, las frías (sin uso: quizá están mal ubicadas o sobran) y la venta por franja: desayuno, almuerzo, merienda, cena. A Bigcito: «¿qué mesas rinden más?», «¿a qué hora vendo más?».
+

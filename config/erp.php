@@ -145,6 +145,7 @@ return [
         // Fase 88: las pantallas de cada rubro cuelgan de su módulo en el menú. Los mostradores (Comercio, Minimarket) son 'solo_link': pantalla completa.
         'gastronomia' => [
             ['key' => 'mesas',       'label' => 'Mesas',       'ruta' => '/gastronomia', 'exacto' => true],
+            ['key' => 'mozo',        'label' => 'Mozo de bolsillo', 'ruta' => '/gastronomia/mozo', 'ayuda' => 'La pantalla del mozo en el celular: sus mesas, lo que está listo y las libres.', 'palabras' => 'mozo celular bolsillo mis mesas'],
             ['key' => 'cocina',      'label' => 'Cocina',      'ruta' => '/gastronomia/cocina'],
             ['key' => 'carta',       'label' => 'Carta',       'ruta' => '/gastronomia/carta'],
             ['key' => 'reservas',    'label' => 'Reservas',    'ruta' => '/gastronomia/reservas'],

@@ -27,19 +27,34 @@
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 text-xs font-semibold" data-e2e="vista-salon">
         <button class="px-3 py-1 rounded-full" :class="vista === 'plano' ? 'bg-carmin text-white' : 'text-marca-muted'" @click="cambiarVista('plano')">Plano</button>
         <button class="px-3 py-1 rounded-full" :class="vista === 'lista' ? 'bg-carmin text-white' : 'text-marca-muted'" @click="cambiarVista('lista')">Lista</button>
+        <button class="px-3 py-1 rounded-full" :class="vista === 'calor' ? 'bg-carmin text-white' : 'text-marca-muted'" @click="cambiarVista('calor')" data-e2e="vista-calor">Calor</button>
       </div>
       <div v-if="vista === 'plano' && puede('gastronomia','editar')" class="flex gap-2">
         <button v-if="!acomodando" class="btn-secondary !py-1 text-xs" @click="empezarAcomodo" data-e2e="acomodar">Acomodar mesas</button>
         <template v-else><button class="btn-ghost !py-1 text-xs" @click="acomodando = false">Cancelar</button><button class="btn-primary !py-1 text-xs" :disabled="guardandoPlano" @click="guardarPlano" data-e2e="guardar-plano">Guardar plano</button></template>
       </div>
     </div>
-    <template v-if="vista === 'plano'">
+    <!-- Fase 90: vista Calor: el mismo plano, pintado por lo que vendió cada mesa en los últimos 30 días. -->
+    <div v-if="vista === 'calor'" class="mb-4" data-e2e="calor">
+      <div v-if="!calor" class="card text-sm text-marca-muted">Calculando el mapa de calor…</div>
+      <template v-else>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+          <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Últimos {{ calor.dias }} días</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(calor.total, 0) }}</p><p class="text-[11px] text-marca-muted">{{ calor.comandas }} comandas de mesa</p></div>
+          <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">La que más rinde</p><p class="text-xl font-extrabold">{{ calor.top[0]?.comandas ? 'Mesa ' + calor.top[0].nombre : '—' }}</p><p class="text-[11px] text-marca-muted">{{ calor.top[0]?.comandas ? moneda(calor.top[0].total, 0) + ' · ' + calor.top[0].comandas + (calor.top[0].comandas === 1 ? ' vez' : ' veces') : 'Sin cierres todavía' }}</p></div>
+          <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Mesas frías</p><p class="text-xl font-extrabold tabular-nums" :class="calor.sin_uso ? 'text-amber-700' : ''">{{ calor.sin_uso }}</p><p class="text-[11px] text-marca-muted">sin una sola comanda</p></div>
+          <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Mejor franja</p><p class="text-xl font-extrabold">{{ mejorFranja?.comandas ? mejorFranja.label : '—' }}</p><p class="text-[11px] text-marca-muted">{{ mejorFranja?.comandas ? moneda(mejorFranja.total, 0) + ' · ' + mejorFranja.comandas + ' comandas' : '' }}</p></div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 text-xs text-marca-muted mb-1"><span>Frío</span><span class="h-2 w-40 rounded-full" style="background: linear-gradient(90deg, #eef2ff, #fde68a, #f97316, #b91c1c)"></span><span>Caliente</span><span class="ml-auto">{{ calor.como }}</span></div>
+      </template>
+    </div>
+    <template v-if="vista === 'plano' || vista === 'calor'">
       <div v-for="(grupo, sector) in porSector" :key="sector" class="mb-5">
         <p class="label">{{ sector }}<span v-if="acomodando" class="text-marca-muted font-normal normal-case"> · arrastrá cada mesa a su lugar</span></p>
         <div class="relative w-full rounded-2xl border border-marca-borde bg-white overflow-hidden select-none touch-none" style="aspect-ratio: 16 / 7; background-image: radial-gradient(#e7e2db 1px, transparent 1px); background-size: 24px 24px" :ref="el => (planos[sector] = el)" :data-plano="sector">
-          <button v-for="m in grupo" :key="m.id" :data-mesa="m.id" type="button" class="absolute -translate-x-1/2 -translate-y-1/2 border-2 flex flex-col items-center justify-center shadow-sm transition-colors" :class="[claseMesa(m), m.forma === 'redonda' ? 'rounded-full' : 'rounded-xl', acomodando ? 'cursor-move ring-2 ring-violeta/30' : '']" :style="estiloMesa(m)" @pointerdown="acomodando && arrastrar($event, m, sector)" @click="!acomodando && abrirMesa(m)">
+          <button v-for="m in grupo" :key="m.id" :data-mesa="m.id" type="button" class="absolute -translate-x-1/2 -translate-y-1/2 border-2 flex flex-col items-center justify-center shadow-sm transition-colors" :data-calor="vista === 'calor' ? (calorDe(m)?.calor ?? 0) : null" :class="[vista === 'calor' ? 'border-white/70 text-marca-texto' : claseMesa(m), m.forma === 'redonda' ? 'rounded-full' : 'rounded-xl', acomodando ? 'cursor-move ring-2 ring-violeta/30' : '']" :style="vista === 'calor' ? estiloCalor(m) : estiloMesa(m)" @pointerdown="acomodando && arrastrar($event, m, sector)" @click="!acomodando && abrirMesa(m)">
             <span class="text-lg font-black leading-none">{{ m.nombre }}</span>
-            <span v-if="m.comanda" class="text-[10px] font-bold tabular-nums leading-tight mt-0.5">{{ moneda(m.comanda.total, 0) }} · {{ m.comanda.minutos }}'</span>
+            <span v-if="vista === 'calor'" class="text-[10px] font-bold tabular-nums leading-tight mt-0.5">{{ calorDe(m)?.comandas ? moneda(calorDe(m).total, 0) + ' · ' + calorDe(m).comandas + '×' : 'sin uso' }}</span>
+            <span v-else-if="m.comanda" class="text-[10px] font-bold tabular-nums leading-tight mt-0.5">{{ moneda(m.comanda.total, 0) }} · {{ m.comanda.minutos }}'</span>
             <span v-else class="text-[10px] opacity-60 leading-tight mt-0.5">{{ m.capacidad }}p</span>
             <span v-if="m.comanda?.llamado" class="absolute -top-2 -right-2 text-base animate-pulse" data-llamado>{{ m.comanda.llamado === 'cuenta' ? '🧾' : '🙋' }}</span>
             <span v-else-if="m.comanda?.listos" class="absolute -top-2 -right-2 text-base">🔔</span>
@@ -47,7 +62,12 @@
         </div>
       </div>
     </template>
-    <template v-else>
+    <div v-if="vista === 'calor' && calor" class="grid lg:grid-cols-3 gap-4 mb-6" data-e2e="calor-tablas">
+      <div class="card"><h2 class="font-bold mb-2">Las que más rinden</h2><div v-for="m in calor.top.filter(x => x.comandas)" :key="m.id" class="flex justify-between py-1.5 border-t border-marca-borde/60 text-sm"><span>Mesa {{ m.nombre }} <span class="text-xs text-marca-muted">{{ m.sector }} · {{ m.comandas }}× · ticket {{ moneda(m.ticket, 0) }}<span v-if="m.minutos"> · {{ m.minutos }}'</span></span></span><b class="tabular-nums">{{ moneda(m.total, 0) }}</b></div><p v-if="!calor.top.some(x => x.comandas)" class="text-sm text-marca-muted">Todavía no hay comandas cerradas.</p></div>
+      <div class="card"><h2 class="font-bold mb-2">Las frías</h2><p class="text-xs text-marca-muted mb-1">Las que menos se sientan: quizá están mal ubicadas, o sobran.</p><div v-for="m in calor.frias" :key="m.id" class="flex justify-between py-1.5 border-t border-marca-borde/60 text-sm"><span>Mesa {{ m.nombre }} <span class="text-xs text-marca-muted">{{ m.sector }} · {{ m.capacidad }}p</span></span><b class="tabular-nums" :class="m.comandas ? '' : 'text-amber-700'">{{ m.comandas ? moneda(m.total, 0) : 'sin uso' }}</b></div></div>
+      <div class="card"><h2 class="font-bold mb-2">Por franja horaria</h2><div v-for="f in calor.franjas" :key="f.franja" class="py-1.5 border-t border-marca-borde/60 text-sm"><div class="flex justify-between"><span>{{ f.label }} <span class="text-xs text-marca-muted">{{ f.comandas }} comandas · {{ f.cubiertos }} cub.</span></span><b class="tabular-nums">{{ moneda(f.total, 0) }}</b></div><div class="h-1.5 rounded-full bg-gris-light mt-1"><div class="h-1.5 rounded-full bg-carmin" :style="{ width: (calor.total ? f.total / calor.total * 100 : 0) + '%' }"></div></div></div></div>
+    </div>
+    <template v-else-if="vista === 'lista'">
     <div v-for="(grupo, sector) in porSector" :key="sector" class="mb-5">
       <p class="label">{{ sector }}</p>
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-8 gap-3">
@@ -108,7 +128,7 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ mesas: Array, otras: Array, kpis: Object, listaSucursales: Array })
+const props = defineProps({ mesas: Array, otras: Array, kpis: Object, listaSucursales: Array, calor: Object })
 const { puede } = usePermisos()
 const porSector = computed(() => { const g = {}; for (const m of props.mesas) { (g[m.sector] ??= []).push(m) } return g })
 const claseMesa = m => !m.activa ? 'opacity-40 border-marca-borde bg-white' : !m.comanda ? 'bg-white border-marca-borde hover:border-emerald-400 text-marca-texto' : m.comanda.estado === 'cuenta' ? 'bg-violeta text-white border-violeta' : m.comanda.listos ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-carmin-light border-carmin/60 text-carmin-dark'
@@ -116,10 +136,14 @@ function abrirMesa(m) { if (m.comanda) router.visit(`/gastronomia/comandas/${m.c
 const nueva = ref(null), configAbierto = ref(false)
 const mf = useForm({ id: null, nombre: '', sector: 'Salón', capacidad: 4, activa: true, forma: 'cuadrada' })
 let timer
-onMounted(() => { timer = setInterval(() => { if (!nueva.value && !configAbierto.value && !acomodando.value) router.reload({ only: ['mesas', 'otras', 'kpis'] }) }, 15000); try { vista.value = localStorage.getItem('bs.salon.vista') || 'plano' } catch {} })
+onMounted(() => { timer = setInterval(() => { if (!nueva.value && !configAbierto.value && !acomodando.value) router.reload({ only: ['mesas', 'otras', 'kpis'] }) }, 15000); try { vista.value = localStorage.getItem('bs.salon.vista') || 'plano' } catch {}; if (vista.value === 'calor') router.reload({ only: ['calor'] }) })
 // Fase 89: plano del salón. Las mesas sin posición se reparten solas en una grilla; "Acomodar" deja arrastrarlas y guarda el % dentro del sector.
 const vista = ref('plano'), acomodando = ref(false), guardandoPlano = ref(false), planos = reactive({}), pos = reactive({})
-function cambiarVista(v) { vista.value = v; try { localStorage.setItem('bs.salon.vista', v) } catch {} }
+function cambiarVista(v) { vista.value = v; try { localStorage.setItem('bs.salon.vista', v) } catch {}; if (v === 'calor' && !props.calor) router.reload({ only: ['calor'] }) }
+// Fase 90: mapa de calor: de frío (lavanda) a caliente (rojo) según lo que vendió cada mesa respecto de la que más vendió.
+const calorDe = m => props.calor?.mesas?.find(x => x.id === m.id)
+const mejorFranja = computed(() => props.calor ? [...props.calor.franjas].sort((a, b) => b.total - a.total)[0] : null)
+function estiloCalor(m) { const c = calorDe(m)?.calor ?? 0; const paradas = [[0, [238, 242, 255]], [0.33, [253, 230, 138]], [0.66, [249, 115, 22]], [1, [185, 28, 28]]]; let i = 1; while (i < paradas.length - 1 && c > paradas[i][0]) i++; const [a, ca] = paradas[i - 1], [b, cb] = paradas[i]; const t = b === a ? 0 : (c - a) / (b - a); const rgb = ca.map((v, k) => Math.round(v + (cb[k] - v) * t)); return { ...estiloMesa(m), background: `rgb(${rgb.join(',')})`, color: c > 0.5 ? '#fff' : undefined } }
 const TAM = { cuadrada: [76, 76], redonda: [76, 76], larga: [124, 64] }
 function posicion(m) {
   if (pos[m.id]) return pos[m.id]

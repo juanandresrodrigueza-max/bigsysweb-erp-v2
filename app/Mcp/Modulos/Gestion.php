@@ -101,6 +101,11 @@ class Gestion
                     return ['texto' => "Listo: {$r['comanda']->titulo()} con " . count($r['cargados']) . ' plato' . (count($r['cargados']) > 1 ? 's' : '') . ' en cocina.', 'url' => Busca::url("/gastronomia/comandas/{$r['comanda']->id}")];
                 }],
             // Fase 56: control del salón, opiniones de los clientes e ingeniería de menú.
+            // Fase 90: "¿qué mesas rinden más?", "¿cuáles se sientan poco?", "¿a qué hora vendo más?"
+            ['nombre' => 'mapa_de_calor_mesas', 'titulo' => 'Qué mesas rinden más', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Mapa de calor del salón: venta, comandas, cubiertos, ticket promedio y minutos por mesa en los últimos días, las mesas que más rinden, las frías y la venta por franja horaria (desayuno, almuerzo, merienda, cena).',
+                'parametros' => ['dias' => ['type' => 'integer', 'description' => 'Cuántos días para atrás (30 si no se dice)']],
+                'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\CalorSalonService::class)->datos($u->current_location_id, max(1, min(365, (int) ($a['dias'] ?? 30)))) + ['url' => Busca::url('/gastronomia')]],
             ['nombre' => 'control_salon', 'titulo' => 'Control del salón por mozo', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Por mozo: comandas, venta, platos anulados después de salir de cocina, descuentos y propinas, con lo que se aparta de lo normal del equipo.',
                 'parametros' => ['desde' => ['type' => 'string'], 'hasta' => ['type' => 'string']],
