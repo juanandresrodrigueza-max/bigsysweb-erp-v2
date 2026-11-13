@@ -19,7 +19,7 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
-      - uses: android-actions/setup-android@v3
+      # El runner de Ubuntu ya trae el SDK de Android (ANDROID_HOME); Gradle baja lo que falte.
       - run: npm ci
       # google-services.json (Firebase) viene de un secreto: sin él la app compila igual, pero sin notificaciones.
       - name: Firebase
@@ -46,7 +46,9 @@ jobs:
         if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
         with: { name: bigsys-release.aab, path: android/app/build/outputs/bundle/release/app-release.aab }
   ios:
+    # Los runners de macOS se cobran aparte: este trabajo corre sólo a pedido (Actions → App móvil → Run workflow).
     name: iPhone (compila sin firmar)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
