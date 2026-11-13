@@ -1,0 +1,54 @@
+# Fase 93: la app nativa (Capacitor). Compila el APK de Android en cada cambio que la toque y, si están las claves
+# de firma como secretos del repo, también el AAB firmado para Play Store. En macOS verifica que el proyecto de iPhone compile.
+name: App móvil
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'ios/**', 'movil/**', 'capacitor.config.json', 'package.json', '.github/workflows/movil.yml']
+  workflow_dispatch:
+jobs:
+  android:
+    name: Android (APK y AAB)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      # google-services.json (Firebase) viene de un secreto: sin él la app compila igual, pero sin notificaciones.
+      - name: Firebase
+        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+      - run: npx cap sync android
+      - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with: { name: bigsys-debug.apk, path: android/app/build/outputs/apk/debug/app-debug.apk }
+      - name: Firmar para Play Store
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/bigsys.keystore
+          cd android && ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=$PWD/app/bigsys.keystore \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+      - uses: actions/upload-artifact@v4
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        with: { name: bigsys-release.aab, path: android/app/build/outputs/bundle/release/app-release.aab }
+  ios:
+    name: iPhone (compila sin firmar)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx cap sync ios
+      - run: cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build | tail -20

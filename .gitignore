@@ -24,3 +24,10 @@ yarn-error.log
 vendor/
 .env
 tests/e2e/shots/
+
+# App nativa (Fase 93): lo que se genera al compilar o lo que trae credenciales
+android/app/google-services.json
+android/app/*.keystore
+ios/App/App/GoogleService-Info.plist
+ios/App/Pods
+ios/App/Podfile.lock

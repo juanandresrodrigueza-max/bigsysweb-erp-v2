@@ -37,6 +37,26 @@
         </div>
         <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
       </div>
+
+      <!-- Fase 93: la app nativa (iPhone y Android): Firebase para los avisos y los links a las tiendas. -->
+      <div class="card space-y-4 lg:col-span-3" data-e2e="app-movil">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div><h2 class="font-bold">App del celular (iPhone y Android)</h2><p class="text-xs text-marca-muted">Los avisos de la app salen por Firebase Cloud Messaging; en iPhone, Firebase los entrega por APNs. Una sola cuenta para todas las empresas.</p></div>
+          <span class="badge" :class="movil.fcm_set ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ movil.fcm_set ? 'Firebase cargado · ' + movil.fcm_proyecto : 'Sin Firebase: la app anda, pero sin avisos' }}</span>
+        </div>
+        <div class="grid lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2"><label class="label">Cuenta de servicio de Firebase (JSON) {{ movil.fcm_set ? '· dejar vacío para no cambiarla' : '' }}</label><textarea v-model="form.fcm_service_account" rows="4" class="input font-mono !text-xs" placeholder='{"type": "service_account", "project_id": "...", "client_email": "...", "private_key": "-----BEGIN PRIVATE KEY-----..."}' autocomplete="off"></textarea><p class="text-xs text-marca-muted mt-1">Firebase → Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada. Queda cifrada; nunca la pegues en un chat.</p><p v-if="form.errors.fcm_service_account" class="text-xs text-carmin mt-1">{{ form.errors.fcm_service_account }}</p></div>
+          <div class="space-y-3">
+            <div><label class="label">Link en Google Play</label><input v-model="form.app_android_url" class="input" placeholder="https://play.google.com/store/apps/details?id=ar.com.bigsys.erp" /></div>
+            <div><label class="label">Link en App Store</label><input v-model="form.app_ios_url" class="input" placeholder="https://apps.apple.com/ar/app/bigsys/id…" /></div>
+            <div class="p-3 rounded-xl bg-marca-fondo text-xs text-marca-muted">
+              <p class="font-semibold text-marca-texto">Celulares con la app</p>
+              <p>iPhone: <b>{{ movil.dispositivos?.ios ?? 0 }}</b> · Android: <b>{{ movil.dispositivos?.android ?? 0 }}</b></p>
+              <Link href="/admin/sistema/probar-push" method="post" as="button" preserve-scroll class="btn-secondary !py-1 text-xs mt-2" data-e2e="probar-push">Mandarme un aviso de prueba</Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </form>
 
     <!-- Fase 87: la empresa propia de BigSys. Los superadmins la usan como su empresa y saltan entre el panel y ella. -->
@@ -121,12 +141,12 @@ import { ref, computed } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Icono from '@/Components/Icono.vue'
-const props = defineProps({ bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const props = defineProps({ movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
 const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
-const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls' })
+const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
