@@ -46,4 +46,15 @@ En noviembre de 2026 reordenamos el sistema para que vaya **en el orden del día
 - **Inicio** arranca con los accesos del día: Vender, Cobrar, Entregar y Cerrar caja. El dueño tiene **Mi negocio** también en la compu.
 - La **ficha del cliente** abre por la solapa Ficha; Acopios y Precios pactados aparecen sólo si los usás.
 
+## Lo nuevo de Big Restó (fases 89 a 91)
+
+- **Salón**: la pantalla de mesas es un plano por sector (Plano / Lista / Calor). Con «Acomodar mesas» las arrastrás a su lugar; la vista **Calor** pinta cada mesa por lo que vendió en 30 días y muestra las que más rinden, las frías y la venta por franja.
+- **Comanda**: se pide por asiento (La mesa · 1 · 2 · 3…) y al cobrar «Cada uno lo suyo» arma la parte de cada asiento sola. El 🎁 marca un plato como **cortesía** (invitación, consumo del personal, error de cocina): va a $ 0 y su costo queda en **Stock → Mermas y cortesías**, que es nueva.
+- **Mozo de bolsillo** (Big Restó → Mozo de bolsillo): la pantalla del mozo en el celular, con lo listo para llevar, las mesas que lo llaman, sus mesas y las libres. En la comanda, en el celular, hay una barra abajo con el total, Enviar y Cobrar.
+- **Reservas**: además de la web, entran por **WhatsApp** («quiero reservar para 4 el sábado a las 21»). Si no hay lugar quedan en **lista de espera** y pasan solas cuando alguien cancela. La capacidad por turno se carga en Configuración → Tienda.
+- **Delivery** (Big Restó → Delivery): el reparto propio con **zonas de entrega** y costo de envío (se suma solo a la comanda por la dirección), el tablero Preparando → Listos → En camino → Entregados, «Salió» que avisa al cliente y «Entregado» que cobra y cierra.
+- **Plata → Cerrar caja → Más**: el **arqueo ciego**: el cajero cuenta sin ver lo esperado.
+- **Administración BigSys**: los superadmins tienen su propia empresa del ERP y saltan entre el panel y la empresa con un botón.
+- A Bigcito, por voz: «tiré dos kilos de tomate», «¿qué mesas rinden más?», «reservá para cuatro el sábado a las nueve a nombre de Juan», «¿cómo viene el delivery?».
+
 Si algo no lo encontrás, Ctrl K y escribí cómo se llamaba antes.

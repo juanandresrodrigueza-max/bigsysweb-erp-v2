@@ -21,7 +21,7 @@ class ProductoTest extends ErpTestCase
         // La búsqueda devuelve la sección exacta, sin acentos y por raíz de palabra.
         $this->get('/ayuda?q=anular factura')->assertInertia(fn($p) => $p->component('Ayuda', false)->where('resultados.0.slug', 'preguntas-frecuentes')->where('resultados.0.seccion', '¿Cómo anulo una factura emitida?')->has('indice', 26)->where('indice.0.slug', 'implementacion'));
         $this->getJson('/ayuda/buscar?q=rebot')->assertOk()->assertJsonPath('0.slug', 'cobrar')->assertJsonPath('0.seccion', 'Errores comunes')->assertJsonPath('0.url', '/ayuda/cobrar#errores-comunes');
-        $this->getJson('/ayuda/buscar?q=ARQUEO')->assertJsonPath('0.slug', 'fondos')->assertJsonPath('0.seccion', 'Arqueo ciego (Plata → Cerrar caja → Más, Fase 89)')->assertJsonPath('1.seccion', 'Caja');
+        $this->getJson('/ayuda/buscar?q=ARQUEO')->assertJsonPath('0.slug', 'fondos')->assertJsonPath('0.seccion', 'Arqueo ciego (Plata → Cerrar caja → Más, Fase 89)')->assertJsonPath('2.seccion', 'Caja');
         $this->getJson('/ayuda/buscar?q=codigo de barras balanza')->assertJsonPath('0.slug', 'punto-de-venta')->assertJsonPath('0.seccion', 'Balanza e impresora');
         $this->get('/ayuda/fondos')->assertInertia(fn($p) => $p->where('articulo.secciones.0.ancla', 'caja'));
         $this->assertStringContainsString('<h2 id="caja">', app(\App\Services\Producto\AyudaService::class)->articulo('fondos')['html']);
