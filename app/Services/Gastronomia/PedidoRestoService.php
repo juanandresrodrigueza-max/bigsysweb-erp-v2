@@ -82,6 +82,7 @@ class PedidoRestoService
         $c = $r['comanda'];
         // Si no se pudo cargar nada (faltó una opción obligatoria), no queda una comanda vacía dando vueltas.
         if (! $c->items()->count()) { $c->delete(); $r['comanda'] = null; return $r; }
+        if ($c->tipo === 'delivery' && ($z = DeliveryService::detectar($b, $c->direccion))) { app(DeliveryService::class)->aplicarZona($c, $z); $r['comanda'] = $c->fresh(); } // Fase 91: el envío según la zona
         if ($c->items()->count()) Alerta::emitir(['business_id' => $b->id, 'business_location_id' => $c->business_location_id, 'modulo' => 'gastronomia', 'tipo' => 'pedido_whatsapp', 'modelo' => 'Comanda', 'modelo_id' => $c->id, 'severidad' => 'info', 'titulo' => "Pedido por WhatsApp {$c->numeroFormateado()}" . ($c->tipo === 'delivery' ? ' · delivery' : ' · para retirar'), 'detalle' => collect($r['cargados'])->map(fn($x) => rtrim(rtrim(number_format($x['cantidad'], 2, ',', '.'), '0'), ',') . ' ' . $x['plato'])->implode(', '), 'url' => "/gastronomia/comandas/{$c->id}"]);
         return $r;
     }

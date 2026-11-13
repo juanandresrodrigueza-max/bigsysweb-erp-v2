@@ -21,7 +21,10 @@ class ReservasController extends Controller
         return Inertia::render('Gastronomia/Reservas', [
             'periodo' => ['desde' => $desde, 'hasta' => $hasta],
             'reservas' => Booking::whereBetween('starts_at', [$desde . ' 00:00:00', $hasta . ' 23:59:59'])->orderBy('starts_at')->get()->map(fn($r) => ['id' => $r->id, 'fecha' => $r->starts_at->format('d/m'), 'hora' => $r->starts_at->format('H:i'), 'dia' => $r->starts_at->locale('es')->isoFormat('dddd D'), 'nombre' => $r->nombre ?: ($r->contact?->name ?? 'Sin nombre'), 'telefono' => $r->telefono, 'personas' => $r->personas, 'estado' => $r->status, 'origen' => $r->origen, 'notas' => $r->notes]),
-            'kpis' => ['hoy' => Booking::whereDate('starts_at', today())->whereIn('status', ['pending', 'confirmed'])->count(), 'personas_hoy' => (int) Booking::whereDate('starts_at', today())->whereIn('status', ['pending', 'confirmed'])->sum('personas'), 'pendientes' => Booking::where('status', 'pending')->where('starts_at', '>=', now())->count()],
+            'kpis' => ['hoy' => Booking::whereDate('starts_at', today())->whereIn('status', ['pending', 'confirmed'])->count(), 'personas_hoy' => (int) Booking::whereDate('starts_at', today())->whereIn('status', ['pending', 'confirmed'])->sum('personas'), 'espera' => Booking::where('status', 'waitlist')->where('starts_at', '>=', today())->count(), 'pendientes' => Booking::where('status', 'pending')->where('starts_at', '>=', now())->count()],
+            // Fase 91: la lista de espera (de hoy en adelante) y la capacidad por turno.
+            'espera' => Booking::where('status', 'waitlist')->where('starts_at', '>=', today())->orderBy('starts_at')->orderBy('created_at')->get()->map(fn($r) => ['id' => $r->id, 'fecha' => $r->starts_at->format('d/m'), 'hora' => $r->starts_at->format('H:i'), 'nombre' => $r->nombre, 'telefono' => $r->telefono, 'personas' => $r->personas, 'origen' => $r->origen, 'desde' => $r->created_at->diffForHumans(), 'hay_lugar' => app(\App\Services\Gastronomia\ReservasService::class)->hayLugar($request->user()->business, $r->starts_at, (int) $r->personas)]),
+            'capacidad' => app(\App\Services\Gastronomia\ReservasService::class)->capacidad($request->user()->business),
             'urlReservas' => url('/r/' . $cfg['slug']), 'reservasActivas' => (bool) $cfg['reservas_activas'], 'urlMenu' => url('/m/' . $cfg['slug']), 'menuActivo' => (bool) $cfg['menu_activo'],
             'mesas' => Mesa::where('activa', true)->orderBy('sector')->orderBy('orden')->get()->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'url' => url('/m/' . $cfg['slug'] . '?mesa=' . $m->id)]),
         ]);
@@ -37,9 +40,12 @@ class ReservasController extends Controller
 
     public function estado(Request $request, int $id)
     {
-        $d = $request->validate(['estado' => 'required|in:pending,confirmed,cancelled,completed,no_show']);
-        $r = Booking::findOrFail($id); $r->update(['status' => $d['estado']]);
+        $d = $request->validate(['estado' => 'required|in:pending,confirmed,cancelled,completed,no_show,waitlist']);
+        $r = Booking::findOrFail($id); $antes = $r->status; $r->update(['status' => $d['estado']]);
+        // Fase 91: si se cancela una reserva, la primera de la lista de espera que entra pasa sola y se le avisa.
+        $liberadas = in_array($antes, ['pending', 'confirmed'], true) && in_array($d['estado'], ['cancelled', 'no_show'], true) ? app(\App\Services\Gastronomia\ReservasService::class)->liberar($request->user()->business, $r) : [];
+        if ($liberadas) return back()->with('success', 'Reserva cancelada. Pasó de la lista de espera: ' . collect($liberadas)->map(fn($x) => "{$x->nombre} ({$x->personas})")->implode(', ') . '. Ya se le avisó por WhatsApp.');
         \App\Models\Alerta::where('tipo', 'reserva_nueva')->where('detalle', 'like', '%' . $r->telefono . '%')->update(['resuelta_en' => now()]);
-        return back()->with('success', 'Reserva ' . ['pending' => 'pendiente', 'confirmed' => 'confirmada', 'cancelled' => 'cancelada', 'completed' => 'completada', 'no_show' => 'marcada como no vino'][$d['estado']] . '.');
+        return back()->with('success', 'Reserva ' . ['pending' => 'pendiente', 'confirmed' => 'confirmada', 'cancelled' => 'cancelada', 'completed' => 'completada', 'no_show' => 'marcada como no vino', 'waitlist' => 'en lista de espera'][$d['estado']] . '.');
     }
 }

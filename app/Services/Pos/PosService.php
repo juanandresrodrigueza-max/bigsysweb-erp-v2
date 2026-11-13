@@ -68,7 +68,8 @@ class PosService
                 $medios = array_values(array_filter($medios, fn($m) => (float) $m['monto'] > 0));
             }
             $medios = collect($medios);
-            if ($pagado + 0.005 < $total && ! ($d['a_cuenta'] ?? false)) {
+            // Hasta 5 centavos de diferencia es redondeo del IVA (el precio de carta es final; el comprobante guarda el neto): no se le pide al cliente.
+            if ($pagado + 0.05 < $total && ! ($d['a_cuenta'] ?? false)) {
                 throw ValidationException::withMessages(['medios' => 'Falta cobrar $ ' . number_format($total - $pagado, 2, ',', '.') . '. Si es a cuenta corriente, marcá "queda a cuenta".']);
             }
 

@@ -13,6 +13,7 @@ use App\Models\Mesa;
 use App\Models\Product;
 use App\Models\Rubro;
 use App\Services\Gastronomia\ComandaService;
+use App\Services\Gastronomia\DeliveryService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -36,6 +37,7 @@ class GastronomiaController extends Controller
             'pagos' => $c->pagos ?? [], 'pendiente' => round($c->items->where('estado', '!=', 'anulado')->sum(fn($i) => ((float) $i->cantidad - (float) $i->pagado) * (float) $i->precio_unit), 2),
             'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'asiento' => $i->asiento, 'cortesia' => (bool) $i->cortesia, 'cortesia_motivo' => $i->cortesia_motivo, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'estacion' => $i->estacion, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
             'pendientes_envio' => $c->items->where('estado', 'pedido')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
+            'zona' => $c->zona, 'costo_envio' => (float) $c->costo_envio, 'repartidor' => $c->repartidor, 'salio' => $c->salio_en?->format('H:i'), 'entregado' => $c->entregado_en?->format('H:i'), // Fase 91
         ];
     }
 
@@ -50,6 +52,7 @@ class GastronomiaController extends Controller
             'otras' => Comanda::abiertas()->whereNull('mesa_id')->with('items', 'mozo:id,name')->orderBy('abierta_en')->get()->map(fn($c) => $this->comandaArr($c)),
             'kpis' => ['abiertas' => Comanda::abiertas()->count(), 'ocupadas' => $mesas->filter(fn($m) => $m->comandaAbierta)->count(), 'mesas' => $mesas->where('activa', true)->count(), 'ventas_hoy' => (float) (clone $hoy)->sum('total'), 'cubiertos_hoy' => (int) (clone $hoy)->sum('cubiertos'), 'comandas_hoy' => (clone $hoy)->count(), 'propinas_hoy' => (float) (clone $hoy)->sum('propina'), 'en_cocina' => ComandaItem::where('estado', 'cocina')->whereHas('comanda', fn($q) => $q->abiertas())->count()],
             'listaSucursales' => $user->business->locations()->where('is_active', true)->get(['id', 'name']),
+            'zonas' => DeliveryService::zonas($user->business), // Fase 91
             'calor' => Inertia::optional(fn() => app(\App\Services\Gastronomia\CalorSalonService::class)->datos($user->current_location_id)), // Fase 90: sólo cuando se pide la vista Calor (router.reload only calor)
         ]);
     }
@@ -99,9 +102,50 @@ class GastronomiaController extends Controller
 
     public function abrir(Request $request, ComandaService $svc)
     {
-        $d = $request->validate(['mesa_id' => 'nullable|exists:mesas,id', 'tipo' => 'nullable|in:mesa,mostrador,delivery', 'cubiertos' => 'nullable|integer|min:0|max:100', 'cliente' => 'nullable|string|max:120', 'direccion' => 'nullable|string|max:200', 'telefono' => 'nullable|string|max:40']);
+        $d = $request->validate(['mesa_id' => 'nullable|exists:mesas,id', 'tipo' => 'nullable|in:mesa,mostrador,delivery', 'cubiertos' => 'nullable|integer|min:0|max:100', 'cliente' => 'nullable|string|max:120', 'direccion' => 'nullable|string|max:200', 'telefono' => 'nullable|string|max:40', 'zona' => 'nullable|string|max:60']);
         $c = $svc->abrir($d);
+        // Fase 91: el envío por zona, elegida o deducida de la dirección.
+        if ($c->tipo === 'delivery' && $c->wasRecentlyCreated) { $b = $request->user()->business; $z = DeliveryService::zona($b, $d['zona'] ?? null) ?? DeliveryService::detectar($b, $d['direccion'] ?? null); if ($z) app(DeliveryService::class)->aplicarZona($c, $z); }
         return redirect("/gastronomia/comandas/{$c->id}");
+    }
+
+    // Fase 91: el tablero del reparto: preparando → listos para salir → en camino → entregados hoy. Y las zonas con su costo.
+    public function delivery(Request $request, DeliveryService $svc)
+    {
+        $b = $request->user()->business;
+        return Inertia::render('Gastronomia/Delivery', ['tablero' => $svc->tablero($request->user()->current_location_id), 'zonas' => DeliveryService::zonas($b), 'repartidores' => DeliveryService::repartidores($b), 'medios' => DeliveryService::MEDIOS]);
+    }
+
+    public function guardarZonas(Request $request)
+    {
+        $d = $request->validate(['zonas' => 'present|array|max:40', 'zonas.*.nombre' => 'required|string|max:60', 'zonas.*.costo' => 'required|numeric|min:0', 'zonas.*.palabras' => 'nullable|string|max:300', 'zonas.*.demora' => 'nullable|integer|min:0|max:300', 'repartidores' => 'present|array|max:30', 'repartidores.*' => 'nullable|string|max:80']);
+        $b = $request->user()->business; $cfg = $b->gastronomia_config ?? [];
+        $cfg['zonas'] = array_values(array_map(fn($z) => ['nombre' => trim($z['nombre']), 'costo' => round((float) $z['costo'], 2), 'palabras' => trim((string) ($z['palabras'] ?? '')), 'demora' => (int) ($z['demora'] ?? 0)], $d['zonas']));
+        $cfg['repartidores'] = array_values(array_filter(array_map(fn($r) => trim((string) $r), $d['repartidores'])));
+        $b->forceFill(['gastronomia_config' => $cfg])->save();
+        return back()->with('success', 'Zonas y repartidores guardados.');
+    }
+
+    public function zonaComanda(Request $request, int $id, DeliveryService $svc)
+    {
+        $d = $request->validate(['zona' => 'nullable|string|max:60']);
+        $c = Comanda::findOrFail($id); abort_unless($c->tipo === 'delivery', 422);
+        $svc->aplicarZona($c, DeliveryService::zona($request->user()->business, $d['zona'] ?? null));
+        return back()->with('success', $c->zona ? "Envío a {$c->zona}." : 'Sin costo de envío.');
+    }
+
+    public function salio(Request $request, int $id, DeliveryService $svc)
+    {
+        $d = $request->validate(['repartidor' => 'nullable|string|max:80']);
+        $svc->salio(Comanda::findOrFail($id), $d['repartidor'] ?? null);
+        return back()->with('success', 'Salió. Se le avisó al cliente.');
+    }
+
+    public function entregado(Request $request, int $id, DeliveryService $svc, ComandaService $cs)
+    {
+        $d = $request->validate(['medio' => 'required|in:' . implode(',', array_keys(DeliveryService::MEDIOS))]);
+        $r = $svc->entregado(Comanda::findOrFail($id), $d['medio'], $cs);
+        return back()->with('success', 'Entregado y cobrado' . (isset($r['comprobante']) ? ' · ' . $r['comprobante']->numeroFormateado() : '') . '.');
     }
 
     public function comanda(int $id)
@@ -110,6 +154,7 @@ class GastronomiaController extends Controller
         if ($c->llamado) $c->update(['llamado' => null, 'llamado_en' => null]); // el mozo ya la atendió
         return Inertia::render('Gastronomia/Comanda', [
             'comanda' => $this->comandaArr($c),
+            'zonas' => $c->tipo === 'delivery' ? DeliveryService::zonas(auth()->user()->business) : [], // Fase 91
             'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->filter(fn($p) => \App\Services\Gastronomia\HorariosService::disponible($p))->values()->map(fn($p) => ['id' => $p->id, 'hh' => \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)['nombre'] ?? null, 'name' => $p->name, 'price' => \App\Services\Gastronomia\HorariosService::aplicar($this->precioFinal($p), \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color']),
             'medios' => Cobro::MEDIOS, 'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),

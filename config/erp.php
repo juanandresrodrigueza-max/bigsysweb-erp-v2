@@ -149,6 +149,7 @@ return [
             ['key' => 'cocina',      'label' => 'Cocina',      'ruta' => '/gastronomia/cocina'],
             ['key' => 'carta',       'label' => 'Carta',       'ruta' => '/gastronomia/carta'],
             ['key' => 'reservas',    'label' => 'Reservas',    'ruta' => '/gastronomia/reservas'],
+            ['key' => 'delivery',    'label' => 'Delivery',    'ruta' => '/gastronomia/delivery', 'ayuda' => 'El reparto propio: zonas con costo de envío, qué sale, qué está en camino y qué se entregó.', 'palabras' => 'delivery reparto envio zonas repartidor'],
             ['key' => 'llamador',    'label' => 'Llamador',    'ruta' => '/gastronomia/llamador'],
         ],
         'retail'     => [['key' => 'retail',     'label' => 'Mostrador', 'ruta' => '/retail',     'solo_link' => true]],

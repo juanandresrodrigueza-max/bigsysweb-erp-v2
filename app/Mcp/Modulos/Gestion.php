@@ -102,6 +102,28 @@ class Gestion
                 }],
             // Fase 56: control del salón, opiniones de los clientes e ingeniería de menú.
             // Fase 90: "¿qué mesas rinden más?", "¿cuáles se sientan poco?", "¿a qué hora vendo más?"
+            // Fase 91: "reservá para cuatro el sábado a las nueve a nombre de Juan" y "¿cómo viene el delivery?".
+            ['nombre' => 'reservar_mesa', 'titulo' => 'Reservar una mesa', 'modulo' => 'gastronomia', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Carga una reserva del salón: si hay lugar queda confirmada, si no queda en lista de espera y se avisa solo cuando se libera. Podés pasar el pedido tal como lo dijo el cliente en "texto".',
+                'parametros' => ['texto' => ['type' => 'string', 'description' => 'La reserva en palabras: "para 4 el sábado a las 21, Juan"'], 'nombre' => ['type' => 'string'], 'personas' => ['type' => 'integer'], 'fecha' => ['type' => 'string', 'description' => 'AAAA-MM-DD'], 'hora' => ['type' => 'string', 'description' => 'HH:MM'], 'telefono' => ['type' => 'string'], 'notas' => ['type' => 'string']],
+                'requeridos' => [],
+                'proponer' => function (User $u, array $a) {
+                    $i = ! empty($a['texto']) ? \App\Services\Gastronomia\ReservasService::interpretar($a['texto']) : ['personas' => null, 'inicio' => null, 'nombre' => null];
+                    $personas = (int) ($a['personas'] ?? $i['personas'] ?? 0); $nombre = $a['nombre'] ?? $i['nombre'] ?? null;
+                    $inicio = ! empty($a['fecha']) ? \Carbon\Carbon::parse($a['fecha'] . ' ' . ($a['hora'] ?? '21:00')) : $i['inicio'];
+                    if (! $personas || ! $inicio) return ['error' => 'Me falta ' . (! $personas ? 'para cuántos' : 'el día y la hora') . '.'];
+                    $svc = app(\App\Services\Gastronomia\ReservasService::class); $lugar = $svc->hayLugar($u->business, $inicio, $personas);
+                    return ['titulo' => "Reserva para {$personas} el " . $svc->cuando($inicio) . ($nombre ? " a nombre de {$nombre}" : ''), 'detalle' => $lugar ? 'Hay lugar: queda confirmada.' : 'No hay lugar a esa hora: queda en lista de espera y se avisa si se libera.',
+                        'datos' => ['personas' => $personas, 'inicio' => $inicio->toDateTimeString(), 'nombre' => $nombre, 'telefono' => $a['telefono'] ?? null, 'notas' => $a['notas'] ?? null]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $r = app(\App\Services\Gastronomia\ReservasService::class)->reservar($u->business, $d + ['origen' => 'bigcito', 'location_id' => $u->current_location_id]);
+                    return ['texto' => ($r->status === 'confirmed' ? 'Reserva confirmada' : 'Anotada en lista de espera') . ": {$r->nombre}, {$r->personas} personas, " . $r->starts_at->format('d/m H:i') . '.', 'url' => Busca::url('/gastronomia/reservas')];
+                }],
+            ['nombre' => 'delivery_en_curso', 'titulo' => 'Cómo viene el delivery', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'El reparto propio ahora: pedidos preparándose, listos para salir, en camino (con quién y hace cuánto) y entregados hoy, con la demora promedio y lo cobrado de envíos.',
+                'parametros' => [],
+                'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\DeliveryService::class)->tablero($u->current_location_id) + ['url' => Busca::url('/gastronomia/delivery')]],
             ['nombre' => 'mapa_de_calor_mesas', 'titulo' => 'Qué mesas rinden más', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Mapa de calor del salón: venta, comandas, cubiertos, ticket promedio y minutos por mesa en los últimos días, las mesas que más rinden, las frías y la venta por franja horaria (desayuno, almuerzo, merienda, cena).',
                 'parametros' => ['dias' => ['type' => 'integer', 'description' => 'Cuántos días para atrás (30 si no se dice)']],
