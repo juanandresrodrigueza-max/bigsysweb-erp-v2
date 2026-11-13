@@ -2,14 +2,15 @@
   <AppLayout titulo="Mi negocio">
     <div class="max-w-lg mx-auto space-y-3">
       <div class="flex items-end justify-between gap-2">
-        <div><h1 class="page-title">Mi negocio</h1><p class="page-subtitle">{{ fecha }} · lo importante, de un vistazo.</p></div>
+        <div><p class="kicker mb-1">Mi negocio</p><h1 class="page-title">Hola, hoy así vamos</h1><p class="page-subtitle">{{ fecha }} · lo importante, de un vistazo.</p></div>
         <Link href="/dashboard" class="text-xs text-violeta font-semibold">Panel completo →</Link>
       </div>
 
       <!-- Hoy -->
-      <div class="rounded-2xl p-4 text-white bg-marca-grad shadow-pop">
-        <p class="text-[11px] font-bold uppercase tracking-widest opacity-80">Ventas de hoy</p>
-        <p class="text-3xl font-extrabold tabular-nums leading-tight">{{ moneda(hoy.ventas, 0) }}</p>
+      <div class="card-oscura !p-5 relative overflow-hidden">
+        <div class="pointer-events-none absolute -right-10 -top-14 w-44 h-44 rounded-full bg-rosa/40 blur-2xl"></div>
+        <p class="kicker !text-rosa-light/90">Ventas de hoy</p>
+        <p class="font-display text-4xl font-light tabular-nums leading-tight mt-1">{{ moneda(hoy.ventas, 0) }}</p>
         <p class="text-sm opacity-90">{{ hoy.facturas }} facturas · cobrado {{ moneda(hoy.cobrado, 0) }}<span v-if="hoy.vs_ayer !== null"> · {{ hoy.vs_ayer >= 0 ? '+' : '' }}{{ hoy.vs_ayer }}% vs ayer</span></p>
         <p class="text-xs opacity-80 mt-1">Mes: {{ moneda(mes.ventas, 0) }}<span v-if="mes.vs_mes_anterior !== null"> ({{ mes.vs_mes_anterior >= 0 ? '+' : '' }}{{ mes.vs_mes_anterior }}% vs el mes pasado a esta altura)</span></p>
       </div>

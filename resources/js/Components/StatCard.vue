@@ -1,7 +1,7 @@
 <template>
-  <component :is="url ? Link : 'div'" :href="url" class="card flex flex-col gap-1 hover:border-carmin/40 transition">
-    <p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted flex items-center gap-1">{{ label }} <span v-if="como" class="normal-case tracking-normal font-normal text-marca-muted/70 cursor-help" :title="como" data-e2e="como">ⓘ</span></p>
-    <p class="text-xl font-extrabold tracking-tight tabular-nums whitespace-nowrap" :class="alerta ? 'text-carmin' : ''">{{ valorFormateado }}</p>
+  <component :is="url ? Link : 'div'" :href="url" class="card flex flex-col gap-1 transition-all duration-200" :class="url ? 'hover:-translate-y-0.5 hover:shadow-pop hover:border-magenta/30' : ''">
+    <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-marca-muted flex items-center gap-1">{{ label }} <span v-if="como" class="normal-case tracking-normal font-normal text-marca-muted/70 cursor-help" :title="como" data-e2e="como">ⓘ</span></p>
+    <p class="font-display text-2xl font-medium tracking-tight tabular-nums whitespace-nowrap" :class="alerta ? 'text-carmin' : 'text-ciruela-900'">{{ valorFormateado }}</p>
     <p v-if="tendencia !== null && tendencia !== undefined" class="text-xs flex items-center gap-1" :class="positiva ? 'text-emerald-600' : 'text-carmin'">
       <Icono :nombre="tendencia >= 0 ? 'trendUp' : 'trendDown'" clase="w-3.5 h-3.5" />
       {{ Math.abs(tendencia) }}% vs período anterior

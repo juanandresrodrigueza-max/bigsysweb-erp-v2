@@ -4,7 +4,7 @@
     <div v-if="bloqueada" class="h-16 bg-white border-b border-marca-borde flex items-center px-6 gap-3"><Logo clase="h-7" /><span class="flex-1"></span><Link href="/logout" method="post" as="button" class="btn-ghost text-xs"><Icono nombre="logout" clase="w-4 h-4" /> Salir</Link></div>
     <div :class="bloqueada ? 'max-w-5xl mx-auto p-4 md:p-8' : ''">
 
-      <div v-if="bloqueada" class="rounded-2xl p-6 mb-6 text-white bg-marca-grad shadow-lg">
+      <div v-if="bloqueada" class="card-oscura !p-6 mb-6">
         <p class="text-[11px] font-bold uppercase tracking-widest opacity-80">Acceso suspendido</p>
         <h1 class="text-2xl font-extrabold mt-1">{{ motivo }}</h1>
         <p v-if="administrativa" class="mt-2 text-white/90 max-w-2xl">Tus datos están intactos. Esta suspensión no depende del pago: para reactivar el acceso escribinos a {{ soporte.whatsapp }} o {{ soporte.email }}.</p>

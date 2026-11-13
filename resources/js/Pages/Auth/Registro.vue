@@ -1,10 +1,12 @@
 <template>
   <Head title="Registrate gratis · BigSys web ERP" />
   <div class="min-h-screen grid lg:grid-cols-[1fr_1fr] bg-marca-fondo">
-    <section class="relative overflow-hidden text-white px-6 py-8 sm:px-12 lg:p-14 flex flex-col gap-6 lg:justify-center" style="background: linear-gradient(150deg,#e4003f 0%,#a42785 58%,#4f3089 100%)">
-      <Logo negativo clase="h-14 sm:h-16" />
-      <div class="max-w-lg">
-        <h1 class="font-marca text-3xl sm:text-4xl font-extrabold leading-tight text-balance">Probalo {{ dias }} días con todo activado.</h1>
+    <section class="relative overflow-hidden text-white px-6 py-8 sm:px-12 lg:p-14 flex flex-col gap-6 lg:justify-center bg-ciruela-grad">
+      <div class="pointer-events-none absolute -top-32 -left-32 w-[460px] h-[460px] rounded-full bg-rosa/30 blur-3xl"></div>
+      <Logo negativo clase="h-12 sm:h-14 relative" />
+      <div class="max-w-lg relative">
+        <p class="kicker !text-rosa-light/90 mb-3">Prueba gratis · {{ dias }} días</p>
+        <h1 class="font-display text-4xl sm:text-5xl font-light leading-[1.05] text-balance">Probalo con tu negocio real, <span class="font-normal">gratis.</span></h1>
         <p class="mt-3 text-white/90">Sin tarjeta. Al terminar la prueba seguís gratis (1 usuario, 10 facturas por mes) o elegís un plan y pagás con Mercado Pago.</p>
         <ul class="mt-6 space-y-2 text-[15px]">
           <li>✓ Bigcito te pregunta cómo trabajás y te deja el sistema a medida</li><li>✓ Factura electrónica con ARCA</li><li>✓ Stock, compras, clientes y caja</li><li>✓ Contabilidad e IVA automáticos</li><li>✓ Bigcito: manejalo hablando</li>
@@ -13,7 +15,7 @@
     </section>
     <section class="flex items-center justify-center px-6 py-10">
       <form @submit.prevent="enviar" class="w-full max-w-md space-y-3" data-e2e="registro">
-        <h2 class="text-3xl font-extrabold tracking-tight">Registrate gratis</h2>
+        <h2 class="font-display text-3xl font-medium tracking-tight text-ciruela-900">Registrate gratis</h2>
         <p class="text-sm text-marca-muted">En un minuto tenés tu empresa lista.</p>
         <div><label class="label">Nombre de tu empresa</label><input v-model="f.empresa" class="input" autofocus /><p v-if="f.errors.empresa" class="text-xs text-carmin">{{ f.errors.empresa }}</p></div>
         <div class="grid sm:grid-cols-2 gap-3">

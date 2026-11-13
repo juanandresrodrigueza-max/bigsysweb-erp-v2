@@ -2,11 +2,12 @@
   <AppLayout titulo="Inicio">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
       <div>
-        <h1 class="page-title">Hola, {{ nombre }}</h1>
+        <p class="kicker mb-1">Inicio</p>
+        <h1 class="page-title !text-3xl">Hola, {{ nombre }}</h1>
         <p class="page-subtitle">Así va {{ $page.props.sucursales?.consolidado ? 'tu negocio en todas las sucursales' : ($page.props.sucursales?.actual?.nombre ?? 'tu negocio') }} {{ etiquetaPeriodo }}.<span v-if="$page.props.sucursales?.consolidado" class="badge bg-violeta-light text-violeta ml-2">Consolidado</span></p>
       </div>
-      <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1">
-        <button v-for="p in periodos" :key="p.key" @click="cambiar(p.key)" class="px-3 py-1 rounded-full text-xs font-semibold transition" :class="periodo === p.key ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">{{ p.label }}</button>
+      <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1 shadow-sm">
+        <button v-for="p in periodos" :key="p.key" @click="cambiar(p.key)" class="px-3 py-1 rounded-full text-xs font-semibold transition" :class="periodo === p.key ? 'bg-marca-grad text-white shadow-glow-sm' : 'text-marca-muted hover:text-ciruela-800'">{{ p.label }}</button>
       </div>
     </div>
 
@@ -63,9 +64,10 @@
 
     <!-- Fase 84: los accesos del día, en el orden en que pasan las cosas, arriba de los números. -->
     <div v-if="accesos.length" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-e2e="accesos-del-dia">
-      <Link v-for="a in accesos" :key="a.key" :href="a.href" class="card py-3 flex items-center gap-3 hover:border-carmin/40 transition" :data-e2e="`acceso-${a.key}`">
-        <span class="w-10 h-10 rounded-xl grid place-items-center shrink-0" :class="a.color"><Icono :nombre="a.icono" clase="w-5 h-5" /></span>
-        <span class="min-w-0"><span class="block font-bold">{{ a.label }}</span><span class="block text-xs text-marca-muted truncate">{{ a.sub }}</span></span>
+      <Link v-for="a in accesos" :key="a.key" :href="a.href" class="card !p-4 flex items-center gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-pop hover:border-magenta/30 group" :data-e2e="`acceso-${a.key}`">
+        <span class="w-11 h-11 rounded-2xl grid place-items-center shrink-0 transition group-hover:scale-105" :class="a.color"><Icono :nombre="a.icono" clase="w-5 h-5" /></span>
+        <span class="min-w-0 flex-1"><span class="block font-display font-medium text-[17px] text-ciruela-900">{{ a.label }}</span><span class="block text-xs text-marca-muted truncate">{{ a.sub }}</span></span>
+        <span class="text-marca-muted/50 group-hover:text-magenta transition">→</span>
       </Link>
     </div>
 
@@ -76,12 +78,12 @@
     <div class="grid lg:grid-cols-3 gap-4">
       <div class="card lg:col-span-2">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="font-bold">Ventas por día</h2>
+          <h2 class="font-display font-medium text-lg text-ciruela-900">Ventas por día</h2>
           <span class="text-xs text-marca-muted">Total {{ moneda(totalSerie) }}</span>
         </div>
         <div v-if="serie.length" class="h-48 flex items-stretch gap-1">
           <div v-for="(d, i) in serie" :key="d.fecha" class="flex-1 flex flex-col justify-end items-center gap-1 group min-w-0" :title="`${d.label}: ${moneda(d.monto)}`">
-            <div class="w-full rounded-t-md bg-marca-grad transition group-hover:opacity-80" :style="{ height: `${Math.max(3, d.monto / maxSerie * 100)}%` }"></div>
+            <div class="w-full rounded-t-lg transition group-hover:opacity-80" style="background: linear-gradient(180deg, #e4003f 0%, #a42785 100%)" :style="{ height: `${Math.max(3, d.monto / maxSerie * 100)}%` }"></div>
             <span class="text-[9px] text-marca-muted h-3 leading-3">{{ serie.length <= 16 || i % 3 === 0 ? d.label : '' }}</span>
           </div>
         </div>
@@ -90,7 +92,7 @@
 
       <div class="card">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="font-bold">Alertas</h2>
+          <h2 class="font-display font-medium text-lg text-ciruela-900">Alertas</h2>
           <Link href="/alertas" class="text-xs text-carmin font-semibold">Ver todas</Link>
         </div>
         <div v-if="destacadas.length" class="space-y-2">
@@ -107,7 +109,7 @@
 
       <template v-if="operacion">
         <div class="card" :class="operacion.produccion ? 'lg:col-span-2' : 'lg:col-span-3'">
-          <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Stock</h2><Link href="/stock" class="text-xs text-carmin font-semibold">Ver stock</Link></div>
+          <div class="flex items-center justify-between mb-3"><h2 class="font-display font-medium text-lg text-ciruela-900">Stock</h2><Link href="/stock" class="text-xs text-carmin font-semibold">Ver stock</Link></div>
           <div class="grid grid-cols-3 gap-3 mb-3">
             <div class="p-3 rounded-xl bg-marca-fondo"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Valorizado</p><p class="text-lg font-extrabold tabular-nums">{{ moneda(operacion.valorizado, 0) }}</p></div>
             <Link href="/stock?estado=bajo_minimo" class="p-3 rounded-xl bg-marca-fondo hover:bg-amber-50"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Bajo mínimo</p><p class="text-lg font-extrabold tabular-nums" :class="operacion.bajo_minimo ? 'text-amber-600' : ''">{{ operacion.bajo_minimo }}</p></Link>
@@ -123,7 +125,7 @@
           <div class="sm:col-span-1"><h2 class="font-bold">Resultado del mes</h2><p class="text-xs text-marca-muted">Según la contabilidad automática.</p><Link href="/contable" class="text-xs text-carmin font-semibold">Ver contable</Link></div>
           <div class="p-3 rounded-xl bg-emerald-50"><p class="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Ingresos</p><p class="text-lg font-extrabold tabular-nums text-emerald-700">{{ moneda(operacion.resultado.total_ingresos, 0) }}</p></div>
           <div class="p-3 rounded-xl bg-carmin-light"><p class="text-[11px] font-bold uppercase tracking-widest text-carmin">Egresos</p><p class="text-lg font-extrabold tabular-nums text-carmin">{{ moneda(operacion.resultado.total_egresos, 0) }}</p></div>
-          <div class="p-3 rounded-xl text-white" :class="operacion.resultado.resultado >= 0 ? 'bg-violeta-grad' : 'bg-carmin'"><p class="text-[11px] font-bold uppercase tracking-widest opacity-80">Resultado</p><p class="text-lg font-extrabold tabular-nums">{{ moneda(operacion.resultado.resultado, 0) }}</p></div>
+          <div class="p-3 rounded-xl text-white" :class="operacion.resultado.resultado >= 0 ? 'bg-ciruela-grad' : 'bg-carmin'"><p class="text-[11px] font-bold uppercase tracking-widest opacity-80">Resultado</p><p class="text-lg font-extrabold tabular-nums">{{ moneda(operacion.resultado.resultado, 0) }}</p></div>
         </div>
         <div v-if="operacion.produccion" class="card">
           <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Producción</h2><Link href="/produccion" class="text-xs text-carmin font-semibold">Ver órdenes</Link></div>
@@ -137,7 +139,7 @@
       </template>
 
       <div class="card lg:col-span-3">
-        <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Últimos comprobantes</h2><Link href="/comprobantes" class="text-xs text-carmin font-semibold">Ver todos</Link></div>
+        <div class="flex items-center justify-between mb-3"><h2 class="font-display font-medium text-lg text-ciruela-900">Últimos comprobantes</h2><Link href="/comprobantes" class="text-xs text-carmin font-semibold">Ver todos</Link></div>
         <div class="overflow-x-auto">
           <table class="table">
             <thead><tr><th>Comprobante</th><th>Cliente</th><th>Fecha</th><th>Cobro</th><th class="text-right">Total</th></tr></thead>

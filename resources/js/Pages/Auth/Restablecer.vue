@@ -3,7 +3,7 @@
   <div class="min-h-screen flex items-center justify-center p-6 bg-marca-fondo">
     <div class="w-full max-w-sm">
       <div class="mb-8"><Logo clase="h-9" /></div>
-      <h1 class="text-2xl font-black tracking-tight">Elegí una contraseña nueva</h1>
+      <h1 class="font-display text-3xl font-medium tracking-tight text-ciruela-900">Elegí una contraseña nueva</h1>
       <p class="text-sm text-marca-muted mt-1 mb-6">Mínimo 8 caracteres, con letras y números.</p>
       <form @submit.prevent="form.post('/restablecer')" class="space-y-4">
         <div>

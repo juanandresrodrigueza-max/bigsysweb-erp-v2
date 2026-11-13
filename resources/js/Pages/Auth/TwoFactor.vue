@@ -3,7 +3,7 @@
   <div class="min-h-screen flex items-center justify-center p-6 bg-marca-fondo">
     <div class="w-full max-w-sm">
       <Logo clase="h-9 mb-8" />
-      <h1 class="text-2xl font-black tracking-tight">Un paso más</h1>
+      <h1 class="font-display text-3xl font-medium tracking-tight text-ciruela-900">Un paso más</h1>
       <p class="text-sm text-marca-muted mt-1 mb-6">Abrí la app de autenticación en tu teléfono y escribí el código de 6 dígitos. Si no la tenés a mano, usá uno de los códigos de recuperación.</p>
       <form @submit.prevent="form.post('/login/verificar')" class="space-y-4">
         <div>

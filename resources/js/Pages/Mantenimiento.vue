@@ -1,6 +1,6 @@
 <template>
   <Head title="Mantenimiento" />
-  <div class="min-h-screen flex items-center justify-center p-6 text-white text-center" style="background: linear-gradient(150deg,#e4003f 0%,#a42785 60%,#4f3089 100%)">
+  <div class="min-h-screen flex items-center justify-center p-6 text-white text-center bg-ciruela-grad">
     <div class="max-w-md">
       <Logo negativo clase="h-10 mx-auto mb-8" />
       <div class="text-6xl mb-4">🛠️</div>

@@ -3,24 +3,24 @@
   <div class="min-h-screen flex bg-marca-fondo">
 
     <!-- Sidebar -->
-    <aside :class="abierto ? 'w-64' : 'w-[72px]'" class="hidden md:flex flex-col shrink-0 transition-all duration-200 text-white" style="background:linear-gradient(180deg,#4f3089 0%,#a42785 100%)">
-      <div class="h-16 flex items-center px-4 gap-3 border-b border-white/20">
+    <aside :class="abierto ? 'w-64' : 'w-[72px]'" class="hidden md:flex flex-col shrink-0 transition-all duration-200 text-white bg-sidebar-grad relative">
+      <div class="h-16 flex items-center px-4 gap-3 border-b border-white/10">
         <Logo v-if="abierto" negativo clase="h-7" />
         <Logo v-else variante="iso" negativo clase="h-8" />
         <button @click="abierto = !abierto" class="ml-auto p-1.5 rounded-lg hover:bg-white/10 text-white/70"><Icono nombre="menu" clase="w-4 h-4" /></button>
       </div>
-      <p v-if="abierto" class="px-4 pt-3 text-[11px] font-semibold text-lavanda truncate">{{ empresa?.nombre }}</p>
+      <p v-if="abierto" class="px-4 pt-3 text-[11px] font-semibold text-white/60 truncate">{{ empresa?.nombre }}</p>
 
       <nav class="flex-1 overflow-y-auto py-3" data-tour="menu">
         <MenuLateral :nav="nav" :abierto="abierto" :ruta-activa="rutaActiva" :subnav="subnav" />
       </nav>
 
-      <div class="p-3 border-t border-white/20">
+      <div class="p-3 border-t border-white/10">
         <div class="flex items-center gap-3 px-2">
-          <span class="w-9 h-9 rounded-full bg-violeta-grad flex items-center justify-center text-sm font-bold shrink-0">{{ iniciales }}</span>
+          <span class="w-9 h-9 rounded-full bg-marca-grad shadow-glow-sm flex items-center justify-center text-sm font-bold shrink-0">{{ iniciales }}</span>
           <div v-if="abierto" class="min-w-0 flex-1">
             <p class="text-sm font-semibold truncate">{{ user?.name }}</p>
-            <p class="text-[11px] text-lavanda truncate">{{ user?.rol }}</p>
+            <p class="text-[11px] text-white/60 truncate">{{ user?.rol }}</p>
           </div>
           <Link v-if="abierto" href="/logout" method="post" as="button" class="p-1.5 rounded-lg hover:bg-white/10 text-white/70" title="Salir"><Icono nombre="logout" clase="w-4 h-4" /></Link>
         </div>
@@ -29,7 +29,7 @@
 
     <!-- Contenido -->
     <div class="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
-      <header class="h-16 bg-white border-b border-marca-borde flex items-center px-3 md:px-6 gap-1.5 sm:gap-3 sticky top-0 z-30">
+      <header class="h-16 bg-white/85 backdrop-blur-md border-b border-marca-borde flex items-center px-3 md:px-6 gap-1.5 sm:gap-3 sticky top-0 z-30">
         <button @click="movil = true" class="md:hidden p-2 rounded-lg hover:bg-marca-fondo"><Icono nombre="menu" /></button>
 
         <!-- Selector de sucursal -->
@@ -76,15 +76,15 @@
         <Link v-if="user?.es_dueno && !page.url.startsWith('/dueno')" href="/dueno" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-violeta hover:bg-lavanda-light" title="Lo importante de un vistazo"><Icono nombre="home" clase="w-4 h-4" /> Mi negocio</Link>
         <div class="flex-1"></div>
 
-        <button type="button" @click="paleta?.abrir()" data-tour="buscar" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde text-sm text-marca-muted hover:border-carmin/50" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">
-          <Icono nombre="search" clase="w-4 h-4" /><span>Buscar…</span><kbd class="text-[10px] px-1.5 py-0.5 rounded border border-marca-borde">Ctrl K</kbd>
+        <button type="button" @click="paleta?.abrir()" data-tour="buscar" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-marca-borde bg-marca-fondo/70 text-sm text-marca-muted hover:border-magenta/50 hover:bg-white transition" title="Buscar cliente, artículo, comprobante o pantalla (Ctrl+K)">
+          <Icono nombre="search" clase="w-4 h-4" /><span>Buscar…</span><kbd class="text-[10px] px-1.5 py-0.5 rounded-md border border-marca-borde bg-white">Ctrl K</kbd>
         </button>
         <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
 
         <!-- Fase 87: el superadmin salta al panel de control desde su propia empresa -->
         <Link v-if="user?.is_superadmin && !impersonando" href="/admin" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-violeta/40 bg-lavanda-light text-violeta hover:border-violeta text-sm font-semibold" data-e2e="ir-panel" title="Panel de control de BigSysWeb"><Icono nombre="shield" clase="w-4 h-4" /> Panel</Link>
         <Link v-if="empresa?.plan && !user?.is_superadmin" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
-        <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 shrink-0 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-carmin/50 hover:text-carmin font-black" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
+        <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 shrink-0 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-magenta/50 hover:text-magenta font-black transition" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
         <CampanaNovedades :cantidad="$page.props.novedades ?? 0" />
         <span data-tour="alertas"><CampanaAlertas :alertas="alertas" /></span>
       </header>
@@ -92,16 +92,16 @@
       <AyudaPanel ref="ayuda" @tour="p => tourRef?.iniciar(p)" />
       <Tour ref="tourRef" :pasos-iniciales="tourInicial" />
       <!-- Barra inferior en el celular: lo que más se usa, a un toque -->
-      <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-marca-borde grid grid-cols-5 text-[10px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
+      <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-marca-borde grid grid-cols-5 text-[10px] font-semibold text-marca-muted" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
         <Link href="/dueno" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/dueno') ? 'text-carmin' : ''"><Icono nombre="home" clase="w-5 h-5" />Mi negocio</Link>
         <Link href="/comprobantes" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/comprobantes') ? 'text-carmin' : ''"><Icono nombre="receipt" clase="w-5 h-5" />Vender</Link>
-        <button type="button" @click="paleta?.abrir()" class="flex flex-col items-center py-2 gap-0.5"><span class="-mt-5 w-11 h-11 rounded-full bg-marca-grad text-white grid place-items-center shadow-pop"><Icono nombre="search" clase="w-5 h-5" /></span>Buscar</button>
+        <button type="button" @click="paleta?.abrir()" class="flex flex-col items-center py-2 gap-0.5"><span class="-mt-5 w-11 h-11 rounded-full bg-marca-grad text-white grid place-items-center shadow-glow"><Icono nombre="search" clase="w-5 h-5" /></span>Buscar</button>
         <Link href="/clientes/cobranzas" class="flex flex-col items-center py-2 gap-0.5" :class="page.url.startsWith('/clientes') ? 'text-carmin' : ''"><Icono nombre="users" clase="w-5 h-5" />Cobrar</Link>
         <button type="button" @click="movil = true" class="flex flex-col items-center py-2 gap-0.5"><Icono nombre="menu" clase="w-5 h-5" />Menú</button>
       </nav>
 
       <!-- Superadmin dando soporte dentro de una empresa -->
-      <div v-if="impersonando" class="px-4 md:px-6 py-2 bg-violeta text-white text-sm flex items-center gap-3">
+      <div v-if="impersonando" class="px-4 md:px-6 py-2 bg-ciruela text-white text-sm flex items-center gap-3">
         <Icono nombre="shield" clase="w-4 h-4" /><span>Estás dentro de <b>{{ impersonando.empresa }}</b> como superadmin. Todo lo que hagas queda auditado.</span>
         <Link href="/admin/volver" method="post" as="button" class="ml-auto px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-xs font-semibold">Volver al panel</Link>
       </div>
@@ -122,8 +122,8 @@
         <Link href="/suscripcion" class="ml-auto text-xs font-bold underline whitespace-nowrap">{{ suscripcion.estado === 'trial' ? 'Contratar plan' : 'Renovar' }}</Link>
       </div>
 
-      <div v-if="flash?.success" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">{{ flash.success }}</div>
-      <div v-if="flash?.error" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-xl bg-carmin-light border border-carmin/30 text-carmin-dark text-sm">{{ flash.error }}</div>
+      <div v-if="flash?.success" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2"><Icono nombre="check" clase="w-4 h-4 shrink-0" /><span>{{ flash.success }}</span></div>
+      <div v-if="flash?.error" class="mx-4 md:mx-6 mt-4 px-4 py-2.5 rounded-2xl bg-carmin-light border border-carmin/30 text-carmin-dark text-sm flex items-center gap-2"><Icono nombre="alert" clase="w-4 h-4 shrink-0" /><span>{{ flash.error }}</span></div>
 
       <main class="flex-1 p-4 md:p-6 pb-24">
         <!-- Fase 88: las secciones cuelgan del menú de la izquierda; la página va a todo el ancho. -->
@@ -133,8 +133,8 @@
 
     <!-- Sidebar móvil -->
     <div v-if="movil" class="fixed inset-0 z-40 md:hidden">
-      <div class="absolute inset-0 bg-black/50" @click="movil = false"></div>
-      <div class="absolute left-0 top-0 bottom-0 w-72 text-white p-4 overflow-y-auto" style="background:linear-gradient(180deg,#4f3089 0%,#a42785 100%)">
+      <div class="absolute inset-0 bg-ciruela/60 backdrop-blur-sm" @click="movil = false"></div>
+      <div class="absolute left-0 top-0 bottom-0 w-72 text-white p-4 overflow-y-auto bg-sidebar-grad">
         <div class="flex items-center justify-between mb-4">
           <Logo negativo clase="h-7" />
           <button @click="movil = false"><Icono nombre="x" /></button>

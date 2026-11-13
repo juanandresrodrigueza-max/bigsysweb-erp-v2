@@ -2,7 +2,7 @@
   <Head title="Cocina" />
   <div class="min-h-screen p-4 md:p-6" style="background:#1c1a18;color:#fff">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-      <div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="text-2xl font-extrabold">{{ estacion ?? 'Cocina' }}</h1><span class="text-white/60 text-sm">{{ grupos.length }} comanda{{ grupos.length === 1 ? '' : 's' }} · {{ totalItems }} platos · {{ terminados }} entregados hoy</span></div>
+      <div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="page-title">{{ estacion ?? 'Cocina' }}</h1><span class="text-white/60 text-sm">{{ grupos.length }} comanda{{ grupos.length === 1 ? '' : 's' }} · {{ totalItems }} platos · {{ terminados }} entregados hoy</span></div>
       <div class="flex items-center gap-3 text-sm"><span class="text-white/50">{{ hora }}</span><Link href="/gastronomia" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold">Volver al salón</Link></div>
     </div>
     <div v-if="picos.length" class="rounded-2xl px-4 py-3 mb-4 bg-amber-500/20 border border-amber-400/40 text-sm" data-e2e="pico"><b>Se viene movida la próxima hora:</b> <span v-for="(p, i) in picos" :key="p.estacion">{{ i ? ' · ' : '' }}{{ p.estacion }} ~{{ p.esperado }} platos a las {{ p.hora }} (lo normal son {{ p.normal }})</span>. Adelantá mise en place.</div>

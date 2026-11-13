@@ -3,7 +3,7 @@
        y lo demás en "Más". Los verbos: Nuevo/a (algo que no existía), Registrar (un hecho: gasto, cobro, pago), Guardar (un formulario). -->
   <div class="flex flex-wrap items-end justify-between gap-3" :class="compacto ? 'mb-3' : 'mb-5'">
     <div class="min-w-0">
-      <Link v-if="volver" :href="volver.href" class="text-xs text-marca-muted hover:text-carmin">← {{ volver.label }}</Link>
+      <Link v-if="volver" :href="volver.href" class="inline-flex items-center gap-1 text-xs font-semibold text-marca-muted hover:text-magenta transition">← {{ volver.label }}</Link>
       <h1 class="page-title">{{ titulo }}</h1>
       <p v-if="subtitulo || $slots.subtitulo" class="page-subtitle"><slot name="subtitulo">{{ subtitulo }}</slot></p>
     </div>
