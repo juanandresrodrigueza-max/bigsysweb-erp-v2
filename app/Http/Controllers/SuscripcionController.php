@@ -25,6 +25,7 @@ class SuscripcionController extends Controller
             // Suspensión administrativa (no es por pago): renovar no la destraba, hay que hablar con soporte.
             'administrativa' => $b->bloqueada() && (! $b->is_active || ($b->suspended_at && $b->suspension_motivo !== 'Falta de pago')),
             'esDueno' => $user->esDueno() || $user->puede('configuracion', 'editar'),
+            'empresa' => $b->name, 'soloDueno' => $user->esDueno(),
             'actual' => $sub ? [
                 'plan' => $sub->plan->name, 'plan_id' => $sub->plan_id, 'estado' => $sub->status, 'estado_label' => $sub->estadoLabel(), 'ciclo' => $sub->billing_cycle,
                 'monto' => (float) $sub->amount, 'vence' => $sub->fechaLimite()?->format('d/m/Y'), 'dias' => $sub->diasRestantes(), 'aviso' => $sub->aviso(),
@@ -43,6 +44,25 @@ class SuscripcionController extends Controller
             'transferencia' => ['cbu' => SistemaConfig::get('transferencia_cbu'), 'alias' => SistemaConfig::get('transferencia_alias'), 'titular' => SistemaConfig::get('transferencia_titular')],
             'soporte' => ['whatsapp' => SistemaConfig::get('soporte_whatsapp'), 'email' => SistemaConfig::get('soporte_email')],
         ]);
+    }
+
+    // Fase 94.1: el dueño da de baja la empresa desde adentro (Configuración → Suscripción → Dar de baja la empresa), como
+    // promete la política de privacidad. Pide el nombre de la empresa escrito a mano y un motivo; la baja es la misma que hace
+    // el superadmin (empresa inactiva y borrada en suave, usuarios inactivos, aviso al CRM), así que se puede restaurar desde el panel.
+    public function baja(Request $request, SuscripcionService $service)
+    {
+        $user = $request->user();
+        abort_unless($user->esDueno(), 403, 'La baja de la empresa la pide sólo el dueño.');
+        $b = $user->business;
+        $d = $request->validate(['motivo' => 'required|string|max:200', 'confirmacion' => 'required|string|max:150']);
+        if (mb_strtolower(trim($d['confirmacion'])) !== mb_strtolower(trim($b->name))) {
+            return back()->withErrors(['confirmacion' => 'Escribí el nombre de la empresa tal cual figura para confirmar.']);
+        }
+        $service->darDeBaja($b, 'Baja pedida por el dueño: ' . $d['motivo']);
+        \Illuminate\Support\Facades\Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login')->with('success', 'Listo: la empresa quedó dada de baja. Los datos se conservan 90 días por si volvés (escribinos y se restaura al instante); después se eliminan, salvo lo que la ley fiscal obliga a guardar.');
     }
 
     // Elige plan y ciclo, crea el cobro pendiente y manda a MercadoPago (o registra la transferencia a confirmar).

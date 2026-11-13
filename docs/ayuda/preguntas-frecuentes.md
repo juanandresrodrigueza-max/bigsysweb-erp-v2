@@ -98,3 +98,20 @@ Cargá el **contenido neto** del envase en la ficha del artículo (500 g, 1,5 l)
 ## ¿Puedo tenerlo como app en el celular?
 
 Sí. Abrí el sistema en el navegador del celular y elegí **Agregar a inicio** (iPhone, desde Safari → Compartir) o **Instalar app** (Android, desde Chrome → ⋮). Queda con el ícono de BigSys y se abre como una app.
+
+Además hay una **app nativa para iPhone y Android** en camino: cuando esté en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Con la app, los avisos llegan al toque aunque el sistema esté cerrado y Bigcito escucha mejor. Más en el artículo **App del celular**.
+
+## No me llegan los avisos al celular, ¿qué hago?
+
+1. En **Avisos al celular** (✨ arriba a la derecha) fijate que este dispositivo figure como activo; si no, tocá **Activar en este dispositivo** y aceptá el permiso.
+2. En iPhone, desde el navegador los avisos sólo funcionan si abriste BigSysWeb desde el ícono de la pantalla de inicio (no desde Safari suelto) y pueden demorar: es una limitación de Apple. Con la **app nativa** llegan al toque.
+3. Tocá **Probar** en esa misma pantalla: si el aviso de prueba llega, el resto también.
+4. Si seguís sin recibir nada, escribinos desde **Soporte**: decinos el modelo del teléfono.
+
+## ¿Cómo borro mi cuenta y mis datos?
+
+Si sos el dueño, desde **Configuración → Suscripción → Dar de baja la empresa**, o escribí a privacidad@bigsys.com.ar desde el mail con el que entrás. Se borra la cuenta y, si sos el dueño, la empresa con todos sus datos; lo que la ley obliga a guardar (comprobantes fiscales) se conserva el plazo legal y después se elimina. Los detalles están en **/privacidad** y **/terminos**, abajo del login.
+
+## ¿Por qué se ve distinto que antes?
+
+Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

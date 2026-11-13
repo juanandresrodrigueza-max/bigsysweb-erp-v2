@@ -97,19 +97,41 @@
       </template>
 
       <p class="text-xs text-marca-muted text-center mt-6">¿Dudas? {{ soporte.whatsapp }} · {{ soporte.email }}</p>
+
+      <!-- Fase 94.1: baja de la empresa por el dueño (lo exige la política de privacidad y Google Play) -->
+      <div v-if="soloDueno && !administrativa" class="mt-8 border-t border-marca-borde pt-4 flex flex-wrap items-center justify-between gap-3 text-sm" data-e2e="baja-empresa">
+        <div class="min-w-0"><p class="font-semibold">Dar de baja la empresa</p><p class="text-xs text-marca-muted">Se cierra la cuenta de todos los usuarios. Los datos se conservan 90 días por si volvés; después se eliminan, salvo lo que la ley fiscal obliga a guardar.</p></div>
+        <button class="btn-secondary text-carmin shrink-0" @click="bajaAbierta = true">Dar de baja…</button>
+      </div>
+      <Modal :abierto="bajaAbierta" titulo="Dar de baja la empresa" @cerrar="bajaAbierta = false">
+        <p class="text-sm mb-3">Esto cierra el acceso de <b>todos</b> los usuarios de <b>{{ empresa }}</b> ahora mismo. Antes, si querés, exportá tus datos desde Configuración → Datos.</p>
+        <label class="label">¿Por qué te vas? (nos ayuda a mejorar)</label>
+        <input v-model="baja.motivo" class="input mb-3" maxlength="200" placeholder="Cerré el negocio, me paso a otro sistema, es caro…" />
+        <label class="label">Escribí el nombre de la empresa para confirmar: <b>{{ empresa }}</b></label>
+        <input v-model="baja.confirmacion" class="input" :placeholder="empresa" />
+        <p v-if="baja.errors.confirmacion" class="text-xs text-carmin mt-1">{{ baja.errors.confirmacion }}</p>
+        <p v-if="baja.errors.motivo" class="text-xs text-carmin mt-1">{{ baja.errors.motivo }}</p>
+        <template #pie>
+          <button class="btn-secondary" @click="bajaAbierta = false">Me quedo</button>
+          <button class="btn-primary !bg-none !bg-carmin" :disabled="baja.processing || !baja.motivo || baja.confirmacion.trim().toLowerCase() !== empresa.trim().toLowerCase()" @click="baja.post('/suscripcion/baja')">Dar de baja la empresa</button>
+        </template>
+      </Modal>
     </div>
   </component>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Logo from '@/Components/Logo.vue'
 import Icono from '@/Components/Icono.vue'
+import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { estadoClase, pagoClase, pagoLabel, cicloLabel } from '@/util/suscripcion'
-const props = defineProps({ bloqueada: Boolean, motivo: String, administrativa: Boolean, esDueno: Boolean, actual: Object, uso: Object, planes: Array, pagos: Array, mercadopago: Boolean, transferencia: Object, soporte: Object })
+const props = defineProps({ bloqueada: Boolean, motivo: String, administrativa: Boolean, esDueno: Boolean, soloDueno: Boolean, empresa: String, actual: Object, uso: Object, planes: Array, pagos: Array, mercadopago: Boolean, transferencia: Object, soporte: Object })
+const bajaAbierta = ref(false)
+const baja = useForm({ motivo: '', confirmacion: '' })
 const pago = useForm({ plan_id: props.actual?.plan_id ?? props.planes.find(p => !p.gratis)?.id, ciclo: props.actual?.ciclo ?? 'monthly', medio: 'mercadopago', referencia: '' })
 const planElegido = computed(() => props.planes.find(p => p.id === pago.plan_id))
 const total = computed(() => planElegido.value ? (pago.ciclo === 'yearly' ? planElegido.value.anual : planElegido.value.mensual) : 0)
