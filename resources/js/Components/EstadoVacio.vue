@@ -2,7 +2,7 @@
   <!-- Fase 81: el estado vacío de un listado. Distingue "no hay nada todavía" (con qué hacer) de "nada con estos filtros" (con cómo limpiarlos).
        Va adentro de la celda de la tabla o de la tarjeta; el texto lo pone cada pantalla. -->
   <div class="text-center px-4" :class="compacto ? 'py-6' : 'py-10'" data-estado-vacio>
-    <span class="mx-auto mb-2 w-10 h-10 rounded-full grid place-items-center" :class="filtrado ? 'bg-amber-50 text-amber-600' : 'bg-marca-fondo text-marca-muted'">
+    <span class="mx-auto mb-3 w-12 h-12 rounded-2xl grid place-items-center" :class="filtrado ? 'bg-amber-50 text-amber-600' : 'bg-lavanda-light text-violeta'">
       <Icono :nombre="filtrado ? 'search' : icono" clase="w-5 h-5" />
     </span>
     <template v-if="filtrado">

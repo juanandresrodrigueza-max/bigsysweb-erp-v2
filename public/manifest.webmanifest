@@ -4,8 +4,8 @@
   "description": "Gestión para PyMEs: facturación, stock, cobros, caja y contabilidad.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#faf9f7",
-  "theme_color": "#4f3089",
+  "background_color": "#f6f3f8",
+  "theme_color": "#1e0732",
   "lang": "es-AR",
   "icons": [
     {

@@ -1,7 +1,7 @@
 <template>
   <Head title="Pedidos listos" />
   <div class="min-h-screen p-4 md:p-8 flex flex-col" style="background:#1c1a18;color:#fff">
-    <div class="flex items-center justify-between gap-3 mb-6"><div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="text-2xl font-extrabold">Pedidos</h1></div><Link href="/gastronomia" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold">Volver al salón</Link></div>
+    <div class="flex items-center justify-between gap-3 mb-6"><div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="page-title">Pedidos</h1></div><Link href="/gastronomia" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold">Volver al salón</Link></div>
     <div class="grid md:grid-cols-2 gap-6 flex-1">
       <section>
         <h2 class="text-sm font-bold uppercase tracking-widest text-white/50 mb-3">Preparando</h2>

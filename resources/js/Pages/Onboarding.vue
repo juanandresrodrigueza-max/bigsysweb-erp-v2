@@ -1,7 +1,7 @@
 <template>
   <AppLayout titulo="Primeros pasos">
     <div class="max-w-3xl mx-auto">
-      <div class="rounded-2xl p-6 text-white mb-5" style="background: linear-gradient(135deg,#e4003f 0%,#a42785 100%)">
+      <div class="card-oscura !p-6 mb-5">
         <p class="text-xs font-bold uppercase tracking-widest text-white/80">Primeros pasos</p>
         <h1 class="text-2xl font-black mt-1" style="text-wrap: balance">{{ completado ? 'Todo configurado' : `Vas ${hechos} de ${total}` }}</h1>
         <p class="text-sm text-white/90 mt-1">Con esto la empresa queda lista para facturar, cobrar y controlar stock. Podés hacerlo en el orden que quieras y volver cuando necesites.</p>

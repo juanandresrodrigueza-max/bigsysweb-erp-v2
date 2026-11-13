@@ -1,4 +1,5 @@
 @import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/jost';
 @import '@fontsource/montserrat/300.css';
 @import '@fontsource/montserrat/400.css';
 @import '@fontsource/montserrat/500.css';
@@ -16,25 +17,37 @@
   html { @apply antialiased; }
   body { @apply bg-marca-fondo text-marca-texto; font-feature-settings: "cv11"; text-rendering: optimizeLegibility; }
   ::selection { @apply bg-carmin-30 text-marca-texto; }
+  /* Barras de scroll finas, del color de la marca. */
+  * { scrollbar-width: thin; scrollbar-color: rgba(79,48,137,.25) transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: rgba(79,48,137,.22); border-radius: 999px; }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(79,48,137,.4); }
+  h1, h2, h3 { text-wrap: balance; }
 }
 
 @layer components {
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-carmin/50 disabled:opacity-50 disabled:cursor-not-allowed; }
-  .btn-primary { @apply btn bg-carmin text-white hover:bg-carmin-dark hover:shadow-md active:translate-y-px; }
-  .btn-secondary { @apply btn bg-white text-marca-texto border border-gris hover:border-marca-muted/50 hover:bg-marca-fondo; }
-  .btn-violeta { @apply btn text-white bg-violeta-grad hover:shadow-md; }
-  .btn-ghost { @apply btn text-marca-muted hover:bg-gris-light hover:text-marca-texto; }
-  .btn-danger { @apply btn bg-white text-carmin border border-carmin-30 hover:bg-carmin-light; }
+  /* Botones: píldoras como en la web. El principal lleva el degradé de la marca y brilla al pasar. */
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-carmin/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none; }
+  .btn-primary { @apply btn text-white bg-marca-grad shadow-glow-sm hover:shadow-glow hover:brightness-110 active:translate-y-px active:brightness-95; }
+  .btn-secondary { @apply btn bg-white text-marca-texto border border-marca-borde shadow-sm hover:border-violeta/40 hover:text-violeta hover:shadow-card; }
+  .btn-violeta { @apply btn text-white bg-violeta-grad hover:shadow-pop hover:brightness-110; }
+  .btn-ghost { @apply btn text-marca-muted hover:bg-violeta/5 hover:text-violeta; }
+  .btn-danger { @apply btn bg-white text-carmin border border-carmin-30 hover:bg-carmin-light hover:border-carmin; }
 
-  .card { @apply bg-white rounded-2xl border border-marca-borde shadow-card p-5; }
-  .input { @apply w-full rounded-xl border border-gris bg-white px-3 py-2 text-sm text-marca-texto placeholder:text-marca-muted/60 transition focus:outline-none focus:ring-2 focus:ring-carmin/30 focus:border-carmin disabled:bg-marca-fondo disabled:text-marca-muted; }
-  .label { @apply block text-[11px] font-bold uppercase tracking-[0.12em] text-marca-muted mb-1.5; }
+  /* Tarjetas de 24 px con un borde apenas lila y una sombra que flota. */
+  .card { @apply bg-white rounded-3xl border border-marca-borde shadow-card p-5; }
+  .card-oscura { @apply rounded-3xl p-5 text-white bg-ciruela-grad shadow-pop; }
+  .glass { @apply rounded-3xl border border-white/15 bg-white/10 backdrop-blur-md; }
+  .input { @apply w-full rounded-xl border border-marca-borde bg-white px-3 py-2 text-sm text-marca-texto placeholder:text-marca-muted/60 transition focus:outline-none focus:ring-4 focus:ring-magenta/10 focus:border-magenta disabled:bg-marca-fondo disabled:text-marca-muted; }
+  .label { @apply block text-[11px] font-bold uppercase tracking-[0.14em] text-marca-muted mb-1.5; }
   .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold tracking-wide; }
-  .page-title { @apply text-2xl font-extrabold tracking-tight text-marca-texto; }
-  .page-subtitle { @apply text-sm text-marca-muted mt-1; }
+  .page-title { @apply font-display text-[1.75rem] leading-tight font-medium tracking-tight text-ciruela-900; }
+  .page-subtitle { @apply text-sm text-marca-muted mt-1 max-w-3xl; }
+  .kicker { @apply text-[11px] font-bold uppercase tracking-[0.18em] text-rosa; }
 
   .table { @apply w-full text-sm; }
-  .table th { @apply text-left text-[11px] font-bold uppercase tracking-[0.12em] text-marca-muted px-3 py-2.5 border-b border-marca-borde bg-marca-fondo/60; }
+  .table th { @apply text-left text-[11px] font-bold uppercase tracking-[0.12em] text-marca-muted px-3 py-2.5 border-b border-marca-borde bg-lavanda-light/40; }
   .table td { @apply px-3 py-2.5 border-b border-marca-borde/70 align-middle; }
-  .table tbody tr:hover { @apply bg-marca-fondo; }
+  .table tbody tr:hover { @apply bg-lavanda-light/30; }
+  .table tbody tr:last-child td { @apply border-b-0; }
 }

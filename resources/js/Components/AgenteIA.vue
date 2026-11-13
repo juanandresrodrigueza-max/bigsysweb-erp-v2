@@ -1,8 +1,8 @@
 <template>
-  <div class="fixed bottom-5 right-5 z-50">
+  <div class="fixed bottom-20 md:bottom-5 right-4 md:right-5 z-50">
     <transition name="fade">
-      <div v-if="abierto" class="absolute bottom-16 right-0 w-[360px] max-w-[calc(100vw-2.5rem)] h-[520px] max-h-[calc(100vh-7rem)] bg-white rounded-2xl shadow-2xl border border-marca-borde flex flex-col overflow-hidden">
-        <div class="px-4 py-3 text-white flex items-center justify-between bg-violeta-grad">
+      <div v-if="abierto" class="absolute bottom-16 right-0 w-[360px] max-w-[calc(100vw-2.5rem)] h-[520px] max-h-[calc(100vh-7rem)] bg-white rounded-3xl shadow-2xl border border-marca-borde flex flex-col overflow-hidden">
+        <div class="px-4 py-3 text-white flex items-center justify-between bg-ciruela-grad">
           <div class="flex items-center gap-2">
             <img src="/img/bigcito-cara.webp" alt="Bigcito" class="w-9 h-9 rounded-full bg-white object-cover ring-2 ring-white/40" />
             <div>
@@ -23,7 +23,7 @@
             </div>
           </div>
           <div v-for="(m, i) in mensajes" :key="i" :class="m.rol === 'user' ? 'justify-end' : 'justify-start'" class="flex">
-            <div :class="m.rol === 'user' ? 'bg-carmin text-white rounded-br-sm' : 'bg-white border border-marca-borde text-marca-texto rounded-bl-sm'" class="max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap leading-snug">
+            <div :class="m.rol === 'user' ? 'bg-marca-grad text-white rounded-br-sm' : 'bg-white border border-marca-borde text-marca-texto rounded-bl-sm'" class="max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap leading-snug">
               <img v-if="m.foto" :src="m.foto" class="w-32 rounded-lg mb-1" alt="" />{{ m.texto }}
               <div v-if="m.propuesta" class="mt-2 rounded-xl border p-2 text-xs" :class="m.propuesta.estado === 'hecho' ? 'border-emerald-200 bg-emerald-50' : m.propuesta.estado === 'cancelado' ? 'border-marca-borde bg-marca-fondo opacity-70' : 'border-violeta/30 bg-violeta-light/40'">
                 <p class="font-bold text-sm">{{ m.propuesta.titulo }}</p>
