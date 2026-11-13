@@ -132,6 +132,8 @@ Cada copia, apenas se genera, **se abre y se comprueba**: que sea de tu empresa,
 
 Plan actual, usuarios y sucursales incluidos, renovación por Mercado Pago o transferencia. También muestra las **facturas emitidas en el mes** y los **artículos cargados** contra lo que incluye el plan (en rojo desde el 80 %). Al llegar al máximo, la factura siguiente del mes o el artículo nuevo no se pueden cargar hasta pasar a un plan mayor; presupuestos, remitos y notas de crédito no cuentan.
 
+**Dar de baja la empresa** (abajo de todo, sólo el dueño): cierra el acceso de todos los usuarios al instante. Pide el nombre de la empresa escrito a mano y un motivo. Los datos se conservan 90 días por si volvés (soporte la restaura al instante); después se eliminan, salvo los comprobantes fiscales que la ley obliga a guardar. Antes de irte, exportá todo desde Configuración → Datos. Es lo que promete la política de privacidad (/privacidad).
+
 ## Perfiles listos (Configuración → Usuarios)
 
 Al crear o editar un usuario, elegí un **perfil** y quedan tildados todos sus permisos de una: **Vendedor**, **Administrador de ventas**, **Depósito**, **Administrador**, **Sólo mirar** (ve todo y no cambia nada), Contador, Cajero, Compras o Técnico. Si necesitás algo distinto, armá un rol a mano en Roles. Aparte, dos tildes: ver costo y margen, y ver a qué proveedores comprar.

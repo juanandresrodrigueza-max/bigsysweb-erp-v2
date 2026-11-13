@@ -33,6 +33,7 @@ Para saltar: en el panel, el botón con el nombre de la empresa (arriba a la der
 - **Inteligencia artificial**: API key y modelo; sin clave, todo sigue en modo básico.
 - **Correo saliente**: SMTP con prueba de envío.
 - Mensaje global, contacto de soporte y **modo mantenimiento**.
+- **App del celular (iPhone y Android)** (fase 93): una sola tarjeta para todas las empresas. Se pega la **cuenta de servicio de Firebase** (el JSON de Firebase → Configuración del proyecto → Cuentas de servicio → Generar clave privada; queda cifrada y nunca se vuelve a mostrar), los **links de Google Play y App Store** (cuando existen, en el celular web aparece la barra «Instalar la app»), la **huella SHA-256** del certificado de Android y el **Team ID** de Apple (para que los links a erp.bigsysweb.com abran la app). **Probar push** manda un aviso a los celulares del superadmin. Sin Firebase la app anda igual, sólo que sin avisos nativos. Los pasos para compilar y publicar están en `docs/MOVIL.md` del repositorio.
 
 ## Salud y monitoreo de errores (Panel → Salud)
 

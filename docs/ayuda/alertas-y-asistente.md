@@ -85,11 +85,14 @@ En **Avisos al celular** (desde la ✨ de novedades, arriba a la derecha) tocá 
 
 En iPhone, primero agregá BigSysWeb a la pantalla de inicio (Compartir → Agregar a inicio) y abrilo desde ahí. Podés quitar un dispositivo cuando quieras.
 
+**Con la app nativa** (iPhone y Android, cuando esté en las tiendas): los avisos llegan por el sistema de notificaciones del teléfono, al toque y con el sistema cerrado; no hay que activar nada: la app registra el celular sola al entrar. En **Avisos al celular** ves cada teléfono registrado (modelo y última vez) y lo podés quitar. Más en el artículo **App del celular**.
+
 ## Novedades y mejoras
 
 - La **✨** muestra lo nuevo del sistema. Cada novedad se marca leída o se pospone **7 o 30 días**.
 - **Mejoras** lista los módulos que tu plan no tiene y qué hace cada uno. Con **Me interesa** le avisás a BigSys para que te escriba (lo pide el dueño o un administrador).
 - A Bigcito: “mandame el parte a las 7 y media”, “¿qué hay de nuevo en BigSys?”, “¿qué módulos no tengo?”, “me interesa Sueldos”.
+- Las últimas novedades de la ✨: el **diseño nuevo** con los colores de BigSys (fase 92), la **app del celular** en camino (fase 93) y el **repaso de todas las pantallas** para que nada quede apretado (fase 94). Están contadas en **Qué cambió en el menú y en las pantallas**.
 
 ## Alerta de condición de IVA (Fase 44)
 

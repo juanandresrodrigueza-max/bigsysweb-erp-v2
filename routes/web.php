@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/suscripcion',          [SuscripcionController::class, 'index'])->name('suscripcion');
     Route::post('/suscripcion/pagar',   [SuscripcionController::class, 'pagar']);
     Route::get('/suscripcion/retorno',  [SuscripcionController::class, 'retorno']);
+    Route::post('/suscripcion/baja',    [SuscripcionController::class, 'baja'])->middleware('throttle:3,1'); // Fase 94.1: el dueño da de baja la empresa (lo exige la política de privacidad)
     Route::get('/oauth/authorize',      [\App\Http\Controllers\Mcp\OAuthController::class, 'autorizar']);
     Route::post('/oauth/authorize',     [\App\Http\Controllers\Mcp\OAuthController::class, 'decidir']);
     Route::post('/admin/volver',        [\App\Http\Controllers\Superadmin\EmpresasController::class, 'volver']);

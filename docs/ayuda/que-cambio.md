@@ -3,7 +3,7 @@ titulo: Qué cambió en el menú y en las pantallas
 modulo: dashboard
 rutas: /dashboard, /novedades
 orden: 2
-resumen: Dónde quedó cada cosa después del reordenamiento de noviembre de 2026: nombres nuevos, secciones a la izquierda, botones y lo que se movió.
+resumen: Dónde quedó cada cosa después del reordenamiento de noviembre de 2026, el diseño nuevo con los colores de BigSys, la app del celular y el repaso de todas las pantallas.
 ---
 
 # Qué cambió en el menú y en las pantallas
@@ -56,5 +56,30 @@ En noviembre de 2026 reordenamos el sistema para que vaya **en el orden del día
 - **Plata → Cerrar caja → Más**: el **arqueo ciego**: el cajero cuenta sin ver lo esperado.
 - **Administración BigSys**: los superadmins tienen su propia empresa del ERP y saltan entre el panel y la empresa con un botón.
 - A Bigcito, por voz: «tiré dos kilos de tomate», «¿qué mesas rinden más?», «reservá para cuatro el sábado a las nueve a nombre de Juan», «¿cómo viene el delivery?».
+
+## El diseño nuevo (fase 92)
+
+El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para el menú y los títulos, **magenta** para el botón principal de cada pantalla y las cosas que piden atención. Las reglas que se repiten en todas las pantallas:
+
+- **Título y subtítulo**: arriba a la izquierda, el nombre de la pantalla y una línea que dice para qué sirve.
+- **Un botón principal** (magenta, a la derecha del título) por pantalla: lo que más se hace ahí. Lo demás está en **Más ▾**.
+- **Tarjetas de cifras** debajo del título: los números que importan de esa pantalla.
+- **Pestañas** redondeadas para cambiar de vista sin salir de la pantalla.
+- Nada cambió de lugar ni de nombre respecto del reordenamiento de noviembre; sólo la ropa.
+
+## La app del celular (fases 93 y 93.1)
+
+BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
+
+## Repaso de todas las pantallas (fase 94)
+
+Revisamos las 133 pantallas en computadora y en celular para que nada quede apretado ni se corte:
+
+- En el celular ninguna pantalla se desborda a los costados; las tablas anchas se deslizan con el dedo dentro de su tarjeta.
+- La letra nunca es más chica de 11 píxeles.
+- Los botones que son sólo un ícono dicen qué hacen al pasar el mouse (Editar, Eliminar, Cerrar…).
+- Toda Configuración, Conexiones IA y Catálogos tienen su subtítulo explicando para qué sirve la pantalla.
+- Los importes no se parten en dos líneas y los tiempos largos se muestran en horas («1 h 32»).
+- En Cerrar caja, los **faltantes** se muestran en positivo (antes salían con signo menos).
 
 Si algo no lo encontrás, Ctrl K y escribí cómo se llamaba antes.
