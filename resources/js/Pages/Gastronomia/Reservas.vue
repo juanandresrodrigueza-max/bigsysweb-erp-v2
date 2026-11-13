@@ -4,8 +4,9 @@
       <div><h1 class="page-title">Reservas y menú QR</h1><p class="page-subtitle">Las reservas que entran por la web y las que cargás a mano. Y los códigos QR de cada mesa para que pidan desde el celular.</p></div>
       <div class="flex gap-2"><Link href="/gastronomia" class="btn-secondary">Salón</Link><button class="btn-primary" @click="nuevaAbierta = true">Nueva reserva</button></div>
     </div>
-    <div class="grid grid-cols-3 gap-3 mb-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Reservas hoy</p><p class="text-xl font-extrabold tabular-nums">{{ kpis.hoy }} <span class="text-sm text-marca-muted">· {{ kpis.personas_hoy }} personas</span></p></div>
+      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">En lista de espera</p><p class="text-xl font-extrabold tabular-nums" :class="kpis.espera ? 'text-violeta' : ''">{{ kpis.espera }}</p><p class="text-[11px] text-marca-muted">capacidad {{ capacidad }} por turno</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Pendientes de confirmar</p><p class="text-xl font-extrabold tabular-nums" :class="kpis.pendientes ? 'text-carmin' : ''">{{ kpis.pendientes }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Reservas online</p><p class="text-sm"><span class="badge" :class="reservasActivas ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ reservasActivas ? 'activas' : 'apagadas' }}</span> <a :href="urlReservas" target="_blank" class="underline text-xs ml-1">{{ urlReservas }}</a></p></div>
     </div>
@@ -17,12 +18,23 @@
           <tbody>
             <tr v-for="r in reservas" :key="r.id" :class="r.estado === 'cancelled' ? 'opacity-50' : ''">
               <td class="tabular-nums whitespace-nowrap"><b>{{ r.fecha }}</b> {{ r.hora }} <span class="text-marca-muted text-xs capitalize">{{ r.dia }}</span></td><td class="font-medium">{{ r.nombre }}<p v-if="r.notas" class="text-xs text-marca-muted">{{ r.notas }}</p></td><td class="text-right tabular-nums">{{ r.personas }}</td><td class="tabular-nums">{{ r.telefono }}</td><td class="text-marca-muted text-xs">{{ r.origen }}</td>
-              <td><span class="badge" :class="{ 'bg-amber-50 text-amber-700': r.estado === 'pending', 'bg-emerald-50 text-emerald-700': r.estado === 'confirmed', 'bg-gris-light text-marca-muted': ['cancelled', 'completed'].includes(r.estado), 'bg-red-50 text-carmin': r.estado === 'no_show' }">{{ { pending: 'Pendiente', confirmed: 'Confirmada', cancelled: 'Cancelada', completed: 'Vino', no_show: 'No vino' }[r.estado] }}</span></td>
-              <td class="text-right whitespace-nowrap"><button v-if="r.estado === 'pending'" class="btn-ghost !px-2 text-xs" @click="estado(r, 'confirmed')">Confirmar</button><button v-if="['pending', 'confirmed'].includes(r.estado)" class="btn-ghost !px-2 text-xs" @click="estado(r, 'completed')">Vino</button><button v-if="['pending', 'confirmed'].includes(r.estado)" class="btn-ghost !px-2 text-xs text-carmin" @click="estado(r, 'cancelled')">Cancelar</button></td>
+              <td><span class="badge" :class="{ 'bg-amber-50 text-amber-700': r.estado === 'pending', 'bg-emerald-50 text-emerald-700': r.estado === 'confirmed', 'bg-gris-light text-marca-muted': ['cancelled', 'completed'].includes(r.estado), 'bg-red-50 text-carmin': r.estado === 'no_show', 'bg-violeta-light text-violeta': r.estado === 'waitlist' }">{{ { pending: 'Pendiente', confirmed: 'Confirmada', cancelled: 'Cancelada', completed: 'Vino', no_show: 'No vino', waitlist: 'En espera' }[r.estado] }}</span></td>
+              <td class="text-right whitespace-nowrap"><button v-if="r.estado === 'pending' || r.estado === 'waitlist'" class="btn-ghost !px-2 text-xs" @click="estado(r, 'confirmed')">{{ r.estado === 'waitlist' ? 'Dar lugar' : 'Confirmar' }}</button><button v-if="['pending', 'confirmed'].includes(r.estado)" class="btn-ghost !px-2 text-xs" @click="estado(r, 'completed')">Vino</button><button v-if="['pending', 'confirmed'].includes(r.estado)" class="btn-ghost !px-2 text-xs text-carmin" @click="estado(r, 'cancelled')">Cancelar</button></td>
             </tr>
             <tr v-if="!reservas.length"><td colspan="7" class="!py-0"><EstadoVacio texto="Sin reservas en el período." /></td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="space-y-4">
+      <!-- Fase 91: la lista de espera: quien pidió por WhatsApp cuando no había lugar. Si se libera, pasa sola; acá se le puede dar lugar a mano. -->
+      <div class="card" data-e2e="lista-espera">
+        <h2 class="font-bold">Lista de espera</h2>
+        <p class="text-xs text-marca-muted mb-2">Pidieron mesa cuando estaba completo. Si alguien cancela, el primero que entra pasa solo y se le avisa por WhatsApp.</p>
+        <div v-for="r in espera" :key="r.id" class="py-2 border-t border-marca-borde/60 text-sm" :data-espera="r.id">
+          <div class="flex items-center justify-between gap-2"><span><b>{{ r.fecha }}</b> {{ r.hora }} · {{ r.nombre }} · {{ r.personas }}p</span><span v-if="r.hay_lugar" class="badge bg-emerald-50 text-emerald-700 !py-0">hay lugar</span></div>
+          <div class="flex items-center justify-between gap-2 text-xs text-marca-muted"><span>{{ r.telefono }} · anotado {{ r.desde }}</span><span class="whitespace-nowrap"><button class="btn-ghost !px-2 text-xs text-emerald-700" @click="estado(r, 'confirmed')" :data-dar-lugar="r.id">Dar lugar</button><button class="btn-ghost !px-2 text-xs text-carmin" @click="estado(r, 'cancelled')">Quitar</button></span></div>
+        </div>
+        <p v-if="!espera.length" class="text-sm text-marca-muted">Nadie esperando.</p>
       </div>
       <div class="card">
         <div class="flex items-center justify-between mb-1"><h2 class="font-bold">QR por mesa</h2><button class="btn-secondary !py-1 text-xs" @click="imprimir">Imprimir</button></div>
@@ -30,6 +42,7 @@
         <div id="qrs" class="grid grid-cols-2 gap-3">
           <div v-for="m in mesas" :key="m.id" class="qr border border-marca-borde rounded-xl p-2 text-center"><canvas :ref="el => dibujar(el, m.url)"></canvas><p class="font-bold text-sm mt-1">{{ m.nombre }}</p><p class="text-[10px] text-marca-muted">{{ m.sector }} · escaneá para pedir</p></div>
         </div>
+      </div>
       </div>
     </div>
     <Modal :abierto="nuevaAbierta" titulo="Nueva reserva" @cerrar="nuevaAbierta = false">
@@ -53,7 +66,7 @@ import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import PeriodoSelector from '@/Components/PeriodoSelector.vue'
 import { hoyISO } from '@/util/formato'
-defineProps({ periodo: Object, reservas: Array, kpis: Object, urlReservas: String, reservasActivas: Boolean, urlMenu: String, menuActivo: Boolean, mesas: Array })
+defineProps({ periodo: Object, reservas: Array, kpis: Object, urlReservas: String, reservasActivas: Boolean, urlMenu: String, menuActivo: Boolean, mesas: Array, espera: Array, capacidad: Number })
 const dibujar = (el, url) => { if (el && !el.dataset.ok) { el.dataset.ok = 1; QRCode.toCanvas(el, url, { width: 110, margin: 1 }).catch(() => {}) } }
 function estado(r, e) { router.post(`/gastronomia/reservas/${r.id}/estado`, { estado: e }, { preserveScroll: true }) }
 const nuevaAbierta = ref(false)

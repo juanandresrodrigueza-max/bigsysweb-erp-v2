@@ -6,6 +6,14 @@
         <h1 class="page-title">{{ comanda.titulo }}</h1>
         <p class="page-subtitle">{{ comanda.numero }} · abierta {{ comanda.abierta }} ({{ comanda.minutos }} min) · {{ comanda.mozo }}<span v-if="comanda.cubiertos"> · {{ comanda.cubiertos }} cubiertos</span><span v-if="comanda.direccion"> · {{ comanda.direccion }} · {{ comanda.telefono }}</span></p>
         <span class="badge mt-1" :class="{ abierta: 'bg-emerald-50 text-emerald-700', cuenta: 'bg-violeta text-white', cerrada: 'bg-gris-light text-marca-muted', anulada: 'bg-carmin-light text-carmin' }[comanda.estado]">{{ { abierta: 'Abierta', cuenta: 'Pidió la cuenta', cerrada: 'Cerrada', anulada: 'Anulada' }[comanda.estado] }}</span>
+        <!-- Fase 91: delivery: la dirección, la zona (con su envío) y si ya salió. -->
+        <p v-if="comanda.tipo === 'delivery'" class="text-sm mt-1 flex flex-wrap items-center gap-2" data-e2e="envio">
+          <span class="text-marca-muted">Envío:</span>
+          <select v-if="abierta && zonas.length && puede('gastronomia','crear')" :value="comanda.zona || ''" class="input !py-0.5 !text-xs !w-auto" data-e2e="zona-comanda" @change="router.post(`/gastronomia/comandas/${comanda.id}/zona`, { zona: $event.target.value || null }, { preserveScroll: true })"><option value="">Sin envío</option><option v-for="z in zonas" :key="z.nombre" :value="z.nombre">Envío {{ z.nombre }} · {{ moneda(z.costo, 0) }}</option></select>
+          <span v-else-if="comanda.zona" class="badge bg-lavanda-light text-violeta">Envío {{ comanda.zona }} · {{ moneda(comanda.costo_envio, 0) }}</span>
+          <span v-if="comanda.salio" class="badge bg-violeta text-white">salió {{ comanda.salio }}<span v-if="comanda.repartidor"> · {{ comanda.repartidor }}</span></span>
+          <Link v-else-if="abierta && puede('gastronomia','crear')" :href="`/gastronomia/comandas/${comanda.id}/salio`" method="post" as="button" preserve-scroll class="btn-violeta !py-0.5 !px-2 text-xs" data-e2e="salio">Salió 🛵</Link>
+        </p>
       </div>
       <div v-if="abierta" class="flex flex-wrap gap-2">
         <button v-if="comanda.tipo === 'mesa' && puede('gastronomia','crear')" @click="moverAbierto = true" class="btn-ghost text-xs">Mover de mesa</button>
@@ -62,7 +70,7 @@
               <template v-if="abierta && puede('gastronomia','crear')">
                 <Link v-if="it.estado === 'listo'" :href="`/gastronomia/items/${it.id}/estado`" method="post" :data="{ estado: 'entregado' }" as="button" preserve-scroll class="btn-ghost !px-2 text-xs text-emerald-700" title="Entregado">✓</Link>
                 <button v-if="it.estado === 'pedido'" @click="notaDe = it" class="btn-ghost !px-2 text-xs" title="Nota">✎</button>
-                <button v-if="!it.cortesia && it.pagado <= 0 && it.estado !== 'anulado' && puede('gastronomia','editar')" @click="cortesiaDe = it" class="btn-ghost !px-2 text-xs" title="Cortesía: invitación de la casa, consumo del personal o error de cocina" :data-cortesia-de="it.id">🎁</button>
+                <button v-if="it.product_id && !it.cortesia && it.pagado <= 0 && it.estado !== 'anulado' && puede('gastronomia','editar')" @click="cortesiaDe = it" class="btn-ghost !px-2 text-xs" title="Cortesía: invitación de la casa, consumo del personal o error de cocina" :data-cortesia-de="it.id">🎁</button>
                 <Link v-if="it.estado !== 'entregado' && it.estado !== 'anulado'" :href="`/gastronomia/comandas/${comanda.id}/items/${it.id}`" method="delete" as="button" preserve-scroll class="text-marca-muted hover:text-carmin"><Icono nombre="x" clase="w-4 h-4" /></Link>
               </template>
             </div>
@@ -161,7 +169,7 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ comanda: Object, productos: Array, rubros: Array, medios: Object, cuentas: Array, clientes: Array, mesas: Array })
+const props = defineProps({ comanda: Object, productos: Array, rubros: Array, medios: Object, cuentas: Array, clientes: Array, mesas: Array, zonas: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const abierta = computed(() => ['abierta', 'cuenta'].includes(props.comanda.estado))
 const estacionesEnUso = computed(() => [...new Set(props.comanda.items.filter(i => i.va_cocina && ['cocina', 'listo'].includes(i.estado)).map(i => i.estacion).filter(Boolean))])

@@ -102,3 +102,9 @@ El QR de cada mesa, que se imprime en Big Restó → Reservas y QR, abre la cart
 - **Barra del pulgar**: adentro de la comanda, en el celular, una barra abajo deja el total, Enviar y Cobrar siempre a mano.
 - **Mapa de calor** (Salón → Calor): el mismo plano, pintado por lo que vendió cada mesa en los últimos 30 días (de lavanda a rojo), con las que más rinden, las frías (sin uso: quizá están mal ubicadas o sobran) y la venta por franja: desayuno, almuerzo, merienda, cena. A Bigcito: «¿qué mesas rinden más?», «¿a qué hora vendo más?».
 
+## Reservas por WhatsApp con lista de espera y delivery propio (Fase 91)
+
+- **Reservas por WhatsApp:** si el cliente escribe «quiero reservar para 4 el sábado a las 21, soy Juan», Bigcito entiende para cuántos, cuándo y a nombre de quién, y contesta: confirmada si entra en la **capacidad por turno** (Configuración → Tienda, reservas), o **en lista de espera** si a esa hora está completo. Cuando alguien cancela (o no vino), el primero de la lista que entra pasa solo y recibe el aviso por WhatsApp. En Reservas se ve la lista de espera con «Dar lugar» y «Quitar». Por voz: «reservá para cuatro el sábado a las nueve a nombre de Juan».
+- **Zonas de entrega** (Big Restó → Delivery → Zonas y repartidores): cada zona con su costo de envío, los barrios o calles que la identifican y la demora. Al abrir un delivery (o cuando entra por WhatsApp con dirección) el envío se agrega solo como un renglón de la comanda y se factura con el resto; se puede cambiar desde la comanda.
+- **Tablero del reparto** (Big Restó → Delivery): Preparando → Listos para salir → En camino → Entregados hoy. **Salió** elige el repartidor y le avisa al cliente por WhatsApp con quién va y cuánto tarda; **Entregado** cobra con lo que trajo el repartidor (efectivo, tarjeta, MP, transferencia) y cierra la comanda. A Bigcito: «¿cómo viene el delivery?».
+

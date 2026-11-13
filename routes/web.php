@@ -768,6 +768,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     // Gastronomía
     Route::prefix('gastronomia')->middleware('permiso:gastronomia')->group(function () {
         Route::get('/',                               [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mesas']);
+        Route::get('/delivery',                       [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'delivery']); // Fase 91
+        Route::post('/delivery/zonas',                [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarZonas'])->middleware('permiso:gastronomia,editar');
+        Route::post('/comandas/{id}/zona',            [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'zonaComanda'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/salio',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'salio'])->middleware('permiso:gastronomia,crear');
+        Route::post('/comandas/{id}/entregado',       [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'entregado'])->middleware('permiso:gastronomia,crear');
         Route::get('/mozo',                           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mozo']); // Fase 90
         Route::post('/mesas/plano',                 [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'plano'])->middleware('permiso:gastronomia,editar'); // Fase 89
         Route::post('/mesas/{id?}',                   [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarMesa'])->middleware('permiso:gastronomia,editar');

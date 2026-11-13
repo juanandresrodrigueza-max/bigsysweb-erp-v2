@@ -8,7 +8,8 @@
         <Link href="/gastronomia/reservas" class="btn-secondary">Reservas y QR</Link>
         <Link href="/gastronomia/cocina" class="btn-secondary"><Icono nombre="utensils" clase="w-4 h-4" /> Cocina <span v-if="kpis.en_cocina" class="ml-1 badge bg-carmin text-white">{{ kpis.en_cocina }}</span></Link>
         <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'mostrador', cliente: '', direccion: '', telefono: '' }" class="btn-secondary">Mostrador</button>
-        <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'delivery', cliente: '', direccion: '', telefono: '' }" class="btn-secondary">Delivery</button>
+        <button v-if="puede('gastronomia','crear')" @click="nueva = { tipo: 'delivery', cliente: '', direccion: '', telefono: '', zona: '' }" class="btn-secondary">Delivery</button>
+        <Link href="/gastronomia/delivery" class="btn-secondary" data-e2e="ir-delivery">Reparto</Link>
         <button v-if="puede('gastronomia','editar')" @click="configAbierto = true" class="btn-ghost"><Icono nombre="settings" clase="w-4 h-4" /></button>
       </div>
     </div>
@@ -102,7 +103,8 @@
     <Modal :abierto="!!nueva" :titulo="nueva?.tipo === 'delivery' ? 'Nuevo delivery' : 'Pedido de mostrador'" @cerrar="nueva = null">
       <template v-if="nueva">
         <label class="label">Nombre del cliente</label><input v-model="nueva.cliente" class="input" placeholder="Para llamarlo cuando esté listo" />
-        <template v-if="nueva.tipo === 'delivery'"><label class="label mt-3">Dirección</label><input v-model="nueva.direccion" class="input" /><label class="label mt-3">Teléfono</label><input v-model="nueva.telefono" class="input" /></template>
+        <template v-if="nueva.tipo === 'delivery'"><label class="label mt-3">Dirección</label><input v-model="nueva.direccion" class="input" placeholder="Calle, número, barrio" /><label class="label mt-3">Teléfono</label><input v-model="nueva.telefono" class="input" />
+          <template v-if="zonas?.length"><label class="label mt-3">Zona de envío</label><select v-model="nueva.zona" class="input" data-e2e="nueva-zona"><option value="">Según la dirección</option><option v-for="z in zonas" :key="z.nombre" :value="z.nombre">{{ z.nombre }} · {{ moneda(z.costo, 0) }}</option></select></template></template>
       </template>
       <template #pie><button class="btn-secondary" @click="nueva = null">Cancelar</button><button class="btn-primary" @click="router.post('/gastronomia/comandas', nueva)">Abrir</button></template>
     </Modal>
@@ -128,7 +130,7 @@ import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ mesas: Array, otras: Array, kpis: Object, listaSucursales: Array, calor: Object })
+const props = defineProps({ mesas: Array, otras: Array, kpis: Object, listaSucursales: Array, calor: Object, zonas: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const porSector = computed(() => { const g = {}; for (const m of props.mesas) { (g[m.sector] ??= []).push(m) } return g })
 const claseMesa = m => !m.activa ? 'opacity-40 border-marca-borde bg-white' : !m.comanda ? 'bg-white border-marca-borde hover:border-emerald-400 text-marca-texto' : m.comanda.estado === 'cuenta' ? 'bg-violeta text-white border-violeta' : m.comanda.listos ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-carmin-light border-carmin/60 text-carmin-dark'

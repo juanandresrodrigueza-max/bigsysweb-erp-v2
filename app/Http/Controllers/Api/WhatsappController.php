@@ -39,13 +39,16 @@ class WhatsappController extends Controller
             }
             // Fase 53.2: en un local gastronómico el pedido entra directo a Big Restó como comanda (delivery o para retirar).
             if (\App\Services\Gastronomia\PedidoRestoService::activo($b)) {
+                // Fase 91: "quiero reservar para 4 el sábado a las 21" → reserva confirmada o lista de espera, sin pasar por la carta.
+                if ($res = app(\App\Services\Gastronomia\ReservasService::class)->responderWhatsapp($b, $m['de'], $m['texto'])) { if (($ws['auto_responder'] ?? true) && $m['de']) $wa->responder($b, $m['de'], $res['respuesta']); $atendidos[] = 'reserva'; continue; }
                 $i = $wa->interpretar($b, $m['texto'], true);
                 if (\App\Services\Canales\AtencionClientesService::activo($b) && ($at = app(\App\Services\Canales\AtencionClientesService::class)->atenderInterpretado($b, $m['de'], $m['texto'], $i))) { if (($ws['auto_responder'] ?? true) && $m['de']) $wa->responder($b, $m['de'], $at['respuesta']); $atendidos[] = $at['intencion']; continue; } // Fase 60
                 $r = ($ws['auto_pedidos'] ?? true) && $i['items'] ? app(\App\Services\Gastronomia\PedidoRestoService::class)->desdeWhatsapp($b, $i, $m['de']) : null;
                 $c = $r['comanda'] ?? null;
                 if ($c) $creados[] = $c->numeroFormateado();
                 $faltan = $r ? collect($r['faltan'])->map(fn($f) => "¿{$f['plato']}: " . implode(', ', $f['opciones']) . '?')->implode(' ') : '';
-                if (($ws['auto_responder'] ?? true) && $m['de'] && (! empty($i['respuesta']) || $faltan)) $wa->responder($b, $m['de'], trim(($i['respuesta'] ?? '') . ($faltan ? "\n{$faltan}" : '') . ($c ? "\nTu pedido es el {$c->numeroFormateado()}. Te avisamos cuando esté listo." : '')));
+                $envio = $c && $c->tipo === 'delivery' && $c->zona ? "\nEnvío a {$c->zona}: $ " . number_format((float) $c->costo_envio, 0, ',', '.') . (($z = \App\Services\Gastronomia\DeliveryService::zona($b, $c->zona)) && ! empty($z['demora']) ? " (unos {$z['demora']} minutos)" : '') : ''; // Fase 91
+                if (($ws['auto_responder'] ?? true) && $m['de'] && (! empty($i['respuesta']) || $faltan)) $wa->responder($b, $m['de'], trim(($i['respuesta'] ?? '') . ($faltan ? "\n{$faltan}" : '') . ($c ? "\nTu pedido es el {$c->numeroFormateado()}.{$envio}\nTe avisamos cuando salga." : '')));
                 if (! $c && $m['de']) \App\Models\Alerta::emitir(['business_id' => $b->id, 'modulo' => 'gastronomia', 'tipo' => 'whatsapp_sin_pedido', 'severidad' => 'info', 'titulo' => 'Mensaje de WhatsApp sin pedido: ' . $m['de'], 'detalle' => mb_substr($m['texto'], 0, 300), 'url' => '/gastronomia']);
                 continue;
             }
