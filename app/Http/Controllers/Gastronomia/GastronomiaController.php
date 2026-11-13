@@ -50,6 +50,25 @@ class GastronomiaController extends Controller
             'otras' => Comanda::abiertas()->whereNull('mesa_id')->with('items', 'mozo:id,name')->orderBy('abierta_en')->get()->map(fn($c) => $this->comandaArr($c)),
             'kpis' => ['abiertas' => Comanda::abiertas()->count(), 'ocupadas' => $mesas->filter(fn($m) => $m->comandaAbierta)->count(), 'mesas' => $mesas->where('activa', true)->count(), 'ventas_hoy' => (float) (clone $hoy)->sum('total'), 'cubiertos_hoy' => (int) (clone $hoy)->sum('cubiertos'), 'comandas_hoy' => (clone $hoy)->count(), 'propinas_hoy' => (float) (clone $hoy)->sum('propina'), 'en_cocina' => ComandaItem::where('estado', 'cocina')->whereHas('comanda', fn($q) => $q->abiertas())->count()],
             'listaSucursales' => $user->business->locations()->where('is_active', true)->get(['id', 'name']),
+            'calor' => Inertia::optional(fn() => app(\App\Services\Gastronomia\CalorSalonService::class)->datos($user->current_location_id)), // Fase 90: sólo cuando se pide la vista Calor (router.reload only calor)
+        ]);
+    }
+
+    // Fase 90: el mozo desde el celular: sus mesas, lo que está listo para llevar y las mesas libres, con el pulgar.
+    public function mozo(Request $request)
+    {
+        $user = $request->user();
+        $abiertas = Comanda::abiertas()->where('business_location_id', $user->current_location_id)->with('items.product:id,name', 'mesa:id,nombre,sector', 'mozo:id,name')->orderBy('abierta_en')->get();
+        $arr = fn(Comanda $c) => ['id' => $c->id, 'titulo' => $c->titulo(), 'tipo' => $c->tipo, 'estado' => $c->estado, 'mesa' => $c->mesa?->nombre, 'sector' => $c->mesa?->sector, 'mozo' => $c->mozo?->name, 'mia' => $c->user_id === $user->id,
+            'cubiertos' => $c->cubiertos, 'total' => (float) $c->total, 'minutos' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0, 'llamado' => $c->llamado, 'llamado_min' => $c->llamado_en ? (int) $c->llamado_en->diffInMinutes(now()) : null,
+            'sin_enviar' => $c->items->where('estado', 'pedido')->count(), 'en_cocina' => $c->items->where('estado', 'cocina')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
+            'para_llevar' => $c->items->where('estado', 'listo')->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'asiento' => $i->asiento])->values()];
+        $ocupadas = $abiertas->whereNotNull('mesa_id')->pluck('mesa_id');
+        return Inertia::render('Gastronomia/Mozo', [
+            'mias' => $abiertas->where('user_id', $user->id)->map($arr)->values(),
+            'otras' => $abiertas->where('user_id', '!=', $user->id)->map($arr)->values(),
+            'libres' => Mesa::where('business_location_id', $user->current_location_id)->where('activa', true)->whereNotIn('id', $ocupadas)->orderBy('sector')->orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'sector', 'capacidad'])->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'capacidad' => $m->capacidad]),
+            'yo' => $user->name,
         ]);
     }
 

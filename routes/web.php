@@ -768,6 +768,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     // Gastronomía
     Route::prefix('gastronomia')->middleware('permiso:gastronomia')->group(function () {
         Route::get('/',                               [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mesas']);
+        Route::get('/mozo',                           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'mozo']); // Fase 90
         Route::post('/mesas/plano',                 [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'plano'])->middleware('permiso:gastronomia,editar'); // Fase 89
         Route::post('/mesas/{id?}',                   [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarMesa'])->middleware('permiso:gastronomia,editar');
         Route::delete('/mesas/{id}',                  [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'eliminarMesa'])->middleware('permiso:gastronomia,editar');

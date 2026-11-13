@@ -30,7 +30,7 @@ class MenuSeccionesFase88Test extends ErpTestCase
         $nav = $this->nav($this->dueno->fresh());
         $this->assertArrayNotHasKey('rubro', $nav->all());
         $this->assertSame('Big Restó', $nav['gastronomia']['label']);
-        $this->assertSame(['mesas', 'cocina', 'carta', 'reservas', 'llamador'], array_column($nav['gastronomia']['secciones'], 'key'));
+        $this->assertSame(['mesas', 'mozo', 'cocina', 'carta', 'reservas', 'llamador'], array_column($nav['gastronomia']['secciones'], 'key'));
         $this->assertSame('', $nav['gastronomia']['grupo'] ?? '', 'Sin título de grupo: al mismo nivel que Vender o Stock');
         // Hotelería tiene una sola pantalla, que es su raíz: no hay nada que desplegar.
         $this->assertCount(1, $nav['hoteleria']['secciones']); $this->assertSame('/hoteleria', $nav['hoteleria']['secciones'][0]['ruta']);

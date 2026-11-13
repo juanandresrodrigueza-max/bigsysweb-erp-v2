@@ -12,14 +12,14 @@
         <button v-if="puede('gastronomia','editar')" @click="anular" class="btn-ghost text-xs text-carmin">Anular</button>
         <span v-if="estacionesEnUso.length" class="flex items-center gap-1 text-xs text-marca-muted">Imprimir: <a v-for="e in estacionesEnUso" :key="e" :href="`/gastronomia/comandas/${comanda.id}/imprimir?estacion=${encodeURIComponent(e)}`" target="_blank" class="btn-ghost !px-2 text-xs" :data-imprimir="e">{{ e }}</a></span>
         <Link v-if="comanda.estado === 'abierta' && puede('gastronomia','crear')" :href="`/gastronomia/comandas/${comanda.id}/cuenta`" method="post" as="button" preserve-scroll class="btn-secondary">Pidió la cuenta</Link>
-        <Link v-if="comanda.pendientes_envio && puede('gastronomia','crear')" :href="`/gastronomia/comandas/${comanda.id}/enviar`" method="post" as="button" preserve-scroll class="btn-violeta"><Icono nombre="send" clase="w-4 h-4" /> Enviar a cocina ({{ comanda.pendientes_envio }})</Link>
-        <button v-if="puede('gastronomia','crear')" @click="abrirCierre" class="btn-primary" :disabled="!comanda.items.length">{{ comanda.pagos.length ? 'Cobrar lo que falta ' + moneda(comanda.pendiente, 0) : 'Cerrar y cobrar ' + moneda(comanda.total, 0) }}</button>
+        <Link v-if="comanda.pendientes_envio && puede('gastronomia','crear')" :href="`/gastronomia/comandas/${comanda.id}/enviar`" method="post" as="button" preserve-scroll class="btn-violeta hidden lg:inline-flex"><Icono nombre="send" clase="w-4 h-4" /> Enviar a cocina ({{ comanda.pendientes_envio }})</Link>
+        <button v-if="puede('gastronomia','crear')" @click="abrirCierre" class="btn-primary hidden lg:inline-flex" :disabled="!comanda.items.length">{{ comanda.pagos.length ? 'Cobrar lo que falta ' + moneda(comanda.pendiente, 0) : 'Cerrar y cobrar ' + moneda(comanda.total, 0) }}</button>
       </div>
       <Link v-else-if="comanda.comprobante_id" :href="`/comprobantes/${comanda.comprobante_id}`" class="btn-secondary">Ver comprobante</Link>
     </div>
 
     <div class="grid lg:grid-cols-5 gap-4">
-      <div class="lg:col-span-3 space-y-3" v-if="abierta && puede('gastronomia','crear')">
+      <div class="lg:col-span-3 space-y-3 min-w-0" v-if="abierta && puede('gastronomia','crear')">
         <!-- Fase 89: pedir por asiento. Lo que se pide con un asiento elegido queda marcado y al cobrar se separa solo. -->
         <div v-if="comanda.tipo === 'mesa'" class="flex items-center gap-1 flex-wrap text-xs" data-e2e="asientos">
           <span class="text-marca-muted mr-1">Pide:</span>
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <div class="card p-0 flex flex-col" :class="abierta && puede('gastronomia','crear') ? 'lg:col-span-2' : 'lg:col-span-5'">
+      <div class="card p-0 flex flex-col min-w-0" :class="abierta && puede('gastronomia','crear') ? 'lg:col-span-2' : 'lg:col-span-5'">
         <div class="px-4 py-3 border-b border-marca-borde flex items-center justify-between"><h2 class="font-bold">Comanda</h2><span class="text-xs text-marca-muted">{{ comanda.items.length }} ítems</span></div>
         <div class="flex-1 overflow-y-auto max-h-[60vh]">
           <template v-for="ronda in rondas" :key="ronda">
@@ -141,6 +141,15 @@
       <p v-if="cierre.errors.medios || cierre.errors.items" class="text-carmin text-xs mt-2">{{ cierre.errors.medios || cierre.errors.items }}</p>
       <template #pie><button class="btn-secondary" @click="cierreAbierto = false">Cancelar</button><button class="btn-primary" :disabled="cierre.processing || totalCobrar <= 0 || pagado < totalCobrar + (cierre.propina || 0) - 0.005" @click="cobrarAhora" data-e2e="cobrar">{{ modo === 'todo' ? 'Cobrar y facturar' : 'Cobrar esta parte' }}</button></template>
     </Modal>
+    <!-- Fase 90: barra del pulgar en el celular: total, enviar y cobrar siempre a mano. -->
+    <div v-if="abierta && puede('gastronomia','crear')" class="lg:hidden fixed bottom-16 inset-x-0 z-30 pl-3 pr-[80px] pointer-events-none" data-e2e="barra-mozo">
+      <div class="pointer-events-auto mx-auto max-w-lg rounded-2xl bg-marca-texto text-white shadow-xl flex items-center gap-2 p-2 pl-4">
+        <div class="flex-1 min-w-0 leading-tight"><p class="text-[10px] uppercase tracking-widest opacity-70">{{ comanda.items.length }} ítem{{ comanda.items.length === 1 ? '' : 's' }}</p><p class="font-black tabular-nums text-lg">{{ moneda(comanda.total, 0) }}</p></div>
+        <Link v-if="comanda.pendientes_envio" :href="`/gastronomia/comandas/${comanda.id}/enviar`" method="post" as="button" preserve-scroll class="btn-violeta !py-2.5 !px-3 text-sm" data-e2e="enviar-movil">Enviar ({{ comanda.pendientes_envio }})</Link>
+        <Link v-else-if="comanda.estado === 'abierta' && comanda.items.length" :href="`/gastronomia/comandas/${comanda.id}/cuenta`" method="post" as="button" preserve-scroll class="btn-secondary !py-2.5 !px-3 text-sm !bg-white/10 !text-white !border-white/20">Cuenta</Link>
+        <button class="btn-primary !py-2.5 !px-3 text-sm" :disabled="!comanda.items.length" @click="abrirCierre" data-e2e="cobrar-movil">Cobrar</button>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
