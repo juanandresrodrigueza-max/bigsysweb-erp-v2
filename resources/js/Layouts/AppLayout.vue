@@ -111,6 +111,13 @@
         <div class="flex-1 max-w-48 h-1.5 rounded-full bg-marca-fondo"><div class="h-1.5 rounded-full bg-marca-grad" :style="{ width: (onboarding.hechos / onboarding.total * 100) + '%' }"></div></div>
         <Link href="/primeros-pasos" class="text-xs font-bold text-carmin underline whitespace-nowrap">Seguir configurando</Link>
       </div>
+      <!-- Fase 93.1: en el celular web, invitar a instalar la app (notificaciones al instante, Bigcito con micrófono). Nunca adentro de la app. -->
+      <div v-if="linkApp && !appOculta" class="md:hidden px-4 py-2 bg-ciruela text-white text-sm flex items-center gap-3" data-e2e="instalar-app">
+        <img src="/img/bigcito-cara.webp" alt="" class="w-8 h-8 rounded-full ring-1 ring-white/30 object-cover shrink-0" />
+        <span class="flex-1 min-w-0 leading-tight"><b>La app de BigSys</b><span class="block text-xs text-white/70">Avisos al instante y Bigcito con el micrófono del celular.</span></span>
+        <a :href="linkApp" target="_blank" rel="noopener" class="btn-primary !py-1.5 !px-3 text-xs">Instalar</a>
+        <button type="button" class="text-white/60 text-lg leading-none px-1" aria-label="Cerrar" @click="ocultarApp">×</button>
+      </div>
       <!-- Fase 81: un consejo por día en la primera semana -->
       <div v-if="tip && !tipOculto" class="px-4 md:px-6 py-2 bg-white border-b border-marca-borde text-sm flex items-center gap-2" data-tip>
         <Icono nombre="sparkles" clase="w-4 h-4 text-violeta shrink-0" /><span class="flex-1 min-w-0"><b class="text-violeta">Primera semana:</b> {{ tip.texto }}</span>
@@ -182,6 +189,10 @@ const onboarding = computed(() => page.props.onboarding)
 const empresas = computed(() => page.props.empresas)
 const tip = computed(() => page.props.tip)
 const tipOculto = ref(true)
+// Fase 93.1: el link a la tienda según el celular; adentro de la app no se muestra.
+const appOculta = ref(true)
+const linkApp = computed(() => { const t = page.props.tiendas; if (!t || window.Capacitor?.isNativePlatform?.()) return null; const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent); return ios ? t.ios : (/Android/i.test(navigator.userAgent) ? t.android : null) })
+function ocultarApp() { appOculta.value = true; try { localStorage.setItem('bs.app.banner', String(Date.now())) } catch {} }
 function ocultarTip() { tipOculto.value = true; try { localStorage.setItem('bs.tip.' + tip.value.clave, '1') } catch {} }
 // El tour se muestra una vez, en Inicio, la primera vez que entra cada usuario.
 const tourInicial = page.props.tour && ['/dashboard', '/dueno'].includes(page.url.split('?')[0]) ? page.props.tour : null
@@ -210,6 +221,7 @@ onMounted(() => {
   iniciarMovil()
   try { abierto.value = localStorage.getItem('bs.sidebar') !== '0' } catch {}
   try { tipOculto.value = !tip.value || !!localStorage.getItem('bs.tip.' + tip.value.clave) } catch { tipOculto.value = !tip.value }
+  try { const v = Number(localStorage.getItem('bs.app.banner') || 0); appOculta.value = v > Date.now() - 30 * 86400000 } catch { appOculta.value = false }
 })
 onBeforeUnmount(() => document.removeEventListener('click', clickAfuera))
 watch(abierto, v => { try { localStorage.setItem('bs.sidebar', v ? '1' : '0') } catch {} })

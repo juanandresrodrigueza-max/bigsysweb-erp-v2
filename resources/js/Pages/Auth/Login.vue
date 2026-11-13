@@ -62,7 +62,7 @@
 
       <footer class="text-xs text-white/50 flex flex-wrap items-center justify-between gap-2">
         <span>© {{ new Date().getFullYear() }} BigSys · Sistemas de gestión desde 1999</span>
-        <span>Mendoza, Argentina</span>
+        <span class="flex gap-3"><a href="/privacidad" class="hover:text-white">Privacidad</a><a href="/terminos" class="hover:text-white">Términos</a><span>Mendoza, Argentina</span></span>
       </footer>
     </div>
   </div>

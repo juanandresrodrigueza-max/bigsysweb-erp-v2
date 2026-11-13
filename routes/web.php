@@ -44,6 +44,11 @@ Route::get('/p/{token}/pdf',             [\App\Http\Controllers\PublicoControlle
 Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoController::class, 'responder'])->middleware('throttle:publico');
 Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado'])->middleware('throttle:publico');
 
+// Fase 93.1: privacidad y términos (públicos; las tiendas de apps los exigen) y los archivos de deep links de la app.
+Route::view('/privacidad', 'legal.privacidad', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
+Route::view('/terminos', 'legal.terminos', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
+Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\MovilController::class, 'assetlinks']);
+Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\MovilController::class, 'appleAppSiteAssociation']);
 // Tienda propia, menú QR, reservas y portal del cliente (públicos, sin login).
 // Fase 32.4: la pantalla del salón (llave de sólo lectura) y la cotización del Consultor mandada por WhatsApp
 Route::get('/salon/{token}',               [\App\Http\Controllers\SalonController::class, 'ver'])->middleware('throttle:publico');

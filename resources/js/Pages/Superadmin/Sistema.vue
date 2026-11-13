@@ -49,6 +49,7 @@
           <div class="space-y-3">
             <div><label class="label">Link en Google Play</label><input v-model="form.app_android_url" class="input" placeholder="https://play.google.com/store/apps/details?id=ar.com.bigsys.erp" /></div>
             <div><label class="label">Link en App Store</label><input v-model="form.app_ios_url" class="input" placeholder="https://apps.apple.com/ar/app/bigsys/id…" /></div>
+            <div class="grid grid-cols-2 gap-2"><div><label class="label">Huella SHA-256 (Android)</label><input v-model="form.android_sha256" class="input !text-xs font-mono" placeholder="AA:BB:…" title="Play Console → Integridad de la app → huella SHA-256. Con esto los links abren la app." /></div><div><label class="label">Team ID (Apple)</label><input v-model="form.apple_team_id" class="input font-mono" maxlength="10" placeholder="ABCDE12345" /></div></div>
             <div class="p-3 rounded-xl bg-marca-fondo text-xs text-marca-muted">
               <p class="font-semibold text-marca-texto">Celulares con la app</p>
               <p>iPhone: <b>{{ movil.dispositivos?.ios ?? 0 }}</b> · Android: <b>{{ movil.dispositivos?.android ?? 0 }}</b></p>
@@ -146,7 +147,7 @@ const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
-const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '' })
+const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }

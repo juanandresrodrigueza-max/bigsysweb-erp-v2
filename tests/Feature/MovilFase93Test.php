@@ -70,4 +70,22 @@ class MovilFase93Test extends ErpTestCase
         $this->assertFileExists(base_path('android/app/src/main/AndroidManifest.xml')); $this->assertFileExists(base_path('ios/App/App/Info.plist'));
         $this->assertStringContainsString('NSMicrophoneUsageDescription', file_get_contents(base_path('ios/App/App/Info.plist')));
     }
+
+    public function test_privacidad_terminos_y_deep_links_son_publicos(): void
+    {
+        auth()->logout();
+        $this->get('/privacidad')->assertOk()->assertSee('Política de privacidad')->assertSee('Borrar mi cuenta')->assertSee('Ley 25.326');
+        $this->get('/terminos')->assertOk()->assertSee('Términos de uso')->assertSee('15 días');
+        // Sin huella ni Team ID, los archivos existen pero no declaran apps (así la verificación no falla raro).
+        $this->get('/.well-known/assetlinks.json')->assertOk()->assertExactJson([]);
+        $this->get('/.well-known/apple-app-site-association')->assertOk()->assertJsonPath('applinks.details', []);
+        SistemaConfig::set('android_sha256', 'aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99, basura'); SistemaConfig::set('apple_team_id', 'abcde12345');
+        $this->get('/.well-known/assetlinks.json')->assertOk()->assertJsonPath('0.target.package_name', 'ar.com.bigsys.erp')->assertJsonCount(1, '0.target.sha256_cert_fingerprints')->assertJsonPath('0.target.sha256_cert_fingerprints.0', strtoupper('aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99'));
+        $this->get('/.well-known/apple-app-site-association')->assertOk()->assertJsonPath('applinks.details.0.appIDs.0', 'ABCDE12345.ar.com.bigsys.erp');
+        $this->assertStringContainsString('android:autoVerify="true"', file_get_contents(base_path('android/app/src/main/AndroidManifest.xml')));
+        $this->assertStringContainsString('applinks:erp.bigsysweb.com', file_get_contents(base_path('ios/App/App/App.entitlements')));
+        // El celular web ve el link a la tienda; la app, no (lo decide el front, pero el dato viaja).
+        SistemaConfig::set('app_ios_url', 'https://apps.apple.com/ar/app/bigsys/id1');
+        $this->assertSame('https://apps.apple.com/ar/app/bigsys/id1', $this->actingAs($this->dueno)->get('/dashboard')->viewData('page')['props']['tiendas']['ios']);
+    }
 }
