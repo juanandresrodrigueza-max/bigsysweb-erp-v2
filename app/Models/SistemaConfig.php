@@ -39,6 +39,8 @@ class SistemaConfig extends Model
         'fcm_service_account' => null, // Fase 93: cuenta de servicio de Firebase para los avisos de la app nativa
         'app_android_url'    => null,
         'app_ios_url'        => null,
+        'android_sha256'     => null, // huellas SHA-256 de la firma de la app (deep links)
+        'apple_team_id'      => null,
         'mail_from_address'  => null,
         'mail_from_name'     => 'BigSysWeb',
         // Aplicaciones de la plataforma para conectar tiendas con un botón (una sola vez para todos los clientes).

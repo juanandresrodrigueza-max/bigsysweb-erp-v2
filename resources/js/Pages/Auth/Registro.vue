@@ -32,7 +32,7 @@
           <div><label class="label">CUIT (opcional)</label><input v-model="f.cuit" class="input" placeholder="30-12345678-9" /><p v-if="f.errors.cuit" class="text-xs text-carmin">{{ f.errors.cuit }}</p></div>
         </div>
         <input v-model="f.sitio_web" type="text" name="sitio_web" tabindex="-1" autocomplete="off" class="absolute -left-[9999px]" aria-hidden="true" />
-        <label class="flex items-start gap-2 text-sm"><input v-model="f.acepto" type="checkbox" class="accent-carmin mt-1" /> <span>Acepto los términos de uso y la política de privacidad.</span></label>
+        <label class="flex items-start gap-2 text-sm"><input v-model="f.acepto" type="checkbox" class="accent-carmin mt-1" /> <span>Acepto los <a href="/terminos" target="_blank" class="text-violeta font-semibold">términos de uso</a> y la <a href="/privacidad" target="_blank" class="text-violeta font-semibold">política de privacidad</a>.</span></label>
         <p v-if="f.errors.acepto" class="text-xs text-carmin">{{ f.errors.acepto }}</p>
  <div v-if="captcha" ref="caja" class="min-h-[65px]"></div><p v-if="f.errors.captcha" class="text-xs text-carmin">{{ f.errors.captcha }}</p>
         <p v-if="error" class="text-sm text-carmin">{{ error }}</p>

@@ -59,3 +59,28 @@ Para apuntar a otro servidor (pruebas), cambiar `server.url` en `capacitor.confi
 
 No es "sólo una web": trae notificaciones nativas, micrófono y cámara con permisos propios, funciona con cuenta existente (apps de negocio,
 guía 3.1.3(b) y 4.2), y no cobra nada adentro. Si piden una cuenta de prueba, usar la demo (`demo@bigsys.com.ar` / `password`).
+
+## Lo que ya está adelantado para publicar (Fase 93.1)
+
+- **Privacidad y términos** públicos en `/privacidad` y `/terminos` (Ley 25.326, qué datos, con quién se comparten, permisos de la app y
+  cómo borrar la cuenta en `/privacidad#baja`, que Play exige como link de eliminación de cuenta). Están linkeados desde el registro y el login.
+- **Deep links**: `/.well-known/assetlinks.json` y `/.well-known/apple-app-site-association` se arman solos con la huella SHA-256 de la firma
+  (Play Console → Integridad de la app) y el Team ID de Apple que se cargan en Sistema → App del celular. El manifiesto de Android ya trae el
+  intent-filter verificado para `erp.bigsysweb.com`; en iPhone, `ios/App/App/App.entitlements` trae `applinks:` y `aps-environment`: al abrir Xcode,
+  en *Signing & Capabilities* agregar **Push Notifications** y **Associated Domains** (toma ese archivo).
+- **Aviso en el celular web**: cuando hay links a las tiendas cargados, la web en el celular muestra una barra «La app de BigSys · Instalar» con el
+  link de la tienda que corresponde (iPhone o Android). Adentro de la app no aparece y se puede cerrar por 30 días.
+- **Capturas para las tiendas**: `node movil/capturas.mjs` genera, desde la demo, 6 pantallas en tamaño iPhone 6,7" (1290×2796) y Android (1080×2400):
+  Mi negocio, Mozo de bolsillo, Vender, Alertas, Bigcito y el Salón. El gráfico destacado de Play está en `movil/tiendas/feature-graphic-1024x500.png`.
+
+### Formulario de seguridad de datos de Play (respuestas)
+
+- Recopila datos: **sí**. Comparte con terceros: **no** (los proveedores actúan por cuenta nuestra). Cifrado en tránsito: **sí**. El usuario puede pedir que se borren: **sí** (`/privacidad#baja`).
+- Tipos: *Información personal* (nombre, email, teléfono) — funcionalidad de la app, gestión de cuenta; *Información financiera* (historial de compras, es decir comprobantes y cobros del negocio) — funcionalidad; *Audio* (voz a Bigcito) — funcionalidad, no se guarda; *Fotos* (facturas y artículos) — funcionalidad; *Identificadores del dispositivo* (token de notificaciones) — funcionalidad. Nada para publicidad ni analítica de terceros.
+
+### Notas para la revisión de Apple
+
+- Cuenta de prueba: `demo@bigsys.com.ar` / `password` (dueño) en la demo que indique el equipo, o una cuenta real de prueba.
+- La app es el cliente móvil de un servicio de gestión empresarial que se contrata en la web (guía 3.1.3(b) y 3.1.3(d) de negocio a negocio). No hay compras dentro de la app.
+- Funciones nativas: notificaciones (APNs), micrófono (asistente por voz), cámara (fotos de comprobantes), Universal Links.
+

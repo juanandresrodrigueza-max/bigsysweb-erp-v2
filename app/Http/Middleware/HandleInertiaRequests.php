@@ -59,6 +59,7 @@ class HandleInertiaRequests extends Middleware
             'onboarding' => fn() => $user?->business && ! $user->business->onboarding_completado_en && $user->esDueno() ? (function () use ($user) { $p = \App\Http\Controllers\OnboardingController::pasos($user->business); return ['hechos' => count(array_filter($p, fn($x) => $x['hecho'])), 'total' => count($p)]; })() : null,
             'soporteWhatsapp' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('soporte_whatsapp') : null,
             'novedades' => fn() => $user?->business_id ? app(\App\Services\Avisos\CelularService::class)->sinLeer($user) : 0,
+            'tiendas' => fn() => $user ? \App\Http\Controllers\MovilController::tiendas() : null, // Fase 93.1: links a la app en las tiendas
             'alertas' => fn() => $user?->business_id ? [
                 'sin_leer' => Alerta::visiblesPara($user)->noLeidasPor($user->id)->count(),
                 'ultimas'  => Alerta::visiblesPara($user)->activas()->latest()->limit(6)->get()
