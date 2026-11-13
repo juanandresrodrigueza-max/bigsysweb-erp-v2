@@ -23,6 +23,12 @@
   *::-webkit-scrollbar-thumb { background: rgba(79,48,137,.22); border-radius: 999px; }
   *::-webkit-scrollbar-thumb:hover { background: rgba(79,48,137,.4); }
   h1, h2, h3 { text-wrap: balance; }
+  /* Fase 93: adentro de la app nativa, la cabecera y la barra de abajo respetan el notch y la barra de inicio del celular. */
+  .es-app header.sticky { padding-top: env(safe-area-inset-top, 0px); height: calc(4rem + env(safe-area-inset-top, 0px)); }
+  .es-app nav.fixed.bottom-0 { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .es-app aside.w-64, .es-app aside.w-\[72px\] { padding-top: env(safe-area-inset-top, 0px); }
+  .es-app { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+  .es-app input, .es-app select, .es-app textarea { font-size: max(16px, 1em); } /* iOS no hace zoom al enfocar */
 }
 
 @layer components {

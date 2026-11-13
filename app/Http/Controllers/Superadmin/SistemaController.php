@@ -83,6 +83,8 @@ class SistemaController extends Controller
                 'ml_app_id' => $c['ml_app_id'], 'ml_app_secret_set' => (bool) $c['ml_app_secret'], 'mp_app_id' => $c['mp_app_id'], 'mp_app_secret_set' => (bool) $c['mp_app_secret'], 'tn_app_id' => $c['tn_app_id'], 'tn_app_secret_set' => (bool) $c['tn_app_secret'], 'ia_api_key_set' => (bool) $c['ia_api_key'], 'ia_modelo' => $c['ia_modelo'] ?: config('services.anthropic.model'), 'ia_env' => (bool) env('ANTHROPIC_API_KEY'),
                 'mail_host' => $c['mail_host'], 'mail_port' => $c['mail_port'], 'mail_username' => $c['mail_username'], 'mail_password_set' => (bool) $c['mail_password'], 'mail_encryption' => $c['mail_encryption'], 'mail_from_address' => $c['mail_from_address'] ?: config('mail.from.address'), 'mail_from_name' => $c['mail_from_name'], 'mail_env' => env('MAIL_MAILER', 'log'), 'mail_activo' => config('mail.default')],
             'mantenimiento' => $c['mantenimiento'] ?? SistemaConfig::DEFAULTS['mantenimiento'],
+            // Fase 93: la app nativa: cuenta de servicio de Firebase (cifrada) y links a las tiendas.
+            'movil' => ['fcm_set' => app(\App\Services\Avisos\PushNativoService::class)->configurado(), 'fcm_proyecto' => app(\App\Services\Avisos\PushNativoService::class)->cuenta()['project_id'] ?? null, 'app_android_url' => $c['app_android_url'] ?? null, 'app_ios_url' => $c['app_ios_url'] ?? null, 'dispositivos' => \App\Models\DispositivoMovil::selectRaw('plataforma, count(*) c')->groupBy('plataforma')->pluck('c', 'plataforma')],
             'ia' => (bool) config('services.anthropic.api_key'),
             // Fase 87: la empresa propia de BigSys (los superadmins saltan entre el panel y ella).
             'bigsys' => ($b = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual()) ? ['id' => $b->id, 'nombre' => $b->name] : null,
@@ -103,7 +105,9 @@ class SistemaController extends Controller
     public function guardarConfiguracion(Request $request)
     {
         $d = $request->validate(['dias_prueba' => 'required|integer|min:1|max:365', 'dias_gracia' => 'required|integer|min:0|max:90', 'aviso_dias' => 'nullable|string|max:40', 'mp_public_key' => 'nullable|string|max:200', 'mp_access_token' => 'nullable|string|max:300', 'transferencia_cbu' => 'nullable|string|max:40', 'transferencia_alias' => 'nullable|string|max:60', 'transferencia_titular' => 'nullable|string|max:120', 'mensaje_global' => 'nullable|string|max:300', 'soporte_whatsapp' => 'nullable|string|max:40', 'soporte_email' => 'nullable|email',
+            'fcm_service_account' => 'nullable|string|max:6000', 'app_android_url' => 'nullable|url|max:300', 'app_ios_url' => 'nullable|url|max:300',
             'ia_api_key' => 'nullable|string|max:300', 'ia_modelo' => 'nullable|string|max:80', 'ml_app_id' => 'nullable|string|max:60', 'ml_app_secret' => 'nullable|string|max:200', 'mp_app_id' => 'nullable|string|max:60', 'mp_app_secret' => 'nullable|string|max:200', 'tn_app_id' => 'nullable|string|max:60', 'tn_app_secret' => 'nullable|string|max:200', 'mail_host' => 'nullable|string|max:150', 'mail_port' => 'nullable|integer|min:1|max:65535', 'mail_username' => 'nullable|string|max:150', 'mail_password' => 'nullable|string|max:300', 'mail_encryption' => 'nullable|in:tls,ssl,none', 'mail_from_address' => 'nullable|email', 'mail_from_name' => 'nullable|string|max:80']);
+        if (! empty($d['fcm_service_account'])) { $j = json_decode($d['fcm_service_account'], true); if (! is_array($j) || empty($j['project_id']) || empty($j['client_email']) || empty($j['private_key'])) return back()->withErrors(['fcm_service_account' => 'Eso no parece el JSON de una cuenta de servicio de Firebase (tiene que traer project_id, client_email y private_key).']); $d['fcm_service_account'] = json_encode($j); }
         foreach ($d as $k => $v) {
             if (in_array($k, SistemaConfig::SECRETOS, true) && ! $v) continue; // vacío = no tocar la clave guardada
             if ($k === 'mail_encryption' && $v === 'none') $v = null;
@@ -112,6 +116,13 @@ class SistemaController extends Controller
         }
         AuditLog::registrar('editar', null, 'Parámetros del sistema');
         return back()->with('success', 'Configuración guardada.');
+    }
+
+    // Fase 93: mandarse un aviso de prueba a los propios celulares (app nativa y web push).
+    public function probarPush(Request $request, \App\Services\Avisos\CelularService $svc)
+    {
+        $n = $svc->enviar($request->user(), 'Prueba de BigSys', 'Si leés esto en el celular, los avisos de la app andan.', '/admin/sistema');
+        return back()->with($n ? 'success' : 'error', $n ? "Aviso mandado a {$n} dispositivo(s)." : 'No llegó a ningún dispositivo: fijate que la app esté instalada con tu usuario y que la cuenta de Firebase esté cargada.');
     }
 
     // Borra una clave guardada (vuelve al .env).

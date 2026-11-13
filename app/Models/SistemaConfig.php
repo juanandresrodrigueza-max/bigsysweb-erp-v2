@@ -36,6 +36,9 @@ class SistemaConfig extends Model
         'mail_username'      => null,
         'mail_password'      => null,
         'mail_encryption'    => 'tls',
+        'fcm_service_account' => null, // Fase 93: cuenta de servicio de Firebase para los avisos de la app nativa
+        'app_android_url'    => null,
+        'app_ios_url'        => null,
         'mail_from_address'  => null,
         'mail_from_name'     => 'BigSysWeb',
         // Aplicaciones de la plataforma para conectar tiendas con un botón (una sola vez para todos los clientes).
@@ -48,7 +51,7 @@ class SistemaConfig extends Model
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account'];
 
     public static function get(string $clave, $default = null)
     {

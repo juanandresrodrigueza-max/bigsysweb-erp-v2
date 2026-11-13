@@ -131,6 +131,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema/mantenimiento',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'mantenimiento']);
     Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
     Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
+    Route::post('/sistema/probar-push',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarPush']); // Fase 93
     Route::post('/sistema/probar-ia',                 [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarIa']);
     Route::post('/sistema/empresa-bigsys',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'empresaBigsys']); // Fase 87
     Route::get('/soporte',                            [\App\Http\Controllers\SoporteController::class, 'admin']);
@@ -169,6 +170,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/conjuntos/{id}/borrar', [\App\Http\Controllers\ConjuntosController::class, 'borrar'])->whereNumber('id');
     // Centro de ayuda y tour
     // Fase 40.5: avisos al celular, novedades, parte de la mañana y mejoras
+    // Fase 93: la app nativa registra el celular para los avisos (FCM / APNs)
+    Route::post('/movil/dispositivo',            [\App\Http\Controllers\MovilController::class, 'dispositivo'])->middleware('throttle:30,1');
+    Route::post('/movil/dispositivo/baja',       [\App\Http\Controllers\MovilController::class, 'baja']);
     Route::get('/avisos-celular',                [\App\Http\Controllers\AvisosCelularController::class, 'index']);
     Route::post('/avisos-celular/suscribir',     [\App\Http\Controllers\AvisosCelularController::class, 'suscribir'])->middleware('throttle:20,1');
     Route::post('/avisos-celular/desuscribir',   [\App\Http\Controllers\AvisosCelularController::class, 'desuscribir']);

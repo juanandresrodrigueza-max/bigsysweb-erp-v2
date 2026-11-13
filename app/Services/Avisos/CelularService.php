@@ -50,8 +50,10 @@ class CelularService
     // Manda a todos los dispositivos de la persona. Los que el navegador dio de baja se borran solos.
     public function enviar(User $u, string $titulo, string $texto, string $url = '/dashboard'): int
     {
+        // Fase 93: además del web push, el canal nativo de la app (FCM / APNs), que en iPhone es el que llega siempre.
+        $nativo = app(PushNativoService::class)->enviar($u, $titulo, $texto, $url);
         $subs = PushSuscripcion::where('user_id', $u->id)->get();
-        if ($subs->isEmpty()) return 0;
+        if ($subs->isEmpty()) return $nativo;
         $v = $this->vapid();
         $wp = new WebPush(['VAPID' => ['subject' => config('app.url') ?: 'mailto:soporte@bigsys.com.ar', 'publicKey' => $v['publicKey'], 'privateKey' => $v['privateKey']]], [], 20);
         $payload = json_encode(['titulo' => $titulo, 'texto' => mb_substr($texto, 0, 300), 'url' => $url], JSON_UNESCAPED_UNICODE);
@@ -62,7 +64,7 @@ class CelularService
             if ($r->isSuccess()) { $ok++; $s?->forceFill(['ultimo_envio' => now()])->save(); }
             elseif ($r->isSubscriptionExpired()) $s?->delete();
         }
-        return $ok;
+        return $ok + $nativo;
     }
 
     // ── Novedades de BigSys ────────────────────────────────────────────

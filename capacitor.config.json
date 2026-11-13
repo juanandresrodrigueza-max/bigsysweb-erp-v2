@@ -1,0 +1,19 @@
+{
+  "appId": "ar.com.bigsys.erp",
+  "appName": "BigSys",
+  "webDir": "movil/www",
+  "server": {
+    "url": "https://erp.bigsysweb.com",
+    "allowNavigation": ["erp.bigsysweb.com", "*.bigsysweb.com", "*.mercadopago.com", "*.mercadopago.com.ar", "*.mercadolibre.com", "*.mercadolibre.com.ar"],
+    "cleartext": false
+  },
+  "backgroundColor": "#1e0732",
+  "android": { "allowMixedContent": false, "backgroundColor": "#1e0732" },
+  "ios": { "contentInset": "automatic", "backgroundColor": "#1e0732", "preferredContentMode": "mobile" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 1200, "launchAutoHide": true, "backgroundColor": "#1e0732", "androidScaleType": "CENTER_CROP", "showSpinner": false, "splashFullScreen": true, "splashImmersive": false },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#1e0732", "overlaysWebView": false },
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] },
+    "Keyboard": { "resize": "body" }
+  }
+}

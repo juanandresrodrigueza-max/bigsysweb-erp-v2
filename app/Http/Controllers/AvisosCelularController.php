@@ -21,6 +21,9 @@ class AvisosCelularController extends Controller
             'dispositivos' => PushSuscripcion::where('user_id', $u->id)->latest()->get()->map(fn($s) => ['id' => $s->id, 'dispositivo' => $s->dispositivo ?: 'Navegador', 'desde' => $s->created_at->format('d/m/Y'), 'ultimo' => $s->ultimo_envio?->diffForHumans()]),
             'manana' => $u->esDueno() ? $this->svc->configManana($b) : null, 'parte' => $u->esDueno() ? $this->svc->parte($b)['texto'] : null,
             'whatsapp' => app(\App\Services\Ventas\AvisosDuenoService::class)->config($b)['whatsapp'] ?? null,
+            // Fase 93: la app nativa: los celulares registrados y los links a las tiendas.
+            'celulares' => \App\Models\DispositivoMovil::where('user_id', $u->id)->latest('ultimo_uso_en')->get()->map(fn($d) => ['id' => $d->id, 'plataforma' => $d->plataforma, 'modelo' => $d->modelo ?: ($d->plataforma === 'ios' ? 'iPhone' : 'Android'), 'desde' => $d->created_at->diffForHumans(), 'ultimo_envio' => $d->ultimo_envio_en?->diffForHumans()]),
+            'tiendas' => \App\Http\Controllers\MovilController::tiendas(),
         ]);
     }
 

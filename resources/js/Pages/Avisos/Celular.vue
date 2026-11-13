@@ -3,10 +3,30 @@
     <h1 class="page-title">Avisos al celular</h1>
     <p class="page-subtitle mb-5">Te avisamos en el celular o la compu aunque no tengas el sistema abierto: alertas críticas, el parte de la mañana y las novedades.</p>
 
+    <div v-if="tiendas.android || tiendas.ios || celulares.length" class="card-oscura mb-4 flex flex-wrap items-center gap-4" data-e2e="app-tiendas">
+      <img src="/img/bigcito-cara.webp" alt="" class="w-14 h-14 rounded-full ring-2 ring-white/20 object-cover shrink-0" />
+      <div class="flex-1 min-w-[220px]">
+        <p class="kicker !text-rosa-light/90">La app de BigSys</p>
+        <p class="font-display text-xl font-medium mt-0.5">Avisos al instante y Bigcito con el micrófono del celular.</p>
+        <p class="text-sm text-white/70 mt-1">{{ celulares.length ? `Instalada en ${celulares.length} celular${celulares.length === 1 ? '' : 'es'} tuyo${celulares.length === 1 ? '' : 's'}.` : 'Instalala y entrá con tu mismo usuario.' }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a v-if="tiendas.ios" :href="tiendas.ios" target="_blank" rel="noopener" class="btn bg-white text-ciruela-900 hover:shadow-pop">App Store</a>
+        <a v-if="tiendas.android" :href="tiendas.android" target="_blank" rel="noopener" class="btn bg-white text-ciruela-900 hover:shadow-pop">Google Play</a>
+      </div>
+    </div>
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card" data-e2e="push">
         <p class="font-bold">Este dispositivo</p>
-        <p v-if="!soportado" class="text-sm text-marca-muted mt-1">Este navegador no recibe avisos. En iPhone, primero agregá BigSysWeb a la pantalla de inicio (Compartir → Agregar a inicio) y abrilo desde ahí.</p>
+        <!-- Fase 93: adentro de la app nativa los avisos van por el canal del celular (APNs / FCM), no por el navegador. -->
+        <template v-if="enApp">
+          <p class="text-sm mt-1" :class="celulares.length ? 'text-emerald-700' : 'text-marca-muted'">{{ celulares.length ? '✓ Esta app recibe los avisos de BigSys.' : 'Activá las notificaciones de BigSys en los ajustes del celular para recibir los avisos.' }}</p>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <button class="btn-secondary" @click="registrarPush()">Volver a activar</button>
+            <button class="btn-ghost" :disabled="!celulares.length" @click="router.post('/avisos-celular/probar', {}, { preserveScroll: true })">Mandar uno de prueba</button>
+          </div>
+        </template>
+        <p v-else-if="!soportado" class="text-sm text-marca-muted mt-1">Este navegador no recibe avisos. En iPhone, primero agregá BigSysWeb a la pantalla de inicio (Compartir → Agregar a inicio) y abrilo desde ahí.</p>
         <template v-else>
           <p class="text-sm mt-1" :class="activo ? 'text-emerald-700' : 'text-marca-muted'">{{ activo ? '✓ Recibe avisos.' : permiso === 'denied' ? 'Bloqueaste los avisos para este sitio: habilitalos desde el candadito de la barra de direcciones.' : 'Todavía no recibe avisos.' }}</p>
           <div class="flex flex-wrap gap-2 mt-3">
@@ -21,6 +41,9 @@
           <div v-for="d in dispositivos" :key="d.id" class="flex items-center justify-between gap-2 py-1.5 border-t border-marca-borde/60 first:border-0 text-sm">
             <span class="min-w-0 truncate">{{ d.dispositivo }} <span class="text-xs text-marca-muted">· desde {{ d.desde }}{{ d.ultimo ? ' · último aviso ' + d.ultimo : '' }}</span></span>
             <button class="text-xs text-carmin shrink-0" @click="router.post('/avisos-celular/desuscribir', { id: d.id }, { preserveScroll: true })">Quitar</button>
+          </div>
+          <div v-for="c in celulares" :key="'m' + c.id" class="flex items-center justify-between gap-2 py-1.5 border-t border-marca-borde/60 text-sm" :data-celular="c.id">
+            <span><span class="badge bg-ciruela text-white !py-0 mr-1.5">app</span>{{ c.modelo }} <span class="text-xs text-marca-muted">· desde {{ c.desde }}<span v-if="c.ultimo_envio"> · último aviso {{ c.ultimo_envio }}</span></span></span>
           </div>
         </div>
       </div>
@@ -48,8 +71,10 @@
 // Fase 40.5: activar el web push en este dispositivo y el parte de la mañana.
 import { ref, onMounted } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
+import { esApp, registrarPush } from '@/util/movil'
 import AppLayout from '@/Layouts/AppLayout.vue'
-const props = defineProps({ clave: String, dispositivos: Array, manana: Object, parte: String, whatsapp: String })
+const props = defineProps({ clave: String, dispositivos: Array, manana: Object, parte: String, whatsapp: String, celulares: { type: Array, default: () => [] }, tiendas: { type: Object, default: () => ({}) } })
+const enApp = esApp()
 const soportado = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 const activo = ref(false), trabajando = ref(false), error = ref(''), permiso = ref(soportado ? Notification.permission : 'default')
 const form = useForm({ activo: props.manana?.activo ?? false, hora: props.manana?.hora ?? '08:00', push: props.manana?.push ?? true, whatsapp: props.manana?.whatsapp ?? false })

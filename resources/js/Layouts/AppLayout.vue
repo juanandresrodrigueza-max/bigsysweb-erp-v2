@@ -163,6 +163,7 @@ import Paleta from '@/Components/Paleta.vue'
 import AyudaPanel from '@/Components/AyudaPanel.vue'
 import Tour from '@/Components/Tour.vue'
 import MenuLateral from '@/Components/MenuLateral.vue'
+import { iniciarMovil } from '@/util/movil' // Fase 93: adentro de la app nativa registra el celular para los avisos
 
 defineProps({ titulo: { type: String, default: '' } })
 
@@ -206,6 +207,7 @@ function activo(item) { return item.ruta === rutaActiva.value }
 function clickAfuera(e) { if (selRef.value && !selRef.value.contains(e.target)) selAbierto.value = false; if (empRef.value && !empRef.value.contains(e.target)) empAbierto.value = false }
 onMounted(() => {
   document.addEventListener('click', clickAfuera)
+  iniciarMovil()
   try { abierto.value = localStorage.getItem('bs.sidebar') !== '0' } catch {}
   try { tipOculto.value = !tip.value || !!localStorage.getItem('bs.tip.' + tip.value.clave) } catch { tipOculto.value = !tip.value }
 })
