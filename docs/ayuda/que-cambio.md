@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Pedido desde la mesa, seguro y en vivo (fase 95)
+
+Big Restó: el QR de cada mesa lleva un código secreto (reimprimí los que tenías), la mesa abierta tiene un **código de 4 números** para que otro celular se sume a la cuenta, el cliente ve **lo que pidieron** con el estado de cada plato, **Se acabó** saca un plato de la carta al instante, la cocina trabaja en tres pasos (Nuevo → En marcha → Listo) y el salón tiene **semáforo** de colores. Los avisos de mesa llegan al celular del mozo. Está contado en **Big Restó → Pedido desde la mesa, seguro y en vivo**.
+
 ## Repaso de todas las pantallas (fase 94)
 
 Revisamos las 133 pantallas en computadora y en celular para que nada quede apretado ni se corte:

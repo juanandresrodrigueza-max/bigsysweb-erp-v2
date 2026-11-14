@@ -112,6 +112,22 @@ Además hay una **app nativa para iPhone y Android** en camino: cuando esté en 
 
 Si sos el dueño, desde **Configuración → Suscripción → Dar de baja la empresa**, o escribí a privacidad@bigsys.com.ar desde el mail con el que entrás. Se borra la cuenta y, si sos el dueño, la empresa con todos sus datos; lo que la ley obliga a guardar (comprobantes fiscales) se conserva el plazo legal y después se elimina. Los detalles están en **/privacidad** y **/terminos**, abajo del login.
 
+## ¿Cómo hago para que los clientes pidan desde la mesa?
+
+Big Restó → Reservas y QR: imprimí el QR de cada mesa (desde la fase 95 lleva un código secreto por mesa, así que si tenías QR impresos antes, reimprimilos). El cliente lo escanea, elige y pide; no descarga nada. En Big Restó → Carta elegís si el pedido va directo a cocina o si el mozo lo confirma antes. Todo está en **Big Restó → Pedido desde la mesa, seguro y en vivo**.
+
+## Un cliente dice que la carta le pide un código, ¿qué es?
+
+Es el **código de la mesa**: cuando el primer celular pide, la mesa queda abierta con un código de 4 números. Si otro celular escanea el mismo QR, lo tiene que poner para pedir a la misma cuenta. Lo tiene quien pidió primero (en su pantalla de «pedido enviado» y en «Lo que pidieron») y lo ve el mozo en Mozo de bolsillo, en el salón y en la comanda. A Bigcito: «¿cuál es el código de la mesa 5?».
+
+## ¿Cómo saco un plato que se acabó?
+
+En Big Restó → Carta, el botón **Se acabó** del plato; en Cocina, cada plato en preparación tiene el suyo; o por voz, «se acabó el pulpo». Desaparece de la carta QR y del salón al instante, el pedido que lo traía se rechaza con aviso, y vuelve solo al otro día (o antes tocando **Agotado hoy**).
+
+## ¿Cómo sé qué mesa me está esperando?
+
+En el salón, el color de cada mesa lo dice: rojo llama al mozo o pide la cuenta, violeta cuenta pedida, ámbar pedido del QR sin confirmar, verde plato listo sin llevar, lila en cocina, gris comiendo. Arriba del plano está la referencia. A Bigcito: «¿qué mesa me llama?», «¿qué espera cada mesa?». Y al celular del mozo le llegan los avisos de pedido, llamado y cuenta.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

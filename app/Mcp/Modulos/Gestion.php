@@ -134,6 +134,25 @@ class Gestion
                     $p = \App\Models\Product::findOrFail($d['id']); $p->marcarAgotado(empty($d['disponible']));
                     return ['texto' => empty($d['disponible']) ? "Listo: {$p->name} agotado por hoy, ya no se puede pedir." : "Listo: {$p->name} disponible otra vez.", 'url' => Busca::url('/gastronomia/carta')];
                 }],
+            // Fase 95.1: el salón ahora mismo, con el semáforo: qué espera cada mesa, hace cuánto, y el código para sumarse a la cuenta.
+            ['nombre' => 'salon_ahora', 'titulo' => 'El salón ahora: qué espera cada mesa', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Las mesas abiertas ahora mismo con su semáforo (llama al mozo, pidió la cuenta, pedido del QR sin confirmar, plato listo sin llevar, en cocina, comiendo), hace cuánto esperan, el total, el mozo y el código de 4 dígitos de la mesa (para que otro celular pida a la misma cuenta). Con "mesa" devuelve el detalle de esa mesa con sus platos.',
+                'parametros' => ['mesa' => ['type' => 'string', 'description' => 'Nombre o número de una mesa, para ver sólo esa']],
+                'ejecutar' => function (User $u, array $a) {
+                    $q = \App\Models\Comanda::abiertas()->where('business_location_id', $u->current_location_id)->with('items', 'mesa:id,nombre,sector', 'mozo:id,name')->orderBy('abierta_en');
+                    if (! empty($a['mesa'])) { $t = trim(preg_replace('/^mesa\s*/iu', '', $a['mesa'])); $q->whereHas('mesa', fn($w) => $w->where('nombre', $t)->orWhere('nombre', 'Mesa ' . $t)); }
+                    $nombres = ['llama' => 'llama al mozo', 'cuenta' => 'pidió la cuenta', 'pide' => 'pedido del QR sin confirmar', 'listo' => 'plato listo sin llevar', 'cocina' => 'en cocina', 'comiendo' => 'comiendo'];
+                    $mesas = $q->get()->map(function ($c) use ($nombres, $a) {
+                        $s = \App\Http\Controllers\Gastronomia\GastronomiaController::semaforo($c);
+                        $r = ['comanda_id' => $c->id, 'mesa' => $c->titulo(), 'sector' => $c->mesa?->sector, 'mozo' => $c->mozo?->name, 'codigo' => $c->codigo, 'total' => (float) $c->total, 'cubiertos' => $c->cubiertos, 'minutos_abierta' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0,
+                            'estado' => $nombres[$s['semaforo']] ?? $s['semaforo'], 'semaforo' => $s['semaforo'], 'espera_min' => $s['espera_min'], 'llamado' => $c->llamado];
+                        if (! empty($a['mesa'])) $r['platos'] = $c->items->where('estado', '!=', 'anulado')->map(fn($i) => ['plato' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'estado' => $i->estado === 'cocina' && $i->empezado_en ? 'en marcha' : (\App\Models\ComandaItem::ESTADOS[$i->estado] ?? $i->estado)])->values()->all();
+                        return $r;
+                    })->values();
+                    if (! empty($a['mesa']) && $mesas->isEmpty()) return ['mesa' => $a['mesa'], 'abierta' => false, 'texto' => "La mesa {$a['mesa']} está libre (sin comanda abierta).", 'url' => Busca::url('/gastronomia')];
+                    $urg = $mesas->whereIn('semaforo', ['llama', 'cuenta', 'pide', 'listo']);
+                    return ['mesas' => $mesas->all(), 'abiertas' => $mesas->count(), 'urgentes' => $urg->count(), 'resumen' => $urg->isEmpty() ? 'Nadie espera nada: todo el salón está comiendo o en cocina.' : $urg->map(fn($m) => "{$m['mesa']}: {$m['estado']}" . ($m['espera_min'] ? " hace {$m['espera_min']} min" : ''))->implode(' · '), 'url' => Busca::url('/gastronomia')];
+                }],
             ['nombre' => 'delivery_en_curso', 'titulo' => 'Cómo viene el delivery', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'El reparto propio ahora: pedidos preparándose, listos para salir, en camino (con quién y hace cuánto) y entregados hoy, con la demora promedio y lo cobrado de envíos.',
                 'parametros' => [],
