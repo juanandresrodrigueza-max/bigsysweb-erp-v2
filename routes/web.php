@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store')->middleware('throttle:login');
+    Route::get('/login/google',        [\App\Http\Controllers\Auth\GoogleLoginController::class, 'ir'])->middleware('throttle:20,1');     // Fase 96
+    Route::get('/login/google/volver', [\App\Http\Controllers\Auth\GoogleLoginController::class, 'volver'])->middleware('throttle:20,1');
     Route::get('/registro',  [\App\Http\Controllers\Auth\RegistroController::class, 'show'])->name('registro');
     Route::post('/registro', [\App\Http\Controllers\Auth\RegistroController::class, 'store'])->middleware('throttle:5,60');
     Route::get('/recuperar',               [LoginController::class, 'recuperar'])->name('password.request');
@@ -280,6 +282,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/',                        [ClientesController::class, 'index']);
         Route::post('/',                       [ClientesController::class, 'guardar'])->middleware('permiso:clientes,crear');
         Route::get('/cobranzas',               [\App\Http\Controllers\Clientes\CobranzasController::class, 'index']);
+        // Fase 96: mensajes a clientes (campañas por mail o WhatsApp)
+        Route::get('/campanas',                [\App\Http\Controllers\Clientes\CampanasController::class, 'index']);
+        Route::get('/campanas/contar',         [\App\Http\Controllers\Clientes\CampanasController::class, 'contar']);
+        Route::post('/campanas',               [\App\Http\Controllers\Clientes\CampanasController::class, 'enviar'])->middleware(['permiso:clientes,crear', 'throttle:6,1']);
+        Route::post('/campanas/envios/{id}/enviado', [\App\Http\Controllers\Clientes\CampanasController::class, 'marcarEnviado'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/configurar',   [\App\Http\Controllers\Clientes\CobranzasController::class, 'configurar'])->middleware('permiso:clientes,editar');
         Route::post('/cobranzas/leer-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'leerTransferencia'])->middleware(['permiso:clientes,crear', 'throttle:30,1']);
         Route::post('/cobranzas/desde-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'desdeTransferencia'])->middleware('permiso:clientes,crear');
@@ -587,6 +594,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/diario',                      [\App\Http\Controllers\Contable\EjercicioController::class, 'diario']);
         Route::get('/contador',                    [\App\Http\Controllers\Contable\ContadorController::class, 'index']);
         Route::get('/cashflow',                    [\App\Http\Controllers\Contable\CashFlowController::class, 'index']);
+        // Fase 96: centros de costo con presupuesto contra real
+        Route::get('/centros',                     [\App\Http\Controllers\Contable\CentrosCostoController::class, 'index']);
+        Route::post('/centros/presupuesto',        [\App\Http\Controllers\Contable\CentrosCostoController::class, 'presupuesto'])->middleware('permiso:contable,editar');
+        Route::post('/centros/{id?}',              [\App\Http\Controllers\Contable\CentrosCostoController::class, 'guardar'])->middleware('permiso:contable,editar')->whereNumber('id');
+        Route::delete('/centros/{id}',             [\App\Http\Controllers\Contable\CentrosCostoController::class, 'eliminar'])->middleware('permiso:contable,editar');
         Route::get('/activos',                     [\App\Http\Controllers\Contable\ActivosController::class, 'index']);
         Route::post('/activos/amortizar',          [\App\Http\Controllers\Contable\ActivosController::class, 'amortizar'])->middleware('permiso:contable,crear');
         Route::post('/activos/{id?}',              [\App\Http\Controllers\Contable\ActivosController::class, 'guardar'])->middleware('permiso:contable,crear');

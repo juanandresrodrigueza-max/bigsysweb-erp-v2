@@ -15,7 +15,7 @@ class LoginController extends Controller
 {
     public function show()
     {
-        return Inertia::render('Auth/Login');
+        return Inertia::render('Auth/Login', ['google' => (bool) (\App\Models\SistemaConfig::get('google_client_id') && \App\Models\SistemaConfig::get('google_client_secret'))]); // Fase 96
     }
 
     public function store(Request $request)

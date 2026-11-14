@@ -50,10 +50,12 @@ class SistemaConfig extends Model
         'ml_app_secret'      => null,
         'tn_app_id'          => null,
         'tn_app_secret'      => null,
+        'google_client_id'   => null, // Fase 96: entrar con Google (OAuth)
+        'google_client_secret' => null,
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret'];
 
     public static function get(string $clave, $default = null)
     {

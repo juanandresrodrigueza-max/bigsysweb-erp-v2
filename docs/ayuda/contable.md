@@ -36,6 +36,16 @@ Si el contador ya usa BigSysWeb con otro cliente, se le da acceso con el **mismo
 
 **Contable → Ejercicio**: ajuste por inflación con el índice IPC (se actualiza desde INDEC), asiento de cierre y apertura del ejercicio siguiente. El mes de cierre se configura en Impuestos.
 
+## Centros de costo y presupuesto (Contable → Centros de costo, Fase 96)
+
+Un **centro de costo** es a qué parte del negocio va un gasto: Administración, Depósito, Local Centro, una línea de productos. Los creás una vez y después, al cargar un **gasto en Plata** o una **compra**, elegís el centro (si no elegís, va a «Sin centro»).
+
+- **Presupuesto**: por cada centro cargás cuánto pensás gastar cada mes del año (podés poner un importe y repetirlo en los 12 meses).
+- **Real**: sale solo de lo que ya cargás: los egresos de Plata y las compras con ese centro.
+- **Desvío**: mes a mes y a la fecha (sólo los meses ya transcurridos), en rojo cuando se pasa más de un 10 %. Arriba, el resumen dice qué centros se pasaron.
+- Un centro que ya no se usa se deja **inactivo**: lo imputado antes se sigue viendo.
+- A Bigcito: «¿cómo vamos contra el presupuesto?», «¿qué centro se pasó este año?».
+
 ## Errores comunes
 
 - **Un comprobante sin asiento**: aparece en el panel del contador; "Regenerar asientos" del período lo resuelve.

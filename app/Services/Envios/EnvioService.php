@@ -60,11 +60,11 @@ class EnvioService
     }
 
     // canal: mail | whatsapp. Devuelve el Envio (con link para WhatsApp manual).
-    public function enviar(object $m, string $canal, ?string $destino, string $tipo, ?string $mensaje = null, bool $adjuntar = true): Envio
+    public function enviar(object $m, string $canal, ?string $destino, string $tipo, ?string $mensaje = null, bool $adjuntar = true, ?string $asunto = null): Envio
     {
         $user = Auth::user(); $b = $user->business;
         $contact = $m instanceof Contact ? $m : ($m->contact ?? null);
-        $t = $this->texto($m, $b);
+        $t = $this->texto($m, $b); if ($asunto) $t['asunto'] = $asunto; // Fase 96: las campañas traen su asunto
         $cuerpo = $mensaje ?: $t['cuerpo'];
         $envio = Envio::create(['business_id' => $b->id, 'user_id' => $user->id, 'contact_id' => $contact?->id, 'modelo' => class_basename($m), 'modelo_id' => $m->getKey(), 'canal' => $canal, 'tipo' => $tipo, 'destino' => $destino, 'asunto' => $t['asunto'], 'cuerpo' => $cuerpo, 'estado' => 'pendiente']);
         try {

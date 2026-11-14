@@ -96,6 +96,8 @@
         <div><label class="label">Fecha</label><input v-model="mv.fecha" type="date" class="input" /></div>
         <div v-if="mv.tipo === 'egreso'"><label class="label">Categoría <span v-if="catSug && mv.expense_category_id === catSug.expense_category_id" class="normal-case font-normal text-violeta">· ✦ sugerida</span></label><select v-model="mv.expense_category_id" class="input"><option :value="null">Sin categoría</option><option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.name }}</option><option v-if="catSug && !categorias.some(c => c.id === catSug.expense_category_id)" :value="catSug.expense_category_id">{{ catSug.nombre }}</option></select></div>
         <div><label class="label">Referencia</label><input v-model="mv.referencia" class="input" /></div>
+        <!-- Fase 96: centro de costo (si la empresa los usa) -->
+        <div v-if="mv.tipo === 'egreso' && centros.length"><label class="label">Centro de costo</label><select v-model="mv.centro_costo_id" class="input" data-e2e="centro-costo"><option :value="null">Sin centro</option><option v-for="c in centros" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div>
       </div>
       <template #pie><button class="btn-secondary" @click="movModal = false">Cancelar</button><button class="btn-primary" :disabled="mv.processing" @click="mv.post('/fondos/movimiento', { preserveScroll: true, onSuccess: () => { movModal = false; mv.reset('concepto', 'monto', 'referencia') } })">Registrar</button></template>
     </Modal>
@@ -192,7 +194,7 @@ import Paginacion from '@/Components/Paginacion.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ cuentas: Array, cuentaActual: Number, movimientos: Object, filtros: Object, totales: Object, categorias: Array, listaSucursales: Array, tipos: Object, turnosCerrados: Array })
+const props = defineProps({ centros: { type: Array, default: () => [] }, cuentas: Array, cuentaActual: Number, movimientos: Object, filtros: Object, totales: Object, categorias: Array, listaSucursales: Array, tipos: Object, turnosCerrados: Array })
 const nombresMedio = { efectivo: 'Efectivo', transferencia: 'Transferencias', cheque: 'Cheques', mercadopago: 'MercadoPago', billetera: 'Billeteras', tarjeta: 'Tarjetas', retencion: 'Retenciones', cta_cte: 'Cuenta corriente' }
 const nombreMedio = m => nombresMedio[m] ?? m
 const dif = (medio, esp) => { const v = medio === 'efectivo' ? tc.saldo_contado : tc.rendicion[medio]; return v === null || v === undefined || v === '' ? null : Number(v) - Number(esp) }
@@ -207,7 +209,7 @@ const cf = useForm({ id: null, tipo: 'caja', nombre: '', banco: '', cbu: '', ali
 function abrirCuenta(c) { cf.clearErrors(); Object.assign(cf, c ? { ...c, saldo_inicial: 0 } : { id: null, tipo: 'caja', nombre: '', banco: '', cbu: '', alias: '', business_location_id: null, saldo_minimo: 0, saldo_inicial: 0, es_default: false, activa: true }); cuentaModal.value = true }
 
 const movModal = ref(false)
-const mv = useForm({ cuenta_fondos_id: props.cuentaActual, fecha: hoyISO(), tipo: 'egreso', monto: null, concepto: '', expense_category_id: null, referencia: '' })
+const mv = useForm({ cuenta_fondos_id: props.cuentaActual, fecha: hoyISO(), tipo: 'egreso', monto: null, concepto: '', expense_category_id: null, centro_costo_id: null, referencia: '' })
 // Fase 58: mientras escribe el concepto, la categoría se sugiere sola (lo aprendido y las reglas; la IA al guardar si hace falta).
 const catSug = ref(null); let catT = null
 watch(() => mv.concepto, (v) => { clearTimeout(catT); if (!v || v.length < 3 || mv.tipo !== 'egreso') { catSug.value = null; return } catT = setTimeout(async () => { try { const { data } = await window.axios.get('/fondos/sugerir-categoria', { params: { concepto: v } }); const prev = catSug.value?.expense_category_id; catSug.value = data.expense_category_id ? data : null; if (data.expense_category_id && (!mv.expense_category_id || mv.expense_category_id === prev)) mv.expense_category_id = data.expense_category_id } catch (e) {} }, 400) })

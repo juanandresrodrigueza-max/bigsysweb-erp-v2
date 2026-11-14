@@ -20,7 +20,7 @@
   @endif
 
   <div class="card"><h3 style="margin:0 0 8px">Comprobantes</h3>
-    <table>@forelse ($comps as $x) <tr><td>{{ $x->nombreTipo() }} <b>{{ $x->numeroFormateado() }}</b><div class="muted">{{ $x->fecha->format('d/m/Y') }}</div></td><td class="r">{{ $fmt($x->total) }}</td><td class="r"><a href="{{ $x->urlPublica() }}">Ver</a> · <a href="{{ $x->urlPublica() }}/pdf">PDF</a></td></tr> @empty <tr><td class="muted">Todavía no hay comprobantes.</td></tr> @endforelse</table>
+    <table>@forelse ($comps as $x) <tr><td>{{ $x->nombreTipo() }} <b>{{ $x->numeroFormateado() }}</b><div class="muted">{{ $x->fecha->format('d/m/Y') }}</div></td><td class="r">{{ $fmt($x->total) }}</td><td class="r">@if ($x->tipo === 'PRE' && ! $x->aprobado_en && ! $x->rechazado_en && $x->estado === 'emitido' && ! $x->derivados()->exists())<a class="btn p" style="padding:6px 12px;font-size:12px" href="{{ $x->urlPublica() }}#responder" data-aprobar="{{ $x->id }}">Aprobar presupuesto</a> · @elseif ($x->tipo === 'PRE' && $x->aprobado_en)<span style="color:#146c3d;font-weight:700">Aprobado ✓</span> · @endif<a href="{{ $x->urlPublica() }}">Ver</a> · <a href="{{ $x->urlPublica() }}/pdf">PDF</a></td></tr> @empty <tr><td class="muted">Todavía no hay comprobantes.</td></tr> @endforelse</table>
   </div>
 
   <div class="card"><h3 style="margin:0 0 8px">Cuenta corriente</h3>

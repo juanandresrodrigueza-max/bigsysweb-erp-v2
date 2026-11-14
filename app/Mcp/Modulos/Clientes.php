@@ -44,6 +44,26 @@ class Clientes
                     $cobro = app(\App\Services\Comprobantes\TransferenciaClienteService::class)->reciboDesdeExtracto(\App\Models\ExtractoItem::findOrFail($d['it']), Contact::findOrFail($d['c']));
                     return ['texto' => "Recibo {$cobro->numeroFormateado()} hecho y conciliado con el banco.", 'url' => Busca::url("/clientes/{$d['c']}")];
                 }],
+            // Fase 96: "mandale a todos los clientes que el lunes cambia la lista", "avisale por WhatsApp a los que deben que cerramos el viernes".
+            ['nombre' => 'mandar_mensaje_clientes', 'titulo' => 'Mandar un mensaje a muchos clientes', 'modulo' => 'clientes', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Manda el mismo mensaje a un grupo de clientes por WhatsApp o mail: a todos los activos, a los que tienen saldo o a un tipo de cliente. Admite {cliente}, {saldo}, {empresa} y {portal}. Sin API de WhatsApp quedan los links para mandar a mano en Clientes → Mensajes a clientes.',
+                'parametros' => ['texto' => ['type' => 'string'], 'canal' => ['type' => 'string', 'enum' => ['whatsapp', 'mail'], 'description' => 'whatsapp si no se dice'], 'a' => ['type' => 'string', 'enum' => ['todos', 'deudores', 'inactivos'], 'description' => 'todos si no se dice'], 'tipo_cliente' => ['type' => 'string'], 'asunto' => ['type' => 'string', 'description' => 'sólo para mail']],
+                'requeridos' => ['texto'],
+                'proponer' => function (User $u, array $a) {
+                    $canal = ($a['canal'] ?? 'whatsapp') === 'mail' ? 'mail' : 'whatsapp'; $estado = match ($a['a'] ?? 'todos') { 'deudores' => 'deudores', 'inactivos' => 'inactivos', default => 'activos' };
+                    $tipo = ! empty($a['tipo_cliente']) ? \App\Models\TipoCliente::where('nombre', \App\Support\Sql::like(), "%{$a['tipo_cliente']}%")->first() : null;
+                    if (! empty($a['tipo_cliente']) && ! $tipo) return ['error' => "No encuentro el tipo de cliente \"{$a['tipo_cliente']}\"."];
+                    if ($canal === 'mail' && empty($a['asunto'])) return ['error' => 'Para mandarlo por mail me falta el asunto.'];
+                    $filtro = array_filter(['estado' => $estado, 'tipo_cliente_id' => $tipo?->id]);
+                    $n = app(\App\Services\Ventas\CampanasService::class)->destinatarios($u->business, $filtro, $canal)->count();
+                    if (! $n) return ['error' => 'Ningún cliente de ese grupo tiene ' . ($canal === 'mail' ? 'email' : 'teléfono') . '.'];
+                    $quien = ($estado === 'deudores' ? 'los clientes con saldo' : ($estado === 'inactivos' ? 'los clientes inactivos' : 'todos los clientes activos')) . ($tipo ? " del tipo {$tipo->nombre}" : '');
+                    return ['titulo' => "Mandar por " . ($canal === 'mail' ? 'mail' : 'WhatsApp') . " a {$n} cliente(s): {$quien}", 'detalle' => mb_substr($a['texto'], 0, 200) . (empty($u->business->whatsapp_settings['token']) && $canal === 'whatsapp' ? ' · Sin API de WhatsApp: quedan los links para mandar a mano.' : ''), 'datos' => ['canal' => $canal, 'texto' => $a['texto'], 'asunto' => $a['asunto'] ?? null, 'filtro' => $filtro]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $c = app(\App\Services\Ventas\CampanasService::class)->crear($u, $d['canal'], $d['texto'], $d['asunto'] ?? null, $d['filtro']);
+                    return ['texto' => "Listo: mensaje en camino a {$c->destinatarios} cliente(s)." . ($d['canal'] === 'whatsapp' && empty($u->business->whatsapp_settings['token']) ? ' En Clientes → Mensajes a clientes están los links para mandarlos desde tu WhatsApp.' : ''), 'url' => Busca::url('/clientes/campanas')];
+                }],
             ['nombre' => 'buscar_clientes', 'titulo' => 'Buscar clientes', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Busca clientes por nombre, CUIT, teléfono o email. Devuelve id, CUIT, condición de IVA, saldo y contacto.',
                 'parametros' => ['texto' => ['type' => 'string'], 'cantidad' => ['type' => 'integer']], 'requeridos' => ['texto'],

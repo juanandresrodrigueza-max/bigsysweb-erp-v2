@@ -18,7 +18,7 @@ class FondosService
         $turno = $cuenta->tipo === 'caja' ? $cuenta->turnoAbierto : null;
         $m = MovimientoFondos::create([
             'business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'user_id' => $user?->id, 'turno_caja_id' => $turno?->id,
-            'fecha' => $d['fecha'] ?? today(), 'origen' => $d['origen'], 'origen_id' => $d['origen_id'] ?? null, 'expense_category_id' => $d['expense_category_id'] ?? null,
+            'fecha' => $d['fecha'] ?? today(), 'origen' => $d['origen'], 'origen_id' => $d['origen_id'] ?? null, 'expense_category_id' => $d['expense_category_id'] ?? null, 'centro_costo_id' => $d['centro_costo_id'] ?? null,
             'concepto' => $d['concepto'], 'ingreso' => round((float) ($d['ingreso'] ?? 0), 2), 'egreso' => round((float) ($d['egreso'] ?? 0), 2), 'referencia' => $d['referencia'] ?? null,
         ]);
         $cuenta->recalcularSaldo();
