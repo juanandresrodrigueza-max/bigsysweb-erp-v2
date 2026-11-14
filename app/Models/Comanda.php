@@ -16,8 +16,15 @@ class Comanda extends Model
     public const TIPOS = ['mesa' => 'Mesa', 'mostrador' => 'Mostrador', 'delivery' => 'Delivery'];
     public const ESTADOS = ['abierta' => 'Abierta', 'cuenta' => 'Pidió la cuenta', 'cerrada' => 'Cerrada', 'anulada' => 'Anulada'];
 
-    protected $fillable = ['pagos', 'aviso_listo_en', 'llamado', 'llamado_en', 'business_id', 'business_location_id', 'mesa_id', 'user_id', 'comprobante_id', 'numero', 'tipo', 'estado', 'cubiertos', 'cliente', 'direccion', 'zona', 'costo_envio', 'repartidor', 'salio_en', 'entregado_en', 'telefono', 'total', 'propina', 'descuento', 'notas', 'abierta_en', 'cuenta_en', 'cerrada_en'];
+    protected $fillable = ['codigo', 'pagos', 'aviso_listo_en', 'llamado', 'llamado_en', 'business_id', 'business_location_id', 'mesa_id', 'user_id', 'comprobante_id', 'numero', 'tipo', 'estado', 'cubiertos', 'cliente', 'direccion', 'zona', 'costo_envio', 'repartidor', 'salio_en', 'entregado_en', 'telefono', 'total', 'propina', 'descuento', 'notas', 'abierta_en', 'cuenta_en', 'cerrada_en'];
     protected $casts = ['pagos' => 'array', 'aviso_listo_en' => 'datetime', 'llamado_en' => 'datetime', 'total' => 'decimal:2', 'propina' => 'decimal:2', 'descuento' => 'decimal:2', 'abierta_en' => 'datetime', 'cuenta_en' => 'datetime', 'cerrada_en' => 'datetime', 'salio_en' => 'datetime', 'entregado_en' => 'datetime', 'costo_envio' => 'decimal:2'];
+
+    // Fase 95: cada comanda de mesa nace con un código de 4 dígitos. Lo ve el mozo y el primer celular que pidió; el segundo
+    // celular tiene que escribirlo para sumarse a la misma cuenta. Al cerrar la mesa, la comanda siguiente trae otro código.
+    protected static function booted(): void
+    {
+        static::creating(function (Comanda $c) { if ($c->tipo === 'mesa' && ! $c->codigo) $c->codigo = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT); });
+    }
 
     public function mesa(): BelongsTo { return $this->belongsTo(Mesa::class); }
     public function mozo(): BelongsTo { return $this->belongsTo(User::class, 'user_id'); }

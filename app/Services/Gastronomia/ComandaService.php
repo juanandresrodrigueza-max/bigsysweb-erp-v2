@@ -35,6 +35,7 @@ class ComandaService
     {
         abort_if(! in_array($c->estado, ['abierta', 'cuenta'], true), 422, 'La comanda está cerrada.');
         $p = ! empty($it['product_id']) ? Product::findOrFail($it['product_id']) : null;
+        abort_if($p && $p->agotadoHoy(), 422, "{$p->name} está agotado por hoy."); // Fase 95
         $ronda = (int) ($c->items()->max('ronda') ?? 1);
         $enviados = $c->items()->where('ronda', $ronda)->whereNotNull('enviado_en')->exists();
         $ri = (Auth::user()->business->condicion_iva ?? 'Responsable Inscripto') === 'Responsable Inscripto';

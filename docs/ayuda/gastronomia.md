@@ -105,6 +105,18 @@ El QR de cada mesa, que se imprime en Big Restó → Reservas y QR, abre la cart
 ## Reservas por WhatsApp, lista de espera y capacidad por turno (Fase 91)
 
 - **Reservas por WhatsApp:** si el cliente escribe «quiero reservar para 4 el sábado a las 21, soy Juan», Bigcito entiende para cuántos, cuándo y a nombre de quién, y contesta: confirmada si entra en la **capacidad por turno** (Configuración → Tienda, reservas), o **en lista de espera** si a esa hora está completo. Cuando alguien cancela (o no vino), el primero de la lista que entra pasa solo y recibe el aviso por WhatsApp. En Reservas se ve la lista de espera con «Dar lugar» y «Quitar». Por voz: «reservá para cuatro el sábado a las nueve a nombre de Juan».
+## Pedido desde la mesa, seguro y en vivo (Fase 95)
+
+El cliente escanea el QR de su mesa, elige y pide; no descarga nada ni se registra. Lo que cambió para que sea seguro y se entienda:
+
+- **El QR lleva un código secreto por mesa**, no el número. Desde afuera del local nadie puede cargarle pedidos a una mesa. Los QR impresos antes siguen abriendo, pero conviene **reimprimirlos** desde Big Restó → Reservas y QR.
+- **Código de la mesa**: cuando el primer celular pide, la mesa queda abierta con un **código de 4 números**. Lo ve ese cliente (en la pantalla de «pedido enviado» y en «Lo que pidieron»), el mozo (Mozo de bolsillo, el salón y la comanda) y el encargado. Si otro celular escanea el mismo QR, le aparece **«Esta mesa ya está abierta»** y tiene que poner el código para pedir a la misma cuenta o llamar al mozo. Al cerrar la mesa, la próxima comanda trae otro código.
+- **Lo que pidieron**: el cliente ve en su celular el detalle de la cuenta con el estado de cada plato (esperando confirmación, en cocina, en marcha, listo, servido) y el total. Se actualiza solo cada 15 segundos.
+- **Avisos al celular del mozo**: «Llaman al mozo en Mesa 5», «Piden la cuenta en Mesa 5» y «Pedido en Mesa 5» llegan como notificación al celular de quienes cargan comandas en esa sucursal (app nativa o navegador), además de la campanita.
+- **Agotado hoy**: en Big Restó → Carta, el botón **Se acabó** saca el plato de la carta QR y del salón al instante; aparece como «Agotado» en los celulares y el pedido que lo tenía se rechaza con el aviso. En Cocina, cada plato en preparación tiene su **Se acabó**. Vuelve solo al otro día, o antes tocando **Agotado hoy**. A Bigcito: «se acabó el pulpo», «volvió el pulpo».
+- **Cocina en tres pasos**: Nuevo → **En marcha** (botón «Empezar») → Listo. Arriba se ve cuántos platos hay en cada paso. El cliente ve «En marcha» en su celular.
+- **Semáforo del salón** (plano y lista): el color de cada mesa dice qué espera y hace cuánto: rojo llama al mozo o pide la cuenta, violeta cuenta pedida, ámbar pedido del QR sin confirmar, verde plato listo sin llevar, lila en cocina, gris comiendo. La referencia está arriba del plano.
+
 ## Delivery propio: zonas de entrega, costo de envío y reparto (Big Restó → Delivery, Fase 91)
 
 - **Zonas de entrega** (Big Restó → Delivery → Zonas y repartidores): cada zona con su costo de envío, los barrios o calles que la identifican y la demora. Al abrir un delivery (o cuando entra por WhatsApp con dirección) el envío se agrega solo como un renglón de la comanda y se factura con el resto; se puede cambiar desde la comanda.

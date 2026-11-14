@@ -6,6 +6,8 @@
         <h1 class="page-title">{{ comanda.titulo }}</h1>
         <p class="page-subtitle">{{ comanda.numero }} · abierta {{ comanda.abierta }} ({{ comanda.minutos }} min) · {{ comanda.mozo }}<span v-if="comanda.cubiertos"> · {{ comanda.cubiertos }} cubiertos</span><span v-if="comanda.direccion"> · {{ comanda.direccion }} · {{ comanda.telefono }}</span></p>
         <span class="badge mt-1" :class="{ abierta: 'bg-emerald-50 text-emerald-700', cuenta: 'bg-violeta text-white', cerrada: 'bg-gris-light text-marca-muted', anulada: 'bg-carmin-light text-carmin' }[comanda.estado]">{{ { abierta: 'Abierta', cuenta: 'Pidió la cuenta', cerrada: 'Cerrada', anulada: 'Anulada' }[comanda.estado] }}</span>
+        <!-- Fase 95: el código que el cliente necesita para sumarse a la cuenta desde el QR -->
+        <span v-if="comanda.codigo && abierta" class="badge mt-1 ml-1 bg-lavanda-light text-violeta tabular-nums" title="Código de la mesa: con él, otro celular que escanea el QR pide a esta misma cuenta" data-e2e="codigo-mesa">código {{ comanda.codigo }}</span>
         <!-- Fase 91: delivery: la dirección, la zona (con su envío) y si ya salió. -->
         <p v-if="comanda.tipo === 'delivery'" class="text-sm mt-1 flex flex-wrap items-center gap-2" data-e2e="envio">
           <span class="text-marca-muted">Envío:</span>
@@ -62,7 +64,7 @@
                 <p class="flex flex-wrap items-center gap-1 mt-0.5">
                   <span v-if="it.asiento" class="badge bg-lavanda-light text-violeta !px-1.5 !py-0" :title="`Asiento ${it.asiento}`" :data-item-asiento="it.asiento">A{{ it.asiento }}</span>
                   <span v-if="it.cortesia" class="badge bg-emerald-50 text-emerald-700 !px-1.5 !py-0" :title="it.cortesia_motivo" data-cortesia>Cortesía</span>
-                  <span class="badge !px-1.5 !py-0" :class="{ pedido: 'bg-gris-light text-marca-muted', cocina: 'bg-amber-50 text-amber-700', listo: 'bg-emerald-50 text-emerald-700', entregado: 'bg-lavanda-light text-violeta', anulado: 'bg-carmin-light text-carmin' }[it.estado]">{{ { pedido: 'sin enviar', cocina: 'en cocina', listo: 'listo', entregado: 'entregado', anulado: 'anulado' }[it.estado] }}</span>
+                  <span class="badge !px-1.5 !py-0" :class="{ pedido: 'bg-gris-light text-marca-muted', cocina: 'bg-amber-50 text-amber-700', listo: 'bg-emerald-50 text-emerald-700', entregado: 'bg-lavanda-light text-violeta', anulado: 'bg-carmin-light text-carmin' }[it.estado]">{{ it.estado === 'cocina' && it.empezado ? 'en marcha' : { pedido: 'sin enviar', cocina: 'en cocina', listo: 'listo', entregado: 'entregado', anulado: 'anulado' }[it.estado] }}</span>
                 </p>
                 <p v-if="it.notas" class="text-xs text-carmin">{{ it.notas }}</p><p v-if="it.pagado > 0" class="text-[11px] text-emerald-700">{{ it.pagado >= it.cantidad - 0.0005 ? 'pagado' : 'pagado ' + cantidad(it.pagado) }}</p>
               </div>

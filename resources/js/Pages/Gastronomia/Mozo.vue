@@ -22,7 +22,7 @@
           <Link :href="`/gastronomia/comandas/${c.id}`" class="flex items-center gap-3 p-4 active:bg-gris-light/60">
             <div class="w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-black shrink-0" :class="c.estado === 'cuenta' ? 'bg-violeta text-white border-violeta' : c.listos ? 'bg-emerald-50 border-emerald-400 text-emerald-800' : c.sin_enviar ? 'bg-amber-50 border-amber-400 text-amber-800' : 'bg-lavanda-light border-lavanda text-violeta'">{{ c.mesa ?? (c.tipo === 'delivery' ? '🛵' : '🧾') }}</div>
             <div class="flex-1 min-w-0">
-              <p class="font-bold truncate">{{ c.titulo }} <span class="text-xs font-normal text-marca-muted">· {{ tiempo(c.minutos) }}<span v-if="c.cubiertos"> · {{ c.cubiertos }} cub.</span></span></p>
+              <p class="font-bold truncate">{{ c.titulo }} <span class="text-xs font-normal text-marca-muted">· {{ tiempo(c.minutos) }}<span v-if="c.cubiertos"> · {{ c.cubiertos }} cub.</span><span v-if="c.codigo" class="tabular-nums" :title="'Código de la mesa para que otro celular pida a la misma cuenta'" :data-codigo="c.codigo"> · código {{ c.codigo }}</span></span></p>
               <p class="text-xs mt-0.5 flex flex-wrap gap-x-2">
                 <span v-if="c.estado === 'cuenta'" class="font-bold text-violeta">Pidió la cuenta</span>
                 <span v-if="c.sin_enviar" class="font-bold text-amber-700">{{ c.sin_enviar }} sin enviar</span>

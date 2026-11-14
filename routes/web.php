@@ -63,6 +63,8 @@ Route::get('/m/{slug}',                    [\App\Http\Controllers\TiendaPublicaC
 Route::match(['get', 'post'], '/m/{slug}/opinion', [\App\Http\Controllers\TiendaPublicaController::class, 'opinion'])->middleware('throttle:publico');
 Route::post('/m/{slug}/llamar',            [\App\Http\Controllers\TiendaPublicaController::class, 'llamarMozo'])->middleware('throttle:10,1');
 Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedirMesa'])->middleware('throttle:publico');
+Route::post('/m/{slug}/codigo',            [\App\Http\Controllers\TiendaPublicaController::class, 'codigoMesa'])->middleware('throttle:10,1'); // Fase 95: sumarse a la mesa con el código
+Route::get('/m/{slug}/pedido',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedidoMesa'])->middleware('throttle:publico'); // Fase 95: lo que pidieron, en vivo
 Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar'])->middleware('throttle:publico');
 // Fase 37: el chofer y el cliente siguen el viaje sin usuario; el pase entre sucursales en PDF por link.
 Route::get('/reparto/{token}',                       [\App\Http\Controllers\Comprobantes\RepartoController::class, 'chofer'])->middleware('throttle:publico');
@@ -798,6 +800,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/comandas/{id}/cerrar',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cerrar'])->middleware('permiso:gastronomia,crear');
         Route::post('/comandas/{id}/anular',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'anular'])->middleware('permiso:gastronomia,editar');
         Route::post('/items/{item}/estado',           [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'itemEstado'])->middleware('permiso:gastronomia,editar');
+        Route::post('/items/{item}/empezar',          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'itemEmpezar'])->middleware('permiso:gastronomia,editar'); // Fase 95
+        Route::post('/carta/{id}/agotado',            [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'agotado'])->middleware('permiso:gastronomia,editar'); // Fase 95
         Route::get('/cocina',                         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'cocina']);
         Route::post('/happy-hours',                   [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarHappyHours'])->middleware('permiso:gastronomia,editar');
         Route::post('/estaciones',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarEstaciones'])->middleware('permiso:gastronomia,editar');
