@@ -50,6 +50,11 @@
               <div class="flex items-center justify-between gap-2"><label class="flex items-center gap-2 text-sm text-marca-muted"><input v-model="form.remember" type="checkbox" class="accent-carmin" /> Recordarme</label><Link href="/recuperar" class="text-sm text-violeta font-semibold">¿Olvidaste la contraseña?</Link></div>
               <button type="submit" class="btn-primary w-full !py-3 !text-[15px]" :disabled="form.processing">{{ form.processing ? 'Ingresando…' : 'Ingresar' }}</button>
             </form>
+            <!-- Fase 96: entrar con Google (si BigSys lo configuró) -->
+            <div v-if="google" class="mt-4">
+              <div class="flex items-center gap-3 text-xs text-marca-muted mb-3"><span class="h-px flex-1 bg-marca-borde"></span>o<span class="h-px flex-1 bg-marca-borde"></span></div>
+              <a href="/login/google" class="btn-secondary w-full !py-3 !text-[15px] flex items-center justify-center gap-2" data-e2e="google"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.8 6C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 7.1-10 7.1-17.5z"/><path fill="#FBBC05" d="M10.4 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6C6.5 42.6 14.6 48 24 48z"/></svg> Entrar con Google</a>
+            </div>
             <p class="mt-6 text-center text-sm text-marca-muted">¿Todavía no tenés cuenta? <Link href="/registro" class="text-carmin font-bold" data-e2e="ir-registro">Registrate gratis</Link></p>
           </div>
           <div v-if="demo" class="mt-4 glass p-4 text-xs text-white/80">
@@ -74,6 +79,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 import Icono from '@/Components/Icono.vue'
 const form = useForm({ email: '', password: '', remember: false })
+const props = defineProps({ google: Boolean, demo: Boolean })
 const page = usePage()
 const flash = computed(() => page.props.flash)
 const demo = computed(() => page.props.demo)

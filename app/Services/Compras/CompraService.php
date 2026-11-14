@@ -47,7 +47,7 @@ class CompraService
                 'origen_carga' => $data['origen_carga'] ?? 'manual', 'origen_id' => $data['origen_id'] ?? $c->origen_id, 'orden_compra_id' => $data['orden_compra_id'] ?? ($data['ordenes_compra'][0] ?? null) ?? $c->orden_compra_id, 'ordenes_compra' => $data['ordenes_compra'] ?? $c->ordenes_compra,
                 'stock_en_business_id' => array_key_exists('stock_en_business_id', $data) ? $this->empresaStockValida($data['stock_en_business_id']) : $c->stock_en_business_id,
                 'fecha' => $data['fecha'], 'fecha_vto' => isset($data['fecha_vto']) && $data['fecha_vto'] ? $data['fecha_vto'] : \Carbon\Carbon::parse($data['fecha'])->addDays($dias),
-                'condicion' => $data['condicion'] ?? 'cta_cte', 'notas' => $data['notas'] ?? null,
+                'condicion' => $data['condicion'] ?? 'cta_cte', 'notas' => $data['notas'] ?? null, 'centro_costo_id' => array_key_exists('centro_costo_id', $data) ? $data['centro_costo_id'] : $c->centro_costo_id,
                 'moneda' => $moneda = strtoupper($data['moneda'] ?? 'ARS'),
                 'cotizacion' => $cot = ($moneda === 'ARS' ? 1 : (float) (($data['cotizacion'] ?? null) ?: \App\Models\Cotizacion::valor($user->business_id))),
             ])->save();

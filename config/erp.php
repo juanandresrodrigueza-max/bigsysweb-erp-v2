@@ -88,6 +88,7 @@ return [
             ['key' => 'clientes',   'label' => 'Clientes',   'ruta' => '/clientes', 'exacto' => true],
             ['key' => 'vendedores', 'label' => 'Vendedores', 'ruta' => '/clientes/vendedores'],
             ['key' => 'puntos',     'label' => 'Puntos',     'ruta' => '/clientes/fidelizacion'],
+            ['key' => 'campanas',  'label' => 'Mensajes a clientes', 'ruta' => '/clientes/campanas', 'palabras' => 'campaña mail whatsapp promoción aviso'], // Fase 96
         ],
         'comprar' => [
             ['key' => 'reponer',     'label' => 'Qué reponer',        'ruta' => '/proveedores/reponer', 'ayuda' => 'Lo que está en el mínimo, por proveedor habitual'],
@@ -133,6 +134,7 @@ return [
             ['key' => 'balance',      'label' => 'Balance',               'ruta' => '/contable/balance',      'grupo' => 'Para el contador', 'palabras' => 'resultado patrimonio'],
             ['key' => 'flujo',        'label' => 'Flujo de fondos',       'ruta' => '/contable/flujo',        'grupo' => 'Para el contador'],
             ['key' => 'cashflow',     'label' => 'Cash flow 13 semanas',  'ruta' => '/contable/cashflow',     'grupo' => 'Para el contador', 'palabras' => 'proyección'],
+            ['key' => 'centros',      'label' => 'Centros de costo',      'ruta' => '/contable/centros',      'grupo' => 'Para el contador', 'palabras' => 'presupuesto gastos por área desvío'], // Fase 96
             ['key' => 'fiscal',       'label' => 'Fiscal',                'ruta' => '/contable/fiscal',       'grupo' => 'Para el contador', 'palabras' => 'retenciones percepciones libro digital'],
             ['key' => 'contador',     'label' => 'Informe mensual',       'ruta' => '/contable/contador',     'grupo' => 'Para el contador', 'palabras' => 'contador exportar'],
             ['key' => 'liquidaciones','label' => 'Liquidaciones',         'ruta' => '/sueldos', 'exacto' => true, 'grupo' => 'Sueldos', 'modulo' => 'sueldos', 'palabras' => 'empleados legajos'],

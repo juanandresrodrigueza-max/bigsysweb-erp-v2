@@ -20,6 +20,16 @@ Desde la ficha del cliente, **Registrar cobro**, o desde la factura, **Registrar
 
 Con **descuento por pronto pago** o **interés por mora** se ajusta en el mismo cobro y el sistema hace la nota correspondiente.
 
+## Mensajes a clientes (Clientes → Mensajes a clientes, Fase 96)
+
+Un mismo mensaje a muchos clientes de una vez: un cambio de lista, una promoción, un aviso de cierre o de vacaciones.
+
+- **A quién**: todos los clientes activos, los que tienen saldo, los inactivos, o un tipo de cliente. La pantalla te dice cuántos tienen mail o teléfono antes de mandar (máximo 500 por envío).
+- **Por dónde**: **mail** (desde el correo de la empresa, con asunto) o **WhatsApp**. Con la API de WhatsApp conectada salen solos; sin API, quedan los **links listos** para mandar uno por uno desde tu teléfono, y al tocar cada uno se marca como enviado.
+- **Variables**: {cliente}, {saldo}, {empresa} y {portal} (el link al portal del cliente) se reemplazan en cada mensaje.
+- Cada envío queda en la **ficha del cliente** y en la lista de la pantalla, con enviados, pendientes y errores.
+- A Bigcito: «mandale a todos los clientes que el lunes cambia la lista de precios», «avisale por WhatsApp a los que deben que cerramos el viernes».
+
 ## Cobrador y comisión por cobranza
 
 Si otra persona sale a cobrar, cargala en Clientes → Vendedores con su % de comisión por cobro. En la ficha del cliente se le asigna un cobrador, y en cada recibo el campo **Cobró** dice quién lo cobró: si lo dejás vacío, toma el cobrador del cliente. La comisión por cobranza es de quien cobró. Si el recibo no tiene cobrador, es del vendedor, como antes. La liquidación de comisiones muestra cada recibo y si se cobró como cobrador o como vendedor.

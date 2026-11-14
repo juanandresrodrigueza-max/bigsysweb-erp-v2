@@ -128,6 +128,18 @@ En Big Restó → Carta, el botón **Se acabó** del plato; en Cocina, cada plat
 
 En el salón, el color de cada mesa lo dice: rojo llama al mozo o pide la cuenta, violeta cuenta pedida, ámbar pedido del QR sin confirmar, verde plato listo sin llevar, lila en cocina, gris comiendo. Arriba del plano está la referencia. A Bigcito: «¿qué mesa me llama?», «¿qué espera cada mesa?». Y al celular del mozo le llegan los avisos de pedido, llamado y cuenta.
 
+## ¿Puedo entrar con mi cuenta de Google?
+
+Sí, si el botón «Entrar con Google» aparece en el login. Tu usuario tiene que existir con ese mismo mail (lo crea tu empresa en Configuración → Usuarios); Google no crea cuentas nuevas. Si tenés la verificación en dos pasos, te la pide igual.
+
+## ¿Puedo mandarles un aviso a todos mis clientes?
+
+Sí: Clientes → **Mensajes a clientes**. Elegís a quién (todos, los que deben, un tipo), escribís el texto con {cliente} o {saldo} si querés, y sale por mail o WhatsApp. O a Bigcito: «mandale a todos los clientes que el lunes cambia la lista».
+
+## ¿Cómo sé cuánto gasta cada área contra lo presupuestado?
+
+Contable → **Centros de costo**: creás los centros (Administración, Depósito, un local), cargás el presupuesto de cada mes y, al cargar gastos y compras, elegís el centro. La pantalla muestra presupuesto, real y desvío mes a mes.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

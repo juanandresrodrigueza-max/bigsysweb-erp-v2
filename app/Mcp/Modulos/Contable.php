@@ -15,6 +15,14 @@ class Contable
         return [
             // Fase 45.2: "mandale a Ferretería López el resumen de octubre".
             // Fase 66: el informe del mes en castellano, para leerlo o mandarlo.
+            // Fase 96: "¿cómo vamos contra el presupuesto?", "¿qué centro se pasó?"
+            ['nombre' => 'presupuesto_vs_real', 'titulo' => 'Presupuesto contra real por centro de costo', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Por centro de costo (área, sucursal, línea): el presupuesto de cada mes, lo gastado de verdad (gastos de Plata y compras imputados) y el desvío, con el resumen de qué centros se pasaron a la fecha.',
+                'parametros' => ['anio' => ['type' => 'integer', 'description' => 'Año; por defecto el actual']],
+                'ejecutar' => function (User $u, array $a) {
+                    $t = app(\App\Services\Contabilidad\CentrosCostoService::class)->tablero($u->business, (int) ($a['anio'] ?? now()->format('Y')));
+                    return ['anio' => $t['anio'], 'resumen' => $t['resumen'], 'totales' => $t['totales'], 'pasados' => $t['pasados'], 'centros' => array_map(fn($f) => ['centro' => $f['nombre'], 'presupuesto_anual' => $f['total_presupuesto'], 'real_anual' => $f['total_real'], 'a_la_fecha' => $f['a_la_fecha']], $t['filas']), 'url' => Busca::url('/contable/centros?anio=' . $t['anio'])];
+                }],
             ['nombre' => 'informe_mensual_contador', 'titulo' => 'Informe del mes para el contador', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'El informe del mes de una empresa en castellano: ventas, compras, IVA, gastos, sueldos, cobranza y plata, qué cambió contra el mes anterior y qué conviene revisar antes de liquidar. Si no se nombra la empresa, la propia.',
                 'parametros' => ['empresa' => ['type' => 'string'], 'mes' => ['type' => 'string', 'description' => 'YYYY-MM; por defecto el mes pasado.']],

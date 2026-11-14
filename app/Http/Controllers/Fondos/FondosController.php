@@ -37,6 +37,7 @@ class FondosController extends Controller
         $chequesPropios = Cheque::propiosPendientes()->sum('monto');
 
         return Inertia::render('Fondos/Index', [
+            'centros' => \App\Models\CentroCosto::activos(), // Fase 96
             'cuentas' => $cuentas->map(fn($c) => ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombre, 'banco' => $c->banco, 'cbu' => $c->cbu, 'alias' => $c->alias, 'saldo' => (float) $c->saldo, 'saldo_minimo' => (float) $c->saldo_minimo, 'activa' => $c->activa, 'es_default' => $c->es_default, 'business_location_id' => $c->business_location_id, 'sucursal' => $c->location?->name,
                 'turno' => $c->turnoAbierto ? ['id' => $c->turnoAbierto->id, 'usuario' => $c->turnoAbierto->user?->name, 'desde' => $c->turnoAbierto->apertura->format('d/m H:i'), 'saldo_inicial' => (float) $c->turnoAbierto->saldo_inicial, 'esperado' => $ciego ? array_map(fn($v) => null, $this->service->esperadoPorMedio($c->turnoAbierto)) : $this->service->esperadoPorMedio($c->turnoAbierto), 'ciego' => $ciego, 'stock' => app(\App\Services\Fondos\StockTurnoService::class)->planilla($c->turnoAbierto), 'cobrado' => (float) $c->turnoAbierto->movimientos()->where('origen', 'cobro')->sum('ingreso')] : null]),
             'turnosCerrados' => TurnoCaja::whereNotNull('cierre')->with('user:id,name', 'cuenta:id,nombre')->orderByDesc('cierre')->limit(8)->get()->map(fn($t) => ['id' => $t->id, 'caja' => $t->cuenta?->nombre, 'usuario' => $t->user?->name, 'apertura' => $t->apertura->format('d/m H:i'), 'cierre' => $t->cierre->format('d/m H:i'), 'esperado' => (float) $t->saldo_esperado, 'contado' => (float) $t->saldo_contado, 'diferencia' => (float) $t->diferencia, 'stock_diferencia' => $t->stock_diferencia !== null ? (float) $t->stock_diferencia : null]),
@@ -71,12 +72,12 @@ class FondosController extends Controller
 
     public function movimiento(Request $request)
     {
-        $data = $request->validate(['cuenta_fondos_id' => 'required|integer', 'fecha' => 'required|date', 'tipo' => 'required|in:ingreso,egreso', 'monto' => 'required|numeric|gt:0', 'concepto' => 'required|string|max:255', 'expense_category_id' => 'nullable|integer', 'referencia' => 'nullable|string|max:120']);
+        $data = $request->validate(['cuenta_fondos_id' => 'required|integer', 'fecha' => 'required|date', 'tipo' => 'required|in:ingreso,egreso', 'monto' => 'required|numeric|gt:0', 'concepto' => 'required|string|max:255', 'centro_costo_id' => 'nullable|integer|exists:centros_costo,id', 'expense_category_id' => 'nullable|integer', 'referencia' => 'nullable|string|max:120']);
         $cuenta = CuentaFondos::findOrFail($data['cuenta_fondos_id']);
         // Fase 58: si no eligió categoría, se clasifica sola; si eligió, el sistema aprende para la próxima.
         $auto = null; $clas = app(\App\Services\Contabilidad\ClasificadorGastosService::class);
         if ($data['tipo'] === 'egreso') { if (empty($data['expense_category_id'])) { $auto = $clas->sugerir($request->user()->business, $data['concepto']); $data['expense_category_id'] = $auto['expense_category_id'] ?? null; } else $clas->aprender($request->user()->business, $data['concepto'], (int) $data['expense_category_id']); }
-        $m = $this->service->registrar($cuenta, ['fecha' => $data['fecha'], 'origen' => $data['tipo'] === 'egreso' ? 'gasto' : 'ingreso', 'expense_category_id' => $data['expense_category_id'] ?? null, 'concepto' => $data['concepto'], $data['tipo'] => $data['monto'], 'referencia' => $data['referencia'] ?? null]);
+        $m = $this->service->registrar($cuenta, ['fecha' => $data['fecha'], 'origen' => $data['tipo'] === 'egreso' ? 'gasto' : 'ingreso', 'expense_category_id' => $data['expense_category_id'] ?? null, 'centro_costo_id' => $data['centro_costo_id'] ?? null, 'concepto' => $data['concepto'], $data['tipo'] => $data['monto'], 'referencia' => $data['referencia'] ?? null]);
         AuditLog::registrar('crear', $m, ucfirst($data['tipo']) . " manual en {$cuenta->nombre}: {$data['concepto']} $ " . number_format((float) $data['monto'], 2, ',', '.'));
         return back()->with('success', 'Movimiento registrado.' . ($auto ? " Categoría: {$auto['nombre']} (puesta sola; si no es, cambiala y lo aprende)." : ''));
     }

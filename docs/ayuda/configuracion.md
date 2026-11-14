@@ -124,6 +124,7 @@ Cada copia, apenas se genera, **se abre y se comprueba**: que sea de tu empresa,
 ## Seguridad y API
 
 - **Verificación en dos pasos** con app del teléfono, por usuario.
+- **Entrar con Google** (Fase 96): si BigSys lo tiene habilitado, en el login aparece el botón. Entra sólo quien ya tiene usuario con ese mail; no crea cuentas, y si tenés dos pasos te los pide igual.
 - **Sesiones abiertas**: dónde está abierta tu cuenta; podés cerrarlas.
 - **Tokens de API** para conectar otros sistemas (la documentación está en `/api/docs`) y **webhooks** que avisan a una URL tuya cuando pasa algo. Para sacar las tablas completas hacia un BI, el contador u otro sistema, seguí la guía **Mandar tus datos a otras plataformas (API)**.
 - **Auditoría**: todo lo que hace cada usuario, con antes y después.

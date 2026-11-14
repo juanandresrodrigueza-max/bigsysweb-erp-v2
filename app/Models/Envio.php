@@ -11,7 +11,7 @@ class Envio extends Model
 {
     use BelongsToBusiness;
 
-    protected $fillable = ['business_id', 'user_id', 'contact_id', 'modelo', 'modelo_id', 'canal', 'tipo', 'destino', 'asunto', 'cuerpo', 'estado', 'link', 'error', 'enviado_en'];
+    protected $fillable = ['business_id', 'user_id', 'contact_id', 'modelo', 'modelo_id', 'campana_id', 'canal', 'tipo', 'destino', 'asunto', 'cuerpo', 'estado', 'link', 'error', 'enviado_en'];
     protected $casts = ['enviado_en' => 'datetime'];
 
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }

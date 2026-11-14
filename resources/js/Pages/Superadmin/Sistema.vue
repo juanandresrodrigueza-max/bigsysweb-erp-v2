@@ -39,6 +39,16 @@
       </div>
 
       <!-- Fase 93: la app nativa (iPhone y Android): Firebase para los avisos y los links a las tiendas. -->
+      <!-- Fase 96: entrar con Google -->
+      <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 lg:col-span-3" data-e2e="google-login">
+        <div class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="font-bold">Entrar con Google</h2><p class="text-xs text-marca-muted">Un botón «Entrar con Google» en el login para todas las empresas. Sólo entra quien ya tiene usuario con ese mail; no crea cuentas.</p></div><span class="badge" :class="google.client_id && google.secret_set ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ google.client_id && google.secret_set ? 'Activo' : 'Sin configurar' }}</span></div>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div><label class="label">Client ID</label><input v-model="form.google_client_id" class="input" placeholder="xxxx.apps.googleusercontent.com" /></div>
+          <div><label class="label">Client secret {{ google.secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.google_client_secret" type="password" class="input" autocomplete="off" /></div>
+        </div>
+        <p class="text-[11px] text-marca-muted">En Google Cloud → APIs y servicios → Credenciales → ID de cliente OAuth (aplicación web). URI de redirección autorizada: <code class="select-all">{{ google.volver }}</code></p>
+        <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+      </form>
       <div class="card space-y-4 lg:col-span-3" data-e2e="app-movil">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div><h2 class="font-bold">App del celular (iPhone y Android)</h2><p class="text-xs text-marca-muted">Los avisos de la app salen por Firebase Cloud Messaging; en iPhone, Firebase los entrega por APNs. Una sola cuenta para todas las empresas.</p></div>
@@ -142,12 +152,12 @@ import { ref, computed } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Icono from '@/Components/Icono.vue'
-const props = defineProps({ movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const props = defineProps({ google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
 const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
-const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
+const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
