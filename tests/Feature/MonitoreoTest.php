@@ -64,7 +64,7 @@ class MonitoreoTest extends ErpTestCase
     public function test_panel_de_salud_endpoint_publico_y_aviso_por_mail_cuando_hay_criticos(): void
     {
         Mail::fake();
-        Cache::put(SaludService::LATIDO_CRON, now()->toIso8601String());
+        SaludService::latir(); Cache::forget(SaludService::LATIDO_CRON); // Fase 94.3: el latido sobrevive a que se borre la caché
         $r = app(SaludService::class)->verificar();
         $porKey = collect($r['controles'])->keyBy('key');
         $this->assertSame('ok', $porKey['base']['estado']);
@@ -81,7 +81,7 @@ class MonitoreoTest extends ErpTestCase
         $this->get('/salud?token=malo')->assertOk()->assertJsonMissing(['controles']);
 
         // Cron sin latido hace 2 horas + 25 errores en el día → crítico → 503 y mail (una sola vez por control).
-        Cache::put(SaludService::LATIDO_CRON, now()->subHours(2)->toIso8601String());
+        @unlink(SaludService::archivoLatido()); Cache::put(SaludService::LATIDO_CRON, now()->subHours(2)->toIso8601String());
         for ($i = 0; $i < 25; $i++) ErrorSistema::create(['hash' => "h{$i}", 'clase' => 'X', 'mensaje' => 'm', 'veces' => 1, 'primera_vez' => now(), 'ultima_vez' => now()]);
         $this->get('/salud')->assertStatus(503)->assertJsonPath('estado', 'critico');
         $res = app(SaludService::class)->revisarYAvisar();
