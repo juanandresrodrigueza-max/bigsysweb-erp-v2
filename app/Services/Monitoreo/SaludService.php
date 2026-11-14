@@ -15,6 +15,26 @@ class SaludService
 {
     public const LATIDO_CRON = 'salud_cron_latido';
 
+    // Fase 94.3: el latido del cron vive en un archivo de storage, no sólo en la caché: `optimize:clear` (que corre en cada
+    // actualización) borraba la caché y el semáforo mostraba «Nunca corrió» durante un minuto. La caché queda como respaldo.
+    public static function archivoLatido(): string { return storage_path('framework/salud-latido'); }
+
+    public static function latir(): void
+    {
+        $ahora = now()->toIso8601String();
+        try { @file_put_contents(self::archivoLatido(), $ahora); } catch (\Throwable) {}
+        try { Cache::put(self::LATIDO_CRON, $ahora, 3600 * 24 * 30); } catch (\Throwable) {}
+    }
+
+    public static function latido(): ?string
+    {
+        $f = self::archivoLatido();
+        $archivo = is_readable($f) ? trim((string) @file_get_contents($f)) : '';
+        $cache = Cache::get(self::LATIDO_CRON);
+        if ($archivo && $cache) return strcmp($archivo, $cache) >= 0 ? $archivo : $cache; // el más reciente de los dos
+        return $archivo ?: $cache;
+    }
+
     public function verificar(): array
     {
         $c = [];
@@ -32,7 +52,7 @@ class SaludService
             $c[] = $this->item('cola', 'Cola de trabajos (worker)', $estado, "{$pend} en espera" . ($espera ? " (el más viejo hace {$espera} min: ¿está corriendo el worker?)" : '') . " · {$fallidos} fallidos");
         } catch (\Throwable $e) { $c[] = $this->item('cola', 'Cola de trabajos', 'aviso', $e->getMessage()); }
         // Cron
-        $latido = Cache::get(self::LATIDO_CRON);
+        $latido = self::latido();
         $min = $latido ? (int) abs(now()->diffInMinutes(\Carbon\Carbon::parse($latido))) : null;
         $c[] = $this->item('cron', 'Tareas programadas (cron)', $min === null ? 'aviso' : ($min > 30 ? 'critico' : ($min > 5 ? 'aviso' : 'ok')), $min === null ? 'Nunca corrió: falta el cron `php artisan schedule:run` cada minuto.' : "Último latido hace {$min} min");
         // Disco
