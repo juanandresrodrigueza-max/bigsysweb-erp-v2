@@ -120,6 +120,20 @@ class Gestion
                     $r = app(\App\Services\Gastronomia\ReservasService::class)->reservar($u->business, $d + ['origen' => 'bigcito', 'location_id' => $u->current_location_id]);
                     return ['texto' => ($r->status === 'confirmed' ? 'Reserva confirmada' : 'Anotada en lista de espera') . ": {$r->nombre}, {$r->personas} personas, " . $r->starts_at->format('d/m H:i') . '.', 'url' => Busca::url('/gastronomia/reservas')];
                 }],
+            // Fase 95: "se acabó el pulpo" → sale de la carta QR y del salón al instante; "volvió el pulpo" → disponible otra vez.
+            ['nombre' => 'marcar_agotado', 'titulo' => 'Marcar un plato agotado (o disponible)', 'modulo' => 'gastronomia', 'permiso' => 'editar', 'tipo' => 'accion',
+                'descripcion' => 'Marca un plato como agotado por hoy: desaparece de la carta QR y nadie lo puede pedir; vuelve solo mañana. Con disponible=true lo vuelve a ofrecer ahora.',
+                'parametros' => ['plato' => ['type' => 'string'], 'disponible' => ['type' => 'boolean', 'description' => 'true para volver a ofrecerlo; si no se dice, se marca agotado']],
+                'requeridos' => ['plato'],
+                'proponer' => function (User $u, array $a) {
+                    $p = Busca::articulo($a['plato']); if (! $p) return ['error' => "No encuentro el plato \"{$a['plato']}\"."];
+                    $disp = ! empty($a['disponible']);
+                    return ['titulo' => $disp ? "Volver a ofrecer {$p->name}" : "Marcar {$p->name} como agotado por hoy", 'detalle' => $disp ? 'Vuelve a la carta QR y al salón ahora mismo.' : 'Sale de la carta QR y del salón al instante; mañana vuelve solo.', 'datos' => ['id' => $p->id, 'disponible' => $disp]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $p = \App\Models\Product::findOrFail($d['id']); $p->marcarAgotado(empty($d['disponible']));
+                    return ['texto' => empty($d['disponible']) ? "Listo: {$p->name} agotado por hoy, ya no se puede pedir." : "Listo: {$p->name} disponible otra vez.", 'url' => Busca::url('/gastronomia/carta')];
+                }],
             ['nombre' => 'delivery_en_curso', 'titulo' => 'Cómo viene el delivery', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'El reparto propio ahora: pedidos preparándose, listos para salir, en camino (con quién y hace cuánto) y entregados hoy, con la demora promedio y lo cobrado de envíos.',
                 'parametros' => [],

@@ -26,7 +26,7 @@ class ReservasController extends Controller
             'espera' => Booking::where('status', 'waitlist')->where('starts_at', '>=', today())->orderBy('starts_at')->orderBy('created_at')->get()->map(fn($r) => ['id' => $r->id, 'fecha' => $r->starts_at->format('d/m'), 'hora' => $r->starts_at->format('H:i'), 'nombre' => $r->nombre, 'telefono' => $r->telefono, 'personas' => $r->personas, 'origen' => $r->origen, 'desde' => $r->created_at->diffForHumans(), 'hay_lugar' => app(\App\Services\Gastronomia\ReservasService::class)->hayLugar($request->user()->business, $r->starts_at, (int) $r->personas)]),
             'capacidad' => app(\App\Services\Gastronomia\ReservasService::class)->capacidad($request->user()->business),
             'urlReservas' => url('/r/' . $cfg['slug']), 'reservasActivas' => (bool) $cfg['reservas_activas'], 'urlMenu' => url('/m/' . $cfg['slug']), 'menuActivo' => (bool) $cfg['menu_activo'],
-            'mesas' => Mesa::where('activa', true)->orderBy('sector')->orderBy('orden')->get()->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'url' => url('/m/' . $cfg['slug'] . '?mesa=' . $m->id)]),
+            'mesas' => Mesa::where('activa', true)->orderBy('sector')->orderBy('orden')->get()->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'url' => $m->urlQr($cfg['slug'])]), // Fase 95: el QR lleva el token de la mesa, no el id
         ]);
     }
 

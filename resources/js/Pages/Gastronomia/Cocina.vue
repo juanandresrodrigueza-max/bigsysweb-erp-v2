@@ -2,7 +2,9 @@
   <Head title="Cocina" />
   <div class="min-h-screen p-4 md:p-6" style="background:#1c1a18;color:#fff">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-      <div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="page-title">{{ estacion ?? 'Cocina' }}</h1><span class="text-white/60 text-sm">{{ grupos.length }} comanda{{ grupos.length === 1 ? '' : 's' }} · {{ totalItems }} platos · {{ terminados }} entregados hoy</span></div>
+      <div class="flex items-center gap-3"><Logo negativo clase="h-7" /><h1 class="page-title !text-white">{{ estacion ?? 'Cocina' }}</h1><span class="text-white/60 text-sm">{{ grupos.length }} comanda{{ grupos.length === 1 ? '' : 's' }} · {{ terminados }} entregados hoy</span>
+        <!-- Fase 95: el tablero en tres pasos, como lo lee la cocina -->
+        <span class="flex gap-1 text-xs font-bold" data-e2e="pasos-cocina"><span class="px-2 py-1 rounded-full bg-white/10">Nuevo {{ conteo.nuevo }}</span><span class="px-2 py-1 rounded-full bg-amber-500/30 text-amber-200">En marcha {{ conteo.marcha }}</span><span class="px-2 py-1 rounded-full bg-emerald-500/30 text-emerald-200">Listo {{ conteo.listo }}</span></span></div>
       <div class="flex items-center gap-3 text-sm"><span class="text-white/50">{{ hora }}</span><Link href="/gastronomia" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold">Volver al salón</Link></div>
     </div>
     <div v-if="picos.length" class="rounded-2xl px-4 py-3 mb-4 bg-amber-500/20 border border-amber-400/40 text-sm" data-e2e="pico"><b>Se viene movida la próxima hora:</b> <span v-for="(p, i) in picos" :key="p.estacion">{{ i ? ' · ' : '' }}{{ p.estacion }} ~{{ p.esperado }} platos a las {{ p.hora }} (lo normal son {{ p.normal }})</span>. Adelantá mise en place.</div>
@@ -17,11 +19,16 @@
           <span class="text-2xl font-black tabular-nums">{{ g.minutos }}'</span>
         </div>
         <div class="flex-1 divide-y divide-white/10">
-          <div v-for="it in g.items" :key="it.id" class="px-4 py-3 flex items-center gap-3" :class="it.estado === 'listo' ? 'opacity-50' : ''">
+          <div v-for="it in g.items" :key="it.id" class="px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2" :class="it.estado === 'listo' ? 'opacity-50' : ''">
             <span class="text-2xl font-black tabular-nums w-10 text-right">{{ cantidad(it.cantidad) }}</span>
-            <div class="flex-1"><p class="font-semibold text-lg leading-tight" :class="it.estado === 'listo' ? 'line-through' : ''">{{ it.descripcion }}</p><p v-if="it.notas" class="text-sm text-amber-300 font-semibold">⚠ {{ it.notas }}</p><p class="text-[11px] uppercase" :class="it.estado === 'cocina' && it.minutos >= it.alerta ? 'text-carmin font-bold' : 'text-white/50'"><span v-if="!estacion">{{ it.estacion }} · </span>{{ it.minutos }}'<span v-if="it.estado === 'cocina' && it.minutos >= it.alerta"> · demorado</span><span v-if="it.ronda > 1"> · Pedido {{ it.ronda }}</span></p></div>
+            <div class="flex-1 min-w-[140px]"><p class="font-semibold text-lg leading-tight" :class="it.estado === 'listo' ? 'line-through' : ''">{{ it.descripcion }}</p><p v-if="it.notas" class="text-sm text-amber-300 font-semibold">⚠ {{ it.notas }}</p><p class="text-[11px] uppercase" :class="it.estado === 'cocina' && it.minutos >= it.alerta ? 'text-carmin font-bold' : 'text-white/50'"><span v-if="!estacion">{{ it.estacion }} · </span>{{ it.minutos }}'<span v-if="it.estado === 'cocina' && it.minutos >= it.alerta"> · demorado</span><span v-if="it.ronda > 1"> · Pedido {{ it.ronda }}</span><span v-if="it.estado === 'cocina'" class="font-bold" :class="it.empezado ? 'text-amber-300' : 'text-white/80'"> · {{ it.empezado ? 'en marcha' : 'nuevo' }}</span></p></div>
+            <!-- Fase 95: Empezar (en marcha) → Listo, y "Se acabó" para agotar el plato por hoy -->
+            <div class="flex items-center gap-2 ml-auto">
+            <Link v-if="it.estado === 'cocina' && !it.empezado" :href="`/gastronomia/items/${it.id}/empezar`" method="post" as="button" preserve-scroll class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm" :data-empezar="it.id">Empezar</Link>
             <Link v-if="it.estado === 'cocina'" :href="`/gastronomia/items/${it.id}/estado`" method="post" :data="{ estado: 'listo' }" as="button" preserve-scroll class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm">Listo</Link>
             <span v-else class="text-xs text-emerald-400 font-bold">✓ {{ it.listo ?? '' }}</span>
+            <Link v-if="it.product_id && it.estado === 'cocina'" :href="`/gastronomia/carta/${it.product_id}/agotado`" method="post" :data="{ agotado: true }" as="button" preserve-scroll class="px-2 py-2 rounded-xl bg-white/5 hover:bg-carmin text-white/60 hover:text-white text-[11px] font-bold" title="Se acabó: sale de la carta por hoy" :data-agotar="it.product_id">Se acabó</Link>
+            </div>
           </div>
         </div>
         <button v-if="g.items.some(i => i.estado === 'cocina')" @click="todoListo(g)" class="m-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-semibold">Todo listo</button>
@@ -39,6 +46,7 @@ import { cantidad } from '@/util/formato'
 const props = defineProps({ grupos: Array, terminados: Number, estaciones: { type: Array, default: () => [] }, estacion: { type: String, default: null }, promedios: { type: Object, default: () => ({}) }, proximaHora: { type: Array, default: () => [] } })
 const picos = computed(() => props.proximaHora.filter(p => p.pico && (!props.estacion || p.estacion === props.estacion)))
 const totalItems = computed(() => props.grupos.reduce((a, g) => a + g.items.filter(i => i.estado === 'cocina').length, 0))
+const conteo = computed(() => { const c = { nuevo: 0, marcha: 0, listo: 0 }; props.grupos.forEach(g => g.items.forEach(i => { if (i.estado === 'listo') c.listo++; else if (i.empezado) c.marcha++; else c.nuevo++ })); return c })
 const hora = ref(new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }))
 const demorado = g => g.items.some(i => i.estado === 'cocina' && i.minutos >= i.alerta)
 function todoListo(g) { const pend = g.items.filter(i => i.estado === 'cocina'); pend.forEach((it, idx) => router.post(`/gastronomia/items/${it.id}/estado`, { estado: 'listo' }, { preserveScroll: true, only: idx === pend.length - 1 ? undefined : [] })) }

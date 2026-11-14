@@ -27,15 +27,28 @@ class GastronomiaController extends Controller
         return round((float) $p->price * ($ri ? 1 + (float) $p->iva / 100 : 1), 2);
     }
 
+    // Fase 95: el semáforo de la mesa para el encargado: qué está esperando y hace cuánto. El color sale de acá, igual en plano,
+    // lista y mozo de bolsillo: llama (rojo) > pidió la cuenta (violeta) > pedido sin confirmar (ámbar) > plato listo sin llevar (verde) > comiendo.
+    public static function semaforo(Comanda $c): array
+    {
+        $its = $c->items;
+        if ($c->llamado) return ['semaforo' => 'llama', 'espera_min' => $c->llamado_en ? (int) $c->llamado_en->diffInMinutes(now()) : 0];
+        if ($c->estado === 'cuenta') return ['semaforo' => 'cuenta', 'espera_min' => $c->cuenta_en ? (int) $c->cuenta_en->diffInMinutes(now()) : 0];
+        if ($p = $its->where('estado', 'pedido')->sortBy('created_at')->first()) return ['semaforo' => 'pide', 'espera_min' => (int) $p->created_at->diffInMinutes(now())];
+        if ($l = $its->where('estado', 'listo')->where('va_cocina', true)->sortBy('listo_en')->first()) return ['semaforo' => 'listo', 'espera_min' => $l->listo_en ? (int) $l->listo_en->diffInMinutes(now()) : 0];
+        if ($e = $its->where('estado', 'cocina')->sortBy('enviado_en')->first()) return ['semaforo' => 'cocina', 'espera_min' => $e->enviado_en ? (int) $e->enviado_en->diffInMinutes(now()) : 0];
+        return ['semaforo' => 'comiendo', 'espera_min' => 0];
+    }
+
     private function comandaArr(Comanda $c): array
     {
         $c->loadMissing('items.product:id,name', 'mesa:id,nombre,sector', 'mozo:id,name');
         return [
-            'id' => $c->id, 'numero' => $c->numeroFormateado(), 'titulo' => $c->titulo(), 'tipo' => $c->tipo, 'estado' => $c->estado, 'mesa_id' => $c->mesa_id, 'mesa' => $c->mesa?->nombre, 'sector' => $c->mesa?->sector,
+            'id' => $c->id, 'numero' => $c->numeroFormateado(), 'codigo' => $c->codigo, 'titulo' => $c->titulo(), 'tipo' => $c->tipo, 'estado' => $c->estado, 'mesa_id' => $c->mesa_id, 'mesa' => $c->mesa?->nombre, 'sector' => $c->mesa?->sector,
             'mozo' => $c->mozo?->name, 'cubiertos' => $c->cubiertos, 'cliente' => $c->cliente, 'direccion' => $c->direccion, 'telefono' => $c->telefono, 'total' => (float) $c->total, 'descuento' => (float) $c->descuento, 'propina' => (float) $c->propina, 'notas' => $c->notas,
             'abierta' => $c->abierta_en?->format('H:i'), 'minutos' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0, 'comprobante_id' => $c->comprobante_id,
             'pagos' => $c->pagos ?? [], 'pendiente' => round($c->items->where('estado', '!=', 'anulado')->sum(fn($i) => ((float) $i->cantidad - (float) $i->pagado) * (float) $i->precio_unit), 2),
-            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'asiento' => $i->asiento, 'cortesia' => (bool) $i->cortesia, 'cortesia_motivo' => $i->cortesia_motivo, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'estacion' => $i->estacion, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
+            'items' => $c->items->map(fn($i) => ['id' => $i->id, 'pagado' => (float) $i->pagado, 'asiento' => $i->asiento, 'cortesia' => (bool) $i->cortesia, 'cortesia_motivo' => $i->cortesia_motivo, 'modificadores' => $i->modificadores, 'product_id' => $i->product_id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'precio_unit' => (float) $i->precio_unit, 'notas' => $i->notas, 'estado' => $i->estado, 'va_cocina' => $i->va_cocina, 'estacion' => $i->estacion, 'ronda' => $i->ronda, 'enviado' => $i->enviado_en?->format('H:i'), 'empezado' => $i->empezado_en?->format('H:i'), 'listo' => $i->listo_en?->format('H:i')]),
             'pendientes_envio' => $c->items->where('estado', 'pedido')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
             'zona' => $c->zona, 'costo_envio' => (float) $c->costo_envio, 'repartidor' => $c->repartidor, 'salio' => $c->salio_en?->format('H:i'), 'entregado' => $c->entregado_en?->format('H:i'), // Fase 91
         ];
@@ -48,7 +61,8 @@ class GastronomiaController extends Controller
         $hoy = Comanda::where('estado', 'cerrada')->whereDate('cerrada_en', today());
         return Inertia::render('Gastronomia/Mesas', [
             'mesas' => $mesas->map(fn($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'sector' => $m->sector ?: 'Salón', 'capacidad' => $m->capacidad, 'activa' => $m->activa, 'orden' => $m->orden, 'pos_x' => $m->pos_x !== null ? (float) $m->pos_x : null, 'pos_y' => $m->pos_y !== null ? (float) $m->pos_y : null, 'forma' => $m->forma ?: 'cuadrada',
-                'comanda' => $m->comandaAbierta ? ['id' => $m->comandaAbierta->id, 'llamado' => $m->comandaAbierta->llamado, 'llamado_min' => $m->comandaAbierta->llamado_en ? (int) $m->comandaAbierta->llamado_en->diffInMinutes(now()) : null, 'estado' => $m->comandaAbierta->estado, 'total' => (float) $m->comandaAbierta->total, 'minutos' => (int) $m->comandaAbierta->abierta_en->diffInMinutes(now()), 'mozo' => $m->comandaAbierta->mozo?->name, 'cubiertos' => $m->comandaAbierta->cubiertos, 'listos' => $m->comandaAbierta->items->where('estado', 'listo')->count(), 'sin_enviar' => $m->comandaAbierta->items->where('estado', 'pedido')->count()] : null]),
+                'comanda' => $m->comandaAbierta ? ['id' => $m->comandaAbierta->id, 'codigo' => $m->comandaAbierta->codigo, 'llamado' => $m->comandaAbierta->llamado, 'llamado_min' => $m->comandaAbierta->llamado_en ? (int) $m->comandaAbierta->llamado_en->diffInMinutes(now()) : null, 'estado' => $m->comandaAbierta->estado, 'total' => (float) $m->comandaAbierta->total, 'minutos' => (int) $m->comandaAbierta->abierta_en->diffInMinutes(now()), 'mozo' => $m->comandaAbierta->mozo?->name, 'cubiertos' => $m->comandaAbierta->cubiertos, 'listos' => $m->comandaAbierta->items->where('estado', 'listo')->count(), 'sin_enviar' => $m->comandaAbierta->items->where('estado', 'pedido')->count(),
+                    'en_cocina' => $m->comandaAbierta->items->where('estado', 'cocina')->count()] + self::semaforo($m->comandaAbierta) : null]),
             'otras' => Comanda::abiertas()->whereNull('mesa_id')->with('items', 'mozo:id,name')->orderBy('abierta_en')->get()->map(fn($c) => $this->comandaArr($c)),
             'kpis' => ['abiertas' => Comanda::abiertas()->count(), 'ocupadas' => $mesas->filter(fn($m) => $m->comandaAbierta)->count(), 'mesas' => $mesas->where('activa', true)->count(), 'ventas_hoy' => (float) (clone $hoy)->sum('total'), 'cubiertos_hoy' => (int) (clone $hoy)->sum('cubiertos'), 'comandas_hoy' => (clone $hoy)->count(), 'propinas_hoy' => (float) (clone $hoy)->sum('propina'), 'en_cocina' => ComandaItem::where('estado', 'cocina')->whereHas('comanda', fn($q) => $q->abiertas())->count()],
             'listaSucursales' => $user->business->locations()->where('is_active', true)->get(['id', 'name']),
@@ -62,7 +76,7 @@ class GastronomiaController extends Controller
     {
         $user = $request->user();
         $abiertas = Comanda::abiertas()->where('business_location_id', $user->current_location_id)->with('items.product:id,name', 'mesa:id,nombre,sector', 'mozo:id,name')->orderBy('abierta_en')->get();
-        $arr = fn(Comanda $c) => ['id' => $c->id, 'titulo' => $c->titulo(), 'tipo' => $c->tipo, 'estado' => $c->estado, 'mesa' => $c->mesa?->nombre, 'sector' => $c->mesa?->sector, 'mozo' => $c->mozo?->name, 'mia' => $c->user_id === $user->id,
+        $arr = fn(Comanda $c) => ['id' => $c->id, 'codigo' => $c->codigo, 'titulo' => $c->titulo(), 'tipo' => $c->tipo, 'estado' => $c->estado, 'mesa' => $c->mesa?->nombre, 'sector' => $c->mesa?->sector, 'mozo' => $c->mozo?->name, 'mia' => $c->user_id === $user->id,
             'cubiertos' => $c->cubiertos, 'total' => (float) $c->total, 'minutos' => $c->abierta_en ? (int) $c->abierta_en->diffInMinutes(now()) : 0, 'llamado' => $c->llamado, 'llamado_min' => $c->llamado_en ? (int) $c->llamado_en->diffInMinutes(now()) : null,
             'sin_enviar' => $c->items->where('estado', 'pedido')->count(), 'en_cocina' => $c->items->where('estado', 'cocina')->count(), 'listos' => $c->items->where('estado', 'listo')->count(),
             'para_llevar' => $c->items->where('estado', 'listo')->map(fn($i) => ['id' => $i->id, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'asiento' => $i->asiento])->values()];
@@ -155,7 +169,7 @@ class GastronomiaController extends Controller
         return Inertia::render('Gastronomia/Comanda', [
             'comanda' => $this->comandaArr($c),
             'zonas' => $c->tipo === 'delivery' ? DeliveryService::zonas(auth()->user()->business) : [], // Fase 91
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->filter(fn($p) => \App\Services\Gastronomia\HorariosService::disponible($p))->values()->map(fn($p) => ['id' => $p->id, 'hh' => \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)['nombre'] ?? null, 'name' => $p->name, 'price' => \App\Services\Gastronomia\HorariosService::aplicar($this->precioFinal($p), \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre,color')->orderByDesc('favorito_pos')->orderBy('name')->get()->filter(fn($p) => \App\Services\Gastronomia\HorariosService::disponible($p) && ! $p->agotadoHoy())->values()->map(fn($p) => ['id' => $p->id, 'hh' => \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)['nombre'] ?? null, 'name' => $p->name, 'price' => \App\Services\Gastronomia\HorariosService::aplicar($this->precioFinal($p), \App\Services\Gastronomia\HorariosService::happyHour(auth()->user()->business, $p)), 'rubro_id' => $p->rubro_id, 'rubro' => $p->rubro?->nombre, 'color' => $p->rubro?->color, 'va_cocina' => $p->va_cocina, 'favorito' => $p->favorito_pos, 'modificadores' => $p->modificadores ?? []]),
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color']),
             'medios' => Cobro::MEDIOS, 'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),
             'clientes' => Contact::customers()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'cuit', 'condicion_iva']),
@@ -196,6 +210,22 @@ class GastronomiaController extends Controller
         $d = $request->validate(['estado' => 'required|in:pedido,cocina,listo,entregado,anulado']);
         $svc->estadoItem(ComandaItem::findOrFail($item), $d['estado']);
         return back();
+    }
+
+    // Fase 95: cocina marca "en marcha" plato por plato (Nuevo → En marcha → Listo). El plato sigue en cocina; sólo queda la hora.
+    public function itemEmpezar(int $item)
+    {
+        $i = ComandaItem::findOrFail($item);
+        if ($i->estado === 'cocina' && ! $i->empezado_en) $i->update(['empezado_en' => now()]);
+        return back();
+    }
+
+    // Fase 95: "se acabó el pulpo": desde la carta o desde cocina. Sale de la carta QR y del salón al instante; vuelve solo mañana.
+    public function agotado(Request $request, int $id)
+    {
+        $d = $request->validate(['agotado' => 'required|boolean']);
+        $p = Product::findOrFail($id); $p->marcarAgotado((bool) $d['agotado']);
+        return back()->with('success', $p->name . ($d['agotado'] ? ': agotado por hoy. Ya no se puede pedir.' : ': disponible otra vez.'));
     }
 
     public function cuenta(int $id, ComandaService $svc)
@@ -242,7 +272,7 @@ class GastronomiaController extends Controller
         $items = ComandaItem::with('comanda.mesa:id,nombre,sector', 'comanda.mozo:id,name')->whereIn('estado', ['cocina', 'listo'])->where('va_cocina', true)->whereHas('comanda', fn($q) => $q->abiertas())
             ->when($est, fn($q) => $q->where(fn($w) => $w->where('estacion', $est)->when($est === $primera, fn($w) => $w->orWhereNull('estacion'))))->orderBy('enviado_en')->get();
         $grupos = $items->groupBy('comanda_id')->map(fn($its) => ['comanda_id' => $its->first()->comanda_id, 'titulo' => $its->first()->comanda->titulo(), 'mozo' => $its->first()->comanda->mozo?->name, 'enviado' => $its->min('enviado_en')?->format('H:i'), 'minutos' => (int) ($its->min('enviado_en')?->diffInMinutes(now()) ?? 0),
-            'items' => $its->map(fn($i) => ['id' => $i->id, 'estacion' => $i->estacion ?? $primera, 'alerta' => $alerta[$i->estacion ?? $primera] ?? 20, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'notas' => $i->notas, 'estado' => $i->estado, 'ronda' => $i->ronda, 'minutos' => (int) ($i->enviado_en?->diffInMinutes(now()) ?? 0)])->values()])->values();
+            'items' => $its->map(fn($i) => ['id' => $i->id, 'product_id' => $i->product_id, 'estacion' => $i->estacion ?? $primera, 'alerta' => $alerta[$i->estacion ?? $primera] ?? 20, 'descripcion' => $i->descripcion, 'cantidad' => (float) $i->cantidad, 'notas' => $i->notas, 'estado' => $i->estado, 'empezado' => (bool) $i->empezado_en, 'ronda' => $i->ronda, 'minutos' => (int) ($i->enviado_en?->diffInMinutes(now()) ?? 0)])->values()])->values();
         if ($request->wantsJson() || $request->boolean('json')) return response()->json($grupos);
         // Tiempo promedio de hoy (enviado → listo) por estación.
         $hoy = ComandaItem::whereNotNull('listo_en')->whereNotNull('enviado_en')->where('va_cocina', true)->whereDate('listo_en', today())->get(['estacion', 'enviado_en', 'listo_en'])
@@ -254,7 +284,7 @@ class GastronomiaController extends Controller
     public function carta()
     {
         return Inertia::render('Gastronomia/Carta', [
-            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'horario' => $p->horario, 'modificadores' => $p->modificadores ?? [],
+            'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'horario' => $p->horario, 'modificadores' => $p->modificadores ?? [], 'agotado' => $p->agotadoHoy(),
                 // Fase 53: costo (de la receta si tiene), margen sobre el precio neto y la receta para editarla acá mismo.
                 'precio_neto' => (float) $p->price, 'costo' => \App\Services\Gastronomia\RecetaVentaService::costo($p), 'margen' => \App\Services\Gastronomia\RecetaVentaService::margen($p), 'margen_objetivo' => $p->margen_objetivo !== null ? (float) $p->margen_objetivo : null,
                 'receta' => ($r = \App\Services\Gastronomia\RecetaVentaService::receta($p)) ? ['id' => $r->id, 'yield' => (float) $r->yield_quantity, 'items' => $r->items->map(fn($i) => ['product_id' => $i->product_id, 'nombre' => $i->product?->name, 'quantity' => (float) $i->quantity, 'unit' => $i->unit, 'costo' => round((float) $i->quantity * (float) ($i->product?->cost ?? 0), 2)])->values()] : null]),

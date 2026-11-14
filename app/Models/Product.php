@@ -15,16 +15,20 @@ class Product extends Model
     public const TIPOS = ['producto' => 'Producto (se compra y se vende)', 'insumo' => 'Insumo (se compra, se usa en producción)', 'elaborado' => 'Elaborado (se produce y se vende)', 'servicio' => 'Servicio (sin stock)'];
     public const UNIDADES = ['un' => 'unidad', 'kg' => 'kg', 'g' => 'gramo', 'lt' => 'litro', 'ml' => 'ml', 'm' => 'metro', 'm2' => 'm²', 'm3' => 'm³', 'bolsa' => 'bolsa', 'caja' => 'caja', 'par' => 'par', 'hs' => 'hora'];
 
-    protected $fillable = ['atributos', 'horario', 'traducciones', 'margen_objetivo', 'modificadores', 'estacion', 
+    protected $fillable = ['agotado_hasta', 'atributos', 'horario', 'traducciones', 'margen_objetivo', 'modificadores', 'estacion', 
         'business_id', 'business_location_id', 'rubro_id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'ubicacion', 'proveedor_id', 'description',
         'price', 'prices', 'cost', 'iva', 'stock', 'stock_min', 'unit', 'active', 'controla_stock', 'precio_actualizado_en', 'va_cocina', 'favorito_pos',
         'precio_compra', 'descuento_proveedor', 'margenes', 'moneda', 'desc_cant_min', 'desc_cant_pct', 'desc_cant2_min', 'desc_cant2_pct', 'imagen', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'unidades_bulto', 'control_turno', 'en_tienda', 'descripcion_tienda', 'margen_minimo',
     ];
 
-    protected $casts = ['atributos' => 'array', 'horario' => 'array', 'traducciones' => 'array', 'modificadores' => 'array', 'price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'control_turno' => 'boolean', 'pesable' => 'boolean', 'en_tienda' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2', 'desc_cant2_min' => 'decimal:3', 'desc_cant2_pct' => 'decimal:2'];
+    protected $casts = ['agotado_hasta' => 'date', 'atributos' => 'array', 'horario' => 'array', 'traducciones' => 'array', 'modificadores' => 'array', 'price' => 'decimal:2', 'cost' => 'decimal:2', 'iva' => 'decimal:2', 'prices' => 'array', 'active' => 'boolean', 'controla_stock' => 'boolean', 'perecedero' => 'boolean', 'seriado' => 'boolean', 'control_turno' => 'boolean', 'pesable' => 'boolean', 'en_tienda' => 'boolean', 'va_cocina' => 'boolean', 'favorito_pos' => 'boolean', 'stock' => 'decimal:3', 'stock_min' => 'decimal:3', 'precio_actualizado_en' => 'datetime', 'precio_compra' => 'decimal:2', 'descuento_proveedor' => 'decimal:2', 'margenes' => 'array', 'desc_cant_min' => 'decimal:3', 'desc_cant_pct' => 'decimal:2', 'desc_cant2_min' => 'decimal:3', 'desc_cant2_pct' => 'decimal:2'];
 
     // Precio de la lista en pesos. Si el artículo está en dólares, se convierte con la cotización vigente.
     // Fase 33.3: cada cambio de precio de lista 1 o de costo queda en el historial (para los márgenes a vigilar).
+    // Fase 95: "se acabó el pulpo": marcado una vez, desaparece de la carta QR y del salón al instante y vuelve solo al otro día.
+    public function agotadoHoy(): bool { return $this->agotado_hasta !== null && $this->agotado_hasta->gte(today()); }
+    public function marcarAgotado(bool $agotado): void { $this->forceFill(['agotado_hasta' => $agotado ? today() : null])->save(); }
+
     protected static function booted(): void
     {
         static::updated(function (Product $p) {

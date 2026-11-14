@@ -48,6 +48,15 @@
         <div class="flex flex-wrap items-center gap-3 text-xs text-marca-muted mb-1"><span>Frío</span><span class="h-2 w-40 rounded-full" style="background: linear-gradient(90deg, #eef2ff, #fde68a, #f97316, #b91c1c)"></span><span>Caliente</span><span class="ml-auto">{{ calor.como }}</span></div>
       </template>
     </div>
+    <!-- Fase 95: la referencia del semáforo -->
+    <div v-if="vista !== 'calor' && mesas.length" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-marca-muted mb-2" data-e2e="semaforo-ref">
+      <span class="flex items-center gap-1"><i class="inline-block w-3 h-3 rounded-full bg-carmin"></i> llama / pide la cuenta</span>
+      <span class="flex items-center gap-1"><i class="inline-block w-3 h-3 rounded-full bg-violeta"></i> cuenta pedida</span>
+      <span class="flex items-center gap-1"><i class="inline-block w-3 h-3 rounded-full bg-amber-400"></i> pedido del QR sin confirmar</span>
+      <span class="flex items-center gap-1"><i class="inline-block w-3 h-3 rounded-full bg-emerald-500"></i> plato listo sin llevar</span>
+      <span class="flex items-center gap-1"><i class="inline-block w-3 h-3 rounded-full bg-lavanda"></i> en cocina</span>
+      <span class="flex items-center gap-1"><i class="inline-block w-3 h-3 rounded-full bg-gris-light border border-marca-borde"></i> comiendo</span>
+    </div>
     <template v-if="vista === 'plano' || vista === 'calor'">
       <div v-for="(grupo, sector) in porSector" :key="sector" class="mb-5">
         <p class="label">{{ sector }}<span v-if="acomodando" class="text-marca-muted font-normal normal-case"> · arrastrá cada mesa a su lugar</span></p>
@@ -55,7 +64,8 @@
           <button v-for="m in grupo" :key="m.id" :data-mesa="m.id" type="button" class="absolute -translate-x-1/2 -translate-y-1/2 border-2 flex flex-col items-center justify-center shadow-sm transition-colors" :data-calor="vista === 'calor' ? (calorDe(m)?.calor ?? 0) : null" :class="[vista === 'calor' ? 'border-white/70 text-marca-texto' : claseMesa(m), m.forma === 'redonda' ? 'rounded-full' : 'rounded-xl', acomodando ? 'cursor-move ring-2 ring-violeta/30' : '']" :style="vista === 'calor' ? estiloCalor(m) : estiloMesa(m)" @pointerdown="acomodando && arrastrar($event, m, sector)" @click="!acomodando && abrirMesa(m)">
             <span class="text-lg font-black leading-none">{{ m.nombre }}</span>
             <span v-if="vista === 'calor'" class="text-[11px] font-bold tabular-nums leading-tight mt-0.5">{{ calorDe(m)?.comandas ? moneda(calorDe(m).total, 0) + ' · ' + calorDe(m).comandas + '×' : 'sin uso' }}</span>
-            <span v-else-if="m.comanda" class="text-[11px] font-bold tabular-nums leading-tight mt-0.5">{{ moneda(m.comanda.total, 0) }} · {{ tiempo(m.comanda.minutos) }}</span>
+            <span v-else-if="m.comanda" class="text-[11px] font-bold tabular-nums leading-tight mt-0.5" :title="esperaTexto(m)">{{ moneda(m.comanda.total, 0) }} · {{ tiempo(m.comanda.minutos) }}</span>
+            <span v-if="vista !== 'calor' && m.comanda && m.comanda.semaforo !== 'comiendo' && m.comanda.semaforo !== 'cocina'" class="text-[10px] font-bold leading-none mt-0.5 opacity-90" :data-semaforo="m.comanda.semaforo">{{ esperaTexto(m) }}</span>
             <span v-else class="text-[11px] opacity-60 leading-tight mt-0.5">{{ m.capacidad }}p</span>
             <span v-if="m.comanda?.llamado" class="absolute -top-2 -right-2 text-base animate-pulse" data-llamado>{{ m.comanda.llamado === 'cuenta' ? '🧾' : '🙋' }}</span>
             <span v-else-if="m.comanda?.listos" class="absolute -top-2 -right-2 text-base">🔔</span>
@@ -80,7 +90,8 @@
             <p v-if="m.comanda.llamado" class="font-black animate-pulse" data-llamado>{{ m.comanda.llamado === 'cuenta' ? '🧾 Pide la cuenta' : '🙋 Llama al mozo' }} · {{ m.comanda.llamado_min }}'</p>
             <p v-else-if="m.comanda.estado === 'cuenta'" class="font-bold">Pidió la cuenta</p>
             <p v-else-if="m.comanda.listos" class="font-bold">{{ m.comanda.listos }} listo{{ m.comanda.listos > 1 ? 's' : '' }} 🔔</p>
-            <p v-else-if="m.comanda.sin_enviar" class="font-bold">{{ m.comanda.sin_enviar }} sin enviar</p>
+            <p v-else-if="m.comanda.sin_enviar" class="font-bold">{{ m.comanda.sin_enviar }} sin confirmar · {{ m.comanda.espera_min }}'</p>
+            <p v-if="m.comanda.codigo" class="opacity-70 tabular-nums">código {{ m.comanda.codigo }}</p>
           </div>
           <p v-else class="text-xs opacity-60">Libre</p>
         </button>
@@ -133,7 +144,10 @@ import { usePermisos } from '@/util/permisos'
 const props = defineProps({ mesas: Array, otras: Array, kpis: Object, listaSucursales: Array, calor: Object, zonas: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const porSector = computed(() => { const g = {}; for (const m of props.mesas) { (g[m.sector] ??= []).push(m) } return g })
-const claseMesa = m => !m.activa ? 'opacity-40 border-marca-borde bg-white' : !m.comanda ? 'bg-white border-marca-borde hover:border-emerald-400 text-marca-texto' : m.comanda.estado === 'cuenta' ? 'bg-violeta text-white border-violeta' : m.comanda.listos ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-carmin-light border-carmin/60 text-carmin-dark'
+// Fase 95: el semáforo del salón. El color dice qué espera la mesa: llama (rojo), pidió la cuenta (violeta), pedido del QR sin confirmar (ámbar), plato listo sin llevar (verde), en cocina (lila), comiendo (gris suave).
+const SEMAFORO = { llama: 'bg-carmin text-white border-carmin animate-pulse', cuenta: 'bg-violeta text-white border-violeta', pide: 'bg-amber-100 border-amber-500 text-amber-900', listo: 'bg-emerald-100 border-emerald-500 text-emerald-900', cocina: 'bg-lavanda-light border-lavanda text-violeta', comiendo: 'bg-gris-light border-marca-borde text-marca-texto' }
+const claseMesa = m => !m.activa ? 'opacity-40 border-marca-borde bg-white' : !m.comanda ? 'bg-white border-marca-borde hover:border-emerald-400 text-marca-texto' : (SEMAFORO[m.comanda.semaforo] ?? SEMAFORO.comiendo)
+const esperaTexto = m => !m.comanda ? '' : ({ llama: m.comanda.llamado === 'cuenta' ? 'pide la cuenta' : 'llama al mozo', cuenta: 'pidió la cuenta', pide: 'pedido sin confirmar', listo: 'plato listo', cocina: 'en cocina', comiendo: 'comiendo' }[m.comanda.semaforo] ?? '') + (m.comanda.espera_min > 0 && m.comanda.semaforo !== 'comiendo' ? ' · ' + tiempo(m.comanda.espera_min) : '')
 function abrirMesa(m) { if (m.comanda) router.visit(`/gastronomia/comandas/${m.comanda.id}`); else if (puede('gastronomia', 'crear')) router.post('/gastronomia/comandas', { mesa_id: m.id, cubiertos: 2 }) }
 const nueva = ref(null), configAbierto = ref(false)
 const mf = useForm({ id: null, nombre: '', sector: 'Salón', capacidad: 4, activa: true, forma: 'cuadrada' })
