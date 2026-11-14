@@ -116,6 +116,7 @@ El cliente escanea el QR de su mesa, elige y pide; no descarga nada ni se regist
 - **Agotado hoy**: en Big Restó → Carta, el botón **Se acabó** saca el plato de la carta QR y del salón al instante; aparece como «Agotado» en los celulares y el pedido que lo tenía se rechaza con el aviso. En Cocina, cada plato en preparación tiene su **Se acabó**. Vuelve solo al otro día, o antes tocando **Agotado hoy**. A Bigcito: «se acabó el pulpo», «volvió el pulpo».
 - **Cocina en tres pasos**: Nuevo → **En marcha** (botón «Empezar») → Listo. Arriba se ve cuántos platos hay en cada paso. El cliente ve «En marcha» en su celular.
 - **Semáforo del salón** (plano y lista): el color de cada mesa dice qué espera y hace cuánto: rojo llama al mozo o pide la cuenta, violeta cuenta pedida, ámbar pedido del QR sin confirmar, verde plato listo sin llevar, lila en cocina, gris comiendo. La referencia está arriba del plano.
+- **A Bigcito**: «¿qué mesa me llama?», «¿qué espera cada mesa?», «¿cuál es el código de la mesa 5?», «¿qué pidió la mesa 5?», «se acabó el pulpo», «volvió el pulpo», «cargá en la mesa 3 dos cafés», «reservá para cuatro el sábado».
 
 ## Delivery propio: zonas de entrega, costo de envío y reparto (Big Restó → Delivery, Fase 91)
 

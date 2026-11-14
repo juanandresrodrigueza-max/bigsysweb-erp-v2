@@ -116,6 +116,12 @@ class MesaSeguraFase95Test extends ErpTestCase
         $prop = $cat->llamar($this->dueno->fresh(), 'marcar_agotado', ['plato' => 'Pulpo', 'disponible' => true], 'asistente');
         $cat->llamar($this->dueno->fresh(), 'confirmar_accion', ['propuesta_id' => $prop['propuesta_id']], 'asistente');
         $this->assertFalse($pulpo->fresh()->agotadoHoy());
+        // "¿qué mesa me llama?" y "¿cuál es el código de la mesa 5?"
+        $r = $cat->llamar($this->dueno->fresh(), 'salon_ahora', [], 'asistente');
+        $this->assertSame(1, $r['urgentes']); $this->assertSame('llama', $r['mesas'][0]['semaforo']); $this->assertStringContainsString('llama al mozo', $r['resumen']);
+        $r = $cat->llamar($this->dueno->fresh(), 'salon_ahora', ['mesa' => 'mesa 5'], 'asistente');
+        $this->assertSame($c->codigo, $r['mesas'][0]['codigo']); $this->assertNotEmpty($r['mesas'][0]['platos']);
+        $this->assertFalse($cat->llamar($this->dueno->fresh(), 'salon_ahora', ['mesa' => '99'], 'asistente')['abierta']);
     }
 
     private function abrirMesa(Mesa $m): int
