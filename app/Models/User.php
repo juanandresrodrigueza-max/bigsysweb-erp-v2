@@ -84,7 +84,16 @@ class User extends Authenticatable
     }
 
     // Rol vigente: el asignado a la sucursal activa, si existe, o el general.
+    private array $rolMemo = []; // Fase 94.2: [clave => Role|null] dentro del mismo pedido
+
     public function rolActual(): ?Role
+    {
+        $k = $this->current_location_id . '/' . $this->role_id;
+        if (array_key_exists($k, $this->rolMemo)) return $this->rolMemo[$k];
+        return $this->rolMemo[$k] = $this->rolActualCalculado();
+    }
+
+    private function rolActualCalculado(): ?Role
     {
         if ($this->current_location_id) {
             $pivot = $this->locations()->where('business_location_id', $this->current_location_id)->first()?->pivot;

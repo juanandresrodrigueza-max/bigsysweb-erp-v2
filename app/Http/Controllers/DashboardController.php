@@ -29,15 +29,20 @@ class DashboardController extends Controller
         $ventas = fn($d, $h) => Comprobante::ventas()->emitidos()->deSucursal($sucursal)->whereBetween('fecha', [$d->toDateString(), $h->toDateString()])->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => $t['cc'] !== 0)));
         $signo = "CASE WHEN tipo IN ('NCA','NCB','NCC') THEN -total ELSE total END";
 
-        $ventasTotal  = (float) $ventas($desde, $hasta)->selectRaw("COALESCE(SUM({$signo}),0) as s")->value('s');
-        $ventasPrev   = (float) $ventas($desdePrev, $hastaPrev)->selectRaw("COALESCE(SUM({$signo}),0) as s")->value('s');
-        $cantidad     = $ventas($desde, $hasta)->facturas()->count();
-        $cantidadPrev = $ventas($desdePrev, $hastaPrev)->facturas()->count();
+        // Fase 94.2: total y cantidad de facturas de cada período en una sola consulta por período (eran cuatro).
+        $agregado = fn($d, $h) => $ventas($d, $h)->selectRaw("COALESCE(SUM({$signo}),0) as s, SUM(CASE WHEN tipo IN ('FA','FB','FC','FE') THEN 1 ELSE 0 END) as c")->first();
+        $act = $agregado($desde, $hasta); $prev = $agregado($desdePrev, $hastaPrev);
+        $ventasTotal  = (float) $act->s;
+        $ventasPrev   = (float) $prev->s;
+        $cantidad     = (int) $act->c;
+        $cantidadPrev = (int) $prev->c;
         $ticket       = $cantidad ? $ventasTotal / $cantidad : 0;
         $ticketPrev   = $cantidadPrev ? $ventasPrev / $cantidadPrev : 0;
 
-        $comprasTotal = (float) Purchase::deSucursal($sucursal)->whereBetween('created_at', [$desde, $hasta])->sum('total');
-        $comprasPrev  = (float) Purchase::deSucursal($sucursal)->whereBetween('created_at', [$desdePrev, $hastaPrev])->sum('total');
+        $compras = Purchase::deSucursal($sucursal)->whereBetween('created_at', [$desdePrev, $hasta])
+            ->selectRaw('COALESCE(SUM(CASE WHEN created_at >= ? THEN total ELSE 0 END),0) as act, COALESCE(SUM(CASE WHEN created_at < ? THEN total ELSE 0 END),0) as prev', [$desde, $desde])->first();
+        $comprasTotal = (float) $compras->act;
+        $comprasPrev  = (float) $compras->prev;
 
         $porCobrar = (float) Contact::customers()->where('balance', '>', 0)->sum('balance');
         $vencido   = (float) Comprobante::ventas()->pendientesCobro()->where('fecha_vto', '<', today()->toDateString())->sum('saldo');
@@ -74,17 +79,15 @@ class DashboardController extends Controller
         $operacion = null;
         if ($user->puede('stock')) {
             $prodActivos = Product::where('active', true)->where('controla_stock', true);
+            // Fase 94.2: valorizado, bajo mínimo y sin stock salen de una sola pasada por la tabla.
+            $st = (clone $prodActivos)->selectRaw('COALESCE(SUM(stock * cost),0) as v, SUM(CASE WHEN stock <= stock_min THEN 1 ELSE 0 END) as bajo, SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as sin')->first();
             $operacion = [
-                'valorizado' => (float) (clone $prodActivos)->selectRaw('COALESCE(SUM(stock * cost),0) as v')->value('v'),
-                'bajo_minimo' => (clone $prodActivos)->whereColumn('stock', '<=', 'stock_min')->count(),
-                'sin_stock' => (clone $prodActivos)->where('stock', '<=', 0)->count(),
+                'valorizado' => (float) $st->v,
+                'bajo_minimo' => (int) $st->bajo,
+                'sin_stock' => (int) $st->sin,
                 'faltantes' => (clone $prodActivos)->whereColumn('stock', '<=', 'stock_min')->orderByRaw('stock - stock_min')->limit(5)->get()->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'stock' => (float) $p->stock, 'min' => (float) $p->stock_min, 'unit' => $p->unit]),
                 'resultado' => $user->puede('contable') ? app(\App\Services\Contabilidad\ContabilidadService::class)->resultado($user->business_id, now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()) : null,
-                'produccion' => $user->puede('produccion') ? [
-                    'en_curso' => \App\Models\ProductionOrder::where('status', 'in_progress')->count(), 'pendientes' => \App\Models\ProductionOrder::where('status', 'pending')->count(),
-                    'atrasadas' => \App\Models\ProductionOrder::whereIn('status', ['pending', 'in_progress'])->whereNotNull('scheduled_at')->where('scheduled_at', '<', now()->startOfDay())->count(),
-                    'terminadas_mes' => \App\Models\ProductionOrder::where('status', 'completed')->where('completed_at', '>=', now()->startOfMonth())->count(),
-                ] : null,
+                'produccion' => $user->puede('produccion') ? $this->resumenProduccion() : null,
             ];
         }
 
@@ -135,6 +138,13 @@ class DashboardController extends Controller
                 'sueldos_pendientes' => class_exists(\App\Models\Liquidacion::class) ? \App\Models\Liquidacion::where('estado', 'confirmada')->count() : 0];
         }
         return null;
+    }
+
+    // Fase 94.2: los cuatro contadores de producción en una consulta.
+    private function resumenProduccion(): array
+    {
+        $r = \App\Models\ProductionOrder::selectRaw("SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as en_curso, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pendientes, SUM(CASE WHEN status IN ('pending','in_progress') AND scheduled_at IS NOT NULL AND scheduled_at < ? THEN 1 ELSE 0 END) as atrasadas, SUM(CASE WHEN status = 'completed' AND completed_at >= ? THEN 1 ELSE 0 END) as terminadas_mes", [now()->startOfDay(), now()->startOfMonth()])->first();
+        return ['en_curso' => (int) $r->en_curso, 'pendientes' => (int) $r->pendientes, 'atrasadas' => (int) $r->atrasadas, 'terminadas_mes' => (int) $r->terminadas_mes];
     }
 
     private function rango(string $periodo): array

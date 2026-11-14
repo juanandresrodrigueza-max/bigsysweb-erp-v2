@@ -65,12 +65,14 @@ class SistemaConfig extends Model
     {
         if (in_array($clave, self::SECRETOS, true) && $valor) $valor = ['enc' => \Illuminate\Support\Facades\Crypt::encryptString((string) $valor)];
         static::updateOrCreate(['clave' => $clave], ['valor' => ['v' => $valor]]);
-        Cache::forget('sistema_config');
+        Cache::forget('sistema_config'); static::$memo = null;
     }
+
+    private static ?array $memo = null; // Fase 94.2: dentro de un mismo pedido se lee una sola vez
 
     public static function todo(): array
     {
-        return Cache::remember('sistema_config', 300, function () {
+        return static::$memo ??= Cache::remember('sistema_config', 300, function () {
             $db = static::all()->mapWithKeys(function ($r) { $v = $r->valor['v'] ?? null; if (is_array($v) && isset($v['enc'])) { try { $v = \Illuminate\Support\Facades\Crypt::decryptString($v['enc']); } catch (\Throwable $e) { $v = null; } } return [$r->clave => $v]; })->all();
             return array_merge(static::DEFAULTS, $db);
         });
