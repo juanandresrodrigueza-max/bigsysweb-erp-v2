@@ -60,7 +60,7 @@ class OnboardingController extends Controller
     public function completar(Request $request)
     {
         $b = $request->user()->business;
-        $b->update(['onboarding_completado_en' => now()]);
+        $b->update(['onboarding_completado_en' => now()]); \Illuminate\Support\Facades\Cache::forget('onboarding_resumen_' . $b->id);
         AuditLog::registrar('editar', $b, 'Completó los primeros pasos');
         return redirect('/dashboard')->with('success', '¡Listo! La empresa quedó configurada. Cualquier cosa, Soporte está en el menú.');
     }
