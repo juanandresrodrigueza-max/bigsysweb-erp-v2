@@ -29,6 +29,15 @@
       </div>
     </div>
 
+    <!-- Fase 106: alta pendiente de aprobación -->
+    <div v-if="empresa.aprobacion === 'pendiente'" class="mb-5 px-4 py-3 rounded-2xl text-sm flex flex-wrap items-center gap-3" :class="empresa.aprobacion_bloqueada ? 'bg-carmin-light border border-carmin/30 text-carmin-dark' : 'bg-lavanda-light border border-violeta/20 text-violeta'" data-e2e="aprobacion-ficha">
+      <Icono nombre="clock" clase="w-5 h-5 shrink-0" />
+      <span class="flex-1 min-w-0"><b>{{ empresa.aprobacion_bloqueada ? 'Bloqueada: nadie aprobó el alta.' : 'Pendiente de aprobación.' }}</b> {{ empresa.aprobacion_bloqueada ? 'Nadie de la empresa puede entrar hasta que la apruebes.' : `Acceso provisional hasta el ${empresa.aprobacion_corte}.` }}</span>
+      <button class="btn-primary !py-1.5 text-xs" @click="aprobAbierto = 'aprobar'" data-e2e="aprobar-ficha">Aprobar con la clave</button>
+      <button class="btn-ghost !py-1.5 text-xs" @click="aprobAbierto = 'rechazar'">Rechazar</button>
+    </div>
+    <div v-else-if="empresa.aprobacion === 'rechazada'" class="mb-5 px-4 py-3 rounded-2xl bg-marca-fondo text-sm text-marca-muted">Alta rechazada. Si fue un error, <b>Reactivar</b> la deja operativa.</div>
+
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Vence</p><p class="text-xl font-extrabold tabular-nums" :class="suscripcion?.dias !== null && suscripcion?.dias <= 3 ? 'text-carmin' : ''">{{ empresa.vence ?? '—' }}</p><p v-if="suscripcion?.dias !== null && suscripcion" class="text-xs text-marca-muted">{{ suscripcion.dias < 0 ? `hace ${-suscripcion.dias} días` : suscripcion.dias === 0 ? 'hoy' : `en ${suscripcion.dias} días` }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Paga por mes</p><p class="text-xl font-extrabold tabular-nums">{{ suscripcion ? moneda(suscripcion.ciclo === 'yearly' ? suscripcion.monto / 12 : suscripcion.monto, 0) : '—' }}</p></div>
@@ -185,6 +194,14 @@
       <input v-model="pass.password" class="input" placeholder="Mínimo 6 caracteres" v-if="pass" />
       <template #pie><button class="btn-secondary" @click="pass = null">Cancelar</button><button class="btn-primary" @click="router.post(`/admin/empresas/${empresa.id}/usuarios/${pass.id}`, { accion: 'password', password: pass.password }, { preserveScroll: true, onSuccess: () => (pass = null) })">Guardar</button></template>
     </Modal>
+    <Modal :abierto="!!aprobAbierto" :titulo="(aprobAbierto === 'aprobar' ? 'Aprobar ' : 'Rechazar ') + empresa.nombre" @cerrar="aprobAbierto = null">
+      <div class="space-y-3 text-sm">
+        <p v-if="!claveAprobacion" class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800">No hay clave de aprobación cargada. Cargala en Sistema → Altas con aprobación.</p>
+        <div v-if="aprobAbierto === 'rechazar'"><label class="label">Motivo</label><input v-model="aprob.motivo" class="input" /><p v-if="aprob.errors.motivo" class="text-xs text-carmin mt-1">{{ aprob.errors.motivo }}</p></div>
+        <div><label class="label">Clave de aprobación</label><input v-model="aprob.clave" type="password" class="input" autocomplete="off" data-e2e="clave-aprobacion" /><p v-if="aprob.errors.clave" class="text-xs text-carmin mt-1" data-e2e="error-clave">{{ aprob.errors.clave }}</p></div>
+      </div>
+      <template #pie><button class="btn-secondary" @click="aprobAbierto = null">Cancelar</button><button :class="aprobAbierto === 'aprobar' ? 'btn-primary' : 'btn-danger'" :disabled="aprob.processing || !aprob.clave" @click="aprob.post(`/admin/pendientes/${empresa.id}/${aprobAbierto}`, { preserveScroll: true, onSuccess: () => { aprobAbierto = null; aprob.reset() } })" data-e2e="confirmar-aprobacion">{{ aprobAbierto === 'aprobar' ? 'Aprobar' : 'Rechazar' }}</button></template>
+    </Modal>
   </AdminLayout>
 </template>
 
@@ -198,7 +215,7 @@ import { moneda, hoyISO } from '@/util/formato'
 import { estadoClase, pagoClase, pagoLabel, cicloLabel } from '@/util/suscripcion'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 
-const props = defineProps({ usoDetalle: Object, empresa: Object, suscripcion: Object, uso: Object, usuarios: Array, pagos: Array, auditoria: Array, planes: Array, medios: Object, verticales: Object, estados: Object })
+const props = defineProps({ claveAprobacion: Boolean, usoDetalle: Object, empresa: Object, suscripcion: Object, uso: Object, usuarios: Array, pagos: Array, auditoria: Array, planes: Array, medios: Object, verticales: Object, estados: Object })
 const tab = ref('suscripcion')
 const tabs = computed(() => [{ key: 'suscripcion', label: 'Suscripción', n: props.pagos.filter(p => p.estado === 'pendiente').length }, { key: 'datos', label: 'Datos' }, { key: 'usuarios', label: 'Usuarios', n: props.usuarios.length }, { key: 'uso', label: 'Uso' }, { key: 'auditoria', label: 'Actividad' }])
 
@@ -209,6 +226,7 @@ const pago = useForm({ plan_id: props.suscripcion?.plan_id ?? props.planes[0]?.i
 function pagoMonto() { const p = props.planes.find(x => x.id === pago.plan_id); pago.monto = p ? (pago.ciclo === 'yearly' ? p.price_yearly : p.price_monthly) : 0 }
 pagoMonto()
 const ext = useForm({ dias: 7 })
+const aprobAbierto = ref(null), aprob = useForm({ clave: '', motivo: '' }) // Fase 106
 const susp = useForm({ motivo: '' })
 const baja = useForm({ motivo: '' })
 const datos = useForm({ name: props.empresa.nombre, razon_social: props.empresa.razon_social, cuit: props.empresa.cuit, email: props.empresa.email, phone: props.empresa.phone, vertical: props.empresa.vertical_key ?? 'otro', condicion_iva: props.empresa.condicion_iva ?? 'Responsable Inscripto', notas_internas: props.empresa.notas_internas })

@@ -39,6 +39,20 @@
       </div>
 
       <!-- Fase 93: la app nativa (iPhone y Android): Firebase para los avisos y los links a las tiendas. -->
+      <!-- Fase 106: altas con aprobación (como en el CRM) -->
+      <form id="aprobacion" @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 lg:col-span-3" data-e2e="altas-aprobacion">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div><h2 class="font-bold">Altas con aprobación</h2><p class="text-xs text-marca-muted">Quien se registra (o la empresa que da de alta un empleado de BigSys) entra al toque, pero queda pendiente: si en estas horas nadie la aprueba con la clave en <Link href="/admin/pendientes" class="underline">Pendientes</Link>, se bloquea hasta que alguien lo haga. La clave se guarda como hash y no se vuelve a mostrar; nunca va por chat.</p></div>
+          <span class="badge" :class="aprobacion.clave_set ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ aprobacion.clave_set ? 'Clave cargada' : 'Sin clave: no se puede aprobar' }}</span>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div><label class="label">Horas de acceso provisional</label><input v-model.number="form.horas_provisional" type="number" min="1" max="720" class="input" data-e2e="horas-provisional" /></div>
+          <div><label class="label">Clave de aprobación {{ aprobacion.clave_set ? '(dejar vacío para no cambiarla)' : '' }}</label><input v-model="form.clave_aprobacion" type="password" class="input" autocomplete="new-password" minlength="6" data-e2e="clave-nueva" /><p v-if="form.errors.clave_aprobacion" class="text-xs text-carmin mt-1">{{ form.errors.clave_aprobacion }}</p></div>
+          <div><label class="label">Avisar por mail a (separados por coma)</label><input v-model="form.aviso_registros_emails" class="input" placeholder="vacío = superadmins + soporte" /></div>
+          <div><label class="label">Avisar por WhatsApp a (celulares, con 549…)</label><input v-model="form.aviso_registros_whatsapp" class="input" placeholder="5493515550000" /><p class="text-[11px] text-marca-muted mt-1">Sale por la línea de WhatsApp de la empresa de BigSys.</p></div>
+        </div>
+        <div class="flex items-center justify-between"><p class="text-xs text-marca-muted">Pendientes ahora: <b>{{ aprobacion.pendientes }}</b>. Los avisos van también al celular de cada superadmin (app).</p><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+      </form>
       <!-- Fase 96: entrar con Google -->
       <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 lg:col-span-3" data-e2e="google-login">
         <div class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="font-bold">Entrar con Google</h2><p class="text-xs text-marca-muted">Un botón «Entrar con Google» en el login para todas las empresas. Sólo entra quien ya tiene usuario con ese mail; no crea cuentas.</p></div><span class="badge" :class="google.client_id && google.secret_set ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ google.client_id && google.secret_set ? 'Activo' : 'Sin configurar' }}</span></div>
@@ -152,12 +166,12 @@ import { ref, computed } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Icono from '@/Components/Icono.vue'
-const props = defineProps({ google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const props = defineProps({ aprobacion: { type: Object, default: () => ({}) }, google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
 const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
-const form = useForm({ ...props.config, mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
+const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }

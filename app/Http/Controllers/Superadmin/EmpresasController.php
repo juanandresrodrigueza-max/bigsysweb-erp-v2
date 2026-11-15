@@ -52,6 +52,9 @@ class EmpresasController extends Controller
             'estado_label' => $b->trashed() ? 'Dada de baja' : ($b->suspended_at ? 'Suspendida' : ($s?->estadoLabel() ?? 'Sin plan')),
             'vence' => $s?->fechaLimite()?->format('d/m/Y'), 'dias' => $s?->diasRestantes(), 'usuarios' => $b->users_count,
             'dueno' => $b->owner?->name, 'ultimo_acceso' => $b->owner?->last_login_at?->diffForHumans(), 'alta' => $b->created_at->format('d/m/Y'),
+            // Fase 106: pendiente de aprobación (con acceso provisional o ya bloqueada).
+            'aprobacion' => $b->aprobacion, 'aprobacion_bloqueada' => $b->aprobacion === 'pendiente' && app(\App\Services\Suscripciones\AprobacionService::class)->vencida($b),
+            'aprobacion_corte' => $b->aprobacion === 'pendiente' ? app(\App\Services\Suscripciones\AprobacionService::class)->corte($b)->format('d/m H:i') : null,
         ];
     }
 
@@ -64,7 +67,11 @@ class EmpresasController extends Controller
             'plan_id' => 'required|exists:plans,id', 'modo' => 'required|in:trial,activa', 'dias_prueba' => 'nullable|integer|min:1|max:365', 'ciclo' => 'nullable|in:monthly,yearly', 'medio' => 'nullable|in:cortesia,transferencia,efectivo,mercadopago', 'notas_internas' => 'nullable|string',
         ]);
         $empresa = $service->crearEmpresa($d, $request->user());
-        return redirect("/admin/empresas/{$empresa->id}")->with('success', "Empresa {$empresa->name} dada de alta. El dueño ya puede entrar con {$d['dueno_email']}.");
+        // Fase 106: también lo que da de alta un empleado de BigSys queda pendiente hasta que alguien lo apruebe con la clave.
+        $aprob = app(\App\Services\Suscripciones\AprobacionService::class);
+        $aprob->marcarPendiente($empresa, $request->user());
+        $aprob->avisarAlta($empresa->fresh('owner'));
+        return redirect("/admin/empresas/{$empresa->id}")->with('success', "Empresa {$empresa->name} dada de alta. El dueño ya puede entrar con {$d['dueno_email']}; queda pendiente de aprobación por {$aprob->horas()} horas.");
     }
 
     public function show(int $id)
@@ -90,6 +97,7 @@ class EmpresasController extends Controller
             'auditoria' => AuditLog::withoutGlobalScopes()->where('business_id', $b->id)->with('user:id,name')->latest('created_at')->limit(15)->get()->map(fn($l) => ['id' => $l->id, 'usuario' => $l->user?->name ?? 'Sistema', 'accion' => $l->accion, 'descripcion' => $l->descripcion, 'fecha' => $l->created_at->format('d/m/Y H:i')]),
             'planes' => Plan::orderBy('price_monthly')->get(['id', 'name', 'price_monthly', 'price_yearly', 'is_free']),
             'medios' => PagoSuscripcion::MEDIOS, 'verticales' => Business::VERTICALES, 'estados' => Subscription::ESTADOS,
+            'claveAprobacion' => app(\App\Services\Suscripciones\AprobacionService::class)->claveConfigurada(), // Fase 106
         ]);
     }
 

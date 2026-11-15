@@ -19,6 +19,11 @@ class SistemaConfig extends Model
         'dias_prueba'        => 15,
         'dias_gracia'        => 7,
         'aviso_dias'         => [7, 3, 1],
+        // Fase 106: altas con aprobación. Horas de acceso provisional, la clave (hash bcrypt) y a quién avisar.
+        'horas_provisional'  => 72,
+        'clave_aprobacion'   => null,
+        'aviso_registros_emails' => null,
+        'aviso_registros_whatsapp' => null,
         'mp_access_token'    => null,
         'mp_public_key'      => null,
         'transferencia_cbu'  => null,
@@ -55,7 +60,7 @@ class SistemaConfig extends Model
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion'];
 
     public static function get(string $clave, $default = null)
     {

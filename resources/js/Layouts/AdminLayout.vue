@@ -70,6 +70,7 @@ const iniciales = computed(() => (user.value?.name ?? '?').split(' ').slice(0, 2
 const items = [
   { href: '/admin', label: 'Inicio', icono: 'home' },
   { href: '/admin/empresas', label: 'Empresas', icono: 'building' },
+  { href: '/admin/pendientes', label: 'Pendientes', icono: 'clock' }, // Fase 106: altas que esperan la clave
   { href: '/admin/planes', label: 'Planes', icono: 'receipt' },
   { href: '/admin/cobros', label: 'Cobros', icono: 'wallet' },
   { href: '/admin/usuarios', label: 'Usuarios', icono: 'users' },

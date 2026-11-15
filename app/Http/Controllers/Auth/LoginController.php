@@ -44,6 +44,11 @@ class LoginController extends Controller
             Auth::logout();
             return back()->withErrors(['email' => 'Tu usuario está inactivo. Hablá con el administrador de tu empresa.']);
         }
+        // Fase 106: la empresa nueva sin aprobar, pasado el plazo provisional, espera a que BigSys la habilite.
+        if ($user->business && $user->business->aprobacion === 'pendiente' && app(\App\Services\Suscripciones\AprobacionService::class)->vencida($user->business)) {
+            Auth::logout();
+            return back()->withErrors(['email' => \App\Services\Suscripciones\AprobacionService::MENSAJE_ESPERANDO]);
+        }
 
         if ($user->two_factor_enabled_at) {
             // Segundo paso: se cierra la sesión provisoria y se pide el código antes de entrar.

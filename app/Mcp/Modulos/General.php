@@ -92,6 +92,18 @@ class General
                         'copias' => (function () { $e = collect(\App\Services\Migracion\BackupService::estadoPorEmpresa()); return ['con_problemas' => $e->where('verificada', false)->pluck('empresa')->all(), 'ensayo_fallido' => $e->filter(fn($x) => $x['ensayo'] && ! $x['ensayo']['ok'])->pluck('empresa')->all(), 'fuera_del_servidor' => \App\Services\Migracion\BackupService::remotoConfigurado()]; })(), // Fase 78
                         'url' => Busca::url('/admin/salud')];
                 }],
+            // Fase 106: altas pendientes de aprobación (sólo superadmin). Aprobar se hace en el panel, con la clave: Bigcito no la pide ni la recibe.
+            ['nombre' => 'altas_pendientes', 'titulo' => 'Empresas pendientes de aprobación (superadmin)', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
+                'descripcion' => 'Sólo para el administrador de BigSys: empresas nuevas que esperan la aprobación (quién se registró, cuándo, cuántas horas de acceso provisional le quedan, si ya quedó bloqueada). Aprobar o rechazar se hace en Panel → Pendientes con la clave de aprobación; nunca pidas la clave por chat.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    if (! $u->is_superadmin) return ['error' => 'Esto lo ve sólo el administrador de BigSys.'];
+                    $svc = app(\App\Services\Suscripciones\AprobacionService::class);
+                    $p = $svc->pendientes();
+                    return ['pendientes' => $p->count(), 'bloqueadas' => $p->where('bloqueada', true)->count(), 'horas_provisional' => $svc->horas(), 'clave_configurada' => $svc->claveConfigurada(),
+                        'empresas' => $p->map(fn($x) => ['empresa' => $x['nombre'], 'dueno' => $x['dueno'], 'email' => $x['email'], 'rubro' => $x['rubro'], 'alta' => $x['alta'], 'origen' => $x['origen'], 'horas_restantes' => $x['horas_restantes'], 'bloqueada' => $x['bloqueada']])->values()->all(),
+                        'url' => Busca::url('/admin/pendientes')];
+                }],
             ['nombre' => 'ayuda_sistema', 'titulo' => 'Ayuda del sistema', 'modulo' => null, 'permiso' => null, 'tipo' => 'consulta',
                 'descripcion' => 'Busca en las guías de ayuda de BigSysWeb cómo se hace algo en el sistema (pasos, menús, botones).',
                 'parametros' => ['pregunta' => ['type' => 'string', 'description' => 'Qué se quiere hacer, en palabras del usuario.']], 'requeridos' => ['pregunta'],

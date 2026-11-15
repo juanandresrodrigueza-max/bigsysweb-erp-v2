@@ -40,12 +40,14 @@ class PanelController extends Controller
                 'gracia' => $porEstado->get('grace', 0), 'suspendidas' => $porEstado->get('suspended', 0) + Business::whereNotNull('suspended_at')->count(),
                 'mrr' => round($mrr), 'cobrado_mes' => $cobradoMes, 'cobrado_anterior' => $cobradoMesAnterior, 'usuarios' => User::whereNotNull('business_id')->count(),
                 'pendientes' => PagoSuscripcion::where('estado', 'pendiente')->where('medio', 'transferencia')->count(),
+                'aprobaciones' => Business::where('aprobacion', 'pendiente')->count(), // Fase 106
+                'aprobaciones_bloqueadas' => Business::where('aprobacion', 'pendiente')->where('created_at', '<', now()->subHours(app(\App\Services\Suscripciones\AprobacionService::class)->horas()))->count(),
             ],
             'vencen' => $vencen,
             'altas' => $altas,
             'ultimosPagos' => PagoSuscripcion::with('business:id,name', 'plan:id,name')->latest('id')->limit(8)->get()->map(fn($p) => ['id' => $p->id, 'empresa' => $p->business?->name, 'business_id' => $p->business_id, 'plan' => $p->plan->name, 'monto' => (float) $p->monto, 'medio' => PagoSuscripcion::MEDIOS[$p->medio] ?? $p->medio, 'estado' => $p->estado, 'fecha' => $p->fecha->format('d/m')]),
-            'nuevas' => Business::latest('id')->limit(6)->get()->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name, 'vertical' => Business::VERTICALES[$b->vertical] ?? '—', 'hace' => $b->created_at->diffForHumans(), 'estado' => $b->subscription?->status]),
-            'actividad' => AuditLog::withoutGlobalScopes()->with('user:id,name')->whereIn('accion', ['alta_empresa', 'baja_empresa', 'suspender_empresa', 'reactivar_empresa', 'suscripcion', 'impersonar'])->latest('created_at')->limit(8)->get()->map(fn($l) => ['id' => $l->id, 'usuario' => $l->user?->name ?? 'Sistema', 'descripcion' => $l->descripcion, 'hace' => $l->created_at->diffForHumans()]),
+            'nuevas' => Business::latest('id')->limit(6)->get()->map(fn($b) => ['id' => $b->id, 'nombre' => $b->name, 'vertical' => Business::VERTICALES[$b->vertical] ?? '—', 'hace' => $b->created_at->diffForHumans(), 'estado' => $b->subscription?->status, 'aprobacion' => $b->aprobacion]),
+            'actividad' => AuditLog::withoutGlobalScopes()->with('user:id,name')->whereIn('accion', ['alta_empresa', 'aprobacion_empresa', 'rechazo_empresa', 'aprobacion_clave_incorrecta', 'baja_empresa', 'suspender_empresa', 'reactivar_empresa', 'suscripcion', 'impersonar'])->latest('created_at')->limit(8)->get()->map(fn($l) => ['id' => $l->id, 'usuario' => $l->user?->name ?? 'Sistema', 'descripcion' => $l->descripcion, 'hace' => $l->created_at->diffForHumans()]),
         ]);
     }
 }

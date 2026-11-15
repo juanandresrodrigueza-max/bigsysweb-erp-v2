@@ -66,8 +66,11 @@ class SistemaController extends Controller
 
     public function nuevoSuperadmin(Request $request)
     {
-        $d = $request->validate(['name' => 'required|string|max:120', 'email' => 'required|email|unique:users,email', 'password' => 'required|string|min:6']);
-        $u = User::create($d + ['status' => 'active', 'is_superadmin' => true]);
+        $d = $request->validate(['name' => 'required|string|max:120', 'email' => 'required|email|unique:users,email', 'password' => 'required|string|min:6', 'clave' => 'nullable|string|max:120']);
+        // Fase 106: dar de alta otro superadmin pide la clave de aprobación (si está configurada): es la llave de todo el panel.
+        $aprob = app(\App\Services\Suscripciones\AprobacionService::class);
+        if ($aprob->claveConfigurada() && ($e = $aprob->validarClave($request->user(), $d['clave'] ?? null, app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual() ?? new Business(), 'crear un superadmin'))) return back()->withErrors(['clave' => $e]);
+        $u = User::create(collect($d)->except('clave')->all() + ['status' => 'active', 'is_superadmin' => true]);
         app(\App\Services\Suscripciones\EmpresaBigSysService::class)->sumar($u); // Fase 87
         AuditLog::registrar('crear', $u, "Nuevo superadmin {$u->email}");
         return back()->with('success', 'Superadmin creado.');
@@ -82,6 +85,8 @@ class SistemaController extends Controller
             'config' => ['dias_prueba' => $c['dias_prueba'], 'dias_gracia' => $c['dias_gracia'], 'aviso_dias' => implode(',', (array) $c['aviso_dias']), 'mp_public_key' => $c['mp_public_key'], 'mp_access_token_set' => (bool) $c['mp_access_token'], 'transferencia_cbu' => $c['transferencia_cbu'], 'transferencia_alias' => $c['transferencia_alias'], 'transferencia_titular' => $c['transferencia_titular'], 'mensaje_global' => $c['mensaje_global'], 'soporte_whatsapp' => $c['soporte_whatsapp'], 'soporte_email' => $c['soporte_email'],
                 'ml_app_id' => $c['ml_app_id'], 'ml_app_secret_set' => (bool) $c['ml_app_secret'], 'mp_app_id' => $c['mp_app_id'], 'mp_app_secret_set' => (bool) $c['mp_app_secret'], 'tn_app_id' => $c['tn_app_id'], 'tn_app_secret_set' => (bool) $c['tn_app_secret'], 'ia_api_key_set' => (bool) $c['ia_api_key'], 'ia_modelo' => $c['ia_modelo'] ?: config('services.anthropic.model'), 'ia_env' => (bool) env('ANTHROPIC_API_KEY'),
                 'mail_host' => $c['mail_host'], 'mail_port' => $c['mail_port'], 'mail_username' => $c['mail_username'], 'mail_password_set' => (bool) $c['mail_password'], 'mail_encryption' => $c['mail_encryption'], 'mail_from_address' => $c['mail_from_address'] ?: config('mail.from.address'), 'mail_from_name' => $c['mail_from_name'], 'mail_env' => env('MAIL_MAILER', 'log'), 'mail_activo' => config('mail.default')],
+            // Fase 106: altas con aprobación
+            'aprobacion' => ['horas' => (int) ($c['horas_provisional'] ?? 72), 'clave_set' => (bool) ($c['clave_aprobacion'] ?? null), 'emails' => $c['aviso_registros_emails'] ?? null, 'whatsapp' => $c['aviso_registros_whatsapp'] ?? null, 'pendientes' => Business::where('aprobacion', 'pendiente')->count()],
             'mantenimiento' => $c['mantenimiento'] ?? SistemaConfig::DEFAULTS['mantenimiento'],
             // Fase 93: la app nativa: cuenta de servicio de Firebase (cifrada) y links a las tiendas.
             'movil' => ['fcm_set' => app(\App\Services\Avisos\PushNativoService::class)->configurado(), 'fcm_proyecto' => app(\App\Services\Avisos\PushNativoService::class)->cuenta()['project_id'] ?? null, 'app_android_url' => $c['app_android_url'] ?? null, 'app_ios_url' => $c['app_ios_url'] ?? null, 'android_sha256' => $c['android_sha256'] ?? null, 'apple_team_id' => $c['apple_team_id'] ?? null, 'dispositivos' => \App\Models\DispositivoMovil::selectRaw('plataforma, count(*) c')->groupBy('plataforma')->pluck('c', 'plataforma')],
@@ -107,10 +112,12 @@ class SistemaController extends Controller
     {
         $d = $request->validate(['dias_prueba' => 'required|integer|min:1|max:365', 'dias_gracia' => 'required|integer|min:0|max:90', 'aviso_dias' => 'nullable|string|max:40', 'mp_public_key' => 'nullable|string|max:200', 'mp_access_token' => 'nullable|string|max:300', 'transferencia_cbu' => 'nullable|string|max:40', 'transferencia_alias' => 'nullable|string|max:60', 'transferencia_titular' => 'nullable|string|max:120', 'mensaje_global' => 'nullable|string|max:300', 'soporte_whatsapp' => 'nullable|string|max:40', 'soporte_email' => 'nullable|email',
             'fcm_service_account' => 'nullable|string|max:6000', 'app_android_url' => 'nullable|url|max:300', 'app_ios_url' => 'nullable|url|max:300', 'android_sha256' => 'nullable|string|max:600', 'apple_team_id' => 'nullable|string|max:10',
+            'horas_provisional' => 'nullable|integer|min:1|max:720', 'clave_aprobacion' => 'nullable|string|min:6|max:120', 'aviso_registros_emails' => 'nullable|string|max:400', 'aviso_registros_whatsapp' => 'nullable|string|max:200', // Fase 106
             'ia_api_key' => 'nullable|string|max:300', 'ia_modelo' => 'nullable|string|max:80', 'google_client_id' => 'nullable|string|max:200', 'google_client_secret' => 'nullable|string|max:200', 'ml_app_id' => 'nullable|string|max:60', 'ml_app_secret' => 'nullable|string|max:200', 'mp_app_id' => 'nullable|string|max:60', 'mp_app_secret' => 'nullable|string|max:200', 'tn_app_id' => 'nullable|string|max:60', 'tn_app_secret' => 'nullable|string|max:200', 'mail_host' => 'nullable|string|max:150', 'mail_port' => 'nullable|integer|min:1|max:65535', 'mail_username' => 'nullable|string|max:150', 'mail_password' => 'nullable|string|max:300', 'mail_encryption' => 'nullable|in:tls,ssl,none', 'mail_from_address' => 'nullable|email', 'mail_from_name' => 'nullable|string|max:80']);
         if (! empty($d['fcm_service_account'])) { $j = json_decode($d['fcm_service_account'], true); if (! is_array($j) || empty($j['project_id']) || empty($j['client_email']) || empty($j['private_key'])) return back()->withErrors(['fcm_service_account' => 'Eso no parece el JSON de una cuenta de servicio de Firebase (tiene que traer project_id, client_email y private_key).']); $d['fcm_service_account'] = json_encode($j); }
         foreach ($d as $k => $v) {
             if (in_array($k, SistemaConfig::SECRETOS, true) && ! $v) continue; // vacío = no tocar la clave guardada
+            if ($k === 'clave_aprobacion') { app(\App\Services\Suscripciones\AprobacionService::class)->guardarClave($v); AuditLog::registrar('editar', null, 'Clave de aprobación cambiada'); continue; } // Fase 106: se guarda el hash
             if ($k === 'mail_encryption' && $v === 'none') $v = null;
             if ($k === 'aviso_dias') $v = collect(explode(',', (string) $v))->map(fn($x) => (int) trim($x))->filter(fn($x) => $x >= 0)->unique()->sortDesc()->values()->all();
             SistemaConfig::set($k, $v);

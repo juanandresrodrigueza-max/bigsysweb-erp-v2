@@ -10,8 +10,6 @@ use App\Services\Suscripciones\SuscripcionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 // Fase 46: "Registrate gratis". La empresa se da de alta sola con 15 días de Prueba (todo activado) y después sigue en Gratis.
@@ -44,18 +42,22 @@ class RegistroController extends Controller
         $b = $s->crearEmpresa(['name' => $d['empresa'], 'dueno_nombre' => $d['nombre'], 'dueno_email' => $d['email'], 'dueno_password' => $d['password'], 'dueno_mobile' => $d['telefono'] ?? null,
             'phone' => $d['telefono'] ?? null, 'cuit' => $d['cuit'] ?? null, 'vertical' => $d['rubro'] ?? 'otro', 'plan_id' => $plan->id, 'modo' => 'trial', 'dias_prueba' => self::DIAS_PRUEBA, 'notas_internas' => 'Alta desde Registrate gratis']);
 
-        $this->avisarBigsys($b, $d);
+        // Fase 106: entra al toque, pero queda pendiente de aprobación (acceso provisional). Avisa a BigSys por mail, WhatsApp y celular.
+        $aprob = app(\App\Services\Suscripciones\AprobacionService::class);
+        $aprob->marcarPendiente($b);
+        $aprob->avisarAlta($b->fresh('owner'));
         Auth::login(User::findOrFail($b->owner_id));
         $request->session()->regenerate();
         return redirect('/primeros-pasos')->with('success', '¡Listo! Tenés ' . self::DIAS_PRUEBA . ' días con todo activado. Empezá por estos pasos.');
     }
 
-    private function avisarBigsys(Business $b, array $d): void
+    // Fase 106: página de espera cuando el alta no se aprobó dentro del plazo provisional. Si ya se aprobó, sigue adentro.
+    public function esperando(Request $request)
     {
-        $a = collect([\App\Models\SistemaConfig::get('soporte_email')])->concat(User::withoutGlobalScopes()->where('is_superadmin', true)->pluck('email'))->filter()->unique()->all();
-        if (! $a) return;
-        try {
-            Mail::raw("Nueva empresa registrada sola:\n\n{$b->name}\n{$d['nombre']} · {$d['email']}" . (! empty($d['telefono']) ? " · {$d['telefono']}" : '') . "\nRubro: " . (Business::VERTICALES[$d['rubro'] ?? 'otro'] ?? 'Otro') . "\nPrueba de " . self::DIAS_PRUEBA . ' días.', fn($m) => $m->to($a)->subject("Nuevo registro: {$b->name}"));
-        } catch (\Throwable $e) { Log::warning('No se pudo avisar el registro: ' . $e->getMessage()); }
+        $b = $request->user()->business;
+        $aprob = app(\App\Services\Suscripciones\AprobacionService::class);
+        if (! $b || $b->aprobacion !== 'pendiente' || ! $aprob->vencida($b)) return redirect('/dashboard');
+        return Inertia::render('Auth/EsperandoAprobacion', ['empresa' => $b->name, 'mensaje' => \App\Services\Suscripciones\AprobacionService::MENSAJE_ESPERANDO,
+            'soporte' => ['whatsapp' => \App\Models\SistemaConfig::get('soporte_whatsapp'), 'email' => \App\Models\SistemaConfig::get('soporte_email')]]);
     }
 }

@@ -12,6 +12,7 @@ Orden sugerido: primero el bloque A (mañana a la mañana), después B y C en el
 
 - [ ] **Salud**: entrar a `https://erp.bigsysweb.com/salud` (o Superadmin → Salud). Tiene que decir `ok` o `aviso`. Anoche corrieron las rondas que estaban rojas: 03:40 ensayo de restauración de copias (arreglado en PR #152) y 04:40 páginas lentas (ahora con calentamiento). Si sigue `critico`, pedirle a la sesión «CRM Producción» que mande el detalle de la ronda que falla; no tocar nada a mano.
 - [ ] **Probar en producción «Facturar después»** con la empresa de BigSys o una de prueba: hacer una venta tildada como comprobante interno, y desde el comprobante apretar **Facturar** (fase 104). Tiene que salir con numeración fiscal y CAE (o simulado si la empresa no tiene certificado). Es la única función nueva que no se probó con datos reales.
+- [ ] **Cargar la clave de aprobación** en Panel → Sistema → Altas con aprobación (fase 106) y, si querés WhatsApp, los celulares. Después probar: registrarte con un mail de prueba en `/registro`, ver que te llega el aviso y aprobarla en Panel → Pendientes.
 - [ ] **Actualizar producción** cuando se mergee algo nuevo: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
 
 ## B · Plataforma BigSys (Superadmin → Sistema, una sola vez)
@@ -26,6 +27,7 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 | Transferencia bancaria | titular, CBU, alias | banco de BigSys | Alternativa de pago de la suscripción |
 | Ciclo de suscripción | días de prueba (15), gracia, avisos | decisión comercial | Ya tiene valores por defecto |
 | Soporte y avisos | WhatsApp y email de soporte, mensaje global | — | Botón Soporte de las empresas |
+| **Altas con aprobación** (fase 106) | **clave de aprobación** (mínimo 6 caracteres), horas de acceso provisional (72), mails y celulares a los que avisar | la elegís vos; sólo en el formulario, nunca por chat | **Sin clave no se puede aprobar ninguna empresa nueva** y a las 72 h se bloquean. Es lo primero del bloque B |
 | Entrar con Google | Client ID y Client secret | console.cloud.google.com → OAuth, con `https://erp.bigsysweb.com` como origen autorizado | Botón «Entrar con Google» (sin esto el login con usuario y clave anda igual) |
 | App del celular | JSON de la cuenta de servicio de Firebase, links de Play y App Store, huella SHA-256, Team ID de Apple | ver `docs/MOVIL.md` «Lo que hace falta una sola vez» | Avisos push a la app; **Probar push** confirma |
 | Aplicaciones para conectar tiendas | App ID y Secret de Mercado Pago (cobros en el local), MercadoLibre y Tienda Nube | cada plataforma, panel de desarrolladores, con la URL de retorno del ERP | El botón «Conectar» de cada empresa en Configuración → Tienda y canales |
