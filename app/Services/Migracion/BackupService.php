@@ -88,6 +88,7 @@ class BackupService
         $restauradas = [];
         Schema::disableForeignKeyConstraints(); // en SQLite tiene que ir fuera de la transacción
         DB::transaction(function () use ($zip, $b, $manifest, &$restauradas) {
+            self::postergarClaves();
             $restauradas = $this->cargarTablas($zip, $b, $manifest);
             foreach (array_filter(array_map(fn($i) => $zip->getNameIndex($i), range(0, $zip->numFiles - 1)), fn($n) => str_starts_with($n, 'archivos/') && ! str_ends_with($n, '/')) as $n) {
                 Storage::disk('local')->put(substr($n, 9), $zip->getFromName($n));
@@ -121,6 +122,21 @@ class BackupService
             $restauradas[$t] = count($filas);
         }
         return $restauradas;
+    }
+
+    // Restaurar carga tabla por tabla, y hay claves que van "para atrás" (cuenta_corriente → cobros, que se carga después) o dentro
+    // de la misma tabla. En Postgres, Schema::disableForeignKeyConstraints() es SET CONSTRAINTS ALL DEFERRED, que sólo sirve si la clave
+    // es DEFERRABLE (no lo era ninguna: las copias de Corralón Demo, La Espiga y Prueba E2E no se podían restaurar) y si se pide DENTRO
+    // de la transacción. Acá se hacen las dos cosas: las claves que falten pasan a DEFERRABLE INITIALLY IMMEDIATE (en el uso diario se
+    // controlan igual que antes, al momento) y se posterga el control hasta el final de la transacción. Una tabla nueva con claves
+    // queda cubierta sola la próxima vez que se restaure o se ensaye.
+    public static function postergarClaves(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') return;
+        $faltan = DB::select("SELECT c.conrelid::regclass::text AS tabla, c.conname AS clave FROM pg_constraint c
+            WHERE c.contype = 'f' AND NOT c.condeferrable AND c.connamespace = current_schema()::regnamespace");
+        foreach ($faltan as $f) DB::statement('ALTER TABLE ' . $f->tabla . ' ALTER CONSTRAINT "' . str_replace('"', '""', $f->clave) . '" DEFERRABLE INITIALLY IMMEDIATE');
+        DB::statement('SET CONSTRAINTS ALL DEFERRED');
     }
 
     // ── Fase 78: la copia tiene que servir ──────────────────────────────────────────────────────────
@@ -167,7 +183,11 @@ class BackupService
         Schema::disableForeignKeyConstraints();
         DB::beginTransaction();
         try {
+            self::postergarClaves();
             $cargadas = $this->cargarTablas($zip, $b, $manifest);
+            // Antes de deshacer, se controlan YA las claves postergadas: si la copia apunta a algo que no está, el ensayo falla acá
+            // (en la restauración real lo haría el commit). Sin esto el ensayo nunca vería un problema de claves.
+            if (DB::getDriverName() === 'pgsql') DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
             $mal = [];
             foreach ($cargadas as $t => $n) { $hay = count($this->filas($t, $b->id)); if ($hay !== $n) $mal[] = "{$t}: cargó {$hay} de {$n}"; }
             $r = ['ok' => ! $mal, 'tablas' => count($cargadas), 'detalle' => $mal ? implode('; ', array_slice($mal, 0, 5)) : 'Se restauraron ' . count($cargadas) . ' tablas y se deshizo todo.'];
