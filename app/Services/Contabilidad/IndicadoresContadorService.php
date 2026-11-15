@@ -36,7 +36,7 @@ class IndicadoresContadorService
         $resultado12 = round($ventas12 - $compras12 - $gastos12, 2);
         $ivaPagado12 = round(array_sum(array_map(fn($s) => max(0, $s['iva_debito'] - $s['iva_credito']), $serie)), 2);
         $salud = [];
-        $sinAsiento = DB::table('comprobantes')->where('business_id', $bid)->where('estado', 'emitido')->whereBetween('fecha', [$fin->copy()->startOfMonth()->toDateString(), $h])->whereNotExists(fn($q) => $q->select(DB::raw(1))->from('asientos')->whereColumn('asientos.origen_id', 'comprobantes.id')->where('asientos.origen', 'comprobante'))->count();
+        $sinAsiento = DB::table('comprobantes')->where('business_id', $bid)->where('estado', 'emitido')->where('sin_arca', false)->whereBetween('fecha', [$fin->copy()->startOfMonth()->toDateString(), $h])->whereNotExists(fn($q) => $q->select(DB::raw(1))->from('asientos')->whereColumn('asientos.origen_id', 'comprobantes.id')->where('asientos.origen', 'comprobante'))->count();
         if ($sinAsiento) $salud[] = ['texto' => "{$sinAsiento} comprobantes del mes sin asiento", 'url' => '/contable'];
         $sinConc = ExtractoItem::withoutGlobalScopes()->where('business_id', $bid)->where('estado', 'pendiente')->count(); if ($sinConc) $salud[] = ['texto' => "{$sinConc} renglones del banco sin conciliar", 'url' => '/contable/conciliacion'];
         $sinCat = MovimientoFondos::withoutGlobalScopes()->where('business_id', $bid)->where('origen', 'gasto')->whereNull('expense_category_id')->whereBetween('fecha', [$fin->copy()->startOfMonth()->toDateString(), $h])->count(); if ($sinCat) $salud[] = ['texto' => "{$sinCat} gastos del mes sin categoría", 'url' => '/fondos'];

@@ -81,6 +81,6 @@ class Busca
     public static function comp(Comprobante $c): array
     {
         return ['id' => $c->id, 'tipo' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha?->toDateString(), 'vence' => $c->fecha_vto?->toDateString(), 'cliente' => $c->contact?->name ?? ($c->receptor['nombre'] ?? 'Consumidor final'),
-            'estado' => $c->estado, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'cae' => $c->cae, 'url' => self::url(($c->direccion === 'compra' ? '/proveedores/compras/' : '/comprobantes/') . $c->id)];
+            'estado' => $c->estado, 'total' => (float) $c->total, 'saldo' => (float) $c->saldo, 'cae' => $c->cae, 'interno' => (bool) $c->sin_arca, 'url' => self::url(($c->direccion === 'compra' ? '/proveedores/compras/' : '/comprobantes/') . $c->id)];
     }
 }

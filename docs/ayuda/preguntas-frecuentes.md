@@ -172,6 +172,10 @@ Configuración → Importar → **3. Control de cierre**: compara los totales de
 
 Porque así lo pide ARCA desde julio de 2021 (RG 5003, ley 27.618): el responsable inscripto emite A a los monotributistas, con el IVA discriminado y una leyenda al pie. El sistema la pone solo. La B queda para exentos, consumidores finales, no categorizados e IVA no alcanzado. Está en **Facturar → Qué letra lleva cada factura**.
 
+## ¿Cómo hago una venta sin informarla a ARCA pero que descuente stock?
+
+Con un **comprobante interno**: en la factura destildá «Informar a ARCA», o en el mostrador tildá «Comprobante interno» al cobrar; si a ese cliente siempre se le hace así, marcalo en su ficha. Numera aparte, sin CAE, y mueve stock, cuenta corriente y caja; no entra en los libros de IVA ni en la contabilidad. Está en **Facturar → Comprobante interno**.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

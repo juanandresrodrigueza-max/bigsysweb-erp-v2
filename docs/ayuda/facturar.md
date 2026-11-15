@@ -78,6 +78,17 @@ Para cargar una factura que ya se hizo en papel: un talonario preimpreso con CAI
 
 Solo la cargan el dueño y los administradores. El sistema no deja repetir el mismo tipo, punto de venta y número. Si la cargaste por error, se da de baja desde el mismo comprobante. La numeración electrónica no se toca.
 
+## Comprobante interno (fase 103)
+
+Para la venta que querés registrar completa (stock, cuenta corriente, caja y valores) pero **sin informar a ARCA**: lo que en BigSys era la «E». Se llama **comprobante interno**: numeración propia por punto de venta, letra X, sin CAE, y el papel dice «no válido como factura».
+
+- **Cómo se hace**: en la factura nueva, destildá **Informar a ARCA**; en el mostrador, tildá **Comprobante interno** al cobrar. Si a un cliente siempre se le hace así, marcá **Comprobante interno por defecto** en su ficha y sale solo (se puede cambiar en cada venta).
+- **Qué mueve**: el stock, la cuenta corriente del cliente, los cobros con todos los medios (efectivo, transferencia, cheques, tarjeta) y las estadísticas de venta. Las notas de crédito sobre un interno también son internas.
+- **Qué no toca**: no pide CAE, no entra en los libros de IVA ni en la posición de IVA, no genera asiento contable y no aparece en el panel, el informe ni las exportaciones del contador. Los recibos que sólo cancelan internos tampoco van a la contabilidad (si un recibo mezcla internos y fiscales, va entero).
+- **Dónde se ven**: en Vender → Comprobantes, el filtro **Sólo internos / Sólo fiscales** y la etiqueta «Interno» en cada uno. Los números de la numeración fiscal no se gastan.
+
+A Bigcito: "hacele un comprobante interno a Pérez por 10 bolsas de cemento", "¿cuánto vendí este mes, fiscal e interno?".
+
 ## Errores comunes
 
 - **"ARCA rechazó el comprobante"**: el mensaje explica qué revisar (CUIT del cliente, condición de IVA, fecha, punto de venta). Corregí y volvé a emitir.

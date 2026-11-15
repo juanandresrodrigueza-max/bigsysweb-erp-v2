@@ -28,7 +28,8 @@ class Ventas
                     $n = Comprobante::ventas()->emitidos()->facturas()->whereBetween('fecha', [$d->toDateString(), $h->toDateString()])->count();
                     $dias = $d->diffInDays($h) + 1; $ant = $tot($d->copy()->subDays($dias), $d->copy()->subDay());
                     $t = $tot($d, $h);
-                    return ['periodo' => $l, 'desde' => $d->toDateString(), 'hasta' => $h->toDateString(), 'total' => round($t, 2), 'facturas' => $n, 'ticket_promedio' => $n ? round($t / $n, 2) : 0, 'periodo_anterior' => round($ant, 2), 'variacion_pct' => $ant > 0 ? round(($t - $ant) / $ant * 100, 1) : null];
+                    $int = (float) Comprobante::ventas()->emitidos()->internos()->whereIn('tipo', array_merge(self::GRUPOS['factura'], self::GRUPOS['nota_debito'], self::GRUPOS['nota_credito']))->whereBetween('fecha', [$d->toDateString(), $h->toDateString()])->get()->sum(fn($c) => $c->def()['cc'] * (float) $c->total);
+                    return ['periodo' => $l, 'desde' => $d->toDateString(), 'hasta' => $h->toDateString(), 'total' => round($t, 2), 'fiscal' => round($t - $int, 2), 'internos' => round($int, 2), 'facturas' => $n, 'ticket_promedio' => $n ? round($t / $n, 2) : 0, 'periodo_anterior' => round($ant, 2), 'variacion_pct' => $ant > 0 ? round(($t - $ant) / $ant * 100, 1) : null];
                 }],
             ['nombre' => 'buscar_comprobantes', 'titulo' => 'Buscar comprobantes', 'modulo' => 'comprobantes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Busca facturas, notas, presupuestos o remitos de venta por cliente, tipo, estado y fechas.',
@@ -119,8 +120,8 @@ class Ventas
                 'proponer' => fn(User $u, array $a) => self::proponerComprobante($u, $a, 'PRE'),
                 'confirmar' => fn(User $u, array $d) => self::guardar($u, $d)],
             ['nombre' => 'crear_factura', 'titulo' => 'Preparar una factura', 'modulo' => 'comprobantes', 'permiso' => 'crear', 'tipo' => 'accion',
-                'descripcion' => 'Prepara una factura en borrador (la letra A/B/C sale sola), con renglones o desde un presupuesto. Para mandarla a ARCA después se usa emitir_comprobante.',
-                'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Vacío = consumidor final.'], 'items' => self::ITEMS, 'presupuesto' => ['type' => 'string', 'description' => 'Número o id de un presupuesto a facturar.'], 'condicion' => ['type' => 'string', 'enum' => ['contado', 'cta_cte']], 'notas' => ['type' => 'string']],
+                'descripcion' => 'Prepara una factura en borrador (la letra A/B/C sale sola), con renglones o desde un presupuesto. Con interno=true queda como comprobante interno (numeración propia, sin ARCA: mueve stock, cuenta corriente y plata). Para emitirla después se usa emitir_comprobante.',
+                'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Vacío = consumidor final.'], 'items' => self::ITEMS, 'presupuesto' => ['type' => 'string', 'description' => 'Número o id de un presupuesto a facturar.'], 'interno' => ['type' => 'boolean', 'description' => 'true = comprobante interno, sin ARCA'], 'condicion' => ['type' => 'string', 'enum' => ['contado', 'cta_cte']], 'notas' => ['type' => 'string']],
                 'proponer' => fn(User $u, array $a) => self::proponerComprobante($u, $a, 'FX'),
                 'confirmar' => fn(User $u, array $d) => self::guardar($u, $d)],
             ['nombre' => 'emitir_comprobante', 'titulo' => 'Emitir ante ARCA', 'modulo' => 'comprobantes', 'permiso' => 'crear', 'tipo' => 'accion', 'delicada' => true,
@@ -190,12 +191,12 @@ class Ventas
         $que = $tipo === 'PRE' ? 'Presupuesto' : 'Factura (borrador)';
         return ['titulo' => "{$que} para " . ($c?->name ?? 'Consumidor final') . ' por ' . Busca::pesos($total) . ' (con IVA)',
             'detalle' => collect($items)->map(fn($i) => "{$i['cantidad']} × {$i['descripcion']} a " . Busca::pesos($i['precio_unit']) . ($i['descuento'] ? " −{$i['descuento']}%" : ''))->implode('; ') . ($noEnc ? '. No encontré: ' . implode(', ', $noEnc) : '') . '. Queda en borrador para revisar.',
-            'datos' => ['tipo' => $tipo, 'contact_id' => $c?->id, 'origen_id' => $origen?->id, 'condicion' => ($a['condicion'] ?? null) ?: ($c && (int) $c->dias_pago > 0 ? 'cta_cte' : 'contado'), 'notas' => $a['notas'] ?? null, 'items' => $items]];
+            'datos' => ['tipo' => $tipo, 'contact_id' => $c?->id, 'origen_id' => $origen?->id, 'condicion' => ($a['condicion'] ?? null) ?: ($c && (int) $c->dias_pago > 0 ? 'cta_cte' : 'contado'), 'notas' => $a['notas'] ?? null, 'items' => $items] + (array_key_exists('interno', $a) ? ['interno' => (bool) $a['interno']] : [])];
     }
 
     private static function guardar(User $u, array $d): array
     {
-        $c = app(ComprobanteService::class)->guardarBorrador(['tipo' => $d['tipo'], 'contact_id' => $d['contact_id'], 'origen_id' => $d['origen_id'] ?? null, 'fecha' => today()->toDateString(), 'condicion' => $d['condicion'], 'notas' => $d['notas'] ?? null, 'items' => $d['items']]);
+        $c = app(ComprobanteService::class)->guardarBorrador((array_key_exists('interno', $d) ? ['sin_arca' => (bool) $d['interno']] : []) + ['tipo' => $d['tipo'], 'contact_id' => $d['contact_id'], 'origen_id' => $d['origen_id'] ?? null, 'fecha' => today()->toDateString(), 'condicion' => $d['condicion'], 'notas' => $d['notas'] ?? null, 'items' => $d['items']]);
         return ['texto' => "{$c->nombreTipo()} en borrador por " . Busca::pesos($c->total) . ($d['tipo'] === 'PRE' ? '.' : '. Para mandarla a ARCA usá emitir_comprobante.'), 'comprobante' => Busca::comp($c), 'url' => Busca::url("/comprobantes/{$c->id}/editar")];
     }
 }

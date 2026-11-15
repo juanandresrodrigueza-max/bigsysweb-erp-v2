@@ -51,7 +51,7 @@ class PosService
             $c = $this->comprobantes->guardarBorrador([
                 'contact_id' => $contact->id, 'tipo' => $tipo, 'fecha' => today()->toDateString(), 'condicion' => 'contado', 'notas' => $d['notas'] ?? null, 'items' => $lineas,
                 'receptor_datos' => $receptor,
-            ]);
+            ] + (array_key_exists('interno', $d) && $d['interno'] !== null ? ['sin_arca' => (bool) $d['interno']] : [])); // Fase 103
             $c = $this->comprobantes->emitir($c);
 
             $medios = array_values(array_filter($d['medios'] ?? [], fn($m) => (float) $m['monto'] > 0));

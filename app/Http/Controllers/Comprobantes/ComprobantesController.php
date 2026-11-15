@@ -29,6 +29,7 @@ class ComprobantesController extends Controller
             ->whereIn('tipo', $tiposGrupo)
             ->when($request->estado, fn($q, $e) => $e === 'pendiente' ? $q->pendientesCobro() : ($e === 'vencido' ? $q->pendientesCobro()->where('fecha_vto', '<', today()->toDateString()) : $q->where('estado', $e)))
             ->when($request->contact_id, fn($q, $c) => $q->where('contact_id', $c))
+            ->when($request->fiscal === 'internos', fn($q) => $q->where('sin_arca', true))->when($request->fiscal === 'fiscales', fn($q) => $q->where('sin_arca', false)) // Fase 103
             ->when($request->desde, fn($q, $d) => $q->where('fecha', '>=', d))
             ->when($request->hasta, fn($q, $h) => $q->where('fecha', '<=', h))
             ->when($request->sucursal === 'actual', fn($q) => $q->deSucursal($user->current_location_id))
@@ -48,7 +49,7 @@ class ComprobantesController extends Controller
         return Inertia::render('Comprobantes/Index', [
             'lista'    => $lista,
             'resumen'  => ['cantidad' => (int) $resumen->cantidad, 'total' => (float) $resumen->total, 'saldo' => (float) $resumen->saldo],
-            'filtros'  => $request->only('grupo', 'estado', 'contact_id', 'desde', 'hasta', 'buscar', 'sucursal'),
+            'filtros'  => $request->only('grupo', 'estado', 'contact_id', 'desde', 'hasta', 'buscar', 'sucursal', 'fiscal'),
             'grupos'   => [['key' => 'todos', 'label' => 'Todos'], ['key' => 'factura', 'label' => 'Facturas'], ['key' => 'nc', 'label' => 'Notas de crédito'], ['key' => 'nd', 'label' => 'Notas de débito'], ['key' => 'remito', 'label' => 'Remitos'], ['key' => 'presupuesto', 'label' => 'Presupuestos']],
             'clientes' => Contact::customers()->orderBy('name')->get(['id', 'name']),
             'afipConfigurado' => $this->afip->configurado($user->business),

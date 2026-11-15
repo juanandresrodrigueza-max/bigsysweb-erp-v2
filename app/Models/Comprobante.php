@@ -93,6 +93,7 @@ class Comprobante extends Model
     // Comprobantes que van a los libros de IVA y a ARCA: excluye los internos (sin_arca).
     public function scopeFiscales(Builder $q): Builder { return $q->where('sin_arca', false); }
     public function esInterno(): bool { return (bool) $this->sin_arca; }
+    public function scopeInternos(Builder $q): Builder { return $q->where('sin_arca', true); } // Fase 103
     public function scopeFacturas(Builder $q): Builder { return $q->whereIn('tipo', ['FA', 'FB', 'FC', 'FE']); }
     public function scopePendientesCobro(Builder $q): Builder { return $q->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'NDA', 'NDB', 'NDC'])->where('saldo', '>', 0.005); }
 

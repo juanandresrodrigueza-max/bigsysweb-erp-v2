@@ -75,6 +75,7 @@ class ContabilidadService
     {
         $def = $c->def();
         if ($c->estado !== 'emitido' || $def['cc'] === 0) return null;
+        if ($c->sin_arca) return null; // Fase 103: el comprobante interno no entra en los libros contables (mueve stock, cuenta corriente y plata; no ARCA ni contabilidad)
         $signo = $def['cc']; // 1 factura/ND, -1 NC
         $cli = $c->contact;
         $lineas = [];
@@ -131,6 +132,9 @@ class ContabilidadService
     private function asientoCobro(Cobro $cobro): ?Asiento
     {
         if ($cobro->estado === 'anulado') return null;
+        // Fase 103: un recibo que sólo cancela comprobantes internos tampoco va a los libros (si mezcla internos y fiscales, va entero).
+        $imps = $cobro->imputaciones()->with('comprobante:id,sin_arca')->get();
+        if ($imps->isNotEmpty() && $imps->every(fn($i) => (bool) ($i->comprobante?->sin_arca))) return null;
         $lineas = [];
         foreach ($cobro->medios as $m) {
             $monto = (float) $m->monto;

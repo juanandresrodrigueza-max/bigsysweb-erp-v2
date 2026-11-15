@@ -245,11 +245,11 @@ class MercadoArgentinoTest extends ErpTestCase
         // La siguiente fiscal sigue en 2.
         $f2 = $this->factura($cli, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 100]]);
         $this->assertSame(2, (int) $f2->numero);
-        // Libros de IVA y fiscal no la incluyen; el contable sí (es una venta real).
+        // Libros de IVA, fiscal y contabilidad no la incluyen (fase 103): es control interno, no transacciona con la firma.
         $desde = today()->startOfMonth()->toDateString(); $hasta = today()->endOfMonth()->toDateString();
         $this->get("/contable/iva?libro=ventas&desde={$desde}&hasta={$hasta}")->assertInertia(fn($pg) => $pg->component('Contable/Iva', false)->has('filas', 2));
         $this->get("/contable/contador?desde={$desde}&hasta={$hasta}")->assertInertia(fn($pg) => $pg->component('Contable/Contador', false)->where('resumen.ventas', 2));
-        $this->assertTrue(\App\Models\Asiento::where('origen', 'venta')->where('origen_id', $int->id)->exists());
+        $this->assertFalse(\App\Models\Asiento::where('origen', 'venta')->where('origen_id', $int->id)->exists(), 'El interno no genera asiento');
         $this->get("/comprobantes/{$int->id}/imprimir")->assertOk()->assertSee('NO VÁLIDO COMO FACTURA')->assertSee('COMPROBANTE INTERNO')->assertDontSee('CAE:');
         $this->get("/comprobantes/{$int->id}")->assertInertia(fn($pg) => $pg->component('Comprobantes/Ver', false)->where('c.interno', true)->where('c.fiscal', false));
         // Una nota de crédito sobre un interno también es interna.

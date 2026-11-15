@@ -22,6 +22,7 @@
         <label class="flex items-center gap-2" title="Cada artículo que se le factura queda con ese precio para la próxima vez (no pisa los pactados a mano)."><input v-model="form.recordar_precio" type="checkbox" class="accent-carmin" data-recordar-precio /> Recordar el último precio facturado</label>
         <label class="flex items-center gap-2"><input v-model="form.percepcion_iva" type="checkbox" class="accent-carmin" /> Aplica percepción IVA (RG 2408)</label>
         <label class="flex items-center gap-2"><input v-model="form.percepcion_ganancias" type="checkbox" class="accent-carmin" /> Aplica percepción Ganancias</label>
+        <label class="flex items-center gap-2" title="Sus ventas salen como comprobante interno: numeración propia, sin CAE. Mueven stock, cuenta corriente y plata; no van a ARCA ni a los libros."><input v-model="form.comprobante_interno" type="checkbox" class="accent-carmin" data-e2e="cli-interno" /> Comprobante interno por defecto</label>
       </div>
       <div><label class="label">Email</label><input v-model="form.email" type="email" class="input" /></div>
       <div><label class="label">Teléfono / WhatsApp</label><input v-model="form.phone" class="input" /></div>
@@ -45,7 +46,7 @@ import Modal from '@/Components/Modal.vue'
 
 const props = defineProps({ abierto: Boolean, cliente: Object, tipos: Array, condicionesIva: Array, vendedores: { type: Array, default: () => [] }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['cerrar'])
-const vacio = { id: null, name: '', condicion_iva: 'Consumidor Final', cuit: '', tipo_cliente_id: null, lista_precios: 1, dias_pago: 0, descuento: 0, credit_limit: 0, percepcion_iibb: false, percepcion_iva: false, percepcion_ganancias: false, pais_codigo: null, cuit_pais: '', id_impositivo: '', interes_mora: 0, vendedor_id: null, cobrador_id: null, recordar_precio: false, email: '', phone: '', address: '', city: '', province: '', notes: '', is_active: true }
+const vacio = { id: null, name: '', condicion_iva: 'Consumidor Final', cuit: '', tipo_cliente_id: null, lista_precios: 1, dias_pago: 0, descuento: 0, credit_limit: 0, percepcion_iibb: false, percepcion_iva: false, percepcion_ganancias: false, comprobante_interno: false, pais_codigo: null, cuit_pais: '', id_impositivo: '', interes_mora: 0, vendedor_id: null, cobrador_id: null, recordar_precio: false, email: '', phone: '', address: '', city: '', province: '', notes: '', is_active: true }
 const form = useForm({ ...vacio })
 watch(() => props.abierto, v => { if (v) { form.clearErrors(); Object.assign(form, { ...vacio, ...(props.cliente ?? {}) }) } })
 function aplicarTipo() { const t = props.tipos.find(x => x.id === form.tipo_cliente_id); if (t) { form.lista_precios = t.lista_precios; form.dias_pago = t.dias_pago; form.descuento = Number(t.descuento); form.credit_limit = Number(t.limite_credito) } }
