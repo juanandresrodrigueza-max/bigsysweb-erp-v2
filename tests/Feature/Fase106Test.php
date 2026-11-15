@@ -172,4 +172,36 @@ class Fase106Test extends ErpTestCase
         $r = app(\App\Mcp\Catalogo::class)->llamar($this->dueno, 'altas_pendientes', [], 'asistente');
         $this->assertArrayHasKey('error', $r);
     }
+
+    public function test_la_clave_la_cambian_solo_sus_duenos_con_la_clave_actual(): void
+    {
+        $juan = $this->superadmin('juan@bigsys.test');
+        $empleado = $this->superadmin('empleado@bigsys.test');
+        $svc = app(AprobacionService::class);
+        // Sin clave, cualquier superadmin puede cargar la primera: queda como dueño.
+        $this->actingAs($juan)->post('/admin/sistema', ['dias_prueba' => 15, 'dias_gracia' => 7, 'clave_aprobacion' => 'clave-de-juan'])->assertSessionHas('success');
+        $this->assertSame([$juan->id], $svc->duenos());
+        // El empleado la puede usar para aprobar, pero no cambiarla, ni sabiendo la actual.
+        $this->actingAs($empleado)->post('/admin/sistema', ['dias_prueba' => 15, 'dias_gracia' => 7, 'clave_aprobacion' => 'otra-clave', 'clave_actual' => 'clave-de-juan'])->assertSessionHasErrors('clave_aprobacion');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('clave-de-juan', SistemaConfig::get('clave_aprobacion')));
+        $this->get('/admin/sistema')->assertInertia(fn($p) => $p->where('aprobacion.puede_cambiar', false)->where('aprobacion.es_dueno', false));
+        // Juan sin la clave actual: no. Con la actual mal: no, y queda auditado. Con la actual bien: sí.
+        $this->actingAs($juan)->post('/admin/sistema', ['dias_prueba' => 15, 'dias_gracia' => 7, 'clave_aprobacion' => 'clave-nueva'])->assertSessionHasErrors('clave_aprobacion');
+        $this->post('/admin/sistema', ['dias_prueba' => 15, 'dias_gracia' => 7, 'clave_aprobacion' => 'clave-nueva', 'clave_actual' => 'mala'])->assertSessionHasErrors('clave_aprobacion');
+        $this->assertTrue(AuditLog::withoutGlobalScopes()->where('accion', 'aprobacion_clave_incorrecta')->where('descripcion', 'like', '%cambiar la clave%')->exists());
+        $this->post('/admin/sistema', ['dias_prueba' => 15, 'dias_gracia' => 7, 'clave_aprobacion' => 'clave-nueva', 'clave_actual' => 'clave-de-juan'])->assertSessionHas('success');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('clave-nueva', SistemaConfig::get('clave_aprobacion')));
+        // Sólo el dueño designa; el designado ya puede cambiarla; Juan nunca sale de la lista.
+        $this->actingAs($empleado)->post('/admin/sistema/clave-duenos', ['ids' => [$empleado->id]])->assertSessionHas('error');
+        $this->assertSame([$juan->id], $svc->duenos());
+        $this->actingAs($juan)->post('/admin/sistema/clave-duenos', ['ids' => [$empleado->id, $this->dueno->id]])->assertSessionHas('success'); // el dueño de una empresa no es superadmin: no entra
+        $this->assertEqualsCanonicalizing([$juan->id, $empleado->id], $svc->duenos());
+        $this->actingAs($empleado)->post('/admin/sistema', ['dias_prueba' => 15, 'dias_gracia' => 7, 'clave_aprobacion' => 'clave-del-empleado', 'clave_actual' => 'clave-nueva'])->assertSessionHas('success');
+        $this->actingAs($juan)->post('/admin/sistema/clave-duenos', ['ids' => []])->assertSessionHas('success');
+        $this->assertSame([$juan->id], $svc->duenos());
+        // Reset desde el servidor: vuelve a cero.
+        $this->artisan('aprobacion:reset-clave --si')->assertSuccessful();
+        $this->assertFalse($svc->claveConfigurada());
+        $this->assertSame([], $svc->duenos());
+    }
 }

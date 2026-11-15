@@ -47,11 +47,23 @@
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div><label class="label">Horas de acceso provisional</label><input v-model.number="form.horas_provisional" type="number" min="1" max="720" class="input" data-e2e="horas-provisional" /></div>
-          <div><label class="label">Clave de aprobación {{ aprobacion.clave_set ? '(dejar vacío para no cambiarla)' : '' }}</label><input v-model="form.clave_aprobacion" type="password" class="input" autocomplete="new-password" minlength="6" data-e2e="clave-nueva" /><p v-if="form.errors.clave_aprobacion" class="text-xs text-carmin mt-1">{{ form.errors.clave_aprobacion }}</p></div>
+          <div v-if="aprobacion.puede_cambiar"><label class="label">{{ aprobacion.clave_set ? 'Clave nueva (vacío = no cambiarla)' : 'Clave de aprobación' }}</label><input v-model="form.clave_aprobacion" type="password" class="input" autocomplete="new-password" minlength="6" data-e2e="clave-nueva" />
+            <input v-if="aprobacion.clave_set" v-model="form.clave_actual" type="password" class="input mt-2" autocomplete="off" placeholder="Clave actual (obligatoria para cambiarla)" data-e2e="clave-actual" />
+            <p v-if="form.errors.clave_aprobacion" class="text-xs text-carmin mt-1" data-e2e="error-clave-nueva">{{ form.errors.clave_aprobacion }}</p></div>
+          <div v-else class="p-3 rounded-xl bg-marca-fondo text-xs" data-e2e="clave-ajena"><p class="font-semibold text-marca-texto">La clave la administran</p><p>{{ aprobacion.nombres_duenos }}. Vos podés usarla para aprobar, no cambiarla.</p></div>
           <div><label class="label">Avisar por mail a (separados por coma)</label><input v-model="form.aviso_registros_emails" class="input" placeholder="vacío = superadmins + soporte" /></div>
           <div><label class="label">Avisar por WhatsApp a (celulares, con 549…)</label><input v-model="form.aviso_registros_whatsapp" class="input" placeholder="5493515550000" /><p class="text-[11px] text-marca-muted mt-1">Sale por la línea de WhatsApp de la empresa de BigSys.</p></div>
         </div>
         <div class="flex items-center justify-between"><p class="text-xs text-marca-muted">Pendientes ahora: <b>{{ aprobacion.pendientes }}</b>. Los avisos van también al celular de cada superadmin (app).</p><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+        <!-- Quiénes pueden cambiar la clave: lo decide el dueño (quien la cargó primero y a quienes designe) -->
+        <div v-if="aprobacion.clave_set" class="border-t border-marca-borde pt-3" data-e2e="clave-duenos">
+          <p class="text-sm font-semibold">Quiénes pueden cambiar la clave y designar a otros</p>
+          <p class="text-xs text-marca-muted mb-2">Hoy: {{ aprobacion.nombres_duenos }}. Cualquier superadmin que sepa la clave puede aprobar; cambiarla, sólo estas personas. Si se pierde, se resetea desde el servidor (<code>php artisan aprobacion:reset-clave</code>).</p>
+          <div v-if="aprobacion.es_dueno" class="flex flex-wrap gap-3 items-center">
+            <label v-for="u in aprobacion.superadmins" :key="u.id" class="flex items-center gap-1.5 text-sm" :title="u.email"><input type="checkbox" class="accent-carmin" :value="u.id" v-model="duenos.ids" :disabled="u.id === $page.props.auth.user.id" /> {{ u.name }}</label>
+            <button type="button" class="btn-secondary !py-1 text-xs" :disabled="duenos.processing" @click="duenos.post('/admin/sistema/clave-duenos', { preserveScroll: true })" data-e2e="guardar-duenos">Guardar quiénes</button>
+          </div>
+        </div>
       </form>
       <!-- Fase 96: entrar con Google -->
       <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 lg:col-span-3" data-e2e="google-login">
@@ -171,7 +183,8 @@ const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
-const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
+const duenos = useForm({ ids: [...(props.aprobacion.duenos ?? [])] }) // Fase 106
+const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }

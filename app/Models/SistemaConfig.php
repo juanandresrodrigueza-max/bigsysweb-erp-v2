@@ -22,6 +22,7 @@ class SistemaConfig extends Model
         // Fase 106: altas con aprobación. Horas de acceso provisional, la clave (hash bcrypt) y a quién avisar.
         'horas_provisional'  => 72,
         'clave_aprobacion'   => null,
+        'clave_aprobacion_duenos' => [], // quiénes pueden cambiarla y designar a otros (ids de superadmins); vacío + sin clave = el primero que la carga
         'aviso_registros_emails' => null,
         'aviso_registros_whatsapp' => null,
         'mp_access_token'    => null,
