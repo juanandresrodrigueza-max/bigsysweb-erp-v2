@@ -34,7 +34,49 @@ class AprobacionService
 
     public function claveConfigurada(): bool { return (bool) SistemaConfig::get('clave_aprobacion'); }
 
-    public function guardarClave(string $clave): void { SistemaConfig::set('clave_aprobacion', Hash::make($clave)); }
+    // ---- Quién administra la clave -----------------------------------------------------------------------------------------
+    // La clave la cambian sólo sus «dueños»: quien la cargó primero y a quienes ese dueño designe. Siempre con la clave actual.
+    // Si no queda nadie (o se perdió), se resetea desde el servidor: php artisan aprobacion:reset-clave.
+
+    public function duenos(): array { return array_values(array_map('intval', (array) SistemaConfig::get('clave_aprobacion_duenos'))); }
+
+    public function esDueno(User $u): bool { return $u->is_superadmin && in_array($u->id, $this->duenos(), true); }
+
+    public function puedeCambiarClave(User $u): bool { return $u->is_superadmin && (! $this->claveConfigurada() ? true : $this->esDueno($u)); }
+
+    // Devuelve el error, o null si la guardó. La primera carga no pide clave actual y convierte a quien la carga en dueño.
+    public function guardarClave(string $clave, ?User $por = null, ?string $actual = null): ?string
+    {
+        if ($por && ! $this->puedeCambiarClave($por)) return 'La clave de aprobación la cambian sólo ' . $this->nombresDuenos() . '. Pedísela a ellos.';
+        if ($this->claveConfigurada() && $por) {
+            if (! $actual) return 'Para cambiarla, escribí también la clave actual.';
+            if (! Hash::check($actual, (string) SistemaConfig::get('clave_aprobacion'))) {
+                AuditLog::registrar('aprobacion_clave_incorrecta', null, "Clave actual incorrecta al intentar cambiar la clave de aprobación ({$por->email})");
+                return 'La clave actual es incorrecta.';
+            }
+        }
+        SistemaConfig::set('clave_aprobacion', Hash::make($clave));
+        if ($por && ! $this->duenos()) SistemaConfig::set('clave_aprobacion_duenos', [$por->id]);
+        return null;
+    }
+
+    // El dueño elige qué otros superadmins pueden cambiar la clave y designar. Él mismo queda siempre.
+    public function designar(User $por, array $ids): ?string
+    {
+        if (! $this->esDueno($por)) return 'Sólo ' . $this->nombresDuenos() . ' pueden designar quién administra la clave.';
+        $validos = User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->whereIn('id', array_map('intval', $ids))->pluck('id')->all();
+        SistemaConfig::set('clave_aprobacion_duenos', array_values(array_unique(array_merge([$por->id], $validos))));
+        AuditLog::registrar('editar', null, 'Administradores de la clave de aprobación: ' . $this->nombresDuenos());
+        return null;
+    }
+
+    public function nombresDuenos(): string
+    {
+        $n = User::withoutGlobalScopes()->whereIn('id', $this->duenos())->pluck('name')->all();
+        return $n ? implode(', ', $n) : 'nadie (hay que resetearla desde el servidor)';
+    }
+
+    public function resetearClave(): void { SistemaConfig::set('clave_aprobacion', null); SistemaConfig::set('clave_aprobacion_duenos', []); }
 
     // Marca la empresa y su dueño como pendientes. $pedidaPor es el superadmin que la dio de alta (null si se registró sola).
     public function marcarPendiente(Business $b, ?User $pedidaPor = null): void

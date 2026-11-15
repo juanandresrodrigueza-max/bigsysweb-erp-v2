@@ -146,6 +146,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema',                           [\App\Http\Controllers\Superadmin\SistemaController::class, 'guardarConfiguracion']);
     Route::post('/sistema/mantenimiento',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'mantenimiento']);
     Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
+    Route::post('/sistema/clave-duenos',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'claveDuenos']); // Fase 106
     Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
     Route::post('/sistema/probar-push',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarPush']); // Fase 93
     Route::post('/sistema/probar-ia',                 [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarIa']);
