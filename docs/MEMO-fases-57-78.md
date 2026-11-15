@@ -113,6 +113,7 @@ responde con los permisos de esa persona y audita a su nombre.
 
 ## Para publicar
 
+- **Lo que queda del lado de Juan** para dejar todo 100 % operativo (claves, ARCA, app, copias, primer cliente): `docs/PENDIENTES-OPERATIVOS.md`. Se tilda ahí.
 - ERP: ver `docs/DEPLOY-hostinger.md`. Mismo VPS que el CRM (2.25.209.3), contenedores propios en `/opt/bigsysweb`.
 - CRM: `bash scripts/publicar.sh` en `/var/www/bigsysweb2` (pruebas e2e + build + reinicio rolling). El remoto va por SSH con deploy key
   propia del repo; una deploy key sirve para un solo repo, así que el ERP necesita la suya con alias `Host github.com-erp` si se pasa a SSH.
