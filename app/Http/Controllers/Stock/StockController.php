@@ -44,9 +44,12 @@ class StockController extends Controller
             ->when($request->estado === 'inactivos', fn($q) => $q->where('active', false), fn($q) => $q->when($request->estado !== 'todos', fn($q) => $q->where('active', true)))
             ->orderBy('name');
 
-        $lista = $q->paginate(40)->withQueryString()->through(fn($p) => [
+        $pag = $q->paginate(40)->withQueryString();
+        $comp = app(\App\Services\Stock\ComprometidoService::class)->porProducto($request->user()->business, $pag->getCollection()->pluck('id')->all()); // Fase 97
+        $lista = $pag->through(fn($p) => [
             'id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'tipo' => $p->tipo, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre, 'rubro_color' => $p->rubro?->color, 'marca' => $p->marca,
             'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min, 'bajo' => $p->bajoMinimo(), 'controla' => $p->controla_stock, 'active' => $p->active,
+            'comprometido' => round($comp[$p->id]['total'] ?? 0, 3), 'disponible' => round((float) $p->stock - ($comp[$p->id]['total'] ?? 0), 3),
             'price' => (float) $p->price, 'cost' => (float) $p->cost, 'valor' => round((float) $p->stock * (float) $p->cost, 2), 'moneda' => $p->moneda, 'precio_pesos' => $p->precioLista(1),
             'precio_compra' => (float) $p->precio_compra, 'descuento_proveedor' => (float) $p->descuento_proveedor, 'margenes' => $p->margenes, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct, 'perecedero' => $p->perecedero, 'seriado' => $p->seriado, 'garantia_meses' => $p->garantia_meses, 'pesable' => $p->pesable, 'plu' => $p->plu, 'dias_vencimiento' => $p->dias_vencimiento, 'contenido_neto' => $p->contenido_neto !== null ? (float) $p->contenido_neto : null, 'contenido_unidad' => $p->contenido_unidad, 'control_turno' => $p->control_turno, 'en_tienda' => $p->en_tienda, 'descripcion_tienda' => $p->descripcion_tienda,
             'por_deposito' => $p->stocks->mapWithKeys(fn($s) => [$s->deposito_id => (float) $s->cantidad]),
@@ -81,6 +84,7 @@ class StockController extends Controller
         $comprado30 = (float) \App\Models\ComprobanteItem::where('product_id', $p->id)->whereHas('comprobante', fn($q) => $q->compras()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC'])->where('fecha', '>=', $hace30))->sum('cantidad');
 
         return Inertia::render('Stock/Ver', [
+            'comprometido' => app(\App\Services\Stock\ComprometidoService::class)->de($p), // Fase 97
             'p' => $p->only('id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'description', 'unit', 'active', 'controla_stock', 'rubro_id', 'proveedor_id', 'stock_min', 'iva', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'control_turno') + [
                 'ubicaciones' => app(\App\Services\Stock\AlmacenService::class)->dondeEsta($p)['ubicaciones'],
                 'lotes' => $p->lotes()->with('deposito:id,nombre')->get()->map(fn($l) => ['id' => $l->id, 'etiqueta' => $l->etiqueta(), 'lote' => $l->lote, 'serie' => $l->serie, 'vencimiento' => $l->vencimiento?->format('d/m/Y'), 'vencido' => $l->vencimiento?->isPast() ?? false, 'por_vencer' => $l->vencimiento && ! $l->vencimiento->isPast() && $l->vencimiento->lte(today()->addDays(30)), 'cantidad' => (float) $l->cantidad, 'deposito' => $l->deposito?->nombre]),

@@ -31,7 +31,7 @@
     </div>
     <div class="card p-0 overflow-x-auto">
       <table class="table">
-        <thead><tr><th class="w-8"><input type="checkbox" class="accent-carmin" :checked="lista.data.length && lista.data.every(p => sel.includes(p.id))" @change="$event.target.checked ? lista.data.forEach(p => !sel.includes(p.id) && sel.push(p.id)) : (sel = sel.filter(id => !lista.data.some(p => p.id === id)))" title="Seleccionar todos los de esta página" /></th><th>Artículo</th><th>Rubro</th><th class="text-right">Costo</th><th class="text-right">Precio</th><th v-for="d in depositosActivos" :key="d.id" class="text-right whitespace-nowrap">{{ d.nombre.replace('Depósito ', '') }}</th><th class="text-right">Total</th><th class="text-right">Mín.</th><th class="text-right">Valor</th><th></th></tr></thead>
+        <thead><tr><th class="w-8"><input type="checkbox" class="accent-carmin" :checked="lista.data.length && lista.data.every(p => sel.includes(p.id))" @change="$event.target.checked ? lista.data.forEach(p => !sel.includes(p.id) && sel.push(p.id)) : (sel = sel.filter(id => !lista.data.some(p => p.id === id)))" title="Seleccionar todos los de esta página" /></th><th>Artículo</th><th>Rubro</th><th class="text-right">Costo</th><th class="text-right">Precio</th><th v-for="d in depositosActivos" :key="d.id" class="text-right whitespace-nowrap">{{ d.nombre.replace('Depósito ', '') }}</th><th class="text-right">Total</th><th v-if="hayComprometido" class="text-right" title="Stock menos lo ya vendido o prometido (pedidos web, acopios, comandas)">Disponible</th><th class="text-right">Mín.</th><th class="text-right">Valor</th><th></th></tr></thead>
         <tbody>
           <tr v-for="p in lista.data" :key="p.id" class="cursor-pointer" :class="[!p.active ? 'opacity-50' : '', sel.includes(p.id) ? 'bg-violeta/5' : '']" @click="$inertia.visit(`/stock/${p.id}`)">
             <td @click.stop><input type="checkbox" class="accent-carmin" :checked="sel.includes(p.id)" @change="$event.target.checked ? sel.push(p.id) : (sel = sel.filter(id => id !== p.id))" /></td>
@@ -41,6 +41,7 @@
             <td class="text-right tabular-nums font-semibold">{{ moneda(p.precio_pesos) }}<span v-if="p.moneda === 'USD'" class="block text-[11px] text-violeta font-normal">U$S {{ p.price }}</span></td>
             <td v-for="d in depositosActivos" :key="d.id" class="text-right tabular-nums" :class="(p.por_deposito[d.id] ?? 0) < 0 ? 'text-carmin' : 'text-marca-muted'">{{ p.controla ? cantidad(p.por_deposito[d.id] ?? 0) : '' }}</td>
             <td class="text-right tabular-nums font-bold" :class="!p.controla ? 'text-marca-muted' : p.stock <= 0 ? 'text-carmin' : p.bajo ? 'text-amber-600' : ''">{{ p.controla ? cantidad(p.stock) + ' ' + p.unit : '—' }}</td>
+            <td v-if="hayComprometido" class="text-right tabular-nums" :class="p.disponible < 0 ? 'text-carmin font-bold' : p.comprometido ? 'font-semibold' : 'text-marca-muted'" :title="p.comprometido ? `${cantidad(p.comprometido)} comprometido` : ''" :data-disponible="p.id">{{ p.controla ? cantidad(p.disponible) : '' }}<span v-if="p.comprometido" class="block text-[11px] font-normal text-amber-700">−{{ cantidad(p.comprometido) }} compr.</span></td>
             <td class="text-right tabular-nums text-marca-muted">{{ p.controla ? cantidad(p.stock_min) : '' }}</td>
             <td class="text-right tabular-nums">{{ p.controla ? moneda(p.valor, 0) : '' }}</td>
             <td class="text-right"><button v-if="puede('stock','editar')" @click.stop="abrirArticulo(p)" class="btn-ghost !px-2" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
@@ -183,6 +184,7 @@ function abrirArticulo(p = null) { artEdit.value = p ? { ...p, prices: undefined
 
 const transfAbierto = ref(false)
 const tf = useForm({ origen_id: depositosActivos.value[0]?.id, destino_id: depositosActivos.value[1]?.id ?? depositosActivos.value[0]?.id, fecha: hoyISO(), notas: '', items: [{ product_id: null, cantidad: null }] })
+const hayComprometido = computed(() => props.lista.data.some(p => p.comprometido > 0)) // Fase 97
 const opcionesArticulos = computed(() => props.lista.data.filter(p => p.controla).map(p => ({ id: p.id, label: p.name, sub: p.sku, extra: cantidad(p.stock) + ' ' + p.unit })))
 
 const preciosAbierto = ref(false), dolarAbierto = ref(false)

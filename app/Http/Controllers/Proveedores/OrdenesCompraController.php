@@ -26,6 +26,9 @@ class OrdenesCompraController extends Controller
             'filtros' => $request->only('estado', 'contact_id'),
             'proveedores' => Contact::suppliers()->orderBy('name')->get(['id', 'name']),
             'estados' => OrdenCompra::ESTADOS,
+            // Fase 97: autorización por monto
+            'autorizacion' => app(\App\Services\Compras\AutorizacionComprasService::class)->config($request->user()->business) + ['soy_autorizador' => app(\App\Services\Compras\AutorizacionComprasService::class)->esAutorizador($request->user()), 'pendientes' => OrdenCompra::where('autorizacion', 'pendiente')->where('estado', 'borrador')->count()],
+            'usuarios' => \App\Models\User::where('business_id', $request->user()->business_id)->where('status', 'active')->whereNotNull('role_id')->orderBy('name')->get(['id', 'name'])->map(fn($u) => ['id' => $u->id, 'name' => $u->name]),
             'resumen' => ['abiertas' => OrdenCompra::whereIn('estado', ['borrador', 'enviada', 'parcial'])->count(), 'monto_abierto' => (float) OrdenCompra::whereIn('estado', ['borrador', 'enviada', 'parcial'])->sum('total'), 'atrasadas' => OrdenCompra::whereIn('estado', ['enviada', 'parcial'])->where('fecha_entrega', '<', today()->toDateString())->count()],
         ]);
     }
@@ -72,8 +75,8 @@ class OrdenesCompraController extends Controller
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|exists:products,id', 'items.*.descripcion' => 'nullable|string|max:150', 'items.*.cantidad' => 'required|numeric|min:0', 'items.*.precio_unit' => 'nullable|numeric|min:0', 'items.*.notas' => 'nullable|string|max:150',
         ]);
         $oc = $this->service->guardar($d, $id ? OrdenCompra::findOrFail($id) : null);
-        if ($request->boolean('enviar') && $oc->estado === 'borrador') $this->service->enviar($oc);
-        return redirect("/proveedores/ordenes/{$oc->id}")->with('success', "Orden {$oc->numeroFormateado()} " . ($request->boolean('enviar') ? 'enviada.' : 'guardada.'));
+        if ($request->boolean('enviar') && $oc->estado === 'borrador') $oc = $this->service->enviar($oc);
+        return redirect("/proveedores/ordenes/{$oc->id}")->with('success', "Orden {$oc->numeroFormateado()} " . ($oc->autorizacion === 'pendiente' ? 'guardada: espera autorización (supera el monto configurado).' : ($request->boolean('enviar') ? 'enviada.' : 'guardada.')));
     }
 
     public function show(int $id)
@@ -87,10 +90,33 @@ class OrdenesCompraController extends Controller
                 'compras' => $oc->compras->map(fn($c) => ['id' => $c->id, 'nombre' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'fecha' => $c->fecha->format('d/m/Y'), 'total' => (float) $c->total, 'estado' => $c->estado]),
             ],
             'estados' => OrdenCompra::ESTADOS,
+            'autorizacion' => ['requiere' => app(\App\Services\Compras\AutorizacionComprasService::class)->requiere($oc, auth()->user()), 'soy_autorizador' => app(\App\Services\Compras\AutorizacionComprasService::class)->esAutorizador(auth()->user()), 'desde' => app(\App\Services\Compras\AutorizacionComprasService::class)->config(auth()->user()->business)['autoriza_desde']], // Fase 97
         ]);
     }
 
-    public function enviar(int $id) { $oc = $this->service->enviar(OrdenCompra::findOrFail($id)); return back()->with('success', "Orden {$oc->numeroFormateado()} marcada como enviada."); }
+    // Fase 97: quién autoriza y desde qué monto.
+    public function config(Request $request, \App\Services\Compras\AutorizacionComprasService $aut)
+    {
+        $d = $request->validate(['autoriza_desde' => 'required|numeric|min:0', 'autorizadores' => 'nullable|array', 'autorizadores.*' => 'integer|exists:users,id']);
+        $aut->guardarConfig($request->user()->business, (float) $d['autoriza_desde'], $d['autorizadores'] ?? []);
+        return back()->with('success', (float) $d['autoriza_desde'] > 0 ? 'Listo: las órdenes desde ese monto esperan autorización.' : 'Las órdenes salen sin autorización.');
+    }
+
+    public function autorizar(Request $request, int $id, \App\Services\Compras\AutorizacionComprasService $aut)
+    {
+        $d = $request->validate(['nota' => 'nullable|string|max:300']);
+        $oc = $aut->autorizar(OrdenCompra::findOrFail($id), $request->user(), $d['nota'] ?? null);
+        return back()->with('success', "Orden {$oc->numeroFormateado()} autorizada y enviada.");
+    }
+
+    public function rechazar(Request $request, int $id, \App\Services\Compras\AutorizacionComprasService $aut)
+    {
+        $d = $request->validate(['nota' => 'required|string|max:300']);
+        $oc = $aut->rechazar(OrdenCompra::findOrFail($id), $request->user(), $d['nota']);
+        return back()->with('success', "Orden {$oc->numeroFormateado()} rechazada. Quien la pidió ya lo sabe.");
+    }
+
+    public function enviar(int $id) { $oc = $this->service->enviar(OrdenCompra::findOrFail($id)); if ($oc->autorizacion === 'pendiente' && $oc->estado === 'borrador') return back()->with('success', "Orden {$oc->numeroFormateado()} enviada a autorizar: supera el monto configurado."); return back()->with('success', "Orden {$oc->numeroFormateado()} marcada como enviada."); }
 
     public function cancelar(Request $request, int $id)
     {
@@ -109,6 +135,7 @@ class OrdenesCompraController extends Controller
     // Lleva al formulario de compra con lo pendiente de la OC precargado.
     public function recibir(int $id)
     {
+        abort_if(OrdenCompra::findOrFail($id)->autorizacion === 'pendiente', 422, 'La orden todavía espera autorización.'); // Fase 97
         $oc = OrdenCompra::with('items.product')->findOrFail($id);
         return redirect('/proveedores/compras/nueva?orden=' . $oc->id);
     }
@@ -133,6 +160,6 @@ class OrdenesCompraController extends Controller
 
     private function resumir(OrdenCompra $o): array
     {
-        return ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'fecha' => $o->fecha->format('d/m/Y'), 'entrega' => $o->fecha_entrega?->format('d/m/Y'), 'proveedor' => $o->contact?->name, 'contact_id' => $o->contact_id, 'estado' => $o->estado, 'total' => (float) $o->total, 'items_count' => $o->items()->count(), 'atrasada' => in_array($o->estado, ['enviada', 'parcial'], true) && $o->fecha_entrega && $o->fecha_entrega->lt(today())];
+        return ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'fecha' => $o->fecha->format('d/m/Y'), 'entrega' => $o->fecha_entrega?->format('d/m/Y'), 'proveedor' => $o->contact?->name, 'contact_id' => $o->contact_id, 'estado' => $o->estado, 'autorizacion' => $o->autorizacion, 'autorizacion_nota' => $o->autorizacion_nota, 'autorizador' => $o->autorizada_por ? $o->autorizador?->name : null, 'autorizada_en' => $o->autorizada_en?->format('d/m/Y H:i'), 'total' => (float) $o->total, 'items_count' => $o->items()->count(), 'atrasada' => in_array($o->estado, ['enviada', 'parcial'], true) && $o->fecha_entrega && $o->fecha_entrega->lt(today())];
     }
 }

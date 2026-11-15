@@ -82,6 +82,9 @@ class OrdenCompraService
     public function enviar(OrdenCompra $oc): OrdenCompra
     {
         abort_if($oc->estado !== 'borrador', 422, 'Solo se envían órdenes en borrador.');
+        // Fase 97: desde cierto monto, la orden espera que la autorice alguien de la lista.
+        $aut = app(AutorizacionComprasService::class);
+        if (Auth::user() && $aut->requiere($oc, Auth::user())) return $aut->pedir($oc, Auth::user());
         $oc->update(['estado' => 'enviada', 'enviada_en' => now()]);
         AuditLog::registrar('editar', $oc, "Orden de compra {$oc->numeroFormateado()} enviada a {$oc->contact?->name}");
         return $oc;

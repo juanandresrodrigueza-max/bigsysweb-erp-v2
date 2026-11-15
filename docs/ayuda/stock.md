@@ -18,6 +18,14 @@ En **Nuevo artículo**, escribís el nombre como te salga ("cemento loma negra 5
 
 A Bigcito se le dice "creá el artículo caño PVC 110 x 4 m a 12.500" y, con la clave de IA cargada, propone el alta ya completa con rubro, unidad e IVA para que confirmes.
 
+## Stock comprometido y disponible real (Fase 97)
+
+El stock que ves no siempre es lo que podés vender: una parte ya está prometida. El sistema calcula lo **comprometido** sumando los pedidos web y de WhatsApp sin entregar, los acopios pagados y no retirados y las comandas abiertas del salón, y muestra el **disponible** (stock menos comprometido).
+
+- En **Stock → Artículos** aparece la columna **Disponible** cuando hay algo comprometido; en rojo si es negativo (prometiste más de lo que tenés).
+- En la ficha del artículo, arriba, el detalle: cuánto en pedidos, cuánto en acopios, cuánto en comandas.
+- A Bigcito: «¿cuánto puedo vender de cemento?», «¿qué artículos tengo prometidos y no me alcanza?».
+
 ## Centro de etiquetas (Stock → Etiquetas)
 
 Todas las etiquetas en un lugar, en hoja A4 (65, 24 u 8 por hoja), en rollo para impresora de etiquetas o en **ZPL** para impresoras **Zebra** (Bajar ZPL y mandarlo a la impresora).

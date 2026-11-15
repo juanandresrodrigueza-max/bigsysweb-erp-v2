@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Autorización de compras, stock disponible e importaciones (fase 97)
+
+**Órdenes de compra → engranaje**: desde qué monto las compras esperan autorización y quiénes autorizan. **Stock → Artículos**: columna **Disponible** (stock menos lo comprometido en pedidos, acopios y comandas). **Comprar → Importaciones**: despachos con FOB, gastos prorrateados y costo nacionalizado al stock. El consolidado de varias empresas ya existía en Contador → Conjuntos.
+
 ## Centros de costo, mensajes a clientes y entrar con Google (fase 96)
 
 **Contable → Centros de costo**: presupuesto por mes contra lo gastado de verdad, por área. **Clientes → Mensajes a clientes**: un aviso a todos (o a un grupo) por mail o WhatsApp. Y **Entrar con Google** en el login, si BigSys lo habilita. En Plata y en las compras aparece el campo «Centro de costo» cuando la empresa tiene centros creados.

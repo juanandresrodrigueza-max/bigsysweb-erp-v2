@@ -15,6 +15,41 @@ class Compras
     public static function herramientas(): array
     {
         return [
+            // Fase 97: "¿qué órdenes esperan autorización?", "autorizá la orden 12", "¿cómo vienen las importaciones?"
+            ['nombre' => 'ordenes_por_autorizar', 'titulo' => 'Órdenes de compra que esperan autorización', 'modulo' => 'proveedores', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Las órdenes de compra que superan el monto configurado y esperan que alguien las autorice: número, proveedor, quién la pidió, importe y desde cuándo. Y desde qué monto se pide autorización.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Compras\AutorizacionComprasService::class); $cfg = $svc->config($u->business);
+                    $p = $svc->pendientes($u->business)->map(fn($o) => ['id' => $o->id, 'numero' => $o->numeroFormateado(), 'proveedor' => $o->contact?->name, 'pidio' => $o->user?->name, 'total' => (float) $o->total, 'fecha' => $o->fecha->format('d/m/Y'), 'url' => Busca::url("/proveedores/ordenes/{$o->id}")])->values()->all();
+                    return ['autoriza_desde' => $cfg['autoriza_desde'], 'podes_autorizar' => $svc->esAutorizador($u), 'pendientes' => $p, 'resumen' => ! $cfg['autoriza_desde'] ? 'Las órdenes salen sin autorización (se configura en Órdenes de compra → engranaje).' : (count($p) ? count($p) . ' orden(es) esperan autorización.' : 'Ninguna orden espera autorización.'), 'url' => Busca::url('/proveedores/ordenes?estado=borrador')];
+                }],
+            ['nombre' => 'autorizar_orden', 'titulo' => 'Autorizar o rechazar una orden de compra', 'modulo' => 'proveedores', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Autoriza (y manda al proveedor) o rechaza una orden de compra que espera autorización. Sólo quien está en la lista de autorizadores o el dueño.',
+                'parametros' => ['orden' => ['type' => 'string', 'description' => 'Número de la orden, por ejemplo 12 u OC-000012'], 'decision' => ['type' => 'string', 'enum' => ['autorizar', 'rechazar']], 'nota' => ['type' => 'string', 'description' => 'Obligatoria si se rechaza']],
+                'requeridos' => ['orden'],
+                'proponer' => function (User $u, array $a) {
+                    $n = (int) preg_replace('/\D/', '', (string) $a['orden']); $oc = \App\Models\OrdenCompra::where('numero', $n)->first();
+                    if (! $oc) return ['error' => "No encuentro la orden {$a['orden']}."];
+                    if ($oc->autorizacion !== 'pendiente' || $oc->estado !== 'borrador') return ['error' => "La orden {$oc->numeroFormateado()} no está esperando autorización."];
+                    if (! app(\App\Services\Compras\AutorizacionComprasService::class)->esAutorizador($u)) return ['error' => 'No estás en la lista de quienes autorizan compras.'];
+                    $rech = ($a['decision'] ?? 'autorizar') === 'rechazar'; if ($rech && empty($a['nota'])) return ['error' => 'Para rechazarla decime el motivo.'];
+                    return ['titulo' => ($rech ? 'Rechazar ' : 'Autorizar y enviar ') . "la orden {$oc->numeroFormateado()} a {$oc->contact?->name} por $ " . number_format((float) $oc->total, 0, ',', '.'), 'detalle' => ($oc->user?->name ? "La pidió {$oc->user->name}. " : '') . ($a['nota'] ?? ''), 'datos' => ['id' => $oc->id, 'rechazar' => $rech, 'nota' => $a['nota'] ?? null]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $svc = app(\App\Services\Compras\AutorizacionComprasService::class); $oc = \App\Models\OrdenCompra::findOrFail($d['id']);
+                    $oc = $d['rechazar'] ? $svc->rechazar($oc, $u, (string) $d['nota']) : $svc->autorizar($oc, $u, $d['nota'] ?? null);
+                    return ['texto' => $d['rechazar'] ? "Orden {$oc->numeroFormateado()} rechazada; quien la pidió ya lo sabe." : "Orden {$oc->numeroFormateado()} autorizada y enviada a {$oc->contact?->name}.", 'url' => Busca::url("/proveedores/ordenes/{$oc->id}")];
+                }],
+            ['nombre' => 'importaciones_en_curso', 'titulo' => 'Importaciones: despachos y costo nacionalizado', 'modulo' => 'proveedores', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Los despachos de importación en curso y los nacionalizados del año, con FOB, gastos y costo nacionalizado. Con "despacho" devuelve el detalle de uno: cada artículo con su costo por unidad.',
+                'parametros' => ['despacho' => ['type' => 'string', 'description' => 'Número IMP-00001 o número de despacho de aduana']],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Compras\ImportacionesService::class);
+                    if (! empty($a['despacho'])) { $n = preg_replace('/\D/', '', (string) $a['despacho']); $n = ($n !== '' && strlen($n) <= 9) ? (int) $n : null; $d = \App\Models\DespachoImportacion::where(fn($q) => $q->where('despacho', $a['despacho'])->when($n, fn($q2) => $q2->orWhere('numero', $n)))->first(); if (! $d) return ['error' => "No encuentro el despacho {$a['despacho']}."]; return $svc->arr($d) + ['url' => Busca::url("/proveedores/importaciones/{$d->id}")]; }
+                    $lista = \App\Models\DespachoImportacion::with('contact:id,name')->whereIn('estado', ['borrador', 'nacionalizado'])->orderByDesc('fecha')->limit(20)->get()->map(fn($d) => ['numero' => $d->numeroFormateado(), 'despacho' => $d->despacho, 'proveedor' => $d->contact?->name, 'estado' => \App\Models\DespachoImportacion::ESTADOS[$d->estado], 'fob' => (float) $d->fob_total, 'gastos' => (float) $d->gastos_total, 'costo' => (float) $d->costo_total, 'coeficiente' => (float) $d->fob_total > 0 ? round((float) $d->costo_total / (float) $d->fob_total, 3) : null])->all();
+                    return $svc->resumen($u->business) + ['despachos' => $lista, 'url' => Busca::url('/proveedores/importaciones')];
+                }],
             ['nombre' => 'buscar_proveedores', 'titulo' => 'Buscar proveedores', 'modulo' => 'proveedores', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Busca proveedores por nombre o CUIT. Devuelve saldo (lo que se les debe) y contacto.',
                 'parametros' => ['texto' => ['type' => 'string']], 'requeridos' => ['texto'],

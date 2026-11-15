@@ -28,7 +28,7 @@ class CanalesRubroFase83Test extends ErpTestCase
 
     public function test_comprar_arranca_por_que_reponer_y_termina_en_pagos(): void
     {
-        $this->assertSame(['reponer', 'proveedores', 'ordenes', 'compras', 'pagos'], array_column($this->props($this->dueno, '/proveedores')['subnav']['items'], 'key'));
+        $this->assertSame(['reponer', 'proveedores', 'ordenes', 'compras', 'pagos', 'importaciones'], array_column($this->props($this->dueno, '/proveedores')['subnav']['items'], 'key'));
 
         $prov = $this->proveedor(['name' => 'Cementos del Sur']);
         $this->articulo(['name' => 'Cemento', 'controla_stock' => true, 'stock_min' => 10, 'stock' => 2, 'proveedor_id' => $prov->id, 'cost' => 100]);

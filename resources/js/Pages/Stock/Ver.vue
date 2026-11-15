@@ -19,6 +19,11 @@
       </div>
     </div>
 
+    <!-- Fase 97: lo comprometido (pedidos, acopios, comandas) y lo que de verdad se puede vender -->
+    <div v-if="comprometido && comprometido.total > 0" class="rounded-2xl border px-4 py-3 mb-4 text-sm flex flex-wrap items-center gap-x-4 gap-y-1" :class="comprometido.disponible < 0 ? 'border-carmin/40 bg-carmin-light' : 'border-amber-200 bg-amber-50'" data-e2e="comprometido">
+      <span><b>{{ cantidad(comprometido.total) }} {{ p.unit }}</b> comprometido<span v-if="comprometido.pedidos"> · {{ cantidad(comprometido.pedidos) }} en pedidos web</span><span v-if="comprometido.acopios"> · {{ cantidad(comprometido.acopios) }} en acopios</span><span v-if="comprometido.comandas"> · {{ cantidad(comprometido.comandas) }} en comandas</span></span>
+      <span class="ml-auto font-bold" :class="comprometido.disponible < 0 ? 'text-carmin' : ''">Disponible: {{ cantidad(comprometido.disponible) }} {{ p.unit }}</span>
+    </div>
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Stock total</p><p class="text-2xl font-extrabold tabular-nums" :class="p.stock <= 0 && p.controla_stock ? 'text-carmin' : p.bajo ? 'text-amber-600' : ''">{{ p.controla_stock ? cantidad(p.stock) + ' ' + p.unit : '—' }}</p><p class="text-xs text-marca-muted">mínimo {{ cantidad(p.stock_min) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Valorizado</p><p class="text-2xl font-extrabold tabular-nums">{{ moneda(p.valor, 0) }}</p><p class="text-xs text-marca-muted">a costo {{ moneda(p.cost) }}</p></div>
@@ -110,7 +115,7 @@ import ArticuloModal from '@/Components/ArticuloModal.vue'
 import DocumentosAdjuntos from '@/Components/DocumentosAdjuntos.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ p: Object, movimientos: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, proveedores: Array, formula: Object })
+const props = defineProps({ comprometido: { type: Object, default: null }, p: Object, movimientos: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, proveedores: Array, formula: Object })
 const { puede } = usePermisos()
 const editAbierto = ref(false), ajAbierto = ref(false)
 const articuloEditable = computed(() => ({ id: props.p.id, name: props.p.name, sku: props.p.sku, tipo: props.p.tipo, rubro_id: props.p.rubro_id, unit: props.p.unit, barcode: props.p.barcode ?? '', marca: props.p.marca ?? '', proveedor_id: props.p.proveedor_id, cost: props.p.cost, price: props.p.price, iva: Number(props.p.iva), prices: props.p.prices, stock_min: props.p.stock_min, controla_stock: props.p.controla_stock, description: props.p.description ?? '', active: props.p.active, perecedero: !!props.p.perecedero, seriado: !!props.p.seriado, garantia_meses: props.p.garantia_meses ?? null, pesable: !!props.p.pesable, plu: props.p.plu ?? '', dias_vencimiento: props.p.dias_vencimiento ?? null, contenido_neto: props.p.contenido_neto ?? null, contenido_unidad: props.p.contenido_unidad ?? null, control_turno: !!props.p.control_turno }))

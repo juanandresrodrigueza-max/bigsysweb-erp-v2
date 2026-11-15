@@ -13,13 +13,14 @@ class OrdenCompra extends Model
     use BelongsToBusiness;
 
     protected $table = 'ordenes_compra';
-    protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'user_id', 'numero', 'fecha', 'fecha_entrega', 'estado', 'total', 'notas', 'origen', 'enviada_en'];
-    protected $casts = ['fecha' => 'date', 'fecha_entrega' => 'date', 'enviada_en' => 'datetime', 'total' => 'decimal:2'];
+    protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'user_id', 'numero', 'fecha', 'fecha_entrega', 'estado', 'total', 'notas', 'origen', 'enviada_en', 'autorizacion', 'autorizada_por', 'autorizada_en', 'autorizacion_nota'];
+    protected $casts = ['fecha' => 'date', 'fecha_entrega' => 'date', 'enviada_en' => 'datetime', 'autorizada_en' => 'datetime', 'total' => 'decimal:2'];
 
     public const ESTADOS = ['borrador' => 'Borrador', 'enviada' => 'Enviada', 'parcial' => 'Recibida parcial', 'recibida' => 'Recibida', 'cancelada' => 'Cancelada'];
 
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function autorizador(): BelongsTo { return $this->belongsTo(User::class, 'autorizada_por'); } // Fase 97
     public function location(): BelongsTo { return $this->belongsTo(BusinessLocation::class, 'business_location_id'); }
     public function items(): HasMany { return $this->hasMany(OrdenCompraItem::class)->orderBy('orden'); }
     public function compras(): HasMany { return $this->hasMany(Comprobante::class, 'orden_compra_id'); }

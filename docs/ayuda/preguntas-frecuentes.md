@@ -140,6 +140,14 @@ Sí: Clientes → **Mensajes a clientes**. Elegís a quién (todos, los que debe
 
 Contable → **Centros de costo**: creás los centros (Administración, Depósito, un local), cargás el presupuesto de cada mes y, al cargar gastos y compras, elegís el centro. La pantalla muestra presupuesto, real y desvío mes a mes.
 
+## ¿Puedo hacer que las compras grandes las apruebe alguien?
+
+Sí: Órdenes de compra → engranaje. Ponés el monto y quiénes autorizan. Desde ese importe la orden espera autorización, el autorizador la recibe en el celular y la aprueba o la rechaza desde la orden o por Bigcito («autorizá la orden 12»).
+
+## Importo mercadería, ¿cómo saco el costo real?
+
+Comprar → **Importaciones**: cargás el despacho con los artículos en FOB, la cotización y los gastos (flete, seguro, derechos, despachante). El sistema prorratea por valor y te da el costo nacionalizado por unidad; al nacionalizar entra al stock con ese costo.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

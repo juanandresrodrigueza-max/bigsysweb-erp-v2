@@ -1,5 +1,15 @@
 <template>
   <AppLayout titulo="Órdenes de compra">
+    <!-- Fase 97: autorización por monto -->
+    <Modal :abierto="autAbierto" titulo="Autorización de compras" @cerrar="autAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Desde cierto importe, la orden no sale al proveedor hasta que la autorice alguien de la lista. El dueño siempre puede autorizar. En 0, todas salen directo.</p>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label">Pedir autorización desde $</label><input v-model.number="af.autoriza_desde" type="number" min="0" step="any" class="input" data-e2e="autoriza-desde" /></div>
+        <div><label class="label">Quiénes autorizan</label><select v-model="af.autorizadores" multiple class="input !h-28"><option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.name }}</option></select><p class="text-[11px] text-marca-muted mt-1">Ctrl / ⌘ para elegir varios. El dueño ya está incluido.</p></div>
+      </div>
+      <template #pie><button class="btn-secondary" @click="autAbierto = false">Cancelar</button><button class="btn-primary" :disabled="af.processing" @click="af.post('/proveedores/ordenes/config', { preserveScroll: true, onSuccess: () => (autAbierto = false) })" data-e2e="guardar-autorizacion">Guardar</button></template>
+    </Modal>
+    <div v-if="autorizacion.pendientes" class="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 mb-4 text-sm flex flex-wrap items-center justify-between gap-2" data-e2e="aviso-pendientes"><span><b>{{ autorizacion.pendientes }}</b> orden{{ autorizacion.pendientes === 1 ? '' : 'es' }} espera{{ autorizacion.pendientes === 1 ? '' : 'n' }} autorización{{ autorizacion.soy_autorizador ? ': podés autorizarlas desde cada orden.' : '.' }}</span><button class="btn-secondary !py-1 text-xs" @click="f.estado = 'borrador'; filtrar()">Ver</button></div>
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
         <h1 class="page-title">Órdenes de compra</h1>
@@ -9,6 +19,7 @@
         <button v-if="$page.props.auth?.ia" class="btn-secondary" @click="cot.abierto = true" data-e2e="comparar-cotizaciones">✦ Comparar cotizaciones</button>
         <Link href="/proveedores/ordenes/nueva?sugerir=1" class="btn-secondary"><Icono nombre="sparkles" clase="w-4 h-4" /> Pedido sugerido</Link>
         <Link href="/proveedores/ordenes/nueva" class="btn-primary"><Icono nombre="plus" clase="w-4 h-4" /> Nueva orden</Link>
+        <button v-if="puede('proveedores','editar')" class="btn-ghost" title="Quién autoriza las compras" aria-label="Autorización de compras" @click="autAbierto = true" data-e2e="config-autorizacion"><Icono nombre="settings" clase="w-4 h-4" /></button>
       </div>
     </div>
 
@@ -40,7 +51,7 @@
             <td class="tabular-nums" :class="o.atrasada ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ o.entrega ?? '—' }}</td>
             <td class="text-right tabular-nums">{{ o.items_count }}</td>
             <td class="text-right font-semibold tabular-nums">{{ moneda(o.total) }}</td>
-            <td><span class="badge" :class="claseEstado[o.estado]">{{ estados[o.estado] }}</span></td>
+            <td><span class="badge" :class="o.autorizacion === 'pendiente' && o.estado === 'borrador' ? 'bg-amber-100 text-amber-800' : claseEstado[o.estado]" :data-autorizacion="o.autorizacion">{{ o.autorizacion === 'pendiente' && o.estado === 'borrador' ? 'Espera autorización' : estados[o.estado] }}</span><span v-if="o.autorizacion === 'rechazada' && o.estado === 'borrador'" class="badge bg-carmin-light text-carmin ml-1" :title="o.autorizacion_nota">Rechazada</span></td>
           </tr>
           <tr v-if="!lista.data.length"><td colspan="8" class="!py-0"><EstadoVacio texto="Todavía no hay órdenes de compra." :filtros="f" :accion="puede('proveedores','crear') ? { label: 'Nueva orden', href: '/proveedores/ordenes/nueva' } : null" /></td></tr>
         </tbody>
@@ -92,7 +103,7 @@
 
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Icono from '@/Components/Icono.vue'
@@ -101,7 +112,9 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ lista: Object, filtros: Object, proveedores: Array, estados: Object, resumen: Object })
+const props = defineProps({ lista: Object, filtros: Object, proveedores: Array, estados: Object, resumen: Object, autorizacion: { type: Object, default: () => ({ autoriza_desde: 0, autorizadores: [], pendientes: 0, soy_autorizador: false }) }, usuarios: { type: Array, default: () => [] } })
+const autAbierto = ref(false)
+const af = useForm({ autoriza_desde: props.autorizacion.autoriza_desde ?? 0, autorizadores: [...(props.autorizacion.autorizadores ?? [])] })
 // Fase 42.4: una factura contra varias órdenes del mismo proveedor.
 const juntas = ref([])
 const juntasProv = computed(() => props.lista.data.find(o => o.id === juntas.value[0])?.proveedor ?? '')

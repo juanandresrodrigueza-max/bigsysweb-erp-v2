@@ -18,6 +18,24 @@ Sale la tabla: un renglón por artículo, una columna por proveedor, el más bar
 
 A Bigcito se le pegan los mensajes: "compará estas cotizaciones: …" y te dice quién gana qué y cuánto ahorrás; después "armá la orden a Acindar con…" la crea.
 
+## Autorización de compras por monto (Fase 97)
+
+Desde cierto importe, una orden de compra no sale al proveedor hasta que la autorice alguien. Se configura en **Órdenes de compra → engranaje**: el monto desde el cual se pide autorización y quiénes autorizan (el dueño siempre puede).
+
+- Quien arma la orden y la manda, si supera el monto, la ve como **«Espera autorización»**; los autorizadores reciben la alerta y el aviso al celular.
+- El autorizador entra a la orden y toca **Autorizar y enviar** (queda enviada) o **Rechazar** con un motivo (vuelve a borrador y quien la pidió se entera).
+- Una orden que espera autorización no se puede recibir. Si la manda un autorizador, sale directo.
+- A Bigcito: «¿qué órdenes esperan autorización?», «autorizá la orden 12», «rechazá la 13 porque el precio está alto».
+
+## Importaciones: despachos y costo nacionalizado (Comprar → Importaciones, Fase 97)
+
+Para la mercadería que viene del exterior. Un **despacho** tiene los artículos con su **FOB** en la moneda del proveedor, la **cotización**, y los **gastos de nacionalizar**: flete, seguro, derechos, tasa de estadística, despachante, depósito fiscal, flete interno. El sistema **prorratea los gastos por valor FOB** y calcula el **costo nacionalizado por unidad** de cada artículo, mientras cargás.
+
+- El **IVA y las percepciones** del despacho se cargan aparte: no van al costo (son crédito fiscal) y se muestran como tal.
+- **Nacionalizar** ingresa la mercadería al stock del depósito elegido con su costo real y actualiza el costo del artículo. Un despacho nacionalizado no se edita.
+- El **coeficiente sobre FOB** (por ejemplo 1,42) te dice cuánto encarece nacionalizar: sirve para cotizar la próxima.
+- A Bigcito: «¿cómo vienen las importaciones?», «¿cuál fue el costo nacionalizado del despacho 25001IC04000123X?».
+
 ## Cargar una factura de compra
 
 **Comprar → Facturas de compra → Nueva**. Tres formas:

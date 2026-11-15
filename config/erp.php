@@ -96,6 +96,7 @@ return [
             ['key' => 'ordenes',     'label' => 'Órdenes de compra',  'ruta' => '/proveedores/ordenes'],
             ['key' => 'compras',     'label' => 'Facturas de compra', 'ruta' => '/proveedores/compras'],
             ['key' => 'pagos',       'label' => 'Pagos',              'ruta' => '/proveedores/pagos', 'palabras' => 'órdenes de pago'],
+            ['key' => 'importaciones', 'label' => 'Importaciones',    'ruta' => '/proveedores/importaciones', 'palabras' => 'despacho aduana costo nacionalizado fob'], // Fase 97
         ],
         'stock' => [
             ['key' => 'articulos',    'label' => 'Artículos',             'ruta' => '/stock', 'exacto' => true],
