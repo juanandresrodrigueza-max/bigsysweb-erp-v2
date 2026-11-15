@@ -17,7 +17,8 @@ class Fase108Test extends ErpTestCase
         $this->get('/')->assertRedirect('/dashboard');
         Auth::logout();
         $this->get('/')->assertOk()->assertInertia(fn($p) => $p->component('Publico/Conocer', false)->where('planes.0.slug', 'negocio')->where('planes.0.recomendado', true)->where('dias', 15)->missing('planes.1'));
-        $this->get('/conocer')->assertOk();
+        \App\Models\Novedad::create(['titulo' => 'Algo nuevo', 'texto' => 'Detalle', 'modulo' => 'dashboard', 'url' => '/ayuda/facturar', 'publicada_en' => now()]);
+        $this->get('/conocer')->assertOk()->assertInertia(fn($p) => $p->where('novedades.0.titulo', 'Algo nuevo'));
         $this->get('/privacidad')->assertOk(); $this->get('/terminos')->assertOk();
     }
 }
