@@ -271,6 +271,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/{id}/verificar-arca',  [ComprobantesController::class, 'verificarArca'])->whereNumber('id');
         Route::post('/{id}/anular',        [ComprobantesController::class, 'anular'])->middleware('permiso:comprobantes,anular');
         Route::post('/{id}/convertir',     [ComprobantesController::class, 'convertir'])->middleware('permiso:comprobantes,crear');
+        Route::post('/{id}/facturar',      [ComprobantesController::class, 'facturar'])->middleware('permiso:comprobantes,crear')->whereNumber('id'); // Fase 104
         Route::get('/{id}/imprimir',       [ComprobantesController::class, 'imprimir']);
         Route::get('/{id}/cot',            [ComprobantesController::class, 'cot'])->whereNumber('id');
         Route::post('/{id}/cot/pedir',     [ComprobantesController::class, 'pedirCot'])->middleware('permiso:comprobantes,editar')->whereNumber('id');

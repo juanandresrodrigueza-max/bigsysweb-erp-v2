@@ -34,6 +34,7 @@
           <button v-if="c.estado === 'emitido' && c.estado_cobro !== 'na' && c.saldo > 0 && !c.link_pago && puede('comprobantes','crear')" @click="router.post(`/comprobantes/${c.id}/link-pago`, {}, { preserveScroll: true })" class="btn-secondary">Link de pago</button>
           <Link v-if="c.estado_cobro === 'pendiente' || c.estado_cobro === 'parcial'" :href="`/clientes/${c.contact_id}?cobrar=${c.id}`" class="btn-primary">Registrar cobro</Link>
           <button v-for="cv in conversiones" :key="cv.tipo" @click="cv.parcial ? abrirParcial(cv) : convertir(cv)" class="btn-secondary">{{ cv.label }}</button>
+          <button v-if="puedeFacturar && puede('comprobantes', 'crear')" @click="facturarAbierto = true" class="btn-primary" data-e2e="facturar-interno">Facturar (pasar a fiscal)</button>
         </template>
         <button v-if="puedeAnular && puede('comprobantes', 'anular')" @click="anularAbierto = true" class="btn-danger">Anular</button>
       </div>
@@ -174,6 +175,12 @@
       </div>
     </div>
 
+    <!-- Fase 104: un interno pasa a factura fiscal -->
+    <Modal :abierto="facturarAbierto" titulo="Pasar a factura fiscal" @cerrar="facturarAbierto = false">
+      <p class="text-sm">Se le pide el CAE a ARCA <b>con la fecha de hoy</b> y toma un número fiscal. El stock, la cuenta corriente y los cobros que ya tiene quedan como están; recién ahora entra en los libros de IVA y en la contabilidad. El número interno queda anotado en las notas.</p>
+      <p class="text-xs text-marca-muted mt-2">No se puede deshacer: después, sólo con nota de crédito.</p>
+      <template #pie><button class="btn-secondary" @click="facturarAbierto = false">Cancelar</button><button class="btn-primary" :disabled="facturando" @click="facturando = true; router.post(`/comprobantes/${c.id}/facturar`, {}, { preserveScroll: true, onFinish: () => { facturando = false; facturarAbierto = false } })" data-e2e="facturar-confirmar">{{ facturando ? 'Pidiendo CAE…' : 'Facturar ahora' }}</button></template>
+    </Modal>
     <Modal :abierto="anularAbierto" titulo="Anular comprobante" @cerrar="anularAbierto = false">
       <p class="text-sm text-marca-muted mb-3">Se revierte la cuenta corriente y el stock. Si tiene cobros, anulalos primero. Indicá el motivo (queda en auditoría).</p>
       <input v-model="anular.motivo" class="input" placeholder="Motivo" />
@@ -219,9 +226,9 @@ import Modal from '@/Components/Modal.vue'
 import { moneda, cantidad, estadoCobro, estadoComprobante } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ c: Object, conversiones: Array, puedeAnular: Boolean })
+const props = defineProps({ c: Object, conversiones: Array, puedeAnular: Boolean, puedeFacturar: { type: Boolean, default: false } })
 const { puede } = usePermisos()
-const anularAbierto = ref(false)
+const anularAbierto = ref(false), facturarAbierto = ref(false), facturando = ref(false)
 const verificando = ref(false), verificacion = ref(null)
 async function verificarArca() { verificando.value = true; try { const r = await fetch(`/comprobantes/${props.c.id}/verificar-arca`, { headers: { Accept: 'application/json' } }); verificacion.value = await r.json() } catch (e) { verificacion.value = { ok: false, detalle: 'No se pudo consultar.' } } finally { verificando.value = false } }
 const anular = useForm({ motivo: '' })

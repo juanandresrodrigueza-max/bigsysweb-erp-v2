@@ -26,7 +26,7 @@ Cómo dejar una empresa facturando de verdad, qué prueba el sistema y qué hace
 
 Con `fce` los códigos pasan a 201/206/211 y sus notas. No se emiten Factura M ni A con CBU informado (requieren habilitación especial del emisor).
 
-El comprobante interno (`sin_arca`) no pasa por acá: numera `{tipo}-X` por punto de venta, letra X en el papel, fuera de libros de IVA, posición, contabilidad y exportaciones del contador (fase 103).
+`ComprobanteService::facturarInterno` (fase 104) pasa un interno a fiscal: misma fila, `sin_arca=false`, fecha de hoy, mismo camino de validación legal, punto de venta y CAE que `emitir()` (`validarLegal`, `puntoVentaPara`, `pedirCae`), y recién ahí contabiliza el comprobante y sus recibos. El comprobante interno (`sin_arca`) no pasa por acá: numera `{tipo}-X` por punto de venta, letra X en el papel, fuera de libros de IVA, posición, contabilidad y exportaciones del contador (fase 103).
 
 Controles antes de pedir el CAE: la A exige CUIT (DocTipo 80); la B o C a consumidor final desde `config('erp.facturacion.identificar_cf_desde')` ($ 10.000.000, RG 5700/2025) exige CUIT o DNI (DocTipo 96); por debajo va DocTipo 99 y condición 5.
 

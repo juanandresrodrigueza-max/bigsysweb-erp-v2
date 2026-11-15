@@ -113,6 +113,7 @@ class ComprobantesController extends Controller
             ]),
             'conversiones' => $this->conversionesPosibles($c),
             'puedeAnular' => $c->estado !== 'anulado' && ! ($c->estado === 'emitido' && $c->esFiscal() && $c->afip_estado === 'aprobado'),
+            'puedeFacturar' => (bool) $c->sin_arca && $c->estado === 'emitido' && $c->esFactura() && $c->direccion === 'venta', // Fase 104
         ]);
     }
 
@@ -137,6 +138,13 @@ class ComprobantesController extends Controller
         abort_unless(in_array($request->tipo, array_column($this->conversionesPosibles($origen), 'tipo'), true), 422, 'Conversión no permitida.');
         $nuevo = $this->service->convertir($origen, $request->tipo, $request->only('es_acopio', 'condicion'));
         return redirect("/comprobantes/{$nuevo->id}/editar")->with('success', "Borrador de {$nuevo->nombreTipo()} creado desde {$origen->numeroFormateado()}. Revisalo y emitilo.");
+    }
+
+    // Fase 104: «Facturar después»: un comprobante interno pasa a factura fiscal con la fecha de hoy.
+    public function facturar(int $id)
+    {
+        $c = $this->service->facturarInterno(Comprobante::ventas()->findOrFail($id));
+        return back()->with('success', "Listo: ahora es {$c->nombreTipo()} {$c->numeroFormateado()}" . ($c->afip_estado === 'pendiente' ? ' (ARCA no respondió: queda pendiente de CAE y se reintenta solo).' : ($c->afip_estado === 'simulado' ? ' (simulado, sin CAE).' : ' con CAE.')));
     }
 
     // Ítems de la última factura emitida a un cliente, para repetirla con un clic.

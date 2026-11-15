@@ -167,43 +167,16 @@ class ComprobanteService
             }
 
             $business = $c->emisor();
-            // Fase 102: lo que ARCA rechaza, se frena acá con un mensaje claro.
-            if ($c->direccion === 'venta' && $c->esFiscal() && ! $c->sin_arca && ! $c->manual && ! $c->esExportacion()) {
-                $letra = $c->def()['letra']; $rc = $c->receptor ?? [];
-                $cuit = preg_replace('/\D/', '', (string) ($c->contact?->cuit ?: ($rc['documento'] ?? '')));
-                $doc  = preg_replace('/\D/', '', (string) ($c->contact?->document ?: ($rc['documento'] ?? '')));
-                $tieneCuit = strlen($cuit) === 11; $tieneDoc = $tieneCuit || ($doc !== '' && strlen($doc) >= 7);
-                if ($letra === 'A' && ! $tieneCuit) throw ValidationException::withMessages(['contact_id' => 'La factura A exige el CUIT del cliente (' . $c->condicionReceptor() . '). Cargalo en la ficha o facturá a otro cliente.']);
-                $tope = (float) config('erp.facturacion.identificar_cf_desde', 0);
-                if (in_array($letra, ['B', 'C'], true) && ! $tieneDoc && $tope > 0 && (float) $c->total >= $tope) throw ValidationException::withMessages(['contact_id' => 'Desde $ ' . number_format($tope, 0, ',', '.') . ' hay que identificar al consumidor final: cargá el CUIT o el DNI del cliente (RG 5700).']);
-            }
+            $this->validarLegal($c); // Fase 102: lo que ARCA rechaza, se frena acá con un mensaje claro.
             if ($c->manual) {
                 // Talonario en papel: número y punto de venta del papel, sin ARCA.
                 $res = $this->validarManual($c);
                 $pendiente = false; $numero = $res['numero'];
             } else {
-            $pv = $c->puntoVenta ?? $this->puntoVentaPorDefecto(Auth::user());
-            // Sucursal con CUIT propio: numera con sus propios puntos de venta (los de ARCA de ese CUIT), nunca con los de la casa central.
-            if ($c->location?->tieneCuitPropio() && $c->esFiscal() && (! $pv || $pv->business_location_id !== $c->business_location_id)) {
-                $pv = PuntoVenta::where('activo', true)->where('business_location_id', $c->business_location_id)->orderBy('numero')->first();
-                abort_if(! $pv, 422, "La sucursal {$c->location->name} factura con su propio CUIT ({$c->location->cuit}) y no tiene un punto de venta propio. Crealo en Configuración → Puntos de venta.");
-            }
-            abort_if(! $pv, 422, 'Configurá un punto de venta antes de emitir.');
-            $c->punto_venta = $pv->numero;
-            $c->punto_venta_id = $pv->id;
-
+            $pv = $this->puntoVentaPara($c);
             // Interno: no pasa por ARCA y numera aparte, para no pisar la numeración fiscal.
-            $res = $c->sin_arca && $c->esFiscal() ? ['estado' => 'interno', 'numero' => $pv->proximoNumero($c->tipo . '-X')] : $this->afip->emitir($c, $business);
-            if ($res['estado'] === 'rechazado') {
-                $ex = $res['explicacion'] ?? null;
-                throw ValidationException::withMessages(['afip' => 'ARCA rechazó el comprobante: ' . ($ex ? "{$ex['que']} {$ex['como']} (detalle: {$res['error']})" : $res['error'])]);
-            }
-            // Contingencia: ARCA no respondió. El comprobante sale sin número fiscal ni CAE y se reintenta solo (afip:reintentar).
-            $pendiente = $res['estado'] === 'pendiente';
-            $numero = $pendiente ? null : ($res['numero'] ?? $pv->proximoNumero($c->tipo));
-            if ($res['estado'] === 'aprobado') {
-                $pv->sincronizarUltimo($c->tipo, $numero);
-            }
+            if ($c->sin_arca && $c->esFiscal()) { $res = ['estado' => 'interno', 'numero' => $pv->proximoNumero($c->tipo . '-X')]; $pendiente = false; $numero = $res['numero']; }
+            else [$res, $numero, $pendiente] = $this->pedirCae($c, $pv, $business);
             }
 
             $c->forceFill([
@@ -229,6 +202,76 @@ class ComprobanteService
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
             \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['crm_quote_id' => $c->crm_quote_id]);
             try { app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($c->fresh(['contact', 'business'])); } catch (\Throwable $e) { \Log::warning('Puntos: ' . $e->getMessage()); }
+            return $c->fresh();
+        });
+    }
+
+    // Fase 102: la factura A exige CUIT; el consumidor final por encima del tope de la RG 5700 tiene que ir identificado.
+    private function validarLegal(Comprobante $c): void
+    {
+        if (! ($c->direccion === 'venta' && $c->esFiscal() && ! $c->sin_arca && ! $c->manual && ! $c->esExportacion())) return;
+        $letra = $c->def()['letra']; $rc = $c->receptor ?? [];
+        $cuit = preg_replace('/\D/', '', (string) ($c->contact?->cuit ?: ($rc['documento'] ?? '')));
+        $doc  = preg_replace('/\D/', '', (string) ($c->contact?->document ?: ($rc['documento'] ?? '')));
+        $tieneCuit = strlen($cuit) === 11; $tieneDoc = $tieneCuit || ($doc !== '' && strlen($doc) >= 7);
+        if ($letra === 'A' && ! $tieneCuit) throw ValidationException::withMessages(['contact_id' => 'La factura A exige el CUIT del cliente (' . $c->condicionReceptor() . '). Cargalo en la ficha o facturá a otro cliente.']);
+        $tope = (float) config('erp.facturacion.identificar_cf_desde', 0);
+        if (in_array($letra, ['B', 'C'], true) && ! $tieneDoc && $tope > 0 && (float) $c->total >= $tope) throw ValidationException::withMessages(['contact_id' => 'Desde $ ' . number_format($tope, 0, ',', '.') . ' hay que identificar al consumidor final: cargá el CUIT o el DNI del cliente (RG 5700).']);
+    }
+
+    // El punto de venta con el que numera: el del comprobante o el habitual; la sucursal con CUIT propio usa los suyos.
+    private function puntoVentaPara(Comprobante $c): PuntoVenta
+    {
+        $pv = $c->puntoVenta ?? $this->puntoVentaPorDefecto(Auth::user());
+        if ($c->location?->tieneCuitPropio() && $c->esFiscal() && (! $pv || $pv->business_location_id !== $c->business_location_id)) {
+            $pv = PuntoVenta::where('activo', true)->where('business_location_id', $c->business_location_id)->orderBy('numero')->first();
+            abort_if(! $pv, 422, "La sucursal {$c->location->name} factura con su propio CUIT ({$c->location->cuit}) y no tiene un punto de venta propio. Crealo en Configuración → Puntos de venta.");
+        }
+        abort_if(! $pv, 422, 'Configurá un punto de venta antes de emitir.');
+        $c->punto_venta = $pv->numero; $c->punto_venta_id = $pv->id;
+        return $pv;
+    }
+
+    // Pide el CAE: devuelve [respuesta, número, pendiente]. Rechazo → excepción con la explicación; sin respuesta → pendiente (se reintenta solo).
+    private function pedirCae(Comprobante $c, PuntoVenta $pv, $business): array
+    {
+        $res = $this->afip->emitir($c, $business);
+        if ($res['estado'] === 'rechazado') {
+            $ex = $res['explicacion'] ?? null;
+            throw ValidationException::withMessages(['afip' => 'ARCA rechazó el comprobante: ' . ($ex ? "{$ex['que']} {$ex['como']} (detalle: {$res['error']})" : $res['error'])]);
+        }
+        $pendiente = $res['estado'] === 'pendiente';
+        $numero = $pendiente ? null : ($res['numero'] ?? $pv->proximoNumero($c->tipo));
+        if ($res['estado'] === 'aprobado') $pv->sincronizarUltimo($c->tipo, $numero);
+        return [$res, $numero, $pendiente];
+    }
+
+    // Fase 104: «Facturar después». Un comprobante interno emitido pasa a factura fiscal con la fecha de hoy: pide el CAE, toma un número
+    // fiscal y conserva el stock, la cuenta corriente y los cobros que ya tenía. Recién ahora entra en los libros (asiento propio y de sus recibos).
+    public function facturarInterno(Comprobante $c): Comprobante
+    {
+        return DB::transaction(function () use ($c) {
+            abort_unless($c->sin_arca && $c->estado === 'emitido' && $c->direccion === 'venta' && $c->esFactura(), 422, 'Sólo una factura interna emitida se pasa a fiscal.');
+            $ajustes = Comprobante::where('origen_id', $c->id)->where('estado', '!=', 'anulado')->whereIn('tipo', array_keys(array_filter(Comprobante::TIPOS, fn($t) => in_array($t['grupo'], ['nc', 'nd'], true))))->count();
+            abort_if($ajustes > 0, 422, 'Este interno tiene notas de crédito o débito: facturá a mano lo que corresponda.');
+            $tipo = $this->resolverTipo($c->tipo, $c->contact);
+            abort_if($tipo !== $c->tipo, 422, "Hoy a este cliente le corresponde " . (Comprobante::TIPOS[$tipo]['nombre'] ?? $tipo) . " y el interno es " . $c->def()['nombre'] . ": hacé la factura a mano y anulá el interno.");
+            $numeroInterno = $c->numeroFormateado(); $fechaOriginal = $c->fecha->format('d/m/Y');
+            $c->sin_arca = false; $c->fecha = today();
+            if ($c->fecha_vto && $c->fecha_vto->lt(today())) $c->fecha_vto = today();
+            $c->notas = trim(($c->notas ? $c->notas . ' · ' : '') . "Venta del {$fechaOriginal}, antes comprobante interno {$numeroInterno}");
+            $this->validarLegal($c);
+            $pv = $this->puntoVentaPara($c);
+            $c->save(); $c->load(['items', 'contact', 'impuestos', 'origen']);
+            [$res, $numero, $pendiente] = $this->pedirCae($c, $pv, $c->emisor());
+            $c->forceFill(['numero' => $numero, 'emitido_en' => now(),
+                'afip_estado' => $res['estado'], 'cae' => $res['cae'] ?? null, 'cae_vto' => $res['cae_vto'] ?? null,
+                'afip_respuesta' => $res['respuesta'] ?? ($pendiente ? ['error' => $res['error'] ?? null, 'explicacion' => $res['explicacion'] ?? null, 'intentos' => 1] : null)])->save();
+            CuentaCorriente::where('comprobante_id', $c->id)->update(['concepto' => $c->nombreTipo() . ' ' . $c->numeroFormateado()]);
+            AuditLog::registrar('emitir', $c, "Pasó a fiscal el comprobante interno {$numeroInterno}: {$c->nombreTipo()} {$c->numeroFormateado()}");
+            $conta = app(\App\Services\Contabilidad\ContabilidadService::class);
+            $conta->contabilizar($c->fresh(['items', 'contact']));
+            foreach (\App\Models\Cobro::whereHas('imputaciones', fn($q) => $q->where('comprobante_id', $c->id))->get() as $cobro) $conta->contabilizar($cobro);
             return $c->fresh();
         });
     }
