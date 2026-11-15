@@ -20,6 +20,8 @@ class ConocerController extends Controller
             'planes' => $planes, 'dias' => (int) SistemaConfig::get('dias_prueba'), 'tiendas' => MovilController::tiendas(),
             'soporte' => ['whatsapp' => SistemaConfig::get('soporte_whatsapp'), 'email' => SistemaConfig::get('soporte_email')],
             'rubros' => array_values(\App\Models\Business::VERTICALES),
+            // Lo nuevo: las novedades que cada fase publica en la campanita, también acá. Lo que agregamos aparece solo.
+            'novedades' => \App\Models\Novedad::whereNotNull('publicada_en')->latest('publicada_en')->limit(8)->get()->map(fn($n) => ['titulo' => $n->titulo, 'texto' => $n->texto, 'fecha' => $n->publicada_en->locale('es')->isoFormat('D [de] MMMM')])->values(),
         ]);
     }
 }

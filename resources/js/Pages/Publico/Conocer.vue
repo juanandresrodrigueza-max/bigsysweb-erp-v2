@@ -67,6 +67,16 @@
         <div class="flex flex-wrap gap-2 mt-5"><span v-for="r in rubros" :key="r" class="badge bg-white border border-marca-borde text-sm !py-1.5 !px-3">{{ r }}</span></div>
       </section>
 
+      <!-- Lo nuevo: sale solo de las novedades que publica cada fase -->
+      <section v-if="novedades.length" class="py-14 border-t border-marca-borde" data-e2e="lo-nuevo">
+        <p class="kicker">Lo nuevo</p>
+        <h2 class="page-title !text-3xl mt-2">Mejora todas las semanas</h2>
+        <p class="text-marca-muted mt-2">Esto es lo último que agregamos. Las empresas lo reciben solo, sin instalar nada.</p>
+        <div class="grid md:grid-cols-2 gap-4 mt-6">
+          <article v-for="n in novedades" :key="n.titulo" class="card"><p class="text-[11px] font-bold uppercase tracking-widest text-carmin">{{ n.fecha }}</p><h3 class="font-bold mt-1">{{ n.titulo }}</h3><p class="text-sm text-marca-muted mt-1 line-clamp-4">{{ n.texto }}</p></article>
+        </div>
+      </section>
+
       <!-- Planes -->
       <section id="planes" class="py-14 border-t border-marca-borde">
         <div class="flex flex-wrap items-end justify-between gap-3">
@@ -118,7 +128,7 @@ import { Head, Link } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 import Icono from '@/Components/Icono.vue'
 import { moneda } from '@/util/formato'
-defineProps({ planes: Array, dias: Number, tiendas: Object, soporte: Object, rubros: Array })
+defineProps({ planes: Array, dias: Number, tiendas: Object, soporte: Object, rubros: Array, novedades: { type: Array, default: () => [] } })
 const ciclo = ref('mensual')
 const funciones = [
   { i: 'receipt', t: 'Vender y facturar con ARCA', d: 'Mostrador, presupuestos, facturas A, B y C con CAE, remitos, notas de crédito. La letra correcta para cada cliente, sola.' },
