@@ -689,6 +689,15 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/{id}/recibo/{item?}', [$c, 'recibo']);
         Route::get('/{id}/libro', [$c, 'libro'])->middleware('permiso:sueldos,exportar');
         Route::get('/{id}/f931', [$c, 'f931'])->middleware('permiso:sueldos,exportar');
+        Route::get('/{id}/lsd', [$c, 'lsd'])->middleware('permiso:sueldos,exportar')->whereNumber('id'); // Fase 98: Libro de Sueldos Digital
+        // Fase 98: ausencias, vacaciones y feriados
+        $p = \App\Http\Controllers\Sueldos\PersonalController::class;
+        Route::get('/personal', [$p, 'index']);
+        Route::post('/personal/ausencias/{id?}', [$p, 'guardarAusencia'])->middleware('permiso:sueldos,crear');
+        Route::post('/personal/ausencias/{id}/decidir', [$p, 'decidir'])->middleware('permiso:sueldos,editar');
+        Route::post('/personal/ausencias/{id}/borrar', [$p, 'borrarAusencia'])->middleware('permiso:sueldos,anular');
+        Route::post('/personal/feriados/{id?}', [$p, 'guardarFeriado'])->middleware('permiso:sueldos,editar');
+        Route::post('/personal/feriados/{id}/borrar', [$p, 'borrarFeriado'])->middleware('permiso:sueldos,editar');
     });
 
     // Obras y proyectos

@@ -93,6 +93,11 @@ class SueldosService
         }
         $noRemExtra = (float) ($nov['no_rem_extra'] ?? 0);
         if ($noRemExtra > 0) $agregar('NR', 'No remunerativo', 'no_remunerativo', $noRemExtra);
+        // Fase 98: ganancias 4ta categoría, acumulada en el año, si el contador cargó la tabla.
+        if (! empty($cfg['ganancias']['activo'])) {
+            $gan = app(GananciasService::class)->retencion($e, $periodo, $bruto + $noRem, $ded, $cfg, $nov['_item_id'] ?? null);
+            if (abs((float) $gan['monto']) >= 0.005) { $agregar(GananciasService::CODIGO, (float) $gan['monto'] < 0 ? 'Devolución impuesto a las ganancias' : 'Impuesto a las ganancias (4ta cat.)', 'deduccion', (float) $gan['monto'], null, null, 'otro'); $det[array_key_last($det)]['calculo'] = $gan['detalle']; }
+        }
         $ant = self::r2((float) ($nov['anticipos'] ?? 0));
         if ($ant > 0) $det[] = ['codigo' => 'ANTI', 'nombre' => 'Anticipos ya pagados', 'tipo' => 'deduccion', 'monto' => $ant, 'cantidad' => null, 'unidad' => null, 'grupo' => null];
         $neto = self::r2($bruto + $noRem - $ded - $ant);
@@ -119,7 +124,7 @@ class SueldosService
     // Configuración de sueldos de la empresa (detracción, redondeo, datos del recibo).
     public function config(Business $b): array
     {
-        return array_replace(['dia_pago' => 4, 'cuenta_id' => null, 'detraccion' => self::DETRACCION, 'redondeo' => 'no', 'codigo_redondeo' => 'RED', 'actividad' => '', 'convenio' => '', 'obra_social' => '', 'lugar_pago' => '', 'deposito_banco' => ''], (array) ($b->sueldos ?? []));
+        return array_replace(['dia_pago' => 4, 'cuenta_id' => null, 'detraccion' => self::DETRACCION, 'redondeo' => 'no', 'codigo_redondeo' => 'RED', 'actividad' => '', 'convenio' => '', 'obra_social' => '', 'lugar_pago' => '', 'deposito_banco' => '', 'lsd_actividad' => '049', 'lsd_modalidad' => '008', 'lsd_condicion' => '01', 'lsd_situacion' => '01', 'lsd_zona' => '00', 'ganancias' => []], (array) ($b->sueldos ?? []));
     }
 
     // Arma o rehace la liquidación en borrador de un período con las novedades por empleado.

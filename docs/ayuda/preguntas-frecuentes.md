@@ -148,6 +148,14 @@ Sí: Órdenes de compra → engranaje. Ponés el monto y quiénes autorizan. Des
 
 Comprar → **Importaciones**: cargás el despacho con los artículos en FOB, la cotización y los gastos (flete, seguro, derechos, despachante). El sistema prorratea por valor y te da el costo nacionalizado por unidad; al nacionalizar entra al stock con ese costo.
 
+## ¿Cuántos días de vacaciones le corresponden a un empleado?
+
+Sueldos → **Ausencias y vacaciones** lo calcula por antigüedad como dice la LCT (14, 21, 28 o 35 días; con menos de 6 meses, 1 cada 20 trabajados) y muestra tomados y saldo. Cargás las vacaciones ahí y al liquidar el mes ya vienen puestas. O preguntale a Bigcito: "¿cuántos días le quedan a Juan?".
+
+## ¿El sistema arma el Libro de Sueldos Digital?
+
+Sí. Con la liquidación confirmada, en Sueldos está el botón **Libro de Sueldos Digital**: baja el archivo de importación de ARCA (registros 01 a 04). Los códigos de concepto se declaran una vez en el LSD y se mapean. Revisá la primera presentación con el contador.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

@@ -3,12 +3,14 @@ titulo: Sueldos
 modulo: sueldos
 rutas: /sueldos
 orden: 7
-resumen: Legajos, liquidación mensual y aguinaldo, recibos, anticipos, pago desde fondos, cargas sociales, libro y F.931.
+resumen: Legajos completos, ausencias y vacaciones (LCT), feriados, liquidación mensual y aguinaldo, recibos, anticipos, pago desde fondos, cargas sociales, F.931, Libro de Sueldos Digital y ganancias 4ta.
 ---
 
 ## Empleados
 
 **Sueldos → Empleados**: legajo, CUIL, documento, categoría y convenio, fecha de ingreso, sueldo básico, **jornada** (completa, 3/4, media o 1/3), centro de costo, lugar de trabajo, modalidad (mensual o jornal), obra social y CBU para el pago.
+
+**Más datos del legajo** (fase 98): fecha de nacimiento, estado civil, domicilio y localidad, hijos, contacto de emergencia y el **ajuste de vacaciones** (días a favor o adeudados que trae de años anteriores). **Para el Libro de Sueldos Digital y ganancias**: situación de revista, condición, modalidad de contratación, adherentes a la obra social y las deducciones del SIRADIG (cónyuge, hijos, alquiler, servicio doméstico, otras).
 
 Abajo de la ficha están los **conceptos propios del empleado**: marcá los que se le liquidan solo a él (por ejemplo el seguro asistencial CEC de Comercio) y, si hace falta, un valor propio que reemplaza al general.
 
@@ -49,9 +51,35 @@ A Bigcito: "liquidá octubre: Juan faltó un día e hizo 4 extras, María de vac
 - **Pagar cargas**: aportes y contribuciones del período al vencimiento.
 - **Anticipos**: se registran cuando se pagan y se descuentan solos en la próxima liquidación.
 
+## Ausencias y vacaciones (fase 98)
+
+**Sueldos → Ausencias y vacaciones**: cargás vacaciones, enfermedad, accidente de trabajo, examen, matrimonio, nacimiento, fallecimiento, mudanza, licencia sin goce, falta injustificada, suspensión y otras. Elegís empleado, tipo, desde y hasta: los días se cuentan solos (corridos para vacaciones y licencias; sin domingos ni feriados para faltas, sin goce y suspensiones) y no deja que una se pise con otra. Cada una puede quedar **pendiente** (la carga un encargado) y el dueño la **aprueba o rechaza** desde el recuadro de arriba. Se marca si trajo certificado.
+
+**Vacaciones por antigüedad** como dice la LCT (art. 150): hasta 5 años de antigüedad 14 días, hasta 10 años 21, hasta 20 años 28 y después 35; con menos de 6 meses, 1 día cada 20 trabajados. El tablero muestra por empleado cuántos le corresponden, el ajuste, los tomados y el **saldo**. Las vacaciones que se toman de enero a abril se imputan al año anterior (se gozan hasta el 30/4); se puede elegir otro período a mano.
+
+**Al liquidar**, la tabla de novedades del mes ya viene con los **feriados del mes**, las **vacaciones** y las **faltas** de cada empleado, y los días normales ajustados (30 − feriados − vacaciones − faltas). Las licencias pagas (enfermedad, examen, matrimonio…) no tocan el recibo. Todo se puede corregir antes de calcular.
+
+A Bigcito: "cargale vacaciones a Juan del 5 al 19 de enero", "¿cuántos días de vacaciones le quedan a María?", "¿quién falta hoy?", "¿qué licencias hubo en marzo?".
+
+## Feriados (fase 98)
+
+En la misma pantalla, a la derecha, el **calendario de feriados** del año: los nacionales se calculan solos (ley 27.399: los trasladables que caen martes o miércoles pasan al lunes anterior; jueves o viernes, al lunes siguiente), más los **propios** de la empresa (día del gremio, aniversario) y los **puentes turísticos** del año, que se cargan con **Feriado propio**. Si en tu rubro un feriado nacional se trabaja, **quitar** lo saca del calendario de esta empresa (y **volver** lo restituye). La cantidad de feriados del mes sale de acá a la liquidación.
+
+A Bigcito: "¿cuándo es el próximo feriado?", "¿cuántos feriados tiene mayo?".
+
 ## Para el contador
 
-**Libro CSV** (libro de sueldos) y **F.931**: resumen por empleado con remuneración, no remunerativo, aportes, contribuciones y neto, listo para cargar en SICOSS o Libro de Sueldos Digital.
+**Libro CSV** (libro de sueldos) y **F.931**: resumen por empleado con remuneración, no remunerativo, aportes, contribuciones y neto, listo para cargar en SICOSS.
+
+### Libro de Sueldos Digital (fase 98)
+
+Con la liquidación confirmada, **Libro de Sueldos Digital** baja el archivo de importación de ARCA (registros 01 datos de la liquidación, 02 empleado, 03 conceptos liquidados y 04 datos del F.931, ancho fijo, dos decimales implícitos). Los códigos de concepto son los de acá (BAS, ANT, JUB, 1200…): se declaran **una sola vez** en la solapa Conceptos del LSD y se mapean a los de ARCA. Las contribuciones patronales no van al libro. La situación de revista, condición, modalidad de contratación, actividad y zona salen de **Preferencias de sueldos → Libro de Sueldos Digital** (lo general) y de la ficha de cada empleado (si difiere). El archivo se llama `LSD_CUIT_AAAAMM_TIPO.txt`. En la primera presentación, revisá el archivo con el contador: el LSD valida CUIL, conceptos mapeados y topes.
+
+A Bigcito: "¿cómo viene el libro de sueldos de octubre?" te dice empleados, conceptos, remuneración, a quién le falta el CUIL y el link de descarga.
+
+### Ganancias 4ta categoría (fase 98)
+
+En **Preferencias de sueldos → Ganancias 4ta categoría** el contador carga la tabla vigente: mínimo no imponible, deducción especial, cónyuge, por hijo, topes de alquiler y servicio doméstico y la **escala del art. 94** (tramos anuales: más de, hasta, fijo y %). ARCA la actualiza por semestre. Con la tabla activa, cada recibo lleva el concepto **GAN – Impuesto a las ganancias**: el sistema acumula la remuneración del año, resta aportes y deducciones proporcionales al mes, aplica la escala proporcional y retiene la diferencia con lo ya retenido; si da negativo, **devuelve**. Las deducciones de cada empleado (cónyuge, hijos, alquiler, servicio doméstico, otras del F.572) se cargan en su ficha. Sin tabla cargada, no aparece el concepto.
 
 ## Enviar los recibos para firmar
 

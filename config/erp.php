@@ -140,6 +140,7 @@ return [
             ['key' => 'contador',     'label' => 'Informe mensual',       'ruta' => '/contable/contador',     'grupo' => 'Para el contador', 'palabras' => 'contador exportar'],
             ['key' => 'liquidaciones','label' => 'Liquidaciones',         'ruta' => '/sueldos', 'exacto' => true, 'grupo' => 'Sueldos', 'modulo' => 'sueldos', 'palabras' => 'empleados legajos'],
             ['key' => 'recibos',      'label' => 'Recibos',               'ruta' => '/sueldos/recibos',       'grupo' => 'Sueldos', 'modulo' => 'sueldos', 'palabras' => 'firmas'],
+            ['key' => 'personal',     'label' => 'Ausencias y vacaciones','ruta' => '/sueldos/personal',      'grupo' => 'Sueldos', 'modulo' => 'sueldos', 'palabras' => 'licencias feriados legajo vacaciones faltas'], // Fase 98
             ['key' => 'plan',         'label' => 'Plan de cuentas',       'ruta' => '/contable/plan',         'grupo' => 'Puesta a punto'],
             ['key' => 'ejercicio',    'label' => 'Ejercicio',             'ruta' => '/contable/ejercicio',    'grupo' => 'Puesta a punto', 'palabras' => 'cierre apertura'],
             ['key' => 'activos',      'label' => 'Bienes de uso',         'ruta' => '/contable/activos',      'grupo' => 'Puesta a punto', 'palabras' => 'amortizaciones'],
@@ -173,6 +174,7 @@ return [
         'sueldos' => [
             ['key' => 'liquidaciones', 'label' => 'Liquidaciones', 'ruta' => '/sueldos', 'exacto' => true],
             ['key' => 'recibos',       'label' => 'Recibos',       'ruta' => '/sueldos/recibos'],
+            ['key' => 'personal',      'label' => 'Ausencias y vacaciones', 'ruta' => '/sueldos/personal', 'palabras' => 'licencias feriados vacaciones faltas'], // Fase 98
         ],
         // Fase 82: Configuración en cuatro grupos; 'palabras' alimenta el buscador de la columna.
         'configuracion' => [

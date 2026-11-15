@@ -25,7 +25,8 @@ class SueldosController extends Controller
         $periodo = $request->periodo ?: today()->format('Y-m');
         $enCurso = Liquidacion::where('periodo', $periodo)->where('tipo', $request->tipo ?: 'mensual')->with('items.empleado')->first();
         return Inertia::render('Sueldos/Index', [
-            'empleados' => Empleado::with('location:id,name', 'conceptos')->orderBy('legajo')->get()->map(fn($e) => ['id' => $e->id, 'legajo' => $e->legajo, 'nombre' => $e->nombre, 'cuil' => $e->cuil, 'categoria' => $e->categoria, 'convenio' => $e->convenio, 'puesto' => $e->puesto, 'fecha_ingreso' => $e->fecha_ingreso->toDateString(), 'antiguedad' => $e->antiguedadAnios(), 'sueldo_basico' => (float) $e->sueldo_basico, 'modalidad' => $e->modalidad, 'obra_social' => $e->obra_social, 'cbu' => $e->cbu, 'email' => $e->email, 'telefono' => $e->telefono, 'activo' => $e->activo, 'documento' => $e->documento, 'centro_costo' => $e->centro_costo, 'lugar_trabajo' => $e->lugar_trabajo, 'jornada' => (string) (float) ($e->jornada ?: 1), 'asignados' => $e->conceptos->map(fn($c) => ['id' => $c->id, 'valor' => $c->pivot->valor !== null ? (float) $c->pivot->valor : null])->values(), 'sucursal' => $e->location?->name, 'business_location_id' => $e->business_location_id, 'anticipos' => $svc->anticiposPendientes($e)]),
+            'empleados' => Empleado::with('location:id,name', 'conceptos')->orderBy('legajo')->get()->map(fn($e) => ['id' => $e->id, 'legajo' => $e->legajo, 'nombre' => $e->nombre, 'cuil' => $e->cuil, 'categoria' => $e->categoria, 'convenio' => $e->convenio, 'puesto' => $e->puesto, 'fecha_ingreso' => $e->fecha_ingreso->toDateString(), 'antiguedad' => $e->antiguedadAnios(), 'sueldo_basico' => (float) $e->sueldo_basico, 'modalidad' => $e->modalidad, 'obra_social' => $e->obra_social, 'cbu' => $e->cbu, 'email' => $e->email, 'telefono' => $e->telefono, 'activo' => $e->activo, 'documento' => $e->documento, 'centro_costo' => $e->centro_costo, 'lugar_trabajo' => $e->lugar_trabajo, 'jornada' => (string) (float) ($e->jornada ?: 1), 'asignados' => $e->conceptos->map(fn($c) => ['id' => $c->id, 'valor' => $c->pivot->valor !== null ? (float) $c->pivot->valor : null])->values(), 'sucursal' => $e->location?->name, 'business_location_id' => $e->business_location_id, 'anticipos' => $svc->anticiposPendientes($e),
+                'fecha_nacimiento' => $e->fecha_nacimiento?->toDateString(), 'domicilio' => $e->domicilio, 'localidad' => $e->localidad, 'estado_civil' => $e->estado_civil, 'hijos' => (int) $e->hijos, 'contacto_emergencia' => $e->contacto_emergencia, 'contacto_emergencia_tel' => $e->contacto_emergencia_tel, 'vacaciones_ajuste' => (float) $e->vacaciones_ajuste, 'lsd' => (array) ($e->lsd ?? []), 'ganancias' => (array) ($e->ganancias ?? [])]),
             'conceptos' => $conceptos->map(fn($c) => ['id' => $c->id, 'codigo' => $c->codigo, 'nombre' => $c->nombre, 'tipo' => $c->tipo, 'modo' => $c->modo, 'valor' => (float) $c->valor, 'base' => $c->base, 'orden' => $c->orden, 'cantidad' => $c->cantidad, 'por_anio' => (bool) $c->por_anio, 'mas_antiguedad' => (float) $c->mas_antiguedad, 'proporcional_jornada' => (bool) $c->proporcional_jornada, 'jornada_completa' => (bool) $c->jornada_completa, 'con_detraccion' => (bool) $c->con_detraccion, 'grupo' => $c->grupo, 'solo_asignados' => (bool) $c->solo_asignados, 'etiqueta' => $c->etiqueta]),
             'tiposConcepto' => SueldoConcepto::TIPOS, 'modos' => SueldoConcepto::MODOS, 'cantidades' => SueldoConcepto::CANTIDADES, 'grupos' => SueldoConcepto::GRUPOS, 'plantillas' => SueldoConcepto::PLANTILLAS, 'jornadas' => Empleado::JORNADAS, 'tiposLiq' => Liquidacion::TIPOS, 'estados' => Liquidacion::ESTADOS,
             'liquidaciones' => $liqs->map(fn($l) => $this->resumirLiq($l)),
@@ -34,7 +35,17 @@ class SueldosController extends Controller
             'cuentas' => CuentaFondos::where('activa', true)->whereIn('tipo', ['caja', 'banco'])->where('moneda', 'ARS')->orderBy('tipo')->get(['id', 'nombre', 'tipo', 'saldo']),
             'kpis' => ['activos' => Empleado::where('activo', true)->count(), 'masa' => (float) Empleado::where('activo', true)->sum('sueldo_basico'), 'ultimo_neto' => (float) ($ultima?->total_neto ?? 0), 'ultimo_costo' => (float) (($ultima?->total_bruto ?? 0) + ($ultima?->total_no_rem ?? 0) + ($ultima?->total_contribuciones ?? 0)), 'ultimo_periodo' => $ultima?->periodoLabel(), 'pendientes' => Liquidacion::where('estado', 'confirmada')->count()],
             'config' => $svc->config($b),
+            // Fase 98: lo que sale solo de las ausencias aprobadas y los feriados del mes; el LSD y ganancias
+            'sugeridas' => app(\App\Services\Personal\AusenciasService::class)->novedadesPeriodo($b, $periodo),
+            'lsd' => ['situaciones' => \App\Services\Sueldos\LibroSueldosDigitalService::SITUACIONES, 'condiciones' => \App\Services\Sueldos\LibroSueldosDigitalService::CONDICIONES, 'modalidades' => \App\Services\Sueldos\LibroSueldosDigitalService::MODALIDADES],
         ]);
+    }
+
+    // Fase 98: archivo del Libro de Sueldos Digital (registros 01 a 04).
+    public function lsd(int $id, SueldosService $svc, \App\Services\Sueldos\LibroSueldosDigitalService $lsd)
+    {
+        $liq = Liquidacion::findOrFail($id);
+        return response($lsd->generar($liq, $svc->config($liq->business)), 200, ['Content-Type' => 'text/plain; charset=ISO-8859-1', 'Content-Disposition' => 'attachment; filename="' . $lsd->nombreArchivo($liq) . '"']);
     }
 
     private function resumirLiq(Liquidacion $l): array
@@ -49,10 +60,14 @@ class SueldosController extends Controller
 
     public function guardarEmpleado(Request $request, ?int $id = null)
     {
-        $d = $request->validate(['nombre' => 'required|string|max:120', 'cuil' => 'nullable|string|max:20', 'categoria' => 'nullable|string|max:80', 'convenio' => 'nullable|string|max:80', 'puesto' => 'nullable|string|max:80', 'fecha_ingreso' => 'required|date', 'fecha_egreso' => 'nullable|date', 'sueldo_basico' => 'required|numeric|min:0', 'modalidad' => 'required|in:mensual,jornal', 'obra_social' => 'nullable|string|max:80', 'cbu' => 'nullable|string|max:30', 'email' => 'nullable|email|max:120', 'telefono' => 'nullable|string|max:40', 'activo' => 'boolean', 'business_location_id' => 'nullable|integer', 'notas' => 'nullable|string|max:500', 'documento' => 'nullable|string|max:20', 'centro_costo' => 'nullable|string|max:60', 'lugar_trabajo' => 'nullable|string|max:60', 'jornada' => 'nullable|numeric|gt:0|max:1', 'asignados' => 'nullable|array', 'asignados.*.id' => 'required|integer', 'asignados.*.valor' => 'nullable|numeric']);
+        $d = $request->validate(['nombre' => 'required|string|max:120', 'cuil' => 'nullable|string|max:20', 'categoria' => 'nullable|string|max:80', 'convenio' => 'nullable|string|max:80', 'puesto' => 'nullable|string|max:80', 'fecha_ingreso' => 'required|date', 'fecha_egreso' => 'nullable|date', 'sueldo_basico' => 'required|numeric|min:0', 'modalidad' => 'required|in:mensual,jornal', 'obra_social' => 'nullable|string|max:80', 'cbu' => 'nullable|string|max:30', 'email' => 'nullable|email|max:120', 'telefono' => 'nullable|string|max:40', 'activo' => 'boolean', 'business_location_id' => 'nullable|integer', 'notas' => 'nullable|string|max:500', 'documento' => 'nullable|string|max:20', 'centro_costo' => 'nullable|string|max:60', 'lugar_trabajo' => 'nullable|string|max:60', 'jornada' => 'nullable|numeric|gt:0|max:1', 'asignados' => 'nullable|array', 'asignados.*.id' => 'required|integer', 'asignados.*.valor' => 'nullable|numeric',
+            // Fase 98: legajo completo, datos de revista para el LSD y deducciones del SIRADIG
+            'fecha_nacimiento' => 'nullable|date', 'domicilio' => 'nullable|string|max:160', 'localidad' => 'nullable|string|max:80', 'estado_civil' => 'nullable|string|max:20', 'hijos' => 'nullable|integer|min:0|max:30', 'contacto_emergencia' => 'nullable|string|max:120', 'contacto_emergencia_tel' => 'nullable|string|max:40', 'vacaciones_ajuste' => 'nullable|numeric|min:-99|max:99',
+            'lsd' => 'nullable|array', 'lsd.condicion' => 'nullable|string|max:2', 'lsd.situacion' => 'nullable|string|max:2', 'lsd.modalidad_contratacion' => 'nullable|string|max:3', 'lsd.actividad' => 'nullable|string|max:3', 'lsd.zona' => 'nullable|string|max:2', 'lsd.siniestrado' => 'nullable|string|max:2', 'lsd.adherentes' => 'nullable|integer|min:0|max:20',
+            'ganancias' => 'nullable|array', 'ganancias.conyuge' => 'nullable|boolean', 'ganancias.hijos' => 'nullable|integer|min:0|max:30', 'ganancias.alquiler' => 'nullable|numeric|min:0', 'ganancias.servicio_domestico' => 'nullable|numeric|min:0', 'ganancias.otras' => 'nullable|numeric|min:0']);
         $u = $request->user();
         $asignados = $d['asignados'] ?? null; unset($d['asignados']);
-        $d['jornada'] = $d['jornada'] ?? 1;
+        $d['jornada'] = $d['jornada'] ?? 1; $d['hijos'] = (int) ($d['hijos'] ?? 0); $d['vacaciones_ajuste'] = (float) ($d['vacaciones_ajuste'] ?? 0);
         $e = $id ? Empleado::findOrFail($id) : new Empleado(['business_id' => $u->business_id, 'legajo' => (int) Empleado::withoutGlobalScopes()->where('business_id', $u->business_id)->max('legajo') + 1]);
         $e->fill($d + ['business_location_id' => $d['business_location_id'] ?? $u->current_location_id])->save();
         // Conceptos asignados (los "solo asignados", como el CEC) y valores propios del empleado que pisan al del concepto.
@@ -91,9 +106,15 @@ class SueldosController extends Controller
 
     public function guardarConfig(Request $request, SueldosService $svc)
     {
-        $d = $request->validate(['dia_pago' => 'required|integer|min:1|max:28', 'cuenta_id' => 'nullable|integer', 'detraccion' => 'nullable|numeric|min:0', 'redondeo' => 'nullable|in:no,peso', 'codigo_redondeo' => 'nullable|string|max:10', 'actividad' => 'nullable|string|max:120', 'convenio' => 'nullable|string|max:80', 'obra_social' => 'nullable|string|max:80', 'lugar_pago' => 'nullable|string|max:120', 'deposito_banco' => 'nullable|string|max:60']);
+        $d = $request->validate(['dia_pago' => 'required|integer|min:1|max:28', 'cuenta_id' => 'nullable|integer', 'detraccion' => 'nullable|numeric|min:0', 'redondeo' => 'nullable|in:no,peso', 'codigo_redondeo' => 'nullable|string|max:10', 'actividad' => 'nullable|string|max:120', 'convenio' => 'nullable|string|max:80', 'obra_social' => 'nullable|string|max:80', 'lugar_pago' => 'nullable|string|max:120', 'deposito_banco' => 'nullable|string|max:60',
+            'lsd_actividad' => 'nullable|string|max:3', 'lsd_modalidad' => 'nullable|string|max:3', 'lsd_condicion' => 'nullable|string|max:2', 'lsd_situacion' => 'nullable|string|max:2', 'lsd_zona' => 'nullable|string|max:2',
+            'ganancias' => 'nullable|array', 'ganancias.activo' => 'boolean', 'ganancias.mni' => 'nullable|numeric|min:0', 'ganancias.deduccion_especial' => 'nullable|numeric|min:0', 'ganancias.conyuge' => 'nullable|numeric|min:0', 'ganancias.hijo' => 'nullable|numeric|min:0', 'ganancias.tope_alquiler' => 'nullable|numeric|min:0', 'ganancias.tope_domestico' => 'nullable|numeric|min:0',
+            'ganancias.escala' => 'nullable|array|max:12', 'ganancias.escala.*.desde' => 'nullable|numeric|min:0', 'ganancias.escala.*.hasta' => 'nullable|numeric|min:0', 'ganancias.escala.*.fijo' => 'nullable|numeric|min:0', 'ganancias.escala.*.pct' => 'nullable|numeric|min:0|max:100']);
         $b = $request->user()->business;
-        $b->update(['sueldos' => array_replace($svc->config($b), array_map(fn($v) => $v ?? '', $d), ['cuenta_id' => $d['cuenta_id'] ?? null, 'detraccion' => (float) ($d['detraccion'] ?? SueldosService::DETRACCION)])]);
+        $gan = $d['ganancias'] ?? null; unset($d['ganancias']);
+        $cfg = array_replace($svc->config($b), array_map(fn($v) => $v ?? '', $d), ['cuenta_id' => $d['cuenta_id'] ?? null, 'detraccion' => (float) ($d['detraccion'] ?? SueldosService::DETRACCION)]);
+        if ($gan !== null) $cfg['ganancias'] = \App\Services\Sueldos\GananciasService::config(['ganancias' => $gan]);
+        $b->update(['sueldos' => $cfg]);
         return back()->with('success', 'Configuración guardada.');
     }
 

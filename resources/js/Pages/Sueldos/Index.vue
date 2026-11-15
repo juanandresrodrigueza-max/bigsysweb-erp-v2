@@ -19,7 +19,8 @@
             <div class="flex flex-wrap gap-2">
               <a :href="`/sueldos/${enCurso.id}/recibo`" target="_blank" class="btn-secondary !py-1 text-xs">Recibos</a>
               <a :href="`/sueldos/${enCurso.id}/libro`" class="btn-secondary !py-1 text-xs">Libro CSV</a>
-              <a :href="`/sueldos/${enCurso.id}/f931`" class="btn-secondary !py-1 text-xs" title="Resumen por empleado para cargar el F.931 / Libro de Sueldos Digital">F.931</a>
+              <a :href="`/sueldos/${enCurso.id}/f931`" class="btn-secondary !py-1 text-xs" title="Resumen por empleado para cargar el F.931">F.931</a>
+              <a :href="`/sueldos/${enCurso.id}/lsd`" class="btn-secondary !py-1 text-xs" title="Archivo de importación del Libro de Sueldos Digital de ARCA (registros 01 a 04)" data-e2e="lsd">Libro de Sueldos Digital</a>
               <button v-if="enCurso.estado === 'borrador'" class="btn-primary !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/confirmar`, {}, { preserveScroll: true })">Confirmar y contabilizar</button>
               <button v-if="enCurso.estado === 'confirmada'" class="btn-ghost !py-1 text-xs" @click="router.post(`/sueldos/${enCurso.id}/reabrir`, {}, { preserveScroll: true })">Reabrir</button>
               <button v-if="enCurso.estado === 'confirmada'" class="btn-primary !py-1 text-xs" @click="pagarAbierto = true">Pagar</button>
@@ -101,10 +102,11 @@
         </div>
       </div>
       <p class="text-xs text-marca-muted mb-2">Novedades del mes por empleado. Lo que no toques queda en 30 días y sin extras. Al cargar feriados o vacaciones, los días normales se ajustan solos (30 − feriados − vacaciones).</p>
+      <p v-if="haySugeridas" class="text-xs text-violeta mb-2" data-e2e="sugeridas">✦ Los feriados del mes y las vacaciones, faltas y licencias cargadas en <Link href="/sueldos/personal" class="underline">Ausencias y vacaciones</Link> ya están puestos. Revisalos y corregí lo que haga falta.</p>
       <div class="overflow-x-auto"><table class="table text-xs">
         <thead><tr><th></th><th>Empleado</th><th class="text-right">Días</th><th class="text-right">Feriados</th><th class="text-right">Vacac.</th><th class="text-right">HE 50%</th><th class="text-right">HE 100%</th><th class="text-right">Premios</th><th class="text-right">No rem.</th><th class="text-right">Anticipos</th></tr></thead>
         <tbody>
-          <tr v-for="e in empleados.filter(x => x.activo)" :key="e.id">
+          <tr v-for="e in empleados.filter(x => x.activo)" :key="e.id" :title="(lq.novedades[e.id]._sug || []).join(' · ')">
             <td><input type="checkbox" class="accent-carmin" :checked="!lq.novedades[e.id].excluir" @change="lq.novedades[e.id].excluir = !$event.target.checked" title="Incluir" /></td>
             <td class="font-medium whitespace-nowrap">{{ e.nombre }}</td>
             <td><input v-model.number="lq.novedades[e.id].dias" type="number" min="0" max="31" class="input !py-1 !w-16 text-right" /></td>
@@ -162,6 +164,33 @@
         <div><label class="label">CBU para acreditar</label><input v-model="ef.cbu" class="input" /></div><div><label class="label">Teléfono</label><input v-model="ef.telefono" class="input" /></div>
         <div><label class="label">Email</label><input v-model="ef.email" type="email" class="input" /></div><div v-if="ef.id"><label class="label">Fecha de egreso</label><input v-model="ef.fecha_egreso" type="date" class="input" /></div>
         <label v-if="ef.id" class="flex items-center gap-2 text-sm sm:col-span-2"><input v-model="ef.activo" type="checkbox" class="accent-carmin" /> Activo (entra en las liquidaciones)</label>
+        <!-- Fase 98: legajo completo -->
+        <details class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="legajo-mas">
+          <summary class="cursor-pointer text-sm font-semibold">Más datos del legajo <span class="text-xs font-normal text-marca-muted">· nacimiento, domicilio, familia, emergencia</span></summary>
+          <div class="grid sm:grid-cols-2 gap-3 mt-3">
+            <div><label class="label">Fecha de nacimiento</label><input v-model="ef.fecha_nacimiento" type="date" class="input" /></div>
+            <div><label class="label">Estado civil</label><select v-model="ef.estado_civil" class="input"><option value="">—</option><option>Soltero/a</option><option>Casado/a</option><option>Unión convivencial</option><option>Divorciado/a</option><option>Viudo/a</option></select></div>
+            <div><label class="label">Domicilio</label><input v-model="ef.domicilio" class="input" /></div><div><label class="label">Localidad</label><input v-model="ef.localidad" class="input" placeholder="Para el Libro de Sueldos Digital" /></div>
+            <div><label class="label">Hijos</label><input v-model.number="ef.hijos" type="number" min="0" class="input" /></div>
+            <div><label class="label">Ajuste de vacaciones (días)</label><input v-model.number="ef.vacaciones_ajuste" type="number" step="0.5" class="input" /><p class="text-[11px] text-marca-muted mt-1">Días a favor (+) o adeudados (−) que trae de años anteriores.</p></div>
+            <div><label class="label">Contacto de emergencia</label><input v-model="ef.contacto_emergencia" class="input" placeholder="Nombre y parentesco" /></div><div><label class="label">Teléfono de emergencia</label><input v-model="ef.contacto_emergencia_tel" class="input" /></div>
+          </div>
+        </details>
+        <details class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="legajo-lsd">
+          <summary class="cursor-pointer text-sm font-semibold">Para el Libro de Sueldos Digital y ganancias <span class="text-xs font-normal text-marca-muted">· situación de revista, SIRADIG</span></summary>
+          <div class="grid sm:grid-cols-2 gap-3 mt-3">
+            <div><label class="label">Situación de revista</label><select v-model="ef.lsd.situacion" class="input"><option value="">La de la empresa</option><option v-for="(l, k) in lsd.situaciones" :key="k" :value="k">{{ k }} · {{ l }}</option></select></div>
+            <div><label class="label">Condición</label><select v-model="ef.lsd.condicion" class="input"><option value="">La de la empresa</option><option v-for="(l, k) in lsd.condiciones" :key="k" :value="k">{{ k }} · {{ l }}</option></select></div>
+            <div><label class="label">Modalidad de contratación</label><select v-model="ef.lsd.modalidad_contratacion" class="input"><option value="">La de la empresa</option><option v-for="(l, k) in lsd.modalidades" :key="k" :value="k">{{ k }} · {{ l }}</option></select></div>
+            <div><label class="label">Adherentes a la obra social</label><input v-model.number="ef.lsd.adherentes" type="number" min="0" class="input" /></div>
+            <p class="sm:col-span-2 text-xs text-marca-muted">Deducciones del SIRADIG (F.572) para ganancias 4ta categoría: se descuentan sólo si la tabla está cargada en Preferencias de sueldos.</p>
+            <label class="flex items-center gap-2 text-sm"><input v-model="ef.ganancias.conyuge" type="checkbox" class="accent-carmin" /> Cónyuge a cargo</label>
+            <div><label class="label">Hijos a cargo (ganancias)</label><input v-model.number="ef.ganancias.hijos" type="number" min="0" class="input" /></div>
+            <div><label class="label">Alquiler mensual que paga</label><input v-model.number="ef.ganancias.alquiler" type="number" min="0" class="input" /><p class="text-[11px] text-marca-muted mt-1">Se deduce el 40 %, hasta el tope.</p></div>
+            <div><label class="label">Servicio doméstico mensual</label><input v-model.number="ef.ganancias.servicio_domestico" type="number" min="0" class="input" /></div>
+            <div><label class="label">Otras deducciones mensuales</label><input v-model.number="ef.ganancias.otras" type="number" min="0" class="input" /><p class="text-[11px] text-marca-muted mt-1">Cuota médica, seguro de vida, donaciones: lo que informe el F.572.</p></div>
+          </div>
+        </details>
         <div class="sm:col-span-2 border-t border-marca-borde pt-3" data-e2e="asignados">
           <p class="label">Conceptos propios del empleado</p>
           <p class="text-xs text-marca-muted mb-2">Los marcados "solo asignados" (como el seguro CEC) se liquidan únicamente a quien los tenga. Un valor propio reemplaza al del concepto; vacío usa el general.</p>
@@ -235,6 +264,40 @@
         <div><label class="label">Detracción (jornada completa)</label><input v-model.number="cf.detraccion" type="number" step="0.01" class="input" /><p class="text-[11px] text-marca-muted mt-1">Se resta de la base de contribuciones, proporcional a la jornada.</p></div>
         <div><label class="label">Redondeo del neto</label><select v-model="cf.redondeo" class="input"><option value="no">Sin redondeo</option><option value="peso">Al peso siguiente</option></select><input v-if="cf.redondeo === 'peso'" v-model="cf.codigo_redondeo" class="input mt-1" placeholder="Código (3950)" /></div>
       </div>
+      <!-- Fase 98: Libro de Sueldos Digital y ganancias 4ta -->
+      <details class="mt-4 border-t border-marca-borde pt-3" data-e2e="config-lsd">
+        <summary class="cursor-pointer text-sm font-semibold">Libro de Sueldos Digital <span class="text-xs font-normal text-marca-muted">· lo que va por defecto para cada empleado</span></summary>
+        <div class="grid sm:grid-cols-2 gap-3 mt-3">
+          <div><label class="label">Código de actividad (F.931)</label><input v-model="cf.lsd_actividad" class="input" maxlength="3" placeholder="049" /></div>
+          <div><label class="label">Zona</label><input v-model="cf.lsd_zona" class="input" maxlength="2" placeholder="00" /></div>
+          <div><label class="label">Situación de revista</label><select v-model="cf.lsd_situacion" class="input"><option v-for="(l, k) in lsd.situaciones" :key="k" :value="k">{{ k }} · {{ l }}</option></select></div>
+          <div><label class="label">Condición</label><select v-model="cf.lsd_condicion" class="input"><option v-for="(l, k) in lsd.condiciones" :key="k" :value="k">{{ k }} · {{ l }}</option></select></div>
+          <div class="sm:col-span-2"><label class="label">Modalidad de contratación</label><select v-model="cf.lsd_modalidad" class="input"><option v-for="(l, k) in lsd.modalidades" :key="k" :value="k">{{ k }} · {{ l }}</option></select></div>
+          <p class="sm:col-span-2 text-xs text-marca-muted">Los códigos de concepto del archivo son los de acá (BAS, ANT, JUB…): declaralos una vez en la solapa Conceptos del LSD de ARCA y mapealos. En la primera presentación, revisá el archivo con el contador.</p>
+        </div>
+      </details>
+      <details class="mt-3 border-t border-marca-borde pt-3" data-e2e="config-ganancias">
+        <summary class="cursor-pointer text-sm font-semibold">Ganancias 4ta categoría <span class="text-xs font-normal text-marca-muted">· la tabla la carga el contador</span></summary>
+        <div class="mt-3 space-y-3">
+          <label class="flex items-center gap-2 text-sm"><input v-model="cf.ganancias.activo" type="checkbox" class="accent-carmin" /> Retener ganancias en la liquidación (acumulado mes a mes, con devolución si corresponde)</label>
+          <div class="grid sm:grid-cols-3 gap-3">
+            <div><label class="label">Mínimo no imponible (anual)</label><input v-model.number="cf.ganancias.mni" type="number" min="0" class="input" /></div>
+            <div><label class="label">Deducción especial (anual)</label><input v-model.number="cf.ganancias.deduccion_especial" type="number" min="0" class="input" /></div>
+            <div><label class="label">Cónyuge (anual)</label><input v-model.number="cf.ganancias.conyuge" type="number" min="0" class="input" /></div>
+            <div><label class="label">Por hijo (anual)</label><input v-model.number="cf.ganancias.hijo" type="number" min="0" class="input" /></div>
+            <div><label class="label">Tope alquiler (anual)</label><input v-model.number="cf.ganancias.tope_alquiler" type="number" min="0" class="input" /></div>
+            <div><label class="label">Tope servicio doméstico (anual)</label><input v-model.number="cf.ganancias.tope_domestico" type="number" min="0" class="input" /></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1"><p class="label !mb-0">Escala del art. 94 (anual)</p><button type="button" class="btn-secondary !py-0.5 text-xs" @click="cf.ganancias.escala.push({ desde: cf.ganancias.escala.at(-1)?.hasta ?? 0, hasta: null, fijo: 0, pct: 0 })">+ Tramo</button></div>
+            <div v-for="(t, i) in cf.ganancias.escala" :key="i" class="grid grid-cols-[1fr_1fr_1fr_70px_24px] gap-1 mb-1 items-center">
+              <input v-model.number="t.desde" type="number" min="0" class="input !py-1 text-xs" placeholder="Más de" /><input v-model.number="t.hasta" type="number" min="0" class="input !py-1 text-xs" placeholder="Hasta (vacío: en adelante)" /><input v-model.number="t.fijo" type="number" min="0" class="input !py-1 text-xs" placeholder="Fijo $" /><input v-model.number="t.pct" type="number" min="0" max="100" step="0.5" class="input !py-1 text-xs" placeholder="%" />
+              <button type="button" class="text-marca-muted hover:text-carmin" @click="cf.ganancias.escala.splice(i, 1)" title="Quitar" aria-label="Quitar">×</button>
+            </div>
+            <p class="text-xs text-marca-muted">Columnas: más de, hasta, importe fijo y % sobre el excedente, en valores anuales. ARCA publica la tabla cada semestre: pedísela al contador. Las deducciones de cada empleado (cónyuge, hijos, alquiler, F.572) van en su ficha.</p>
+          </div>
+        </div>
+      </details>
       <template #pie><button class="btn-secondary" @click="configAbierto = false">Cancelar</button><button class="btn-primary" :disabled="cf.processing" @click="cf.post('/sueldos/config', { preserveScroll: true, onSuccess: () => (configAbierto = false) })">Guardar</button></template>
     </Modal>
 
@@ -259,10 +322,12 @@ import PageHeader from '@/Components/PageHeader.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda, hoyISO } from '@/util/formato'
 import { useDictado } from '@/util/dictado'
-const props = defineProps({ empleados: Array, conceptos: Array, tiposConcepto: Object, tiposLiq: Object, estados: Object, liquidaciones: Array, periodo: String, tipo: String, enCurso: Object, cuentas: Array, kpis: Object, config: Object, modos: Object, cantidades: Object, grupos: Object, plantillas: Object, jornadas: Object })
+const props = defineProps({ empleados: Array, conceptos: Array, tiposConcepto: Object, tiposLiq: Object, estados: Object, liquidaciones: Array, periodo: String, tipo: String, enCurso: Object, cuentas: Array, kpis: Object, config: Object, modos: Object, cantidades: Object, grupos: Object, plantillas: Object, jornadas: Object, sugeridas: Object, lsd: Object })
 const fmt = iso => iso ? iso.split('-').reverse().join('/') : ''
 const liquidarAbierto = ref(false), importarAbierto = ref(false), pagarAbierto = ref(false), empleadoAbierto = ref(false), conceptosAbierto = ref(false), configAbierto = ref(false), plantillaConfirm = ref(null), detalle = ref(null), anticipo = ref(null)
-const nov = {}; props.empleados.forEach(e => { nov[e.id] = { dias: 30, feriados: 0, vacaciones: 0, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false } })
+// Fase 98: días, feriados y vacaciones arrancan con lo que sale de Ausencias y vacaciones y del calendario de feriados del mes.
+const novInicial = e => { const s = props.sugeridas?.[e.id]; return { dias: s ? s.dias : 30, feriados: s ? s.feriados : 0, vacaciones: s ? s.vacaciones : 0, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false, _sug: s?.detalle ?? [] } }
+const nov = {}; props.empleados.forEach(e => { nov[e.id] = novInicial(e) })
 const lq = useForm({ periodo: props.periodo, tipo: props.tipo, fecha: '', novedades: nov })
 // Fase 65: novedades por texto (pegado o dictado) → la tabla.
 const novTexto = ref(''), novCargando = ref(false), novNota = ref(''), novError = ref(false); let novBase = ''
@@ -280,12 +345,16 @@ async function completarNovedades() {
 const im = useForm({ periodo: props.periodo, tipo: 'mensual', csv: '' })
 const pg = useForm({ cuenta_id: props.config?.cuenta_id ?? props.cuentas[0]?.id ?? null, fecha: hoyISO(), cargas: false })
 // Las novedades se arman al abrir: así incluyen a los empleados dados de alta después de cargar la pantalla.
-function abrirLiquidar() { props.empleados.forEach(e => { lq.novedades[e.id] ??= { dias: 30, feriados: 0, vacaciones: 0, horas_extra_50: 0, horas_extra_100: 0, adicionales: 0, no_rem_extra: 0, anticipos: e.anticipos || 0, excluir: false } }); liquidarAbierto.value = true }
-function ajustarDias(id) { const n = lq.novedades[id]; n.dias = Math.max(0, 30 - (n.feriados || 0) - (n.vacaciones || 0)) }
+function abrirLiquidar() { props.empleados.forEach(e => { lq.novedades[e.id] ??= novInicial(e) }); liquidarAbierto.value = true }
+function ajustarDias(id) { const n = lq.novedades[id]; n.dias = Math.max(0, 30 - (n.feriados || 0) - (n.vacaciones || 0) - (props.sugeridas?.[id]?.faltas || 0)) }
+const haySugeridas = Object.values(props.sugeridas ?? {}).some(s => s.detalle?.length || s.feriados)
 const dep = useForm({ deposito_fecha: props.enCurso?.deposito_fecha ?? '', deposito_banco: props.enCurso?.deposito_banco ?? props.config?.deposito_banco ?? '', deposito_periodo: props.enCurso?.deposito_periodo ?? '' })
-const cf = useForm({ ...props.config })
-const ef = useForm({ id: null, nombre: '', cuil: '', documento: '', centro_costo: '', lugar_trabajo: '', jornada: '1', asignados: [], fecha_ingreso: hoyISO(), fecha_egreso: '', categoria: '', convenio: '', puesto: '', obra_social: '', sueldo_basico: 0, modalidad: 'mensual', cbu: '', telefono: '', email: '', activo: true })
-function abrirEmpleado(e = null) { ef.clearErrors(); Object.assign(ef, { id: e?.id ?? null, nombre: e?.nombre ?? '', cuil: e?.cuil ?? '', fecha_ingreso: e?.fecha_ingreso ?? hoyISO(), fecha_egreso: '', categoria: e?.categoria ?? '', convenio: e?.convenio ?? '', puesto: e?.puesto ?? '', obra_social: e?.obra_social ?? '', sueldo_basico: e?.sueldo_basico ?? 0, modalidad: e?.modalidad ?? 'mensual', cbu: e?.cbu ?? '', telefono: e?.telefono ?? '', email: e?.email ?? '', activo: e?.activo ?? true, documento: e?.documento ?? '', centro_costo: e?.centro_costo ?? '', lugar_trabajo: e?.lugar_trabajo ?? '', jornada: e?.jornada ?? '1', asignados: (e?.asignados ?? []).map(a => ({ ...a })) }); empleadoAbierto.value = true }
+const cf = useForm({ ...props.config, ganancias: { activo: false, mni: 0, deduccion_especial: 0, conyuge: 0, hijo: 0, tope_alquiler: 0, tope_domestico: 0, ...(props.config?.ganancias ?? {}), escala: (props.config?.ganancias?.escala ?? []).map(t => ({ ...t })) } })
+const legajoVacio = () => ({ fecha_nacimiento: '', domicilio: '', localidad: '', estado_civil: '', hijos: 0, contacto_emergencia: '', contacto_emergencia_tel: '', vacaciones_ajuste: 0, lsd: { situacion: '', condicion: '', modalidad_contratacion: '', adherentes: 0 }, ganancias: { conyuge: false, hijos: 0, alquiler: 0, servicio_domestico: 0, otras: 0 } })
+const ef = useForm({ id: null, nombre: '', cuil: '', documento: '', centro_costo: '', lugar_trabajo: '', jornada: '1', asignados: [], fecha_ingreso: hoyISO(), fecha_egreso: '', categoria: '', convenio: '', puesto: '', obra_social: '', sueldo_basico: 0, modalidad: 'mensual', cbu: '', telefono: '', email: '', activo: true, ...legajoVacio() })
+function abrirEmpleado(e = null) { ef.clearErrors(); Object.assign(ef, { id: e?.id ?? null, nombre: e?.nombre ?? '', cuil: e?.cuil ?? '', fecha_ingreso: e?.fecha_ingreso ?? hoyISO(), fecha_egreso: '', categoria: e?.categoria ?? '', convenio: e?.convenio ?? '', puesto: e?.puesto ?? '', obra_social: e?.obra_social ?? '', sueldo_basico: e?.sueldo_basico ?? 0, modalidad: e?.modalidad ?? 'mensual', cbu: e?.cbu ?? '', telefono: e?.telefono ?? '', email: e?.email ?? '', activo: e?.activo ?? true, documento: e?.documento ?? '', centro_costo: e?.centro_costo ?? '', lugar_trabajo: e?.lugar_trabajo ?? '', jornada: e?.jornada ?? '1', asignados: (e?.asignados ?? []).map(a => ({ ...a })),
+    ...legajoVacio(), fecha_nacimiento: e?.fecha_nacimiento ?? '', domicilio: e?.domicilio ?? '', localidad: e?.localidad ?? '', estado_civil: e?.estado_civil ?? '', hijos: e?.hijos ?? 0, contacto_emergencia: e?.contacto_emergencia ?? '', contacto_emergencia_tel: e?.contacto_emergencia_tel ?? '', vacaciones_ajuste: e?.vacaciones_ajuste ?? 0,
+    lsd: { ...legajoVacio().lsd, ...(e?.lsd ?? {}) }, ganancias: { ...legajoVacio().ganancias, ...(e?.ganancias ?? {}) } }); empleadoAbierto.value = true }
 const asig = id => ef.asignados.find(a => a.id === id)
 function toggleAsig(id, on) { ef.asignados = on ? [...ef.asignados, { id, valor: null }] : ef.asignados.filter(a => a.id !== id) }
 const conceptosEdit = reactive(props.conceptos.map(c => ({ ...c })))
