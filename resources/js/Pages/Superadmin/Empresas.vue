@@ -19,7 +19,7 @@
             <td><p class="font-semibold">{{ e.nombre }}</p><p class="text-xs text-marca-muted">{{ e.cuit ?? 'sin CUIT' }} · alta {{ e.alta }}</p></td>
             <td class="text-marca-muted">{{ e.vertical }}</td>
             <td><span class="badge bg-lavanda-light text-violeta">{{ e.plan ?? '—' }}</span></td>
-            <td><span class="badge" :class="estadoClase[e.estado]">{{ e.estado_label }}</span></td>
+            <td><span class="badge" :class="estadoClase[e.estado]">{{ e.estado_label }}</span> <span v-if="e.aprobacion === 'pendiente'" class="badge" :class="e.aprobacion_bloqueada ? 'bg-carmin-light text-carmin' : 'bg-lavanda-light text-violeta'" :title="`Acceso provisional hasta ${e.aprobacion_corte}`">{{ e.aprobacion_bloqueada ? 'Bloqueada: sin aprobar' : 'Pendiente de aprobación' }}</span></td>
             <td class="tabular-nums" :class="e.dias !== null && e.dias <= 3 && ['trial','active','grace'].includes(e.estado) ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ e.vence ?? '—' }}<span v-if="e.dias !== null && ['trial','active','grace'].includes(e.estado)" class="text-xs"> ({{ e.dias <= 0 ? 'hoy' : `${e.dias} d` }})</span></td>
             <td class="text-right tabular-nums">{{ e.usuarios }}</td>
             <td class="text-sm">{{ e.dueno }}</td>

@@ -12,6 +12,19 @@ Esta guía es para el equipo que opera BigSysWeb como servicio (el superadmin), 
 
 **Panel → Empresas → Nueva empresa**: datos de la empresa, dueño (nombre, email y contraseña inicial), plan y modo (prueba de N días o activa con ciclo mensual o anual y medio de pago). Se crean la empresa, la sucursal, el punto de venta, la caja, el plan de cuentas y los roles. El dueño entra y ve "Primeros pasos" y la guía de implementación.
 
+## Altas con aprobación (fase 106)
+
+Como en el CRM: **nadie queda adentro sin que alguien de BigSys lo apruebe con la clave**.
+
+- Quien se registra solo en `/registro`, o la empresa que da de alta un empleado de BigSys desde **Panel → Empresas → Nueva empresa**, entra al toque, pero la empresa y su dueño quedan **pendientes**: tienen acceso provisional por las horas que diga **Sistema → Altas con aprobación** (72 por defecto). El dueño ve arriba «Acceso provisional hasta el…».
+- Si en ese plazo nadie la aprueba, **se bloquea sola**: también la sesión que ya estaba abierta, no sólo el próximo ingreso. La persona ve una pantalla de espera con el WhatsApp y el mail de soporte, y sus datos quedan guardados. Al aprobarla entra al instante.
+- **Panel → Pendientes** lista las que esperan (quién, de dónde salió el alta, cuántas horas le quedan, si ya se bloqueó) y ahí se **aprueba** o se **rechaza** (queda suspendida con el motivo; desde la ficha se puede reactivar). Las dos acciones piden la **clave de aprobación**. Cinco intentos fallidos la traban 15 minutos y cada fallo queda en la auditoría. La ficha de la empresa tiene el mismo botón.
+- **La clave** la carga el dueño de BigSys en **Sistema → Altas con aprobación**: se guarda como hash, no se vuelve a mostrar y **nunca va por chat**. Sin clave cargada no se puede aprobar nada. La misma clave se pide para crear otro superadmin.
+- **Avisos a BigSys**: al registrarse, 12 horas antes del corte y cuando una queda bloqueada. Van por mail (a los que diga Sistema; vacío = superadmins + mail de soporte), por **WhatsApp** a los celulares cargados (sale por la línea de la empresa de BigSys, fase 87) y al **celular de cada superadmin** por la app. La revisión diaria de las 06:00 manda además un resumen: qué pruebas terminaron hoy (siguen en Gratis) y cuáles vencen pronto, para llamarlos antes de que se enfríen.
+- Los usuarios que una empresa crea para su propia gente **no** pasan por BigSys: los maneja el dueño de la empresa, con el límite de su plan.
+
+A Bigcito (superadmin): «¿qué empresas están pendientes de aprobar?». Aprobar se hace en el panel: Bigcito no pide ni recibe la clave.
+
 ## Planes y cobros
 
 **Planes**: nombre, precio mensual y anual, usuarios, sucursales, artículos y **facturas por mes** incluidos (-1 = sin límite), módulos. **Cobros**: pagos por Mercado Pago (automáticos) o transferencia (se aprueban a mano). La revisión diaria avisa vencimientos, aplica gracia y suspende; se puede correr a mano desde Sistema.

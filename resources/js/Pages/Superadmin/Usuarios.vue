@@ -36,6 +36,7 @@
         <div><label class="label">Nombre</label><input v-model="sa.name" class="input" /></div>
         <div><label class="label">Email</label><input v-model="sa.email" type="email" class="input" /><p v-if="sa.errors.email" class="text-carmin text-xs mt-1">{{ sa.errors.email }}</p></div>
         <div><label class="label">Contraseña</label><input v-model="sa.password" class="input" /><p v-if="sa.errors.password" class="text-carmin text-xs mt-1">{{ sa.errors.password }}</p></div>
+        <div><label class="label">Clave de aprobación</label><input v-model="sa.clave" type="password" class="input" autocomplete="off" data-e2e="clave-aprobacion" /><p class="text-[11px] text-marca-muted mt-1">Fase 106: un superadmin nuevo tiene todo el panel; la clave la tiene el dueño de BigSys.</p><p v-if="sa.errors.clave" class="text-carmin text-xs mt-1">{{ sa.errors.clave }}</p></div>
       </div>
       <template #pie><button class="btn-secondary" @click="nuevo = false">Cancelar</button><button class="btn-primary" :disabled="sa.processing" @click="sa.post('/admin/usuarios', { onSuccess: () => { nuevo = false; sa.reset() } })">Crear</button></template>
     </Modal>
@@ -57,5 +58,5 @@ const props = defineProps({ lista: Object, filtros: Object })
 const f = reactive({ buscar: props.filtros.buscar ?? '', tipo: props.filtros.tipo ?? '' })
 function filtrar() { router.get('/admin/usuarios', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
 const nuevo = ref(false), pass = ref(null)
-const sa = useForm({ name: '', email: '', password: '' })
+const sa = useForm({ name: '', email: '', password: '' , clave: '' })
 </script>

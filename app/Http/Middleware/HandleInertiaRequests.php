@@ -95,7 +95,13 @@ class HandleInertiaRequests extends Middleware
         if (! $sub) {
             return ['estado' => 'sin_plan', 'aviso' => ['nivel' => 'error', 'texto' => 'La empresa no tiene un plan asignado.'], 'puede' => $user->esDueno()];
         }
-        return ['estado' => $sub->status, 'plan' => $sub->plan?->name, 'dias' => $sub->diasRestantes(), 'aviso' => $sub->aviso(), 'puede' => $user->esDueno() || $user->puede('configuracion', 'editar')];
+        $r = ['estado' => $sub->status, 'plan' => $sub->plan?->name, 'dias' => $sub->diasRestantes(), 'aviso' => $sub->aviso(), 'puede' => $user->esDueno() || $user->puede('configuracion', 'editar')];
+        // Fase 106: alta pendiente de aprobación: el dueño ve hasta cuándo tiene acceso provisional.
+        if ($user->business->aprobacion === 'pendiente') {
+            $corte = app(\App\Services\Suscripciones\AprobacionService::class)->corte($user->business);
+            $r['provisional'] = ['hasta' => $corte->format('d/m H:i'), 'texto' => 'Acceso provisional hasta el ' . $corte->format('d/m \\a \\l\\a\\s H:i') . ': en ese plazo el equipo de BigSys habilita tu prueba. Si querés acelerarlo, escribinos.'];
+        }
+        return $r;
     }
 
     private function nav($user): array

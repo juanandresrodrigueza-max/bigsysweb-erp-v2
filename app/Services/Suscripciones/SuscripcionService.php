@@ -172,6 +172,7 @@ class SuscripcionService
         $gracia = (int) SistemaConfig::get('dias_gracia');
         $avisos = (array) SistemaConfig::get('aviso_dias');
         $r = ['a_gracia' => 0, 'suspendidas' => 0, 'avisadas' => 0];
+        $terminaron = []; $porVencer = []; // Fase 106: lo que se le cuenta a BigSys al final
 
         foreach (Subscription::vigentes()->with('business')->get() as $sub) {
             if (! $sub->business) continue;
@@ -184,6 +185,7 @@ class SuscripcionService
                 Subscription::create(['business_id' => $sub->business_id, 'plan_id' => $gratis->id, 'status' => 'active', 'billing_cycle' => 'monthly', 'amount' => 0, 'starts_at' => now(), 'ends_at' => null]);
                 $this->alertar($sub, 'aviso', 'Terminó tu prueba: seguís en el plan Gratis', 'Podés facturar hasta ' . $gratis->max_facturas_mes . ' comprobantes por mes. Para usar todo, elegí un plan en Configuración > Suscripción.');
                 $r['a_gratis'] = ($r['a_gratis'] ?? 0) + 1;
+                $terminaron[] = "{$sub->business->name} · " . ($sub->business->owner?->email ?? '—');
                 \App\Services\Integraciones\CrmService::avisarPlan($sub->business);
                 continue;
             }
@@ -205,8 +207,10 @@ class SuscripcionService
                 $que = $sub->status === 'trial' ? 'período de prueba' : 'suscripción';
                 $this->alertar($sub, $dias <= 1 ? 'critica' : 'aviso', ucfirst($que) . ($dias <= 0 ? ' vence hoy' : " vence en {$dias} días"), 'Renovala desde Configuración > Suscripción para no perder el acceso.');
                 $r['avisadas']++;
+                $porVencer[] = "{$sub->business->name} ({$que}, " . ($dias <= 0 ? 'hoy' : "{$dias} días") . ') · ' . ($sub->business->owner?->email ?? '—');
             }
         }
+        app(AprobacionService::class)->avisarVencimientos($terminaron, $porVencer);
         return $r;
     }
 

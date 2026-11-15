@@ -15,6 +15,10 @@ class SuscripcionActiva
             return $next($request);
         }
         $empresa = $user->business;
+        // Fase 106: alta pendiente con el plazo provisional vencido: sólo la página de espera (se destraba al aprobarla).
+        if ($empresa && $empresa->aprobacion === 'pendiente' && app(\App\Services\Suscripciones\AprobacionService::class)->vencida($empresa) && ! $request->is('esperando-aprobacion', 'logout', 'agente/*', 'webhooks/*')) {
+            return redirect('/esperando-aprobacion');
+        }
         if ($empresa && $empresa->bloqueada() && ! $request->is('suscripcion*', 'logout', 'agente/*', 'webhooks/*')) {
             return redirect('/suscripcion');
         }

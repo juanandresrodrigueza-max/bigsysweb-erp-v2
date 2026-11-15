@@ -58,7 +58,7 @@ Desde **Soporte** (menú) abrís un ticket y el equipo de BigSys te responde ah�
 
 ## Registrate gratis (Fase 46)
 
-Entrás en **erp.bigsysweb.com/registro** y completás el nombre de tu empresa, tu nombre, tu email y una contraseña. En un minuto tenés la empresa armada, con sucursal, caja, depósito y plan de cuentas. Tenés **15 días de prueba con todo activado**, sin tarjeta. Al terminar seguís en el plan **Gratis** (1 usuario y 10 facturas por mes), salvo que elijas un plan en **Mi suscripción** y lo pagues con Mercado Pago. Después del registro entrás directo a **Primeros pasos**.
+Entrás en **erp.bigsysweb.com/registro** y completás el nombre de tu empresa, tu nombre, tu email y una contraseña. En un minuto tenés la empresa armada, con sucursal, caja, depósito y plan de cuentas. Tenés **15 días de prueba con todo activado**, sin tarjeta. Al terminar seguís en el plan **Gratis** (1 usuario y 10 facturas por mes), salvo que elijas un plan en **Mi suscripción** y lo pagues con Mercado Pago. Después del registro entrás directo a **Primeros pasos**. Las primeras **72 horas son de acceso provisional**: en ese plazo el equipo de BigSys habilita tu prueba (te contactamos nosotros). Si al cumplirse todavía no está habilitada, el acceso queda en espera hasta que lo hagamos; tus datos no se pierden y entrás con el mismo email y contraseña.
 
 ## Bigcito te deja el sistema a medida (Fase 48)
 

@@ -89,6 +89,9 @@ Route::get('/catalogo/{token}',            [\App\Http\Controllers\CatalogoPublic
 Route::get('/catalogo/{token}/pdf',        [\App\Http\Controllers\CatalogoPublicoController::class, 'pdf'])->middleware('throttle:publico');
 Route::get('/portal/{token}/pagar/{id}',   [\App\Http\Controllers\PortalController::class, 'pagar'])->whereNumber('id');
 
+// Fase 106: la empresa nueva sin aprobar, pasado el plazo provisional, espera acá.
+Route::get('/esperando-aprobacion', [\App\Http\Controllers\Auth\RegistroController::class, 'esperando'])->middleware('auth');
+
 // Suscripción: accesible aunque la empresa esté bloqueada (es donde se renueva).
 Route::middleware('auth')->group(function () {
     Route::get('/suscripcion',          [SuscripcionController::class, 'index'])->name('suscripcion');
@@ -110,6 +113,9 @@ Route::get('/integraciones/crm/entrar', [\App\Http\Controllers\Integraciones\Crm
 Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/novedades',                         [\App\Http\Controllers\AvisosCelularController::class, 'publicar']);
     Route::get('/',                                   [\App\Http\Controllers\Superadmin\PanelController::class, 'index']);
+    Route::get('/pendientes',                         [\App\Http\Controllers\Superadmin\PendientesController::class, 'index']);            // Fase 106
+    Route::post('/pendientes/{id}/aprobar',           [\App\Http\Controllers\Superadmin\PendientesController::class, 'aprobar'])->whereNumber('id');
+    Route::post('/pendientes/{id}/rechazar',          [\App\Http\Controllers\Superadmin\PendientesController::class, 'rechazar'])->whereNumber('id');
     Route::get('/empresas',                           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'index']);
     Route::post('/empresas',                          [\App\Http\Controllers\Superadmin\EmpresasController::class, 'store']);
     Route::get('/empresas/{id}',                      [\App\Http\Controllers\Superadmin\EmpresasController::class, 'show'])->whereNumber('id');

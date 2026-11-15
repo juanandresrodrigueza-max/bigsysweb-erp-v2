@@ -14,6 +14,11 @@
       <StatCard label="Cobrado este mes" :valor="kpis.cobrado_mes" :tendencia="kpis.cobrado_anterior ? Math.round((kpis.cobrado_mes - kpis.cobrado_anterior) / kpis.cobrado_anterior * 100) : null" url="/admin/cobros" />
     </div>
 
+    <!-- Fase 106: altas que esperan la clave de aprobación -->
+    <div v-if="kpis.aprobaciones" class="mb-5 px-4 py-3 rounded-2xl text-sm flex items-center gap-3" :class="kpis.aprobaciones_bloqueadas ? 'bg-carmin-light border border-carmin/30 text-carmin-dark' : 'bg-lavanda-light border border-violeta/20 text-violeta'" data-e2e="banner-aprobaciones">
+      <Icono nombre="clock" clase="w-5 h-5 shrink-0" /><span><b>{{ kpis.aprobaciones }}</b> alta{{ kpis.aprobaciones > 1 ? 's' : '' }} esperando aprobación<span v-if="kpis.aprobaciones_bloqueadas">, <b>{{ kpis.aprobaciones_bloqueadas }}</b> ya bloqueada{{ kpis.aprobaciones_bloqueadas > 1 ? 's' : '' }} por falta de aprobación</span>.</span>
+      <Link href="/admin/pendientes" class="ml-auto font-semibold hover:underline">Aprobar</Link>
+    </div>
     <div v-if="kpis.pendientes" class="mb-5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3">
       <Icono nombre="alert" clase="w-5 h-5 shrink-0" /><span><b>{{ kpis.pendientes }}</b> transferencia{{ kpis.pendientes > 1 ? 's' : '' }} informada{{ kpis.pendientes > 1 ? 's' : '' }} por empresas, esperando que la confirmes.</span>
       <Link href="/admin/cobros?estado=pendiente" class="ml-auto font-semibold hover:underline">Ver</Link>
