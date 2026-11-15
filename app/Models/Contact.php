@@ -12,7 +12,11 @@ class Contact extends Model
 {
     use SoftDeletes, BelongsToBusiness;
 
-    public const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final', 'No Responsable', 'Exterior'];
+    // Las condiciones que acepta ARCA para el receptor (RG 5616). «No Responsable» se mantiene por los clientes viejos: hoy es «No Categorizado».
+    public const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Monotributista Social', 'Exento', 'Consumidor Final', 'No Categorizado', 'IVA No Alcanzado', 'No Responsable', 'Exterior'];
+    // Fase 102: a quiénes un responsable inscripto les factura con letra A (RG 1415 y, desde el 1/7/2021, RG 5003 / ley 27.618 para el monotributo).
+    public const RECIBEN_A = ['Responsable Inscripto', 'Monotributista', 'Monotributista Social', 'Monotributista Trabajador Independiente Promovido'];
+    public const LEYENDA_MONOTRIBUTO = 'El crédito fiscal discriminado en el presente comprobante, sólo podrá ser computado a efectos del Régimen de Sostenimiento e Inclusión Fiscal para Pequeños Contribuyentes de la Ley Nº 27.618';
 
     protected $fillable = [
         'business_id', 'type', 'tipo_cliente_id', 'name', 'email', 'phone', 'mobile', 'document_type', 'document', 'cuit',
@@ -54,16 +58,32 @@ class Contact extends Model
 
     public function esConsumidorFinal(): bool { return ! $this->cuit || $this->condicion_iva === 'Consumidor Final'; }
 
-    // Tipo de factura según condición IVA de la empresa y del cliente.
+    // Tipo de factura según condición IVA de la empresa y del cliente (RG 1415, anexo IV; RG 5003 para el monotributo; exportación RG 1415 art. 7).
+    //   Emisor responsable inscripto: A al responsable inscripto y al monotributista (con la leyenda de la ley 27.618); B al exento, consumidor final,
+    //   no categorizado e IVA no alcanzado. Emisor monotributista o exento: C a todos. Cliente del exterior: E, sea quien sea el emisor.
     public static function letraPara(Business $business, ?Contact $contact): string
     {
-        // Cliente del exterior: factura E (exportación), cualquiera sea la condición de la empresa.
-        if ($contact && $contact->condicion_iva === 'Exterior') return 'E';
-        $emp = $business->condicion_iva ?? 'Responsable Inscripto';
-        if ($emp === 'Responsable Inscripto') {
-            return ($contact && $contact->condicion_iva === 'Responsable Inscripto') ? 'A' : 'B';
-        }
+        return self::letraSegun($business->condicion_iva ?? 'Responsable Inscripto', $contact?->condicionEfectiva());
+    }
+
+    // La condición que vale para facturar: sin CUIT es consumidor final aunque la ficha diga otra cosa (la A y la condición 1/6 de ARCA exigen CUIT).
+    public function condicionEfectiva(): string
+    {
+        if ($this->condicion_iva === 'Exterior') return 'Exterior';
+        return trim((string) $this->cuit) === '' ? 'Consumidor Final' : ($this->condicion_iva ?: 'Consumidor Final');
+    }
+
+    public static function letraSegun(?string $emisor, ?string $receptor): string
+    {
+        if ($receptor === 'Exterior') return 'E';
+        if (($emisor ?? 'Responsable Inscripto') === 'Responsable Inscripto') return in_array($receptor, self::RECIBEN_A, true) ? 'A' : 'B';
         return 'C';
+    }
+
+    // La leyenda obligatoria cuando un responsable inscripto le factura con A a un monotributista (RG 1415 art. 15 inc. a, texto RG 5003).
+    public static function leyendaPara(string $letra, ?string $receptor): ?string
+    {
+        return $letra === 'A' && $receptor !== null && str_starts_with($receptor, 'Monotributista') ? self::LEYENDA_MONOTRIBUTO : null;
     }
 
     public function deudaVencida(): float

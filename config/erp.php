@@ -275,4 +275,8 @@ return [
             'permisos' => ['gastronomia' => ['ver', 'editar']],
         ],
     ],
+
+    // Fase 102: reglas de facturación. Tope desde el que hay que identificar al consumidor final (CUIT o DNI) en la factura B o C:
+    // RG 5700/2025 lo fijó en $ 10.000.000 por operación. Actualizarlo cuando ARCA lo cambie.
+    'facturacion' => ['identificar_cf_desde' => 10000000],
 ];

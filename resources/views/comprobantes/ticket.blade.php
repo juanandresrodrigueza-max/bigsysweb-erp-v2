@@ -60,6 +60,7 @@
     <div class="s c">COMPROBANTE NO VÁLIDO COMO FACTURA (simulado)</div>
   @endif
   <div class="c s" style="margin-top:6px">¡Gracias por su compra!</div>
+  @if($c->leyendaLegal())<hr><div class="c s">{{ $c->leyendaLegal() }}</div>@endif
   @if(trim((string) $m['pie']) !== '')<hr><div class="c s">{!! nl2br(e($m['pie'])) !!}</div>@endif
 </div>
 <script>if (location.search.includes('auto=1')) setTimeout(() => window.print(), 300)</script>

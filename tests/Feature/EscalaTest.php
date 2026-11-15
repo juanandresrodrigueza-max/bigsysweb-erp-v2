@@ -57,8 +57,8 @@ class EscalaTest extends ErpTestCase
     public function test_deudores_se_calculan_con_una_consulta_agrupada_y_los_kpis_cubren_toda_la_cartera(): void
     {
         $p = $this->articulo(['stock_inicial' => 100]);
-        $a = $this->cliente(['name' => 'Moroso', 'cuit' => '30-1', 'interes_mora' => 3]);
-        $b = $this->cliente(['name' => 'Al día', 'cuit' => '30-2']);
+        $a = $this->cliente(['name' => 'Moroso', 'cuit' => '30-70000001-1', 'interes_mora' => 3]);
+        $b = $this->cliente(['name' => 'Al día', 'cuit' => '30-70000002-2']);
         $fa = $this->factura($a, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 1000]], ['fecha' => today()->subDays(40)->toDateString()]);
         $this->factura($b, [['product_id' => $p->id, 'cantidad' => 1, 'precio_unit' => 500]]);
         $fa->update(['fecha_vto' => today()->subDays(10)->toDateString()]);

@@ -168,6 +168,10 @@ No. En Contable → Conciliación, elegí la cuenta de billetera y marcá «Esta
 
 Configuración → Importar → **3. Control de cierre**: compara los totales de BigSys con los del ERP (cantidades, saldos de clientes y proveedores, inventario, cheques, saldo de cada caja y banco) y marca en rojo lo que no cierra. Se puede repetir las veces que haga falta; cuando todo da ✓, se apaga el viejo.
 
+## ¿Por qué a un monotributista le sale Factura A y no B?
+
+Porque así lo pide ARCA desde julio de 2021 (RG 5003, ley 27.618): el responsable inscripto emite A a los monotributistas, con el IVA discriminado y una leyenda al pie. El sistema la pone solo. La B queda para exentos, consumidores finales, no categorizados e IVA no alcanzado. Está en **Facturar → Qué letra lleva cada factura**.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

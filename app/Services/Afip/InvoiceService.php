@@ -33,19 +33,10 @@ class InvoiceService
         27   => 6,
     ];
 
+    // Fase 102: la misma regla que el resto del sistema (RG 1415 / RG 5003): A al inscripto y al monotributista, B al resto, C si el emisor no es inscripto.
     public function resolveVoucherType(Business $business, ?Contact $contact): int
     {
-        $condicionNegocio  = $business->condicion_iva;
-        $condicionContacto = $contact?->condicion_iva ?? self::CONDICION_IVA_CONSUMIDOR_FINAL;
-
-        if ($condicionNegocio === self::CONDICION_IVA_RESPONSABLE_INSCRIPTO) {
-            if ($condicionContacto === self::CONDICION_IVA_RESPONSABLE_INSCRIPTO) {
-                return self::TIPO_FACTURA_A;
-            }
-            return self::TIPO_FACTURA_B;
-        }
-
-        return self::TIPO_FACTURA_C;
+        return match (Contact::letraPara($business, $contact)) { 'A' => self::TIPO_FACTURA_A, 'B' => self::TIPO_FACTURA_B, 'E' => 19, default => self::TIPO_FACTURA_C };
     }
 
     public function buildVoucherData(Sale $sale, Business $business, int $tipoComprobante): array
