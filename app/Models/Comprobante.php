@@ -98,6 +98,14 @@ class Comprobante extends Model
 
     public function def(): array { return self::TIPOS[$this->tipo] ?? ['nombre' => $this->tipo, 'letra' => '', 'afip' => null, 'cc' => 0, 'stock' => false, 'grupo' => 'otro']; }
     public function esFiscal(): bool { return $this->def()['afip'] !== null; }
+    // Fase 102: la condición frente al IVA de quien recibe (el cliente guardado o los datos del receptor de esta factura).
+    public function condicionReceptor(): string
+    {
+        if ($this->contact) return $this->contact->condicionEfectiva();
+        $rc = $this->receptor ?? []; $doc = preg_replace('/\D/', '', (string) ($rc['documento'] ?? ''));
+        return strlen($doc) === 11 ? ($rc['condicion_iva'] ?? 'Consumidor Final') : 'Consumidor Final'; // sin CUIT, consumidor final
+    }
+    public function leyendaLegal(): ?string { return Contact::leyendaPara($this->def()['letra'], $this->condicionReceptor()); }
     public function esExportacion(): bool { return $this->def()['letra'] === 'E'; }
     public function esFactura(): bool { return $this->def()['grupo'] === 'factura'; }
     public function esNotaCredito(): bool { return $this->def()['grupo'] === 'nc'; }

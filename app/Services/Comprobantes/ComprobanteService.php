@@ -37,7 +37,7 @@ class ComprobanteService
             }
             // Venta de una tienda (Fase 30.4): va a la cuenta fija de la tienda pero con el CUIT y la condición del comprador, que deciden la letra.
             if ($contact && ! empty($data['receptor_datos']['nombre'])) $receptor = collect($data['receptor_datos'])->only(\App\Services\Ventas\ClienteDesdeFacturaService::CAMPOS)->filter(fn($v) => $v !== null && $v !== '')->all();
-            $tipo = $this->resolverTipo($data['tipo'], $receptor && ! empty($receptor['condicion_iva']) ? new Contact(['condicion_iva' => $receptor['condicion_iva']]) : $contact);
+            $tipo = $this->resolverTipo($data['tipo'], $receptor && ! empty($receptor['condicion_iva']) ? new Contact(['condicion_iva' => $receptor['condicion_iva'], 'cuit' => strlen(preg_replace('/\D/', '', (string) ($receptor['documento'] ?? ''))) === 11 ? $receptor['documento'] : null]) : $contact);
 
             $c ??= new Comprobante(['business_id' => $user->business_id, 'business_location_id' => $user->current_location_id, 'user_id' => $user->id, 'direccion' => 'venta']);
             abort_if($c->exists && $c->estado !== 'borrador', 422, 'Solo se pueden editar comprobantes en borrador.');
@@ -167,6 +167,16 @@ class ComprobanteService
             }
 
             $business = $c->emisor();
+            // Fase 102: lo que ARCA rechaza, se frena acá con un mensaje claro.
+            if ($c->direccion === 'venta' && $c->esFiscal() && ! $c->sin_arca && ! $c->manual && ! $c->esExportacion()) {
+                $letra = $c->def()['letra']; $rc = $c->receptor ?? [];
+                $cuit = preg_replace('/\D/', '', (string) ($c->contact?->cuit ?: ($rc['documento'] ?? '')));
+                $doc  = preg_replace('/\D/', '', (string) ($c->contact?->document ?: ($rc['documento'] ?? '')));
+                $tieneCuit = strlen($cuit) === 11; $tieneDoc = $tieneCuit || ($doc !== '' && strlen($doc) >= 7);
+                if ($letra === 'A' && ! $tieneCuit) throw ValidationException::withMessages(['contact_id' => 'La factura A exige el CUIT del cliente (' . $c->condicionReceptor() . '). Cargalo en la ficha o facturá a otro cliente.']);
+                $tope = (float) config('erp.facturacion.identificar_cf_desde', 0);
+                if (in_array($letra, ['B', 'C'], true) && ! $tieneDoc && $tope > 0 && (float) $c->total >= $tope) throw ValidationException::withMessages(['contact_id' => 'Desde $ ' . number_format($tope, 0, ',', '.') . ' hay que identificar al consumidor final: cargá el CUIT o el DNI del cliente (RG 5700).']);
+            }
             if ($c->manual) {
                 // Talonario en papel: número y punto de venta del papel, sin ARCA.
                 $res = $this->validarManual($c);

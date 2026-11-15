@@ -98,6 +98,7 @@
     <td>@if($fiscal && $c->cae)Comprobante Autorizado · CAE: <b>{{ $c->cae }}</b> · Vto CAE: {{ $c->cae_vto?->format('d/m/Y') }}@elseif($fiscal && $pendiente)<span class="badge">PENDIENTE DE CAE · ARCA no respondió al emitir; se reintenta automáticamente. No válido como factura hasta que tenga CAE.</span>@elseif($fiscal && $simulado)<span class="badge">SIN CAE · comprobante simulado, no válido como factura</span>@elseif($fiscal && $c->manual)Comprobante manual de talonario @if($c->cai)· CAI: <b>{{ $c->cai }}</b>@if($c->cai_vto) · Vto CAI: {{ $c->cai_vto->format('d/m/Y') }}@endif @endif @elseif($interno)<span class="badge">COMPROBANTE INTERNO · documento no válido como factura, no informado a ARCA</span>@endif</td>
     <td class="r" style="white-space:nowrap">{{ now()->format('d/m/Y H:i') }}</td>
   </tr></table>
+  @if($c->leyendaLegal())<div class="leyenda"><b>{{ $c->leyendaLegal() }}</b></div>@endif
   @if(trim((string) $m['pie']) !== '')<div class="leyenda">{!! nl2br(e($m['pie'])) !!}</div>@endif
 </div>
 </body>

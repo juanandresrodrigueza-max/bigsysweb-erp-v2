@@ -9,7 +9,7 @@ resumen: Cómo hacer una factura, un presupuesto o un remito, cargar una factura
 ## La factura paso a paso
 
 1. **Vender → Nueva factura** (o Alt+N).
-2. Elegí el **cliente**. Si es responsable inscripto sale Factura A; si no, B (o C si vos sos monotributista). Podés dejarlo en Consumidor Final.
+2. Elegí el **cliente**. La letra sale sola de la condición de IVA de tu empresa y la del cliente (ver **Qué letra lleva cada factura**). Podés dejarlo en Consumidor Final.
 3. Cargá los **ítems**: buscá el artículo por nombre o código, escribí la cantidad y Enter. El precio sale de la lista del cliente; se puede cambiar.
 4. **Condición**: contado o cuenta corriente. En cuenta corriente, el vencimiento sale de los días de pago del cliente.
 5. **Emitir**: pide el CAE a ARCA, descuenta el stock, carga la cuenta corriente y hace el asiento contable, todo junto. **Guardar borrador** lo deja para después.
@@ -19,6 +19,26 @@ Atajos: **Ctrl+Enter** emite, **Ctrl+S** guarda el borrador, Enter en cantidad y
 ### Venta cruzada: qué ofrecer (Fase 63)
 
 Debajo de los ítems aparece **"✦ Sumale:"** con hasta cuatro artículos para ofrecer, un toque y entran a la venta o al presupuesto. Salen de tres lugares, en este orden: lo que **este cliente lleva seguido** y hoy no pidió; lo que **se llevó junto** con lo que ya cargaste en los últimos seis meses ("los que llevan cemento también llevan hierro, 12 veces"); y, si todavía no hay historia, lo que la **IA** elige del catálogo como complemento (el consumible, el accesorio, lo que hace falta para instalarlo). Lo agotado nunca se ofrece. Lo mismo en **Vender → mostrador** ("✦ Ofrecé:") y preguntándole a Bigcito: "¿qué le ofrezco al que lleva un taladro?".
+
+## Qué letra lleva cada factura (fase 102)
+
+Es la regla de ARCA (RG 1415 y RG 5003), y el sistema la aplica solo:
+
+| Vos sos | El cliente es | Sale |
+|---|---|---|
+| Responsable inscripto | Responsable inscripto | **Factura A** (IVA discriminado) |
+| Responsable inscripto | Monotributista (también social o promovido) | **Factura A** con la leyenda de la ley 27.618 (desde julio de 2021 ya no va B) |
+| Responsable inscripto | Exento, consumidor final, no categorizado, IVA no alcanzado | **Factura B** (IVA incluido) |
+| Monotributista o exento | Cualquiera | **Factura C** (sin IVA) |
+| Cualquiera | Del exterior | **Factura E** (exportación) |
+
+Las notas de crédito y débito llevan la misma letra que la factura que corrigen. Lo que ARCA exige y el sistema controla antes de pedir el CAE:
+
+- **Factura A: el cliente tiene que tener CUIT.** Si no lo tiene, cargalo en su ficha (el botón de ARCA lo trae del padrón con su condición).
+- **Consumidor final desde $ 10.000.000** (RG 5700/2025): hay que identificarlo con CUIT o DNI. Por debajo puede ir anónimo.
+- En cada pedido de CAE va la **condición frente al IVA del receptor** (RG 5616): inscripto, monotributista, exento, consumidor final, no categorizado o IVA no alcanzado. Por eso la condición del cliente tiene que estar bien cargada.
+
+Si el cliente es monotributista y le vendés con A, el IVA va discriminado igual: él no lo computa como crédito salvo por el régimen de la ley 27.618, y el comprobante lo dice al pie.
 
 ## Cliente nuevo desde la factura
 
@@ -61,6 +81,8 @@ Solo la cargan el dueño y los administradores. El sistema no deja repetir el mi
 ## Errores comunes
 
 - **"ARCA rechazó el comprobante"**: el mensaje explica qué revisar (CUIT del cliente, condición de IVA, fecha, punto de venta). Corregí y volvé a emitir.
+- **"La factura A exige el CUIT del cliente"**: el cliente es inscripto o monotributista y no tiene CUIT cargado. Ficha del cliente → CUIT (o traelo de ARCA).
+- **"Hay que identificar al consumidor final"**: la venta supera el tope de la RG 5700. Cargá el DNI o el CUIT del comprador.
 - **Me equivoqué en una factura emitida**: no se edita; se anula con nota de crédito y se hace de nuevo. Un borrador sí se edita.
 - **El cliente no aparece**: escribí parte del nombre o el CUIT en el buscador; si no existe, "+ Crear cliente nuevo".
 

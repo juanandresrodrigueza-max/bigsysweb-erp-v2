@@ -12,9 +12,25 @@ Cómo dejar una empresa facturando de verdad, qué prueba el sistema y qué hace
 6. **Comprobantes de prueba** en homologación (lo que ARCA suele pedir para habilitar producción): factura A a un responsable inscripto, factura B a consumidor final (sin CUIT) y a un monotributista, nota de crédito A asociada a la factura, nota de débito, y una factura con servicios (concepto 2/3). Todo eso lo genera el ERP con los datos que hoy exige ARCA.
 7. **Pasar a producción**: certificado de producción, marcar *Modo producción*, probar conexión de nuevo, emitir la primera factura real y verificarla con *Verificar en ARCA*.
 
+## Qué letra se emite (fase 102)
+
+`Contact::letraSegun(emisor, receptor)` es la única regla, y la usan el formulario, el servicio, la API vieja y los puntos de venta:
+
+| Emisor | Receptor | Letra | Código ARCA (factura / ND / NC) |
+|---|---|---|---|
+| Responsable Inscripto | Responsable Inscripto | A | 1 / 2 / 3 |
+| Responsable Inscripto | Monotributista, Monotributista Social, Trabajador Independiente Promovido | A + leyenda ley 27.618 (RG 5003) | 1 / 2 / 3 |
+| Responsable Inscripto | Exento, Consumidor Final, No Categorizado, IVA No Alcanzado, No Responsable (legado) | B | 6 / 7 / 8 |
+| Monotributista o Exento | cualquiera | C | 11 / 12 / 13 |
+| cualquiera | Exterior | E | 19 / 20 / 21 (WSFEX) |
+
+Con `fce` los códigos pasan a 201/206/211 y sus notas. No se emiten Factura M ni A con CBU informado (requieren habilitación especial del emisor).
+
+Controles antes de pedir el CAE: la A exige CUIT (DocTipo 80); la B o C a consumidor final desde `config('erp.facturacion.identificar_cf_desde')` ($ 10.000.000, RG 5700/2025) exige CUIT o DNI (DocTipo 96); por debajo va DocTipo 99 y condición 5.
+
 ## Qué manda el ERP en cada pedido de CAE
 
-- Condición frente al IVA del receptor (**RG 5616**, obligatoria desde 2025): responsable inscripto 1, exento 4, consumidor final 5, monotributista 6, no responsable/no categorizado 7.
+- Condición frente al IVA del receptor (**RG 5616**, obligatoria desde 2025): responsable inscripto 1, exento 4, consumidor final 5, monotributista 6, no categorizado (y el viejo «no responsable») 7, cliente del exterior 9, monotributista social 13, IVA no alcanzado 15, monotributista promovido 16. Se toma del cliente guardado o del receptor cargado en la factura; sin CUIT siempre 5.
 - Concepto 1 (productos), 2 (servicios) o 3 (ambos) según los ítems; con servicios, período del mes y fecha de vencimiento de pago.
 - IVA por alícuota (21, 10,5, 27, 5, 2,5) con base e importe; **el neto y el IVA informados se recalculan desde las bases por alícuota para que los importes cierren al centavo**.
 - Tributos: percepciones de ingresos brutos como tributo 7 con base, alícuota e importe.

@@ -13,7 +13,7 @@ class AfipEmisor
 {
     private const ALICUOTAS = ['0' => 3, '2.5' => 9, '5' => 8, '10.5' => 4, '21' => 5, '27' => 6];
     // RG 5616: condición frente al IVA del receptor.
-    public const CONDICION_RECEPTOR = ['Responsable Inscripto' => 1, 'Exento' => 4, 'Consumidor Final' => 5, 'Monotributista' => 6, 'No Responsable' => 7, 'No Categorizado' => 7, 'Monotributista Social' => 13, 'IVA No Alcanzado' => 15];
+    public const CONDICION_RECEPTOR = ['Responsable Inscripto' => 1, 'Exento' => 4, 'Consumidor Final' => 5, 'Monotributista' => 6, 'No Responsable' => 7, 'No Categorizado' => 7, 'Exterior' => 9, 'Monotributista Social' => 13, 'IVA No Alcanzado' => 15, 'Monotributista Trabajador Independiente Promovido' => 16];
 
     public function configurado(Business $b): bool
     {
@@ -167,7 +167,8 @@ class AfipEmisor
             'ImpTrib'    => $impTrib,
             'MonId'      => 'PES',
             'MonCotiz'   => 1,
-            'CondicionIVAReceptorId' => $cuit ? (self::CONDICION_RECEPTOR[$contact->condicion_iva ?? ''] ?? 5) : 5,
+            // Con CUIT va la condición declarada (del cliente o del receptor de esta factura); sin CUIT es consumidor final.
+            'CondicionIVAReceptorId' => $cuit ? (self::CONDICION_RECEPTOR[$c->condicionReceptor()] ?? 5) : 5,
         ];
         if ($iva) $data['Iva'] = $iva;
         if ($tributos) $data['Tributos'] = $tributos;

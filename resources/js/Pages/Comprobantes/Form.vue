@@ -19,7 +19,7 @@
             <select v-model="form.tipo" class="input" :disabled="!!form.origen_id && esConversion">
               <option v-for="t in tipos" :key="t.key" :value="t.key">{{ t.label }}</option>
             </select>
-            <p v-if="tipoResuelto" class="text-xs text-marca-muted mt-1">Se emitirá como <b>{{ tipoResuelto }}</b>.</p>
+            <p v-if="tipoResuelto" class="text-xs text-marca-muted mt-1">Se emitirá como <b>{{ tipoResuelto }}</b>.<span v-if="avisoLetra" class="block text-violeta" data-e2e="aviso-letra">{{ avisoLetra }}</span></p>
           </div>
           <div>
             <label class="label">Cliente</label>
@@ -30,7 +30,7 @@
             <div v-if="!form.contact_id && receptorAbierto" class="mt-2 rounded-xl border border-marca-borde bg-marca-fondo p-3 grid sm:grid-cols-2 gap-2 text-sm" data-e2e="receptor">
               <div class="sm:col-span-2"><label class="label">Nombre o razón social</label><input v-model="form.receptor.nombre" class="input !py-1.5" data-e2e="rc-nombre" /></div>
               <div><label class="label">CUIT o DNI</label><div class="flex gap-1"><input v-model="form.receptor.documento" class="input !py-1.5" placeholder="20-12345678-9 o 30111222" data-e2e="rc-doc" /><button v-if="docDigitos.length === 11" type="button" class="btn-secondary !py-1 !px-2 text-xs whitespace-nowrap" :disabled="buscandoPadron" @click="buscarPadron">{{ buscandoPadron ? '…' : 'ARCA' }}</button></div></div>
-              <div><label class="label">Condición de IVA</label><select v-model="form.receptor.condicion_iva" class="input !py-1.5"><option v-for="c in ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']" :key="c" :value="c">{{ c }}</option></select></div>
+              <div><label class="label">Condición de IVA</label><select v-model="form.receptor.condicion_iva" class="input !py-1.5"><option v-for="c in ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Monotributista Social', 'Exento', 'No Categorizado', 'IVA No Alcanzado']" :key="c" :value="c">{{ c }}</option></select></div>
               <div><label class="label">Domicilio</label><input v-model="form.receptor.address" class="input !py-1.5" /></div>
               <div><label class="label">Localidad</label><input v-model="form.receptor.city" class="input !py-1.5" /></div>
               <div><label class="label">Email</label><input v-model="form.receptor.email" type="email" class="input !py-1.5" /></div>
@@ -264,8 +264,12 @@ const lista = computed(() => cliente.value?.lista_precios ?? 1)
 const esFactura = computed(() => ['FX', 'FA', 'FB', 'FC'].includes(form.tipo))
 const esFiscal = computed(() => !['PRE', 'REM'].includes(form.tipo))
 const esExportacion = computed(() => esFiscal.value && cliente.value?.condicion_iva === 'Exterior')
-const condIvaCliente = computed(() => cliente.value?.condicion_iva ?? (receptorAbierto.value && form.receptor.nombre ? form.receptor.condicion_iva : null))
-const letra = computed(() => condIvaCliente.value === 'Exterior' ? 'E' : props.empresa.condicion_iva === 'Responsable Inscripto' ? (condIvaCliente.value === 'Responsable Inscripto' ? 'A' : 'B') : 'C')
+// Sin CUIT se factura como consumidor final (la A exige CUIT): igual que el servidor.
+const condIvaCliente = computed(() => cliente.value ? (cliente.value.condicion_iva === 'Exterior' ? 'Exterior' : (cliente.value.cuit ? cliente.value.condicion_iva : 'Consumidor Final')) : (receptorAbierto.value && form.receptor.nombre ? ((form.receptor.documento || '').replace(/\D/g, '').length === 11 ? form.receptor.condicion_iva : 'Consumidor Final') : null))
+// Fase 102: la misma regla que el servidor (RG 1415 / RG 5003): el inscripto emite A al inscripto y al monotributista, B al resto; el monotributista o exento emite C.
+const RECIBEN_A = ['Responsable Inscripto', 'Monotributista', 'Monotributista Social', 'Monotributista Trabajador Independiente Promovido']
+const letra = computed(() => condIvaCliente.value === 'Exterior' ? 'E' : props.empresa.condicion_iva === 'Responsable Inscripto' ? (RECIBEN_A.includes(condIvaCliente.value) ? 'A' : 'B') : 'C')
+const avisoLetra = computed(() => letra.value === 'A' && (condIvaCliente.value || '').startsWith('Monotributista') ? 'Factura A a monotributista (RG 5003): el IVA va discriminado y sale la leyenda de la ley 27.618.' : (cliente.value && !cliente.value.cuit && ['Responsable Inscripto', 'Monotributista', 'Monotributista Social'].includes(cliente.value.condicion_iva) ? `El cliente figura como ${cliente.value.condicion_iva} pero no tiene CUIT: sale como consumidor final (B). Cargale el CUIT para la A.` : null))
 const tipoResuelto = computed(() => ({ FX: `Factura ${letra.value}`, NCX: `Nota de crédito ${letra.value}`, NDX: `Nota de débito ${letra.value}` }[form.tipo] ?? null))
 const titulo = computed(() => props.comprobante ? 'Editar borrador' : ({ PRE: 'Nuevo presupuesto', REM: 'Nuevo remito', NCX: 'Nueva nota de crédito', NDX: 'Nueva nota de débito' }[form.tipo] ?? 'Nueva factura'))
 
