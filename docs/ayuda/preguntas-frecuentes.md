@@ -156,6 +156,14 @@ Sueldos → **Ausencias y vacaciones** lo calcula por antigüedad como dice la L
 
 Sí. Con la liquidación confirmada, en Sueldos está el botón **Libro de Sueldos Digital**: baja el archivo de importación de ARCA (registros 01 a 04). Los códigos de concepto se declaran una vez en el LSD y se mapean. Revisá la primera presentación con el contador.
 
+## ¿Cuánto IVA tengo que pagar este mes?
+
+Contable → **Posición IVA**: débito menos crédito, menos el saldo a favor que venía, menos percepciones y retenciones sufridas; te dice cuánto y cuándo vence, o qué saldo pasa al mes siguiente. Cerrá cada mes y mandale el texto al contador. O preguntale a Bigcito: "¿cuánto IVA pago?".
+
+## ¿Tengo que subir el extracto de Mercado Pago?
+
+No. En Contable → Conciliación, elegí la cuenta de billetera y marcá «Esta es la cuenta de Mercado Pago»: los cobros, las comisiones y las devoluciones entran solos por API cada madrugada (o con el botón **Traer de Mercado Pago**) y se concilian con los cobros del mostrador.
+
 ## ¿Por qué se ve distinto que antes?
 
 Renovamos el diseño con los colores de la web de BigSys (ciruela y magenta) y después repasamos todas las pantallas para que nada quede apretado ni cortado, sobre todo en el celular. No se movió nada de lugar: cada pantalla tiene título y subtítulo, un botón principal magenta y lo demás en **Más ▾**. Está contado en **Qué cambió en el menú y en las pantallas**.

@@ -76,6 +76,27 @@ class Fondos
                     app(FondosService::class)->transferir(CuentaFondos::findOrFail($d['desde']), CuentaFondos::findOrFail($d['hasta']), $d['monto'], null, 'IA');
                     return ['texto' => 'Transferencia registrada.'];
                 }],
+            // Fase 99: traer los movimientos de Mercado Pago y ver qué quedó sin conciliar.
+            ['nombre' => 'traer_mercadopago', 'titulo' => 'Traer los movimientos de Mercado Pago', 'modulo' => 'contable', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Trae de la API de Mercado Pago los cobros, comisiones y devoluciones a la cuenta de billetera y los concilia solos (con las reglas). Necesita Mercado Pago conectado y una cuenta de billetera marcada como la de Mercado Pago.',
+                'parametros' => ['desde' => ['type' => 'string', 'description' => 'YYYY-MM-DD; sin fecha, desde la última vez']],
+                'proponer' => function (User $u, array $a) {
+                    $svc = app(\App\Services\MercadoPago\MercadoPagoMovimientosService::class);
+                    if (! $svc->conectado($u->business)) return ['error' => 'Mercado Pago no está conectado: Configuración → Mercado Pago → Conectar.'];
+                    $c = $svc->cuenta($u->business); if (! $c) return ['error' => 'Marcá primero qué cuenta es la de Mercado Pago: Contable → Conciliación, elegí la billetera y «Esta es la cuenta de Mercado Pago».'];
+                    return ['titulo' => "Traer los movimientos de Mercado Pago a {$c->nombre}", 'detalle' => ! empty($a['desde']) ? "Desde el {$a['desde']}." : 'Desde la última vez que se trajeron.', 'datos' => ['cuenta_id' => $c->id, 'desde' => $a['desde'] ?? null]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $r = app(\App\Services\MercadoPago\MercadoPagoMovimientosService::class)->traer($u->business, \App\Models\CuentaFondos::findOrFail($d['cuenta_id']), ! empty($d['desde']) ? \Carbon\Carbon::parse($d['desde']) : null);
+                    return ['texto' => $r['nuevos'] ? "{$r['nuevos']} movimientos nuevos, {$r['conciliados']} resueltos solos." : 'Sin movimientos nuevos.'] + $r + ['url' => Busca::url('/contable/conciliacion?cuenta=' . $d['cuenta_id'])];
+                }],
+            ['nombre' => 'conciliacion_pendiente', 'titulo' => 'Qué quedó sin conciliar', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Por cuenta: cuántos renglones del banco o de Mercado Pago están sin conciliar y cuántos movimientos del sistema no aparecen en el extracto, con los importes. También las reglas que actúan solas.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $cuentas = \App\Models\CuentaFondos::whereIn('tipo', ['banco', 'billetera'])->where('activa', true)->get()->map(fn($c) => ['cuenta' => $c->nombre, 'tipo' => $c->tipo, 'extracto_pendiente' => \App\Models\ExtractoItem::where('cuenta_fondos_id', $c->id)->where('estado', 'pendiente')->count(), 'monto_extracto_pendiente' => round((float) \App\Models\ExtractoItem::where('cuenta_fondos_id', $c->id)->where('estado', 'pendiente')->sum('monto'), 2), 'sistema_sin_conciliar' => \App\Models\MovimientoFondos::where('cuenta_fondos_id', $c->id)->where('conciliado', false)->count(), 'url' => Busca::url('/contable/conciliacion?cuenta=' . $c->id)])->all();
+                    return ['cuentas' => $cuentas, 'reglas' => app(\App\Services\Contabilidad\ReglasConciliacionService::class)->listado($u->business)];
+                }],
         ];
     }
 }

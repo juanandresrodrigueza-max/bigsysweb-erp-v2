@@ -4,8 +4,20 @@
       <div><h1 class="page-title">Conciliación bancaria</h1><p class="page-subtitle">Subís el extracto del home banking y se cruza solo con los movimientos del sistema. Lo que no coincide, lo resolvés acá.</p></div>
       <div class="flex gap-2">
         <select :value="cuentaId" @change="$inertia.get('/contable/conciliacion', { cuenta: $event.target.value })" class="input w-auto"><option v-for="b in bancos" :key="b.id" :value="b.id">{{ b.nombre }}</option></select>
-        <button v-if="puede('contable','crear')" @click="impAbierto = true" class="btn-primary">Importar extracto</button>
+        <button v-if="puede('contable','crear') && mercadopago.es_billetera && mercadopago.conectado" @click="router.post('/contable/conciliacion/mercadopago', { cuenta: cuentaId }, { preserveScroll: true })" class="btn-primary" data-e2e="traer-mp">Traer de Mercado Pago</button>
+        <button v-if="puede('contable','crear')" @click="impAbierto = true" :class="mercadopago.es_billetera && mercadopago.conectado ? 'btn-secondary' : 'btn-primary'">Importar extracto</button>
+        <button v-if="puede('contable','crear')" @click="reglasAbierto = true" class="btn-ghost" data-e2e="reglas">Reglas <span v-if="reglas.length" class="badge bg-violeta/10 text-violeta ml-1">{{ reglas.length }}</span></button>
       </div>
+    </div>
+    <!-- Fase 99: la cuenta de Mercado Pago se trae sola por API -->
+    <div v-if="mercadopago.es_billetera" class="card mb-4 flex flex-wrap items-center gap-3 text-sm" data-e2e="mp-config">
+      <span class="font-semibold">Mercado Pago</span>
+      <template v-if="!mercadopago.conectado"><span class="text-marca-muted">No está conectado.</span><Link href="/configuracion#mercadopago" class="underline text-violeta">Conectar en Configuración</Link></template>
+      <template v-else>
+        <label class="flex items-center gap-2"><input type="checkbox" class="accent-carmin" :checked="mercadopago.activo" :disabled="!puede('contable','editar')" @change="router.post('/contable/conciliacion/mercadopago/config', { cuenta: cuentaId, activo: $event.target.checked, automatico: true }, { preserveScroll: true })" /> Esta es la cuenta de Mercado Pago: cobros, comisiones y devoluciones entran solos cada madrugada</label>
+        <span v-if="mercadopago.ultima" class="text-xs text-marca-muted">Última vez: {{ mercadopago.ultima }}</span>
+        <span v-if="mercadopago.otra_cuenta" class="text-xs text-amber-700">Hoy la cuenta marcada es «{{ mercadopago.otra_cuenta }}».</span>
+      </template>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -38,7 +50,7 @@
                     <template v-if="it.estado === 'pendiente'">
                       <button @click="vincular = it" class="btn-ghost !px-2 text-xs">Vincular</button>
                       <button @click="registrar = { ...it, expense_category_id: it.categoria?.id ?? null, concepto: it.descripcion }" class="btn-ghost !px-2 text-xs text-violeta">Registrar</button>
-                      <Link :href="`/contable/conciliacion/${it.id}/ignorar`" method="post" as="button" preserve-scroll class="btn-ghost !px-2 text-xs">Ignorar</Link>
+                      <button @click="ignorar = it" class="btn-ghost !px-2 text-xs">Ignorar</button>
                     </template>
                     <Link v-else-if="it.estado === 'conciliado'" :href="`/contable/conciliacion/${it.id}/desvincular`" method="post" as="button" preserve-scroll class="btn-ghost !px-2 text-xs text-carmin">Deshacer</Link>
                     <Link v-else :href="`/contable/conciliacion/${it.id}/ignorar`" method="post" as="button" preserve-scroll class="btn-ghost !px-2 text-xs">Reactivar</Link>
@@ -123,8 +135,45 @@
         <p class="text-sm text-marca-muted mb-3">El banco {{ registrar.monto < 0 ? 'debitó' : 'acreditó' }} <b>{{ moneda(registrar.monto) }}</b> el {{ registrar.fecha }} y el sistema no lo tenía. Se crea el movimiento y queda conciliado.</p>
         <label class="label">Concepto</label><input v-model="registrar.concepto" class="input" />
         <template v-if="registrar.monto < 0"><label class="label mt-3">Categoría de gasto</label><select v-model="registrar.expense_category_id" class="input"><option :value="null">Sin categoría</option><option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.name }}</option></select></template>
+        <label class="flex items-center gap-2 text-sm mt-3" data-e2e="recordar"><input v-model="registrar.recordar" type="checkbox" class="accent-carmin" /> Recordar: la próxima vez que el extracto diga algo parecido, registrarlo solo así</label>
       </template>
-      <template #pie><button class="btn-secondary" @click="registrar = null">Cancelar</button><button class="btn-primary" @click="router.post(`/contable/conciliacion/${registrar.id}/registrar`, { expense_category_id: registrar.expense_category_id, concepto: registrar.concepto }, { preserveScroll: true, onSuccess: () => (registrar = null) })">Registrar</button></template>
+      <template #pie><button class="btn-secondary" @click="registrar = null">Cancelar</button><button class="btn-primary" @click="router.post(`/contable/conciliacion/${registrar.id}/registrar`, { expense_category_id: registrar.expense_category_id, concepto: registrar.concepto, recordar: !!registrar.recordar }, { preserveScroll: true, onSuccess: () => (registrar = null) })">Registrar</button></template>
+    </Modal>
+    <!-- Fase 99: ignorar con «recordar» -->
+    <Modal :abierto="!!ignorar" titulo="Ignorar este renglón" @cerrar="ignorar = null">
+      <template v-if="ignorar">
+        <p class="text-sm text-marca-muted mb-3">«{{ ignorar.descripcion }}» ({{ moneda(ignorar.monto) }}) no es algo del sistema (una transferencia entre cuentas propias, un movimiento que ya está de otra forma). Queda marcado como ignorado.</p>
+        <label class="flex items-center gap-2 text-sm"><input v-model="ignorar.recordar" type="checkbox" class="accent-carmin" /> Recordar: los próximos renglones parecidos se ignoran solos</label>
+      </template>
+      <template #pie><button class="btn-secondary" @click="ignorar = null">Cancelar</button><button class="btn-primary" @click="router.post(`/contable/conciliacion/${ignorar.id}/ignorar`, { recordar: !!ignorar.recordar }, { preserveScroll: true, onSuccess: () => (ignorar = null) })">Ignorar</button></template>
+    </Modal>
+
+    <!-- Fase 99: reglas que actúan solas -->
+    <Modal :abierto="reglasAbierto" titulo="Reglas de conciliación" ancho="max-w-3xl" @cerrar="reglasAbierto = false">
+      <p class="text-sm text-marca-muted mb-3">Cuando un renglón del banco o de Mercado Pago dice lo que pide la regla, se resuelve solo al importar: se registra como gasto en su categoría, se ignora, o se vuelve recibo del cliente. Se crean con «Recordar» cuando lo hacés a mano, o acá.</p>
+      <div class="grid sm:grid-cols-[1fr_130px_150px_1fr_auto] gap-2 items-end mb-4 p-3 rounded-xl bg-marca-fondo" data-e2e="regla-nueva">
+        <div><label class="label">Si dice</label><input v-model="nr.patron" class="input !py-1 text-sm" placeholder="edemsa, comision mantenimiento…" /></div>
+        <div><label class="label">Sentido</label><select v-model="nr.sentido" class="input !py-1 text-sm"><option value="ambos">Ambos</option><option value="egreso">Débito</option><option value="ingreso">Crédito</option></select></div>
+        <div><label class="label">Hacer</label><select v-model="nr.accion" class="input !py-1 text-sm"><option v-for="(l, k) in acciones" :key="k" :value="k">{{ l }}</option></select></div>
+        <div v-if="nr.accion === 'gasto'"><label class="label">Categoría</label><select v-model="nr.expense_category_id" class="input !py-1 text-sm"><option :value="null">La que sugiera el sistema</option><option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.name }}</option></select></div>
+        <div v-else-if="nr.accion === 'recibo'"><label class="label">Cliente</label><select v-model="nr.contact_id" class="input !py-1 text-sm"><option :value="null">Elegí</option><option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.nombre }}</option></select></div>
+        <div v-else></div>
+        <button class="btn-primary !py-1.5 text-sm" :disabled="nr.processing || nr.patron.length < 3 || (nr.accion === 'recibo' && !nr.contact_id)" @click="nr.post('/contable/conciliacion/reglas', { preserveScroll: true, onSuccess: () => nr.reset('patron', 'contact_id') })">Agregar</button>
+      </div>
+      <table class="table text-sm">
+        <thead><tr><th>Si dice</th><th>Sentido</th><th>Hace</th><th class="text-right">Veces</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="r in reglas" :key="r.id">
+            <td><span class="font-mono text-xs">{{ r.patron }}</span><p v-if="r.cuenta" class="text-[11px] text-marca-muted">sólo {{ r.cuenta }}</p></td>
+            <td class="text-xs">{{ { ambos: 'Ambos', egreso: 'Débito', ingreso: 'Crédito' }[r.sentido] }}</td>
+            <td>{{ r.accion_label }}<span v-if="r.categoria" class="text-marca-muted"> · {{ r.categoria }}</span><span v-if="r.cliente" class="text-marca-muted"> · {{ r.cliente }}</span><span v-if="r.concepto" class="text-marca-muted"> · «{{ r.concepto }}»</span></td>
+            <td class="text-right tabular-nums">{{ r.veces }}<p v-if="r.ultima_vez" class="text-[11px] text-marca-muted">{{ r.ultima_vez }}</p></td>
+            <td class="text-right"><button class="text-marca-muted hover:text-carmin" title="Borrar" aria-label="Borrar" @click="router.post(`/contable/conciliacion/reglas/${r.id}/borrar`, {}, { preserveScroll: true })">×</button></td>
+          </tr>
+          <tr v-if="!reglas.length"><td colspan="5" class="text-center text-sm text-marca-muted py-6">Todavía no hay reglas. Al registrar o ignorar un renglón, marcá «Recordar».</td></tr>
+        </tbody>
+      </table>
+      <template #pie><button class="btn-secondary" @click="reglasAbierto = false">Cerrar</button><button v-if="reglas.length" class="btn-primary" @click="router.post('/contable/conciliacion/reglas/aplicar', { cuenta: cuentaId }, { preserveScroll: true })">Aplicar a los pendientes</button></template>
     </Modal>
   </AppLayout>
 </template>
@@ -135,10 +184,11 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ bancos: Array, cuentaId: Number, estado: String, items: Array, sinConciliar: Array, resumen: Object, categorias: Array, cajones: Object, clases: Object, deClientes: { type: Object, default: () => ({}) }, clientes: { type: Array, default: () => [] } })
+const props = defineProps({ bancos: Array, cuentaId: Number, estado: String, items: Array, sinConciliar: Array, resumen: Object, categorias: Array, cajones: Object, clases: Object, deClientes: { type: Object, default: () => ({}) }, clientes: { type: Array, default: () => [] }, reglas: { type: Array, default: () => [] }, acciones: { type: Object, default: () => ({}) }, mercadopago: { type: Object, default: () => ({}) } })
 function hacerRecibo(id, contactId) { router.post(`/contable/conciliacion/${id}/recibo`, { contact_id: contactId }, { preserveScroll: true }) }
 const { puede } = usePermisos()
-const impAbierto = ref(false), vincular = ref(null), registrar = ref(null)
+const impAbierto = ref(false), vincular = ref(null), registrar = ref(null), ignorar = ref(null), reglasAbierto = ref(false)
+const nr = useForm({ patron: '', sentido: 'ambos', accion: 'gasto', expense_category_id: null, contact_id: null, concepto: '', cuenta_fondos_id: null, aplicar: props.cuentaId })
 const imp = useForm({ cuenta_fondos_id: props.cuentaId, archivo: null })
 const candidatos = computed(() => vincular.value ? props.sinConciliar.filter(m => Math.abs(m.monto - vincular.value.monto) < 0.01) : [])
 </script>

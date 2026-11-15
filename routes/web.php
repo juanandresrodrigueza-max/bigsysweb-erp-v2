@@ -589,6 +589,17 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/conciliacion/{id}/registrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/clasificar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'clasificar'])->middleware('permiso:contable,crear');
         Route::post('/conciliacion/{id}/recibo',   [\App\Http\Controllers\Contable\ConciliacionController::class, 'recibo'])->middleware('permiso:contable,crear');
+        // Fase 99: reglas, Mercado Pago por API, posición IVA e indicadores
+        Route::post('/conciliacion/reglas',        [\App\Http\Controllers\Contable\ConciliacionController::class, 'reglaGuardar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/reglas/aplicar',[\App\Http\Controllers\Contable\ConciliacionController::class, 'reglasAplicar'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/reglas/{id}/borrar', [\App\Http\Controllers\Contable\ConciliacionController::class, 'reglaBorrar'])->middleware('permiso:contable,crear')->whereNumber('id');
+        Route::post('/conciliacion/mercadopago',   [\App\Http\Controllers\Contable\ConciliacionController::class, 'mercadopago'])->middleware('permiso:contable,crear');
+        Route::post('/conciliacion/mercadopago/config', [\App\Http\Controllers\Contable\ConciliacionController::class, 'mercadopagoConfig'])->middleware('permiso:contable,editar');
+        Route::get('/iva/posicion',                [\App\Http\Controllers\Contable\PosicionIvaController::class, 'index']);
+        Route::get('/iva/posicion/texto',          [\App\Http\Controllers\Contable\PosicionIvaController::class, 'texto']);
+        Route::post('/iva/posicion',               [\App\Http\Controllers\Contable\PosicionIvaController::class, 'guardar'])->middleware('permiso:contable,crear');
+        Route::post('/iva/posicion/{id}/reabrir',  [\App\Http\Controllers\Contable\PosicionIvaController::class, 'reabrir'])->middleware('permiso:contable,anular')->whereNumber('id');
+        Route::get('/indicadores',                 [\App\Http\Controllers\Contable\IndicadoresController::class, 'index']);
         Route::post('/conciliacion/clasificar-ia',  [\App\Http\Controllers\Contable\ConciliacionController::class, 'clasificarIa'])->middleware(['permiso:contable,crear', 'throttle:10,1']);
         Route::post('/conciliacion/registrar-grupo', [\App\Http\Controllers\Contable\ConciliacionController::class, 'registrarGrupo'])->middleware('permiso:contable,crear');
         Route::get('/fiscal',                      [\App\Http\Controllers\Contable\FiscalController::class, 'index']);

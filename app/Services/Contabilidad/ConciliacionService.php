@@ -30,7 +30,13 @@ class ConciliacionService
         // Fase 35.3: guardia obligatoria para el PDF. Si la cadena de saldos no cierra renglón por renglón, no se concilia con números inventados.
         $cadena = app(BancoCajonesService::class)->cadena($filas);
         if (str_ends_with(strtolower($nombreArchivo), '.pdf') && $cadena['cierra'] === false) throw ValidationException::withMessages(['archivo' => "Leí el PDF pero la cadena de saldos no cierra en {$cadena['cantidad_rotos']} renglones (el primero: {$cadena['rotos'][0]['fecha']} {$cadena['rotos'][0]['descripcion']}: esperaba " . number_format($cadena['rotos'][0]['esperado'], 2, ',', '.') . ', leí ' . number_format($cadena['rotos'][0]['leido'], 2, ',', '.') . '). Puede ser un dígito mal leído o una página que falta: probá con el CSV o Excel del home banking, o cargalo a mano.']);
-        return DB::transaction(function () use ($cuenta, $filas, $nombreArchivo, $cadena) {
+        return $this->importarFilas($cuenta, $filas, $nombreArchivo, true, $cadena);
+    }
+
+    // Fase 99: el mismo guardado para filas que vienen de un archivo o de la API de Mercado Pago. Con $estricto en false, sin renglones nuevos devuelve null en vez de fallar.
+    public function importarFilas(CuentaFondos $cuenta, array $filas, string $nombreArchivo, bool $estricto = true, ?array $cadena = null): ?ExtractoBancario
+    {
+        return DB::transaction(function () use ($cuenta, $filas, $nombreArchivo, $cadena, $estricto) {
             $ext = ExtractoBancario::create(['business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'user_id' => Auth::id(), 'archivo' => $nombreArchivo]);
             $n = 0; $fechas = []; $saldoFinal = null;
             foreach ($filas as $f) {
@@ -38,7 +44,7 @@ class ConciliacionService
                 ExtractoItem::create(['extracto_id' => $ext->id, 'business_id' => $cuenta->business_id, 'cuenta_fondos_id' => $cuenta->id, 'fecha' => $f['fecha'], 'descripcion' => mb_substr($f['descripcion'], 0, 250), 'referencia' => $f['referencia'] ? mb_substr((string) $f['referencia'], 0, 80) : null, 'monto' => $f['monto'], 'saldo' => $f['saldo']]);
                 $n++; $fechas[] = $f['fecha']; if ($f['saldo'] !== null) $saldoFinal = $f['saldo'];
             }
-            if (! $n) throw ValidationException::withMessages(['archivo' => 'No había renglones nuevos para importar (o ya estaban cargados).']);
+            if (! $n) { if (! $estricto) { $ext->delete(); return null; } throw ValidationException::withMessages(['archivo' => 'No había renglones nuevos para importar (o ya estaban cargados).']); }
             $ext->update(['items' => $n, 'desde' => min($fechas), 'hasta' => max($fechas), 'saldo_final' => $saldoFinal, 'cadena' => $cadena]);
             AuditLog::registrar('crear', $ext, "Importó extracto de {$cuenta->nombre} ({$nombreArchivo}): {$n} renglones");
             $this->conciliarAutomatico($cuenta);
@@ -63,6 +69,8 @@ class ConciliacionService
             $this->vincular($it, $mejor, 'auto');
             $usados[] = $mejor->id; $n++;
         }
+        // Fase 99: lo que no cruzó con un movimiento, lo resuelven las reglas (gasto en su categoría, ignorar, recibo del cliente).
+        $n += app(ReglasConciliacionService::class)->aplicar($cuenta);
         return $n;
     }
 

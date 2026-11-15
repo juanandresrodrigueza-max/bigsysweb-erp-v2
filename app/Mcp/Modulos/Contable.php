@@ -58,6 +58,24 @@ class Contable
                     [$d, $h, $txt] = Busca::periodo($a);
                     return ['periodo' => $txt] + app(ContabilidadService::class)->resultado($u->business_id, $d->toDateString(), $h->toDateString());
                 }],
+            // Fase 99: la posición de IVA del mes con arrastre y los indicadores del contador.
+            ['nombre' => 'posicion_iva', 'titulo' => 'Posición de IVA del mes', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'La posición mensual de IVA como la arma el contador: débito fiscal, crédito fiscal, percepciones y retenciones sufridas, saldo a favor del mes anterior, cuánto se paga y cuándo vence, y qué saldo pasa al mes siguiente.',
+                'parametros' => ['mes' => ['type' => 'string', 'description' => 'YYYY-MM; por defecto el mes pasado']],
+                'ejecutar' => function (User $u, array $a) {
+                    $mes = preg_match('/^\d{4}-\d{2}$/', (string) ($a['mes'] ?? '')) ? $a['mes'] : now()->subMonth()->format('Y-m');
+                    $svc = app(\App\Services\Contabilidad\PosicionIvaService::class); $c = $svc->calcular($u->business, $mes);
+                    return ['mes' => $mes, 'periodo' => $c['periodo'], 'debito' => $c['debito'], 'credito' => $c['credito'], 'percepciones_sufridas' => $c['percepciones'], 'retenciones_sufridas' => $c['retenciones'], 'saldo_anterior' => ['tecnico' => $c['saldo_anterior_tecnico'], 'libre' => $c['saldo_anterior_libre']],
+                        'a_pagar' => $c['a_pagar'], 'vence' => $c['vencimiento'], 'saldo_a_favor_que_pasa' => ['tecnico' => $c['saldo_tecnico'], 'libre' => $c['saldo_libre']], 'resultado' => $c['resultado'], 'estado' => $c['estado'], 'por_alicuota' => ['ventas' => $c['ventas'], 'compras' => $c['compras']], 'texto' => $svc->resumenTexto($u->business, $c), 'url' => Busca::url('/contable/iva/posicion?mes=' . $mes)];
+                }],
+            ['nombre' => 'indicadores_contador', 'titulo' => 'Indicadores del contador', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Los números que mira el contador: ventas de 12 meses, margen bruto, días de cobro y de pago, liquidez, capital de trabajo, IVA pagado y presión fiscal, gastos sobre ventas, y qué falta asentar, conciliar o categorizar.',
+                'parametros' => ['mes' => ['type' => 'string', 'description' => 'YYYY-MM; por defecto el actual']],
+                'ejecutar' => function (User $u, array $a) {
+                    $mes = preg_match('/^\d{4}-\d{2}$/', (string) ($a['mes'] ?? '')) ? $a['mes'] : now()->format('Y-m');
+                    $t = app(\App\Services\Contabilidad\IndicadoresContadorService::class)->tablero($u->business, $mes);
+                    return ['periodo' => $t['periodo']] + $t['kpis'] + ['salud' => array_column($t['salud'], 'texto'), 'ultimos_meses' => array_map(fn($m) => ['mes' => $m['label'], 'ventas_neto' => $m['ventas_neto'], 'compras_neto' => $m['compras_neto'], 'gastos' => $m['gastos'], 'iva' => round($m['iva_debito'] - $m['iva_credito'], 2)], array_slice($t['serie'], -6)), 'url' => Busca::url('/contable/indicadores?mes=' . $mes)];
+                }],
             ['nombre' => 'iva_periodo', 'titulo' => 'IVA del período', 'modulo' => 'contable', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'IVA débito (ventas) menos IVA crédito (compras) del período, con las percepciones. Es una estimación: la posición final la confirma el contador.',
                 'parametros' => Busca::PERIODO,
