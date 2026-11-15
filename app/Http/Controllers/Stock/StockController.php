@@ -83,7 +83,10 @@ class StockController extends Controller
         $vendido30 = (float) \App\Models\ComprobanteItem::where('product_id', $p->id)->whereHas('comprobante', fn($q) => $q->ventas()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC', 'FE', 'REM'])->where('fecha', '>=', $hace30))->sum('cantidad');
         $comprado30 = (float) \App\Models\ComprobanteItem::where('product_id', $p->id)->whereHas('comprobante', fn($q) => $q->compras()->emitidos()->whereIn('tipo', ['FA', 'FB', 'FC'])->where('fecha', '>=', $hace30))->sum('cantidad');
 
+        // Fase 101: lo vendido en el sistema anterior (historia migrada de BigSys), mes a mes.
+        $historia = \App\Models\VentaHistorica::where('product_id', $p->id)->where('fecha', '>=', today()->subMonths(12)->startOfMonth()->toDateString())->get()->groupBy(fn($v) => $v->fecha->format('Y-m'))->map(fn($g, $m) => ['mes' => $m, 'cantidad' => round((float) $g->sum('cantidad'), 2), 'importe' => round((float) $g->sum('importe'), 2)])->sortKeys()->values()->all();
         return Inertia::render('Stock/Ver', [
+            'historia' => $historia,
             'comprometido' => app(\App\Services\Stock\ComprometidoService::class)->de($p), // Fase 97
             'p' => $p->only('id', 'name', 'sku', 'tipo', 'barcode', 'marca', 'description', 'unit', 'active', 'controla_stock', 'rubro_id', 'proveedor_id', 'stock_min', 'iva', 'perecedero', 'seriado', 'garantia_meses', 'pesable', 'plu', 'dias_vencimiento', 'contenido_neto', 'contenido_unidad', 'control_turno') + [
                 'ubicaciones' => app(\App\Services\Stock\AlmacenService::class)->dondeEsta($p)['ubicaciones'],

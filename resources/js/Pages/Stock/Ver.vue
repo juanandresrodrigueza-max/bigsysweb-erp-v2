@@ -19,6 +19,13 @@
       </div>
     </div>
 
+    <!-- Fase 101: lo que se vendía en el sistema anterior (historia migrada de BigSys) -->
+    <div v-if="historia.length" class="card mb-4 text-sm" data-e2e="historia">
+      <div class="flex items-center justify-between mb-2"><p class="font-bold">Lo vendido en BigSys, mes a mes</p><span class="text-xs text-marca-muted">{{ cantidad(historia.reduce((a, h) => a + h.cantidad, 0)) }} {{ p.unit }} en {{ historia.length }} meses · {{ moneda(historia.reduce((a, h) => a + h.importe, 0), 0) }}</span></div>
+      <div class="flex items-end gap-1 h-16">
+        <div v-for="h in historia" :key="h.mes" class="flex-1 flex flex-col items-center justify-end gap-0.5" :title="`${h.mes}: ${cantidad(h.cantidad)} ${p.unit} · ${moneda(h.importe, 0)}`"><div class="w-full rounded-t bg-violeta/70" :style="{ height: Math.max(3, Math.round(h.cantidad / Math.max(1, ...historia.map(x => x.cantidad)) * 56)) + 'px' }"></div><span class="text-[9px] text-marca-muted">{{ h.mes.slice(5) }}</span></div>
+      </div>
+    </div>
     <!-- Fase 97: lo comprometido (pedidos, acopios, comandas) y lo que de verdad se puede vender -->
     <div v-if="comprometido && comprometido.total > 0" class="rounded-2xl border px-4 py-3 mb-4 text-sm flex flex-wrap items-center gap-x-4 gap-y-1" :class="comprometido.disponible < 0 ? 'border-carmin/40 bg-carmin-light' : 'border-amber-200 bg-amber-50'" data-e2e="comprometido">
       <span><b>{{ cantidad(comprometido.total) }} {{ p.unit }}</b> comprometido<span v-if="comprometido.pedidos"> · {{ cantidad(comprometido.pedidos) }} en pedidos web</span><span v-if="comprometido.acopios"> · {{ cantidad(comprometido.acopios) }} en acopios</span><span v-if="comprometido.comandas"> · {{ cantidad(comprometido.comandas) }} en comandas</span></span>
@@ -115,7 +122,7 @@ import ArticuloModal from '@/Components/ArticuloModal.vue'
 import DocumentosAdjuntos from '@/Components/DocumentosAdjuntos.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ comprometido: { type: Object, default: null }, p: Object, movimientos: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, proveedores: Array, formula: Object })
+const props = defineProps({ historia: { type: Array, default: () => [] }, comprometido: { type: Object, default: null }, p: Object, movimientos: Object, filtros: Object, depositos: Array, rubros: Array, tipos: Object, unidades: Object, proveedores: Array, formula: Object })
 const { puede } = usePermisos()
 const editAbierto = ref(false), ajAbierto = ref(false)
 const articuloEditable = computed(() => ({ id: props.p.id, name: props.p.name, sku: props.p.sku, tipo: props.p.tipo, rubro_id: props.p.rubro_id, unit: props.p.unit, barcode: props.p.barcode ?? '', marca: props.p.marca ?? '', proveedor_id: props.p.proveedor_id, cost: props.p.cost, price: props.p.price, iva: Number(props.p.iva), prices: props.p.prices, stock_min: props.p.stock_min, controla_stock: props.p.controla_stock, description: props.p.description ?? '', active: props.p.active, perecedero: !!props.p.perecedero, seriado: !!props.p.seriado, garantia_meses: props.p.garantia_meses ?? null, pesable: !!props.p.pesable, plu: props.p.plu ?? '', dias_vencimiento: props.p.dias_vencimiento ?? null, contenido_neto: props.p.contenido_neto ?? null, contenido_unidad: props.p.contenido_unidad ?? null, control_turno: !!props.p.control_turno }))

@@ -33,9 +33,9 @@ Estudio del 15/11/2026. Qué hay hoy, qué falta, y las dos vías para traer un 
 
 ## 3. Las dos vías
 
-### Vía A · Por BIG Connect (ya anda)
+### Vía A · Por BIG Connect (hecha en la fase 101)
 
-Para clientes que ya tienen BIG Connect instalado. Nada que construir para lo básico; sólo ampliar los pasos (tabla de arriba) usando las tablas que el Hub ya expone (`fondos`, `cheques`, `plan_cuentas`, `pedidos`, `pedido_items`, `proveedor_precios`, `ventas_producto_dia`, `compras`, `pagos`, `cuentas_pendientes`).
+Para clientes que ya tienen BIG Connect instalado. Desde la fase 101 trae además rubros y departamentos, vendedores, empleados, cajas y bancos con su saldo, cheques en cartera, precios por proveedor y las ventas de 12 meses, y tiene el control de cierre. Quedan afuera a propósito: plan de cuentas (el ERP trae el propio), pedidos pendientes (se cargan a mano el día del corte), comprobantes históricos y sueldos viejos.
 
 ### Vía B · Subir la carpeta de BigSys (lo que falta construir)
 

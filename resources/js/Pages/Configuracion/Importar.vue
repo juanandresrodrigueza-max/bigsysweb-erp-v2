@@ -4,7 +4,7 @@
 
     <div class="card mb-4" data-e2e="bigconnect">
       <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Traer todo desde BIG Connect</h2><span class="badge" :class="bigconnect?.conectado ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light'">{{ bigconnect?.conectado ? 'Conectado · ' + bigconnect.clave + (bigconnect.ultima ? ' · última migración ' + bigconnect.ultima : '') : 'Sin conectar' }}</span></div>
-      <p class="text-sm text-marca-muted mt-1">Para clientes de BigSys que ya usan BIG Connect: proveedores, clientes, artículos con sus 6 listas y stock, y lo que cada cuenta tiene impago, comprobante por comprobante. Sin exportar planillas. Se puede repetir el día del corte: actualiza, no duplica.</p>
+      <p class="text-sm text-marca-muted mt-1">Para clientes de BigSys que ya usan BIG Connect: rubros, vendedores, proveedores, clientes, artículos con sus 6 listas y stock, empleados, cajas y bancos con su saldo, cheques en cartera, precios por proveedor, las ventas de 12 meses y lo impago comprobante por comprobante. Sin planillas. Se repite el día del corte: actualiza, no duplica. Al final, el control de cierre.</p>
       <form class="grid sm:grid-cols-[1fr_1fr_8rem_auto] gap-2 items-end mt-3" @submit.prevent="bc.post('/configuracion/importar/bigconnect', { preserveScroll: true, onSuccess: () => bc.reset('clave') })">
         <div><label class="label">Dirección del Hub</label><input v-model="bc.url" class="input" placeholder="https://hub.bigsys.com.ar" /></div>
         <div><label class="label">Clave de API (bk_…)</label><input v-model="bc.clave" type="password" autocomplete="off" class="input font-mono" :placeholder="bigconnect?.conectado ? 'Dejala vacía para mantenerla' : 'bk_…'" /></div>
@@ -12,10 +12,23 @@
         <button class="btn-secondary" :disabled="bc.processing">{{ bc.processing ? 'Probando…' : 'Conectar' }}</button>
       </form>
       <p v-if="bc.errors.url || bc.errors.clave" class="text-sm text-carmin mt-1">{{ bc.errors.url || bc.errors.clave }}</p>
-      <div v-if="bigconnect?.conectado" class="flex flex-wrap gap-2 mt-3">
-        <button class="btn-secondary" :disabled="mig.processing" @click="migrar(true)" data-e2e="bc-prueba">{{ mig.processing ? 'Trayendo…' : '1. Probar sin guardar' }}</button>
-        <button class="btn-primary" :disabled="mig.processing || !migracion?.prueba" :title="migracion?.prueba ? '' : 'Primero hacé la prueba'" @click="migrar(false)" data-e2e="bc-migrar">2. Migrar de verdad</button>
-      </div>
+      <template v-if="bigconnect?.conectado">
+        <!-- Fase 101: qué traer -->
+        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm" data-e2e="bc-pasos">
+          <label v-for="(l, k) in pasos" :key="k" class="flex items-center gap-1.5"><input type="checkbox" class="accent-carmin" :value="k" v-model="mig.pasos" /> {{ l }}</label>
+        </div>
+        <p class="text-xs text-marca-muted mt-1">Todo se puede repetir el día del corte: actualiza lo que ya está y no duplica. Los saldos de cajas y bancos quedan iguales a BigSys con un ajuste de migración.</p>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button class="btn-secondary" :disabled="mig.processing" @click="migrar(true)" data-e2e="bc-prueba">{{ mig.processing ? 'Trayendo…' : '1. Probar sin guardar' }}</button>
+          <button class="btn-primary" :disabled="mig.processing || !migracion?.prueba" :title="migracion?.prueba ? '' : 'Primero hacé la prueba'" @click="migrar(false)" data-e2e="bc-migrar">2. Migrar de verdad</button>
+          <button class="btn-ghost" :disabled="controlCargando" @click="control" data-e2e="bc-control">{{ controlCargando ? 'Comparando…' : '3. Control de cierre' }}</button>
+        </div>
+        <div v-if="cierre" class="mt-4" data-e2e="bc-cierre">
+          <p class="text-sm font-semibold" :class="cierre.cierra ? 'text-emerald-700' : 'text-amber-700'">{{ cierre.cierra ? 'Todo cierra contra BigSys: podés apagar el sistema viejo.' : `Hay ${cierre.diferencias} diferencia(s) para mirar.` }} <span class="text-xs font-normal text-marca-muted">{{ cierre.hora }}</span></p>
+          <div class="overflow-x-auto"><table class="w-full text-sm mt-2"><thead><tr class="text-left text-marca-muted"><th class="py-1">Qué</th><th class="text-right">BigSys</th><th class="text-right">ERP</th><th class="text-right">Diferencia</th></tr></thead>
+            <tbody><tr v-for="f in cierre.filas" :key="f.que" class="border-t border-marca-borde/60" :class="f.ok ? '' : 'text-carmin'"><td class="py-1">{{ f.que }}</td><td class="text-right tabular-nums">{{ f.plata ? moneda(f.bigsys, 0) : f.bigsys }}</td><td class="text-right tabular-nums">{{ f.plata ? moneda(f.erp, 0) : f.erp }}</td><td class="text-right tabular-nums font-semibold">{{ f.ok ? '✓' : (f.plata ? moneda(f.diferencia, 0) : f.diferencia) }}</td></tr></tbody></table></div>
+        </div>
+      </template>
       <div v-if="migracion" class="mt-4" data-e2e="bc-resultado">
         <p class="text-sm font-semibold" :class="migracion.prueba ? 'text-violeta' : 'text-emerald-700'">{{ migracion.prueba ? 'Resultado de la prueba (no se guardó nada)' : 'Migración guardada' }}</p>
         <div class="overflow-x-auto"><table class="w-full text-sm mt-2"><thead><tr class="text-left text-marca-muted"><th class="py-1">Qué</th><th>En BigSys</th><th>Nuevos</th><th>Actualizados</th><th>Con error</th></tr></thead>
@@ -107,15 +120,17 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
-import { hoyISO } from '@/util/formato'
-const props = defineProps({ entidades: Array, historial: Array, bigconnect: Object, migracion: Object })
+import { hoyISO, moneda } from '@/util/formato'
+const props = defineProps({ entidades: Array, historial: Array, bigconnect: Object, migracion: Object, pasos: { type: Object, default: () => ({}) } })
+const cierre = ref(null), controlCargando = ref(false)
+async function control() { controlCargando.value = true; try { const { data } = await window.axios.get('/configuracion/importar/bigconnect/control'); cierre.value = data } catch (e) { cierre.value = { cierra: false, diferencias: 0, hora: '', filas: [{ que: e?.response?.data?.message || 'No se pudo comparar', bigsys: 0, erp: 0, diferencia: 0, ok: false, plata: false }] } } finally { controlCargando.value = false } }
 // Fase 41: migrar desde BIG Connect (primero la prueba, después la de verdad).
 const bc = useForm({ url: props.bigconnect?.url ?? '', clave: '', empresa: props.bigconnect?.empresa ?? '' })
-const mig = useForm({ prueba: true })
+const mig = useForm({ prueba: true, pasos: Object.keys(props.pasos ?? {}) })
 function migrar(prueba) { mig.prueba = prueba; mig.post('/configuracion/importar/bigconnect/migrar', { preserveScroll: true }) }
 const page = usePage()
 const preview = computed(() => page.props.flash?.preview)

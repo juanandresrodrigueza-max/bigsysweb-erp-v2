@@ -15,7 +15,7 @@ class ImportarController extends Controller
     {
         return Inertia::render('Configuracion/Importar', [
             'entidades' => collect(ImportadorService::ENTIDADES)->map(fn($e, $k) => ['key' => $k, 'label' => $e['label'], 'campos' => $e['campos']])->values(),
-            'bigconnect' => app(\App\Services\Migracion\BigConnectService::class)->config(auth()->user()->business()->first()),
+            'bigconnect' => app(\App\Services\Migracion\BigConnectService::class)->config(auth()->user()->business()->first()), 'pasos' => \App\Services\Migracion\BigConnectService::PASOS,
             'migracion' => session('migracion'),
             'historial' => Importacion::with('user:id,name')->latest()->limit(10)->get()->map(fn($i) => ['id' => $i->id, 'fecha' => $i->created_at->format('d/m/Y H:i'), 'entidad' => ImportadorService::ENTIDADES[$i->entidad]['label'] ?? $i->entidad, 'archivo' => $i->archivo, 'leidas' => $i->leidas, 'creadas' => $i->creadas, 'actualizadas' => $i->actualizadas, 'errores' => $i->errores, 'detalle' => $i->detalle, 'usuario' => $i->user?->name]),
         ]);
@@ -60,6 +60,13 @@ class ImportarController extends Controller
         $d = $request->validate(['url' => 'required|string|max:200', 'clave' => 'nullable|string|max:60', 'empresa' => 'nullable|string|max:40']);
         $r = $svc->conectar($request->user()->business()->first(), $d['url'], $d['clave'] ?? null, $d['empresa'] ?? null);
         return back()->with('success', "Conectado con BIG Connect (empresa {$r['empresa']}, {$r['tablas']} tablas). Hacé primero la prueba.");
+    }
+
+    // Fase 101: los totales de BigSys contra los del ERP.
+    public function bigconnectControl(Request $request, \App\Services\Migracion\BigConnectService $svc)
+    {
+        @set_time_limit(300);
+        return response()->json($svc->cierre($request->user()->business()->first()));
     }
 
     public function bigconnectMigrar(Request $request, \App\Services\Migracion\BigConnectService $svc)

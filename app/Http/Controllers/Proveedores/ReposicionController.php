@@ -13,10 +13,13 @@ class ReposicionController extends Controller
     public function index()
     {
         // Entra lo que está en el mínimo o por debajo y también lo que no tiene stock aunque no tenga mínimo (sin mínimo no hay cantidad sugerida).
-        $items = Product::with('proveedor:id,name')->where('active', true)->where('controla_stock', true)
-            ->where(fn($q) => $q->where(fn($w) => $w->where('stock_min', '>', 0)->whereColumn('stock', '<=', 'stock_min'))->orWhere('stock', '<=', 0))->orderBy('name')->get()
-            ->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min,
-                'sugerido' => (float) $p->stock_min > 0 ? max(1, (float) ceil(2 * (float) $p->stock_min - (float) $p->stock)) : null, 'unidad' => $p->unit, 'costo' => (float) $p->cost,
+        $prods = Product::with('proveedor:id,name')->where('active', true)->where('controla_stock', true)
+            ->where(fn($q) => $q->where(fn($w) => $w->where('stock_min', '>', 0)->whereColumn('stock', '<=', 'stock_min'))->orWhere('stock', '<=', 0))->orderBy('name')->get();
+        // Fase 101: sin mínimo, la cantidad sugerida sale de lo que se vendía por mes en el sistema anterior (historia migrada de BigSys).
+        $prom = $prods->isEmpty() ? [] : \App\Models\VentaHistorica::promedioMensual((int) auth()->user()->business_id, 6, $prods->pluck('id')->all());
+        $items = $prods->map(fn($p) => ['id' => $p->id, 'nombre' => $p->name, 'sku' => $p->sku, 'stock' => (float) $p->stock, 'stock_min' => (float) $p->stock_min,
+                'sugerido' => (float) $p->stock_min > 0 ? max(1, (float) ceil(2 * (float) $p->stock_min - (float) $p->stock)) : ((($prom[$p->id] ?? 0) > 0 && ceil($prom[$p->id] - (float) $p->stock) > 0) ? (float) ceil($prom[$p->id] - (float) $p->stock) : null),
+                'por_historia' => (float) $p->stock_min <= 0 && ($prom[$p->id] ?? 0) > 0, 'unidad' => $p->unit, 'costo' => (float) $p->cost,
                 'proveedor_id' => $p->proveedor_id, 'proveedor' => $p->proveedor?->name]);
         $grupos = $items->groupBy(fn($i) => $i['proveedor_id'] ?? 0)->map(fn($lista, $pid) => [
             'proveedor_id' => $pid ?: null, 'proveedor' => $pid ? $lista->first()['proveedor'] : null,

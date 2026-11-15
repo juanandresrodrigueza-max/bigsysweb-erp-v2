@@ -363,7 +363,7 @@ class Gestion
             // ---- Fase 39: varias empresas ----
             // Fase 41: migrar a un cliente de BigSys desde BIG Connect.
             ['nombre' => 'migrar_desde_bigconnect', 'titulo' => 'Traer los datos desde BIG Connect', 'modulo' => 'configuracion', 'permiso' => 'editar', 'tipo' => 'accion', 'delicada' => true,
-                'descripcion' => 'Trae proveedores, clientes, artículos, stock y saldos impagos desde BIG Connect (BigSys). Con prueba=true sólo dice qué pasaría, sin guardar. Requiere la conexión cargada en Configuración → Importar.',
+                'descripcion' => 'Trae todo desde BIG Connect (BigSys): rubros, vendedores, proveedores, clientes, artículos con stock, empleados, cajas y bancos con su saldo, cheques en cartera, precios por proveedor, ventas de los últimos 12 meses y saldos impagos. Con prueba=true sólo dice qué pasaría, sin guardar. Requiere la conexión cargada en Configuración → Importar.',
                 'parametros' => ['prueba' => ['type' => 'boolean', 'description' => 'true = simular sin guardar (recomendado primero)']],
                 'proponer' => function (User $u, array $a) {
                     $c = app(\App\Services\Migracion\BigConnectService::class)->config($u->business()->first());
@@ -375,6 +375,16 @@ class Gestion
                     $r = app(\App\Services\Migracion\BigConnectService::class)->migrar($u->business()->first(), $d['prueba']);
                     return ['texto' => ($r['prueba'] ? 'Prueba (sin guardar): ' : 'Migrado: ') . collect($r['pasos'])->map(fn($p) => "{$p['que']} {$p['en_bigsys']} ({$p['creadas']} nuevos, {$p['actualizadas']} actualizados" . ($p['errores'] ? ", {$p['errores']} con error" : '') . ')')->implode('; ') . '.',
                         '_tabla' => ['columnas' => ['Qué', 'En BigSys', 'Nuevos', 'Actualizados', 'Con error'], 'filas' => array_map(fn($p) => [$p['que'], $p['en_bigsys'], $p['creadas'], $p['actualizadas'], $p['errores']], $r['pasos'])]];
+                }],
+            // Fase 101: el control de cierre de la migración.
+            ['nombre' => 'control_migracion', 'titulo' => 'Control de cierre de la migración desde BigSys', 'modulo' => 'configuracion', 'permiso' => 'editar', 'tipo' => 'consulta',
+                'descripcion' => 'Compara los totales de BigSys (por BIG Connect) con los del ERP: cantidad de clientes, proveedores y artículos, saldos de clientes y proveedores, inventario valorizado, cheques en cartera y el saldo de cada caja y banco. Dice qué cierra y qué no, para apagar el sistema viejo con confianza.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Migracion\BigConnectService::class); $b = $u->business()->first();
+                    if (! $svc->config($b)['conectado']) return ['error' => 'BIG Connect no está conectado: Configuración → Importar.'];
+                    $r = $svc->cierre($b);
+                    return $r + ['resumen' => $r['cierra'] ? 'Todo cierra: podés apagar BigSys.' : "Hay {$r['diferencias']} diferencias para mirar.", 'url' => Busca::url('/configuracion/importar')];
                 }],
             // Fase 40.5: avisos al celular, novedades, parte de la mañana y mejoras.
             ['nombre' => 'novedades_bigsys', 'titulo' => 'Novedades de BigSys', 'modulo' => 'dashboard', 'permiso' => 'ver', 'tipo' => 'consulta',
