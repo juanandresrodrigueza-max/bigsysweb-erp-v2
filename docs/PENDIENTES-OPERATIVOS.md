@@ -58,7 +58,7 @@ Lo que sigue es lo que **no** puede hacer el sistema solo. El resto (artículos,
 - [ ] **Pasar a producción**: certificado de producción, tildar *Modo producción* en Configuración → Empresa, probar de nuevo, primera factura real y **Verificar en ARCA**.
 - [ ] **Clientes**: revisar la condición IVA de cada uno (los monotributistas reciben **A** con la leyenda de la ley 27.618; sin CUIT, consumidor final). Marcar **«Comprobante interno por defecto»** sólo en los clientes que corresponda (fase 103).
 - [ ] **Impuestos**: Configuración → Impuestos sólo si la empresa es agente de percepción o retención.
-- [ ] Si la empresa **exporta**: hoy la E sale sin CAE. Falta integrar WSFEX (es una fase de software, avisar). También falta CAEA.
+- [ ] **Comprobantes internos** (los que no van a ARCA, letra X, fases 103 y 104): ya están hechos. Sólo hay que marcar el tilde en la venta o en el cliente, y usar **Facturar** después si esa venta tiene que pasar a fiscal. No hay nada que configurar.
 
 ### Plata
 
@@ -87,7 +87,7 @@ Lo que sigue es lo que **no** puede hacer el sistema solo. El resto (artículos,
 
 ## F · Lo que yo sigo haciendo (software), para no mezclarlo
 
-- WSFEX (factura E con CAE) cuando haya una empresa que exporte. CAEA para contingencia larga.
+- Factura de exportación con CAE (sólo si algún día una empresa vende al exterior; no tiene que ver con los comprobantes internos). CAEA para contingencia larga.
 - Vía B de migración cuando tenga los `.tps`.
 - Pruebas de PostgreSQL que fallan por orden (`GruposFase82Test`, `MenuFase79Test`, `GastronomiaHorariosReporteFase52Test`): pasan solas, no afectan producción.
 - Lo que aparezca de usar el bloque D con el primer cliente.
