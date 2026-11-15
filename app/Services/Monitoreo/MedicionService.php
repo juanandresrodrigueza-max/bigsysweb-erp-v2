@@ -50,9 +50,13 @@ class MedicionService
     {
         $ronda = now()->format('Y-m-d H:i'); $urls ??= self::PAGINAS; $res = [];
         $grandes = Business::where('is_active', true)->whereNull('suspended_at')->withCount('comprobantesVenta')->orderByDesc('comprobantes_venta_count')->limit($empresas ?? self::EMPRESAS)->get();
+        $calentada = false;
         foreach ($grandes as $b) {
             $u = User::withoutGlobalScopes()->where('business_id', $b->id)->where('status', 'active')->where('is_superadmin', false)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$b->owner_id])->orderBy('id')->first();
             if (! $u) continue;
+            // La primera página del proceso paga el arranque en frío (rutas, vistas, conexión): la 1.ª empresa daba /dashboard
+            // en 330-380 ms tres noches seguidas y repetido al rato tardaba 30-110 ms. Una vuelta que no se guarda, y después se mide.
+            if (! $calentada) { $this->medir([$urls[0]], $u); $calentada = true; }
             foreach ($this->medir($urls, $u) as $url => $m) {
                 MedicionPagina::create(['business_id' => $b->id, 'url' => $url, 'ms' => $m['ms'], 'consultas' => $m['consultas'], 'sql_ms' => $m['sql_ms'], 'http' => $m['http'], 'lentas' => $m['lentas'], 'ronda' => $ronda, 'created_at' => now()]);
                 $res[] = ['empresa' => $b->name, 'url' => $url] + $m;
