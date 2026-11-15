@@ -3,7 +3,7 @@
     <form @submit.prevent="guardar" class="grid sm:grid-cols-2 gap-4">
       <div class="sm:col-span-2"><label class="label">Nombre / Razón social</label><input v-model="form.name" class="input" /><p v-if="form.errors.name" class="text-carmin text-xs mt-1">{{ form.errors.name }}</p></div>
       <div><label class="label">Condición IVA</label><select v-model="form.condicion_iva" class="input"><option v-for="c in condicionesIva" :key="c">{{ c }}</option></select></div>
-      <div><label class="label">CUIT / CUIL</label><div class="flex gap-1"><input v-model="form.cuit" class="input" placeholder="30-12345678-9" /><button type="button" class="btn-secondary !px-2 text-xs whitespace-nowrap" :disabled="padron.cargando || (form.cuit || '').replace(/\D/g, '').length !== 11" title="Trae razón social, domicilio y condición IVA del padrón de ARCA" @click="consultarPadron">{{ padron.cargando ? '…' : 'Padrón' }}</button></div><p v-if="form.errors.cuit" class="text-carmin text-xs mt-1">{{ form.errors.cuit }}</p><p v-if="padron.msg" class="text-xs mt-1" :class="padron.ok ? 'text-emerald-700' : 'text-carmin'">{{ padron.msg }}</p></div>
+      <div><label class="label">CUIT / CUIL</label><div class="flex gap-1"><input v-model="form.cuit" class="input" placeholder="30-12345678-9" @blur="autoPadron" data-e2e="cli-cuit" /><button type="button" class="btn-secondary !px-2 text-xs whitespace-nowrap" :disabled="padron.cargando || (form.cuit || '').replace(/\D/g, '').length !== 11" title="Trae razón social, domicilio y condición IVA del padrón de ARCA" @click="consultarPadron">{{ padron.cargando ? '…' : 'Padrón' }}</button></div><p v-if="form.errors.cuit" class="text-carmin text-xs mt-1">{{ form.errors.cuit }}</p><p v-if="padron.msg" class="text-xs mt-1" :class="padron.ok ? 'text-emerald-700' : 'text-carmin'">{{ padron.msg }}</p></div>
       <template v-if="form.condicion_iva === 'Exterior'">
         <div><label class="label">País (ARCA)</label><select v-model="form.pais_codigo" class="input" @change="form.cuit_pais = cuitPais[form.pais_codigo] ?? form.cuit_pais"><option :value="null">Elegir…</option><option v-for="(n, k) in paises" :key="k" :value="k">{{ n }}</option></select></div>
         <div><label class="label">CUIT país (tabla ARCA)</label><input v-model="form.cuit_pais" class="input tabular-nums" placeholder="55000002002" /><p class="text-[11px] text-marca-muted mt-1">Persona jurídica del país; si ARCA informa otro, corregilo acá.</p></div>
@@ -51,15 +51,18 @@ const form = useForm({ ...vacio })
 watch(() => props.abierto, v => { if (v) { form.clearErrors(); Object.assign(form, { ...vacio, ...(props.cliente ?? {}) }) } })
 function aplicarTipo() { const t = props.tipos.find(x => x.id === form.tipo_cliente_id); if (t) { form.lista_precios = t.lista_precios; form.dias_pago = t.dias_pago; form.descuento = Number(t.descuento); form.credit_limit = Number(t.limite_credito) } }
 const padron = reactive({ cargando: false, msg: '', ok: false })
-async function consultarPadron() {
+async function consultarPadron(auto = false) {
   padron.cargando = true; padron.msg = ''
   try {
     const r = await fetch(`/clientes/padron/${(form.cuit || '').replace(/\D/g, '')}`, { headers: { Accept: 'application/json' } }); const d = await r.json()
-    if (!r.ok) { padron.ok = false; padron.msg = d.error ?? 'No se pudo consultar.'; return }
+    if (!r.ok) { padron.ok = false; padron.msg = auto && r.status === 422 ? '' : (d.error ?? 'No se pudo consultar.'); return }
     if (!form.name) form.name = d.nombre; form.cuit = d.cuit; form.condicion_iva = props.condicionesIva.includes(d.condicion_iva) ? d.condicion_iva : form.condicion_iva
     if (!form.address && d.direccion) form.address = d.direccion; if (!form.city && d.localidad) form.city = d.localidad; if (!form.province && d.provincia) form.province = d.provincia
-    padron.ok = true; padron.msg = `ARCA: ${d.nombre} · ${d.condicion_iva}`
+    padron.ok = true; padron.msg = `ARCA: ${d.nombre} · ${d.condicion_iva}` + (['Responsable Inscripto', 'Monotributista'].includes(d.condicion_iva) ? ' · recibe factura A' : ' · recibe factura B')
   } catch (e) { padron.ok = false; padron.msg = 'No se pudo consultar el padrón.' } finally { padron.cargando = false }
 }
+// Fase 107: con 11 dígitos, el padrón se consulta solo al salir del campo (si la empresa tiene certificado; si no, no molesta).
+let ultimoAuto = ''
+function autoPadron() { const d = (form.cuit || '').replace(/\D/g, ''); if (d.length !== 11 || d === ultimoAuto || padron.cargando) return; ultimoAuto = d; consultarPadron(true) }
 function guardar() { form.post(form.id ? `/clientes/${form.id}` : '/clientes', { preserveScroll: true, onSuccess: () => emit('cerrar') }) }
 </script>

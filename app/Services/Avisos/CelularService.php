@@ -121,7 +121,7 @@ class CelularService
         $c = $this->configManana($b);
         if (! $forzar && (! $c['activo'] || ($c['ultimo'] ?? null) === today()->toDateString() || now()->format('H:i') < $c['hora'])) return false;
         $p = $this->parte($b); $dueno = User::find($b->owner_id);
-        if ($c['push'] && $dueno) $this->enviar($dueno, "Buen día · {$b->name}", $p['corto'] ?: 'Tu parte de la mañana está listo.', '/dashboard');
+        if ($c['push'] && $dueno) $this->enviar($dueno, "Buen día · {$b->name}", $p['corto'] ?: 'Tu parte de la mañana está listo.', '/resumen-hablado'); // Fase 107: se abre y se escucha
         $wa = app(AvisosDuenoService::class)->config($b)['whatsapp'] ?? null;
         if ($c['whatsapp'] && $wa) app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $wa, $p['texto']);
         if (! $forzar) $b->update(['avisos' => array_replace($b->avisos ?? [], ['manana' => array_replace($c, ['ultimo' => today()->toDateString()])])]);

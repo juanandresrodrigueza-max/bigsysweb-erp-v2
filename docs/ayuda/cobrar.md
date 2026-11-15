@@ -20,6 +20,10 @@ Desde la ficha del cliente, **Registrar cobro**, o desde la factura, **Registrar
 
 Con **descuento por pronto pago** o **interés por mora** se ajusta en el mismo cobro y el sistema hace la nota correspondiente.
 
+### El cobrador de Bigcito (fase 107)
+
+Cada mañana Bigcito mira quién debe y te deja en **Inicio → Propuestas** a quién conviene escribirle hoy, con el mensaje ya redactado según el historial de cada cliente (y todas sus facturas vencidas). Aprobás y sale por WhatsApp o mail. Guía completa en *Alertas y asistente → Bigcito trabaja de noche*.
+
 ## Mensajes a clientes (Clientes → Mensajes a clientes, Fase 96)
 
 Un mismo mensaje a muchos clientes de una vez: un cambio de lista, una promoción, un aviso de cierre o de vacaciones.

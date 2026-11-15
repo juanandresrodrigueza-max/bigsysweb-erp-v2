@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, onMounted, onBeforeUnmount } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import { useDictado } from '@/util/dictado'
@@ -149,6 +149,10 @@ async function alternarGrabacion() {
     grabador.start(); grabando.value = true
   } catch { mensajes.value.push({ rol: 'assistant', texto: 'No tengo permiso para usar el micrófono.' }) }
 }
+// Fase 107: otra pantalla (el resumen hablado) abre a Bigcito con una pregunta ya escrita.
+const alPreguntar = (e) => { abierto.value = true; nextTick(() => enviar(e.detail?.texto ?? '')) }
+onMounted(() => window.addEventListener('bigcito:preguntar', alPreguntar))
+onBeforeUnmount(() => window.removeEventListener('bigcito:preguntar', alPreguntar))
 async function enviar(pre, porVoz = false) {
   let msg = (pre ?? texto.value).trim()
   if (!msg && foto.value) msg = '¿Qué ves en esta foto?'

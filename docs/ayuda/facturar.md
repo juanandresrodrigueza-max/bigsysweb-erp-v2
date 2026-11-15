@@ -40,6 +40,9 @@ Las notas de crédito y débito llevan la misma letra que la factura que corrige
 
 Si el cliente es monotributista y le vendés con A, el IVA va discriminado igual: él no lo computa como crédito salvo por el régimen de la ley 27.618, y el comprobante lo dice al pie.
 
+
+**Padrón automático (fase 107)**: en la ficha del cliente, al salir del campo CUIT con los 11 dígitos, se consulta el padrón de ARCA solo (si la empresa tiene certificado): completa razón social, condición IVA y domicilio, y te dice si recibe factura A o B. Bigcito hace lo mismo cuando le decís «dá de alta al cliente con CUIT 30-…».
+
 ## Cliente nuevo desde la factura
 
 Si el cliente no está cargado, no hace falta salir de la factura: tocá **+ Cliente nuevo o consumidor final con datos** debajo del buscador de clientes y completá nombre, **CUIT o DNI**, condición de IVA, domicilio, email y teléfono. Con un CUIT, el botón **ARCA** trae la razón social, la condición de IVA y el domicilio del padrón.

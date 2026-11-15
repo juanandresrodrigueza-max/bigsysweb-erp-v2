@@ -24,4 +24,17 @@ class Ia
         $k = $b?->ia_settings['api_key'] ?? null;
         return $k ? substr($k, 0, 7) . '…' . substr($k, -4) : null;
     }
+
+    // Fase 107: un texto corto redactado por la IA de la empresa, o null si no hay clave o falló (el que llama tiene su versión con reglas).
+    public static function redactar(?Business $b, string $sistema, string $datos, int $maxTokens = 500, int $timeout = 25): ?string
+    {
+        if (! self::tiene($b)) return null;
+        self::aplicar($b);
+        try {
+            $r = \Illuminate\Support\Facades\Http::withHeaders(['x-api-key' => config('services.anthropic.api_key'), 'anthropic-version' => '2023-06-01'])->timeout($timeout)
+                ->post('https://api.anthropic.com/v1/messages', ['model' => config('services.anthropic.model'), 'max_tokens' => $maxTokens, 'system' => $sistema, 'messages' => [['role' => 'user', 'content' => $datos]]]);
+            $t = trim(collect($r->json('content', []))->where('type', 'text')->pluck('text')->implode("\n"));
+            return $t !== '' ? $t : null;
+        } catch (\Throwable $e) { \Illuminate\Support\Facades\Log::warning('IA redactar: ' . $e->getMessage()); return null; }
+    }
 }

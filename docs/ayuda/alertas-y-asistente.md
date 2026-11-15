@@ -6,6 +6,24 @@ orden: 10
 resumen: Qué avisa el sistema y por dónde, cómo usar el asistente para consultar y hacer cosas, y qué recibe el dueño en el celular.
 ---
 
+## Bigcito trabaja de noche (fase 107)
+
+Todas las madrugadas, a las 05:45, cinco agentes de Bigcito revisan la empresa y dejan **propuestas** en **Inicio → Bigcito te dejó N propuestas** (y en `/propuestas`). Nada se hace solo: la regla de la casa vale también para los agentes. Vos aprobás de a un toque y recién ahí se ejecuta, con los mismos circuitos de siempre, y queda en la auditoría quién aprobó qué.
+
+| Agente | Qué mira | Qué pasa al aprobar |
+|---|---|---|
+| **Cobrador** | Quién debe con vencido, cuántos días, su riesgo de mora y cuándo fue el último aviso (no insiste antes de 5 días). Redacta el mensaje para ese cliente: suave con el que siempre paga, firme con el reincidente (con la IA de la empresa; sin IA, la plantilla de Cobranzas con todas las vencidas). | Sale por WhatsApp (o mail si no tiene celular). Sin la API de WhatsApp, queda el link listo para mandarlo. |
+| **Reposición** | Lo que está bajo mínimo o sin stock, agrupado por proveedor habitual, con la cantidad (hasta el doble del mínimo, o lo que se vendía por mes si viene de BigSys) y la plata que hace falta. Si ya hay una orden abierta con ese proveedor, no la pisa. | Crea la orden de compra **en borrador** en Comprar → Órdenes, para revisarla y mandarla. Lo sin proveedor queda como aviso. |
+| **Precios** | Artículos a los que les subió el costo en los últimos 3 días y el precio no se tocó, y los que están bajo su margen mínimo. Propone el precio nuevo respetando el margen que corresponde (el objetivo del artículo, el que tenía antes de la suba, o el mínimo) y lo redondea (a 10, 50 o 100 según el precio). Los artículos con cadena de márgenes cargada ya se recalculan solos. | Cambia la lista 1; cada cambio queda en el historial de precios. |
+| **Cierre del mes** | Los primeros 10 días del mes revisa el mes anterior: comprobantes sin asiento, gastos sin categoría (propone la que usaste antes para el mismo concepto), cierres de caja con diferencia y lo que el informe del contador marca para revisar. También a pedido con **Revisar ahora**. | Genera los asientos que faltan y aplica las categorías. El resto es para que el contador decida. |
+| **Control interno** | Compara a cada usuario con el resto del equipo en los últimos 30 días: anulaciones, descuentos regalados, cajas que no cuadran, ventas más de 30 % abajo de la lista, cargas a deshora. Si alguien está al menos dos veces y media por encima del promedio de los demás (y pasa un piso que importe), te lo cuenta con la evidencia. | Sólo avisa: «Lo vi». Si es grave, además llega como alerta crítica al celular. Mirá los comprobantes en Estadísticas → Qué hacer → Control de usuarios antes de hablar con la persona. |
+
+- **Rechazar** una propuesta (con motivo, opcional) hace que Bigcito no insista con lo mismo por una semana. Lo que el agente deja de proponer vence solo a los 7 días.
+- **Configuración**: en la misma pantalla, el dueño apaga el agente que no quiera y el aviso al celular. Cada mañana con propuestas nuevas llega un push: «Bigcito te dejó N propuestas».
+- **Resumen hablado** (`/resumen-hablado`, también desde el parte de la mañana): el parte del día más las propuestas, leído en voz alta por el celular con su propia voz (sin servicios externos, sin pesos con símbolos raros). Desde ahí le repreguntás a Bigcito con un toque: «¿por qué vendí menos que ayer?», «¿a quién le cobro primero?».
+
+A Bigcito: «¿qué me dejaste para aprobar?», «aprobá la propuesta 12», «rechazá la 8, ya hablé con él», «revisá ahora la reposición», «¿alguien se sale de lo normal?» (control interno, sólo el dueño), «leeme el resumen del día».
+
 ## Alertas
 
 La campana del encabezado y **Alertas** juntan lo que necesita atención: stock bajo mínimo, artículos vencidos, facturas vencidas, cheques por vencer, cajas con diferencia, pedidos nuevos, presupuestos sin respuesta, facturas pendientes de CAE, respuestas de soporte. Cada alerta lleva a la pantalla donde se resuelve; se marca leída o resuelta.
