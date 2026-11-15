@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Posición IVA, indicadores, reglas de conciliación y Mercado Pago por API (fase 99)
+
+**Contable → Posición IVA**: la cuenta del mes con el saldo a favor arrastrado, cerrar el mes y copiar el texto para el contador. **Contable → Indicadores**: doce meses, margen, días de cobro y pago, liquidez y presión fiscal. En **Conciliación**: **Reglas** que actúan solas (con «Recordar» al registrar, ignorar o hacer recibo) y la cuenta de **Mercado Pago** que se trae por API cada madrugada. Está contado en **Contable**.
+
 ## Ausencias, vacaciones, feriados, Libro de Sueldos Digital y ganancias (fase 98)
 
 **Sueldos → Ausencias y vacaciones**: licencias y faltas con los días contados solos, vacaciones por antigüedad según la LCT con saldo por empleado, y el calendario de feriados (nacionales calculados más los propios). Al liquidar, las novedades del mes ya vienen con feriados, vacaciones y faltas. En la ficha del empleado, **Más datos del legajo** y los datos de revista. Con la liquidación confirmada, botón **Libro de Sueldos Digital** (archivo de ARCA). En Preferencias de sueldos, la tabla de **ganancias 4ta** que carga el contador. Está contado en **Sueldos**.

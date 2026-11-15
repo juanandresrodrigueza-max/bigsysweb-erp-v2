@@ -8,7 +8,7 @@
       <div class="flex gap-1 bg-white border border-marca-borde rounded-full p-1">
         <Link v-for="l in ['ventas', 'compras']" :key="l" :href="`/contable/iva?libro=${l}&desde=${periodo.desde}&hasta=${periodo.hasta}`" class="px-4 py-1.5 rounded-full text-sm font-semibold capitalize" :class="libro === l ? 'bg-carmin text-white' : 'text-marca-muted'">{{ l }}</Link>
       </div>
-      <a :href="`/contable/iva?libro=${libro}&desde=${periodo.desde}&hasta=${periodo.hasta}&export=1`" class="btn-secondary">Exportar CSV</a>
+      <div class="flex gap-2"><Link :href="`/contable/iva/posicion?mes=${periodo.desde.slice(0, 7)}`" class="btn-primary">Posición IVA del mes</Link><a :href="`/contable/iva?libro=${libro}&desde=${periodo.desde}&hasta=${periodo.hasta}&export=1`" class="btn-secondary">Exportar CSV</a></div>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Neto gravado</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(totales.neto, 0) }}</p></div>

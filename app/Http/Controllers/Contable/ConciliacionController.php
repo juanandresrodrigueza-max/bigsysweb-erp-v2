@@ -41,16 +41,65 @@ class ConciliacionController extends Controller
             // Transferencias que entraron: de qué cliente son (por CUIT, DNI o nombre exacto) para hacer el recibo con un clic.
             'deClientes' => $cuenta ? app(\App\Services\Comprobantes\TransferenciaClienteService::class)->sugerencias(CuentaFondos::find($cuentaId)) : [],
             'clientes' => \App\Models\Contact::customers()->where('is_active', true)->where('name', '!=', 'Consumidor Final')->orderBy('name')->limit(3000)->get(['id', 'name'])->map(fn($c) => ['id' => $c->id, 'nombre' => $c->name]),
+            // Fase 99: reglas que actúan solas y la cuenta de Mercado Pago que se trae por API
+            'reglas' => app(\App\Services\Contabilidad\ReglasConciliacionService::class)->listado($request->user()->business), 'acciones' => \App\Models\ConciliacionRegla::ACCIONES,
+            'mercadopago' => $this->mp($request->user()->business, $cuenta ? CuentaFondos::find($cuentaId) : null),
         ]);
+    }
+
+    private function mp(\App\Models\Business $b, ?CuentaFondos $cuenta): array
+    {
+        $svc = app(\App\Services\MercadoPago\MercadoPagoMovimientosService::class); $cfg = (array) ($cuenta?->conciliacion_config ?? []);
+        return ['conectado' => $svc->conectado($b), 'es_billetera' => $cuenta?->tipo === 'billetera', 'activo' => (bool) ($cfg['mercadopago'] ?? false), 'automatico' => (bool) ($cfg['mp_automatico'] ?? false), 'ultima' => $cfg['mp_ultima'] ?? null, 'otra_cuenta' => ($c = $svc->cuenta($b)) && $cuenta && $c->id !== $cuenta->id ? $c->nombre : null];
+    }
+
+    // Fase 99: traer los movimientos de Mercado Pago a la cuenta de billetera (botón) y marcar la cuenta para que se traigan solos.
+    public function mercadopago(Request $request, \App\Services\MercadoPago\MercadoPagoMovimientosService $svc)
+    {
+        $d = $request->validate(['cuenta' => 'required|integer', 'desde' => 'nullable|date']);
+        $c = CuentaFondos::findOrFail($d['cuenta']); abort_unless($c->tipo === 'billetera', 422, 'Elegí la cuenta de Mercado Pago (billetera virtual).');
+        if (empty(($c->conciliacion_config ?? [])['mercadopago'])) $svc->configurar($c, true, true);
+        $r = $svc->traer($request->user()->business, $c, ! empty($d['desde']) ? \Carbon\Carbon::parse($d['desde']) : null);
+        return back()->with('success', $r['nuevos'] ? "Mercado Pago: {$r['nuevos']} movimientos nuevos del {$r['desde']} al {$r['hasta']}, {$r['conciliados']} resueltos solos." : "Mercado Pago: sin movimientos nuevos del {$r['desde']} al {$r['hasta']}.");
+    }
+
+    public function mercadopagoConfig(Request $request, \App\Services\MercadoPago\MercadoPagoMovimientosService $svc)
+    {
+        $d = $request->validate(['cuenta' => 'required|integer', 'activo' => 'required|boolean', 'automatico' => 'boolean']);
+        $svc->configurar(CuentaFondos::findOrFail($d['cuenta']), $d['activo'], $request->boolean('automatico', true));
+        return back()->with('success', $d['activo'] ? 'Listo: esta cuenta es la de Mercado Pago' . ($request->boolean('automatico', true) ? ' y los movimientos se traen solos cada madrugada.' : '.') : 'Esta cuenta ya no se trae de Mercado Pago.');
+    }
+
+    // Fase 99: reglas
+    public function reglaGuardar(Request $request, \App\Services\Contabilidad\ReglasConciliacionService $svc)
+    {
+        $d = $request->validate(['patron' => 'required|string|max:160', 'sentido' => 'nullable|in:ingreso,egreso,ambos', 'accion' => 'required|in:gasto,ignorar,recibo', 'expense_category_id' => 'nullable|integer', 'contact_id' => 'nullable|integer', 'concepto' => 'nullable|string|max:150', 'cuenta_fondos_id' => 'nullable|integer', 'aplicar' => 'nullable|integer']);
+        $svc->crear($request->user()->business, $d, $request->user()->id);
+        $n = ! empty($d['aplicar']) ? $svc->aplicar(CuentaFondos::findOrFail($d['aplicar'])) : 0;
+        return back()->with('success', 'Regla guardada.' . ($n ? " Resolvió {$n} renglones pendientes." : ''));
+    }
+
+    public function reglaBorrar(int $id)
+    {
+        \App\Models\ConciliacionRegla::findOrFail($id)->delete();
+        return back()->with('success', 'Regla borrada.');
+    }
+
+    public function reglasAplicar(Request $request, \App\Services\Contabilidad\ReglasConciliacionService $svc)
+    {
+        $n = $svc->aplicar(CuentaFondos::findOrFail($request->integer('cuenta')));
+        return back()->with('success', $n ? "Las reglas resolvieron {$n} renglones." : 'Ningún renglón pendiente coincide con una regla.');
     }
 
     // Fase 47: una transferencia del extracto se vuelve recibo del cliente y queda conciliada.
     public function recibo(Request $request, int $id, \App\Services\Comprobantes\TransferenciaClienteService $t)
     {
         abort_unless($request->user()->puede('clientes', 'crear'), 403, 'Tu rol no puede cargar cobros.');
-        $d = $request->validate(['contact_id' => 'required|integer']);
-        $cobro = $t->reciboDesdeExtracto(ExtractoItem::findOrFail($id), \App\Models\Contact::customers()->findOrFail($d['contact_id']));
-        return back()->with('success', "Recibo {$cobro->numeroFormateado()} hecho a {$cobro->contact->name} y conciliado con el banco.");
+        $d = $request->validate(['contact_id' => 'required|integer', 'recordar' => 'boolean']);
+        $it = ExtractoItem::findOrFail($id);
+        $cobro = $t->reciboDesdeExtracto($it, \App\Models\Contact::customers()->findOrFail($d['contact_id']));
+        $regla = $request->boolean('recordar') ? app(\App\Services\Contabilidad\ReglasConciliacionService::class)->recordarDesde($it, 'recibo', ['contact_id' => $cobro->contact_id], $request->user()->id) : null; // Fase 99
+        return back()->with('success', "Recibo {$cobro->numeroFormateado()} hecho a {$cobro->contact->name} y conciliado con el banco." . ($regla ? " Las próximas transferencias con «{$regla->patron}» se vuelven recibo solas." : ''));
     }
 
     public function importar(Request $request, ConciliacionService $svc)
@@ -80,18 +129,21 @@ class ConciliacionController extends Controller
         return back()->with('success', 'Se deshizo la conciliación.');
     }
 
-    public function ignorar(int $id)
+    public function ignorar(Request $request, int $id)
     {
         $it = ExtractoItem::findOrFail($id);
         $it->update(['estado' => $it->estado === 'ignorado' ? 'pendiente' : 'ignorado']);
+        if ($it->estado === 'ignorado' && $request->boolean('recordar')) { $r = app(\App\Services\Contabilidad\ReglasConciliacionService::class)->recordarDesde($it, 'ignorar', [], $request->user()->id); return back()->with('success', $r ? "Listo: «{$r->patron}» se ignora solo de ahora en más." : 'Ignorado.'); } // Fase 99
         return back();
     }
 
     public function registrar(Request $request, int $id, ConciliacionService $svc)
     {
-        $d = $request->validate(['expense_category_id' => 'nullable|exists:expense_categories,id', 'concepto' => 'nullable|string|max:150']);
-        $m = $svc->registrarDesdeExtracto(ExtractoItem::findOrFail($id), $d['expense_category_id'] ?? null, $d['concepto'] ?? null);
-        return back()->with('success', "Registrado en Fondos: {$m->concepto}.");
+        $d = $request->validate(['expense_category_id' => 'nullable|exists:expense_categories,id', 'concepto' => 'nullable|string|max:150', 'recordar' => 'boolean']);
+        $it = ExtractoItem::findOrFail($id);
+        $m = $svc->registrarDesdeExtracto($it, $d['expense_category_id'] ?? null, $d['concepto'] ?? null);
+        $regla = $request->boolean('recordar') ? app(\App\Services\Contabilidad\ReglasConciliacionService::class)->recordarDesde($it, 'gasto', ['expense_category_id' => $m->expense_category_id, 'concepto' => $d['concepto'] ?? null], $request->user()->id) : null; // Fase 99
+        return back()->with('success', "Registrado en Fondos: {$m->concepto}." . ($regla ? " De ahora en más «{$regla->patron}» se registra solo." : ''));
     }
 
     // Fase 35.3: clasificar un concepto una vez (queda para todos los extractos) y registrar de una vez un grupo de gastos.

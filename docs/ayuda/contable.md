@@ -26,6 +26,30 @@ Para la declaración de Convenio Multilateral. La tabla "IIBB que le hicieron a 
 
 Revisá el primer archivo importándolo en SIFERE WEB antes de presentar. Las retenciones de Ganancias, IVA o SUSS que te hacen no van a SIFERE.
 
+## Posición IVA (Contable → Posición IVA, fase 99)
+
+La cuenta del mes como la arma el contador: **débito fiscal** de las ventas (por alícuota) menos **crédito fiscal** de las compras, menos el **saldo técnico a favor** del mes anterior; si da a pagar, se descuenta lo de **libre disponibilidad** (saldo libre anterior más percepciones y retenciones de IVA sufridas). Abajo, lo que se paga y cuándo **vence** (del 18 al 22 del mes siguiente según la terminación del CUIT) o el saldo a favor que **pasa al mes siguiente**, técnico y libre por separado.
+
+- **Cerrar el mes** deja la posición fija y el arrastre al mes siguiente queda hecho. Un mes cerrado no se toca sin **Reabrir**.
+- **Ajuste del contador**: para lo que el sistema no sabe (crédito no computable, una diferencia con el libro), con su motivo.
+- **Copiar para el contador** arma el texto con toda la cuenta; también se baja en .txt. El botón **Posición IVA del mes** está en Libros IVA.
+- Las percepciones de IVA sufridas salen de las facturas de compra (impuesto «Percepción IVA»); las retenciones, de los cobros con medio «retención» e impuesto IVA.
+
+A Bigcito: "¿cuánto IVA pago este mes?", "¿qué saldo a favor tengo?", "pasame la posición de IVA de marzo".
+
+## Indicadores (Contable → Indicadores, fase 99)
+
+Lo que mira el contador antes de hablar con el dueño: doce meses de ventas, compras, gastos, IVA y cobrado, **margen bruto**, **resultado aproximado** (ventas − compras − gastos), gastos sobre ventas, **días de cobro** y **días de pago**, **liquidez** y capital de trabajo, IVA pagado y **presión fiscal**. Arriba, «antes de leer los números»: comprobantes sin asiento, renglones del banco sin conciliar, gastos sin categoría, comprobantes sin CAE y posiciones de IVA sin cerrar, con el link para arreglarlo.
+
+A Bigcito: "¿cómo vienen los indicadores?", "¿cuántos días tardo en cobrar?", "¿qué margen tengo?".
+
+## Conciliación automática y Mercado Pago (Contable → Conciliación, fase 99)
+
+- **Reglas**: «si el renglón del banco dice X, hacé Y»: registrar el gasto en tal categoría, ignorarlo (transferencias entre cuentas propias) o hacerle recibo a tal cliente. Se crean con un clic marcando **Recordar** cuando registrás, ignorás o hacés el recibo a mano, o desde el botón **Reglas**. Actúan solas al importar el extracto o traer Mercado Pago, y se puede **Aplicar a los pendientes** en cualquier momento. Cada regla muestra cuántas veces actuó.
+- **Mercado Pago sin extracto**: en la cuenta de billetera, marcá **«Esta es la cuenta de Mercado Pago»** (hace falta tenerlo conectado en Configuración → Mercado Pago). Desde ahí, **Traer de Mercado Pago** trae por API cada cobro aprobado (bruto, que cruza con el cobro del mostrador), su **comisión** (se registra sola como gasto de comisiones) y las **devoluciones** (quedan para mirar). Cada madrugada se traen solos. Lo que no cruza, lo resuelven las reglas o vos.
+
+A Bigcito: "traé los movimientos de Mercado Pago", "¿qué quedó sin conciliar?".
+
 ## Panel del contador
 
 **Contable → Contador** junta lo que el estudio pide cada mes: checklist, exportación de asientos a **Tango, Holistor, Bejerman** o CSV, y el alta del contador como usuario con rol de sólo lectura contable.

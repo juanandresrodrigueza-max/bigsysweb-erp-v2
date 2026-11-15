@@ -8,6 +8,7 @@ Schedule::command('suscripciones:revisar')->dailyAt('06:00');
 Schedule::command('cotizaciones:actualizar')->twiceDaily(9, 15);
 Schedule::command('abonos:emitir')->dailyAt('07:00');
 Schedule::command('previsiones:procesar')->dailyAt('07:15');
+Schedule::command('mercadopago:movimientos')->dailyAt('05:20')->withoutOverlapping(); // Fase 99: los movimientos de Mercado Pago, solos
 Schedule::command('salud:revisar')->hourly(); // salud del servidor: avisa por mail si algo está crítico
 Schedule::call(fn() => \App\Services\Monitoreo\SaludService::latir())->everyMinute()->name('salud:latido'); // previsiones recurrentes: registrar automáticas y avisar; recordatorios para facturar abonos
 Schedule::command('cobranzas:recordar')->dailyAt('09:30');

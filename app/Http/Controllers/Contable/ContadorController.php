@@ -33,6 +33,8 @@ class ContadorController extends Controller
             ],
             'checklist' => [
                 ['label' => 'Libro IVA ventas y compras', 'url' => "/contable/iva?desde={$desde}&hasta={$hasta}"],
+                ['label' => 'Posición IVA del mes (cerrar y mandar)', 'url' => '/contable/iva/posicion?mes=' . substr($desde, 0, 7)], // Fase 99
+                ['label' => 'Indicadores (margen, días de cobro, liquidez)', 'url' => '/contable/indicadores?mes=' . substr($desde, 0, 7)],
                 ['label' => 'Libro IVA Digital (zip para ARCA)', 'url' => "/contable/fiscal?desde={$desde}&hasta={$hasta}"],
                 ['label' => 'Retenciones y percepciones (SICORE / SIRCAR)', 'url' => "/contable/fiscal?desde={$desde}&hasta={$hasta}"],
                 ['label' => 'Libro diario', 'url' => "/contable/diario?desde={$desde}&hasta={$hasta}"],
