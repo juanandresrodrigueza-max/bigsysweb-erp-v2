@@ -25,7 +25,7 @@ el **micrófono y la cámara** con permisos nativos para Bigcito y las fotos, ba
    genera en Apple Developer → Keys. Después: *Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada*: ese JSON se pega en
    **Panel → Sistema → App del celular** del ERP (queda cifrado). Con eso los avisos ya salen.
 2. **Google Play Console** (25 USD una vez): crear la app, subir el AAB firmado, completar la ficha (textos abajo), política de privacidad
-   (`https://bigsys.com.ar/privacidad`), clasificación de contenido y el formulario de seguridad de datos. La firma: generar un keystore
+   (`https://erp.bigsysweb.com/privacidad`, ya publicada; `https://erp.bigsysweb.com/terminos` para los términos), clasificación de contenido y el formulario de seguridad de datos. La firma: generar un keystore
    (`keytool -genkey -v -keystore bigsys.keystore -alias bigsys -keyalg RSA -keysize 2048 -validity 10000`) y cargarlo como secretos del repo
    (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) y `GOOGLE_SERVICES_JSON` (base64).
    El workflow deja el AAB listo para subir.

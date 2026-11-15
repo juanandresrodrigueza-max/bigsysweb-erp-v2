@@ -8,7 +8,7 @@
     <div class="relative mx-auto max-w-6xl px-6 py-8 lg:py-12 min-h-screen flex flex-col">
       <header class="flex items-center justify-between gap-4">
         <Logo negativo clase="h-9 sm:h-10" />
-        <a href="https://bigsys.com.ar/bigsys-web/" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide hover:bg-white/15 transition">Conocé BigSys Web ↗</a>
+        <Link href="/conocer" class="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide hover:bg-white/15 transition">Conocé BigSys Web ↗</Link>
       </header>
 
       <div class="flex-1 grid lg:grid-cols-[1.1fr_minmax(360px,440px)] gap-10 lg:gap-16 items-center py-10 lg:py-6">

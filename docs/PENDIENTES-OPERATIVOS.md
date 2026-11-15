@@ -14,7 +14,7 @@ Orden sugerido: primero el bloque A (mañana a la mañana), después B y C en el
 - [ ] **Probar en producción «Facturar después»** con la empresa de BigSys o una de prueba: hacer una venta tildada como comprobante interno, y desde el comprobante apretar **Facturar** (fase 104). Tiene que salir con numeración fiscal y CAE (o simulado si la empresa no tiene certificado). Es la única función nueva que no se probó con datos reales.
 - [ ] **Cargar la clave de aprobación** en Panel → Sistema → Altas con aprobación (fase 106) y, si querés WhatsApp, los celulares. Después probar: registrarte con un mail de prueba en `/registro`, ver que te llega el aviso y aprobarla en Panel → Pendientes.
 - [ ] **Probar las propuestas de Bigcito** (fase 107): en Inicio → Propuestas, botón «Revisar ahora»; aprobar una de cobranza y una de precios y ver que ejecuta. Abrir «Resumen hablado» en el celular y tocar Escuchar.
-- [ ] **Actualizar producción** cuando se mergee algo nuevo: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
+- [ ] **Actualizar producción AHORA**: está en el commit `0af7130` y main va por la fase 108 (PRs #153 a #158: aprobación de altas, agentes de Bigcito, página de ventas, arreglo del link de WhatsApp). Mensaje para la sesión CRM Producción: «corré el actualizador del ERP desde main». Después, actualizar: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
 
 ## B · Plataforma BigSys (Superadmin → Sistema, una sola vez)
 
@@ -45,7 +45,7 @@ Y en el servidor (sesión «CRM Producción», archivo `.env` de `/opt/bigsysweb
 Está compilable y con la ficha redactada (`docs/MOVIL.md`). Falta lo que cuesta plata y requiere identidad:
 
 - [ ] **Firebase**: proyecto, app Android `ar.com.bigsys.erp` (`google-services.json`), app iOS mismo bundle (`GoogleService-Info.plist`), clave APNs. Cuenta de servicio → JSON → Panel → Sistema → App del celular.
-- [ ] **Google Play Console** (25 USD una vez): keystore con `keytool`, secretos del repo `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `GOOGLE_SERVICES_JSON`. El workflow deja el AAB. Ficha, política de privacidad (`https://bigsys.com.ar/privacidad`, hay que publicar esa página), formulario de seguridad de datos (respuestas en `docs/MOVIL.md`).
+- [ ] **Google Play Console** (25 USD una vez): keystore con `keytool`, secretos del repo `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `GOOGLE_SERVICES_JSON`. El workflow deja el AAB. Ficha, política de privacidad (`https://erp.bigsysweb.com/privacidad`, ya publicada), formulario de seguridad de datos (respuestas en `docs/MOVIL.md`).
 - [ ] **Apple Developer** (99 USD/año, pide DUNS a nombre de la empresa): App ID con Push, certificado de distribución, perfil. Compilar con Mac o Codemagic. Notas para la revisión en `docs/MOVIL.md`.
 - [ ] Cuando estén publicadas: pegar los links de Play y App Store en Panel → Sistema para que el ERP los muestre.
 
@@ -84,8 +84,8 @@ Lo que sigue es lo que **no** puede hacer el sistema solo. El resto (artículos,
 ## E · Lo que no es software (fase 100 del plan)
 
 - [ ] **Primer cliente facturando con ARCA** en producción (el bloque D completo con una empresa real). Es la prueba que falta.
-- [ ] **Página de ventas** en `bigsys.com.ar` (con `/privacidad`, que la app necesita) y el alta por prueba gratis de 15 días apuntando al ERP.
-- [ ] **Videos cortos**: Vender en mostrador, Facturar después (interno → fiscal), Bigcito por voz, Cerrar caja, Contador. Los textos de ayuda de `docs/ayuda` sirven de guion.
+- [x] **Página de ventas**: hecha en el ERP, `erp.bigsysweb.com/conocer` (y la raíz sin sesión): funciones, Bigcito de noche, rubros, planes con precio real y registro. Privacidad y términos ya publicados en `erp.bigsysweb.com/privacidad` y `/terminos` (sirven para las tiendas). Lo que queda tuyo: que `bigsys.com.ar/bigsys-web` apunte a `erp.bigsysweb.com/conocer` o al registro.
+- [ ] **Videos cortos**: los cinco guiones, segundo a segundo, están en `docs/VIDEOS.md`. Falta grabarlos (pantalla + celular + voz en off).
 - [ ] **App publicada** (bloque C).
 
 ## F · Lo que yo sigo haciendo (software), para no mezclarlo
