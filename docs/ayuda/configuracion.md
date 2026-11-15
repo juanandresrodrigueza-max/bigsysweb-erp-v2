@@ -101,7 +101,21 @@ Si el cliente ya usa BIG Connect, sus datos se traen directo, sin exportar plani
 3. **Probar sin guardar**: trae todo y muestra cuántos proveedores, clientes, artículos y saldos entrarían, nuevos o actualizados, y los que tienen error. No guarda nada.
 4. **Migrar de verdad**: lo mismo, guardando. Se puede repetir el día del corte: lo que ya está se actualiza, no se duplica.
 
-Qué trae: proveedores y clientes con su código de BigSys, CUIT, condición de IVA, lista, descuento, vendedor y límite de crédito; artículos con las 6 listas (netas), costo, IVA, stock y mínimo; y lo impago de cada cuenta comprobante por comprobante, con su vencimiento. La cuenta de contado no se trae porque en el ERP ya existe. También se le puede pedir a Bigcito: «probá la migración desde BIG Connect».
+### Todo lo demás, con un tilde cada paso (fase 101)
+
+Además de proveedores, clientes, artículos y saldos, la misma tarjeta trae (cada paso se puede destildar):
+
+- **Rubros y departamentos**: la jerarquía de BigSys (departamento / rubro); los ocultos no salen en la tienda.
+- **Vendedores** con sus comisiones de venta y cobranza; los clientes quedan con su vendedor.
+- **Empleados**: las cuentas tipo E pasan a legajos (nombre, CUIL, teléfono, mail, domicilio). BigSys no trae la fecha de ingreso ni el básico: quedan para completar en Sueldos.
+- **Cajas y bancos con su saldo**: cada fondo de BigSys (sin los contables ni el de cheques) se vuelve una cuenta de Plata (caja, banco, tarjeta o billetera según el nombre) y el saldo queda igual al de BigSys con un ajuste de migración. Si se repite el día del corte, sólo se ajusta la diferencia.
+- **Cheques en cartera**: los de terceros que todavía no se depositaron ni entregaron, con banco, número, vencimiento, importe y cliente.
+- **Precios por proveedor**: el último precio de compra de cada artículo con cada proveedor y el código con que lo vende ese proveedor; si el artículo no tenía proveedor habitual, queda ese.
+- **Ventas de los últimos 12 meses** por artículo y día: desde el primer día la ficha del artículo muestra lo vendido en BigSys mes a mes, y en **Qué reponer** los artículos sin mínimo tienen cantidad sugerida por lo que se vendía por mes.
+
+**3. Control de cierre**: compara los totales de BigSys con los del ERP (clientes, proveedores y artículos; saldos de clientes y proveedores; inventario valorizado; cheques en cartera; el saldo de cada caja y banco) y dice qué cierra y qué no. Cuando todo cierra, se apaga el viejo. A Bigcito: "¿cierra la migración?", "migrá todo desde BIG Connect".
+
+Qué trae el bloque básico: proveedores y clientes con su código de BigSys, CUIT, condición de IVA, lista, descuento, vendedor y límite de crédito; artículos con las 6 listas (netas), costo, IVA, stock y mínimo; y lo impago de cada cuenta comprobante por comprobante, con su vencimiento. La cuenta de contado no se trae porque en el ERP ya existe. También se le puede pedir a Bigcito: «probá la migración desde BIG Connect».
 
 ## Migrar desde BigSys (Clarion)
 
