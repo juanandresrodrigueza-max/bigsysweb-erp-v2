@@ -331,12 +331,22 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/ordenes/nueva',            [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'create'])->middleware('permiso:proveedores,crear');
         Route::post('/ordenes',                 [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'store'])->middleware('permiso:proveedores,crear');
         Route::post('/ordenes/sugerir',         [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'sugerir'])->middleware('permiso:proveedores,crear');
+        Route::post('/ordenes/config',          [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'config'])->middleware('permiso:proveedores,editar'); // Fase 97
         Route::post('/ordenes/cotizaciones/leer',    [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'cotizacionesLeer'])->middleware(['permiso:proveedores,crear', 'throttle:10,1']);
         Route::post('/ordenes/cotizaciones/pedidos', [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'cotizacionesPedidos'])->middleware('permiso:proveedores,crear');
         Route::get('/ordenes/{id}',             [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'show'])->whereNumber('id');
         Route::get('/ordenes/{id}/editar',      [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'edit'])->middleware('permiso:proveedores,editar');
         Route::get('/ordenes/{id}/imprimir',    [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'imprimir']);
         Route::post('/ordenes/{id}',            [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'store'])->middleware('permiso:proveedores,editar');
+        Route::post('/ordenes/{id}/autorizar',  [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'autorizar'])->middleware('permiso:proveedores,crear');
+        Route::post('/ordenes/{id}/rechazar',   [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'rechazar'])->middleware('permiso:proveedores,crear');
+        Route::get('/importaciones',            [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'index']);
+        Route::get('/importaciones/nueva',      [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'form'])->middleware('permiso:proveedores,crear');
+        Route::post('/importaciones',           [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'guardar'])->middleware('permiso:proveedores,crear');
+        Route::get('/importaciones/{id}',       [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'form'])->whereNumber('id');
+        Route::post('/importaciones/{id}',      [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'guardar'])->middleware('permiso:proveedores,crear')->whereNumber('id');
+        Route::post('/importaciones/{id}/nacionalizar', [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'nacionalizar'])->middleware('permiso:proveedores,crear');
+        Route::post('/importaciones/{id}/anular', [\App\Http\Controllers\Proveedores\ImportacionesController::class, 'anular'])->middleware('permiso:proveedores,anular');
         Route::post('/ordenes/{id}/enviar',     [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'enviar'])->middleware('permiso:proveedores,crear');
         Route::post('/ordenes/{id}/cancelar',   [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'cancelar'])->middleware('permiso:proveedores,anular');
         Route::get('/ordenes/{id}/recibir',     [\App\Http\Controllers\Proveedores\OrdenesCompraController::class, 'recibir'])->middleware('permiso:proveedores,crear');

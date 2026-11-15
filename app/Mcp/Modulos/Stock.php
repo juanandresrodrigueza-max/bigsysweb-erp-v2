@@ -26,6 +26,16 @@ class Stock
                     return ['articulos' => Product::where('active', true)->where(fn($w) => $w->where('name', $like, "%{$t}%")->orWhere('sku', $like, "%{$t}%")->orWhere('barcode', $t))
                         ->orderByRaw('LENGTH(name)')->limit(min(50, (int) ($a['cantidad'] ?? 10)))->get()->map(fn($p) => self::fila($p))->all()];
                 }],
+            // Fase 97: "¿cuánto puedo vender de cemento?", "¿qué artículos tengo prometidos y no me alcanza?"
+            ['nombre' => 'stock_disponible', 'titulo' => 'Stock disponible de verdad (menos lo comprometido)', 'modulo' => 'stock', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Lo que de verdad se puede vender de un artículo: stock menos lo comprometido en pedidos web sin entregar, acopios pagados sin retirar y comandas abiertas. Sin artículo, lista los que tienen más comprometido que stock.',
+                'parametros' => ['articulo' => ['type' => 'string']],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Stock\ComprometidoService::class);
+                    if (! empty($a['articulo'])) { $p = Busca::articulo($a['articulo']); if (! $p) return ['error' => "No encuentro el artículo \"{$a['articulo']}\"."]; return ['articulo' => $p->name, 'unidad' => $p->unit] + $svc->de($p) + ['url' => Busca::url("/stock/{$p->id}")]; }
+                    $f = $svc->faltantes($u->business);
+                    return ['faltantes' => $f, 'resumen' => $f ? count($f) . ' artículo(s) con más comprometido que stock: ' . implode(', ', array_map(fn($x) => "{$x['nombre']} (faltan " . abs($x['disponible']) . " {$x['unit']})", array_slice($f, 0, 5))) : 'Todo lo comprometido se cubre con el stock.', 'url' => Busca::url('/stock')];
+                }],
             ['nombre' => 'stock_articulo', 'titulo' => 'Stock de un artículo', 'modulo' => 'stock', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Stock de un artículo por depósito, sus lotes con vencimiento y en qué ubicaciones del almacén está.',
                 'parametros' => ['articulo' => ['type' => 'string', 'description' => 'Nombre, código o id.']], 'requeridos' => ['articulo'],

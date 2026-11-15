@@ -5,12 +5,20 @@
         <Link href="/proveedores/ordenes" class="text-xs text-marca-muted hover:text-carmin">← Órdenes de compra</Link>
         <h1 class="page-title flex items-center gap-3">{{ orden.numero }} <span class="badge text-sm" :class="claseEstado[orden.estado]">{{ estados[orden.estado] }}</span></h1>
         <p class="page-subtitle">{{ orden.proveedor }} · {{ orden.fecha }}<span v-if="orden.entrega"> · entrega {{ orden.entrega }}</span><span v-if="orden.atrasada" class="text-carmin font-semibold"> · atrasada</span></p>
+        <!-- Fase 97: estado de la autorización -->
+        <p v-if="orden.autorizacion === 'pendiente' && orden.estado === 'borrador'" class="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-3 py-1" data-e2e="espera-autorizacion">⏳ Espera autorización: supera los {{ moneda(autorizacion.desde, 0) }}</p>
+        <p v-else-if="orden.autorizacion === 'autorizada'" class="mt-1 inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-full px-3 py-1">✓ Autorizada por {{ orden.autorizador }} · {{ orden.autorizada_en }}<span v-if="orden.autorizacion_nota"> · {{ orden.autorizacion_nota }}</span></p>
+        <p v-else-if="orden.autorizacion === 'rechazada'" class="mt-1 inline-flex items-center gap-2 text-sm text-carmin bg-carmin-light rounded-full px-3 py-1" data-e2e="rechazada">✗ Rechazada por {{ orden.autorizador }}: {{ orden.autorizacion_nota }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <a :href="`/proveedores/ordenes/${orden.id}/imprimir`" target="_blank" class="btn-secondary"><Icono nombre="print" clase="w-4 h-4" /> Imprimir / PDF</a>
         <button @click="envioAbierto = true" class="btn-secondary">Enviar al proveedor</button>
         <Link v-if="['borrador','enviada'].includes(orden.estado) && puede('proveedores','editar')" :href="`/proveedores/ordenes/${orden.id}/editar`" class="btn-secondary">Editar</Link>
-        <button v-if="orden.estado === 'borrador' && puede('proveedores','crear')" @click="router.post(`/proveedores/ordenes/${orden.id}/enviar`)" class="btn-violeta">Marcar enviada</button>
+        <template v-if="orden.estado === 'borrador' && orden.autorizacion === 'pendiente'">
+          <button v-if="autorizacion.soy_autorizador" @click="router.post(`/proveedores/ordenes/${orden.id}/autorizar`, { nota: '' })" class="btn-primary" data-e2e="autorizar">Autorizar y enviar</button>
+          <button v-if="autorizacion.soy_autorizador" @click="rechazar" class="btn-secondary text-carmin" data-e2e="rechazar">Rechazar</button>
+        </template>
+        <button v-else-if="orden.estado === 'borrador' && puede('proveedores','crear')" @click="router.post(`/proveedores/ordenes/${orden.id}/enviar`)" class="btn-violeta" data-e2e="marcar-enviada">{{ autorizacion.requiere ? 'Pedir autorización' : 'Marcar enviada' }}</button>
         <Link v-if="['borrador','enviada','parcial'].includes(orden.estado) && puede('proveedores','crear')" :href="`/proveedores/ordenes/${orden.id}/recibir`" class="btn-primary"><Icono nombre="truck" clase="w-4 h-4" /> Recibir mercadería</Link>
         <button v-if="['borrador','enviada','parcial'].includes(orden.estado) && puede('proveedores','anular')" @click="cancelar" class="btn-ghost text-carmin">Cancelar</button>
       </div>
@@ -61,7 +69,8 @@ import Icono from '@/Components/Icono.vue'
 import { moneda, cantidad } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ orden: Object, estados: Object })
+const props = defineProps({ orden: Object, estados: Object, autorizacion: { type: Object, default: () => ({ requiere: false, soy_autorizador: false, desde: 0 }) } })
+function rechazar() { const nota = window.prompt('¿Por qué la rechazás? Se lo decimos a quien la pidió.'); if (nota) router.post(`/proveedores/ordenes/${props.orden.id}/rechazar`, { nota }) }
 const { puede } = usePermisos()
 const envioAbierto = ref(false)
 const claseEstado = { borrador: 'bg-gris-light text-marca-muted', enviada: 'bg-violeta-light text-violeta', parcial: 'bg-amber-50 text-amber-700', recibida: 'bg-emerald-50 text-emerald-700', cancelada: 'bg-carmin-light text-carmin' }
