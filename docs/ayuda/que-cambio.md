@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Facturar después y aviso al cobrar (fase 104)
+
+Desde un comprobante interno, **Facturar (pasar a fiscal)** le pide el CAE a ARCA con la fecha de hoy y conserva stock, cuenta corriente y cobros. Y cuando un interno se cobra con tarjeta, transferencia, Mercado Pago o billetera, el mostrador y el recibo avisan que conviene facturarlo. Está contado en **Facturar → Comprobante interno**.
+
 ## Comprobante interno completo (fase 103)
 
 El **comprobante interno** (la «E» de BigSys) ahora se puede dejar **por defecto por cliente** en su ficha y tildar en el **mostrador** al cobrar. Mueve stock, cuenta corriente y caja; no va a ARCA, a los libros de IVA ni a la contabilidad, y no aparece en lo del contador. En Comprobantes hay filtro **Sólo internos / Sólo fiscales** y Bigcito separa lo fiscal de lo interno al contar las ventas. Está contado en **Facturar → Comprobante interno**.

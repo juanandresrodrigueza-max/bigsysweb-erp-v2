@@ -86,6 +86,10 @@ Para la venta que querés registrar completa (stock, cuenta corriente, caja y va
 - **Qué mueve**: el stock, la cuenta corriente del cliente, los cobros con todos los medios (efectivo, transferencia, cheques, tarjeta) y las estadísticas de venta. Las notas de crédito sobre un interno también son internas.
 - **Qué no toca**: no pide CAE, no entra en los libros de IVA ni en la posición de IVA, no genera asiento contable y no aparece en el panel, el informe ni las exportaciones del contador. Los recibos que sólo cancelan internos tampoco van a la contabilidad (si un recibo mezcla internos y fiscales, va entero).
 - **Dónde se ven**: en Vender → Comprobantes, el filtro **Sólo internos / Sólo fiscales** y la etiqueta «Interno» en cada uno. Los números de la numeración fiscal no se gastan.
+- **Facturar después** (fase 104): desde el comprobante interno, el botón **Facturar (pasar a fiscal)** le pide el CAE a ARCA con la fecha de hoy y le da número fiscal. El stock, la cuenta corriente y los cobros que ya tenía quedan como están; recién ahí entra en los libros de IVA y en la contabilidad, con sus recibos. El número interno queda anotado en las notas. No se puede deshacer (después, sólo con nota de crédito). Si el interno tiene notas de crédito, o al cliente hoy le corresponde otra letra, hay que hacer la factura a mano.
+- **Aviso al cobrar con medio electrónico** (fase 104): si un interno se cobra con tarjeta, transferencia, Mercado Pago o billetera, en el mostrador y en el recibo aparece el aviso de que conviene facturarlo: ARCA recibe esos movimientos de bancos, tarjetas y billeteras.
+
+**La forma de no tener problemas con ARCA**: todo lo que se cobra por un medio electrónico, factura fiscal; el interno, sólo para lo que no es una venta a un tercero que exija factura (presupuestos, remitos, consumos internos, muestras, control). Entregar un «no válido como factura» en lugar de la factura es la causal típica de multa y clausura.
 
 A Bigcito: "hacele un comprobante interno a Pérez por 10 bolsas de cemento", "¿cuánto vendí este mes, fiscal e interno?".
 

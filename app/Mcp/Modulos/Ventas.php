@@ -151,6 +151,19 @@ class Ventas
                     $e = app(\App\Services\Envios\EnvioService::class)->enviar(Comprobante::findOrFail($d['id']), $d['canal'], $d['destino'], 'comprobante', $d['mensaje'] ?? null);
                     return ['texto' => $e->estado === 'error' ? "No se pudo enviar: {$e->error}" : ($e->link ? 'Mensaje listo: abrí el link para mandarlo por WhatsApp.' : 'Enviado.'), 'url' => $e->link];
                 }],
+            // Fase 104: un interno pasa a factura fiscal.
+            ['nombre' => 'facturar_interno', 'titulo' => 'Pasar un comprobante interno a factura fiscal', 'modulo' => 'comprobantes', 'permiso' => 'crear', 'tipo' => 'accion', 'delicada' => true,
+                'descripcion' => 'Convierte un comprobante interno emitido en factura fiscal con la fecha de hoy: pide el CAE y toma número fiscal; conserva el stock, la cuenta corriente y los cobros. No se puede deshacer (después, sólo con nota de crédito).',
+                'parametros' => ['comprobante' => ['type' => 'string', 'description' => 'Número interno (X 0001-00000012) o id']], 'requeridos' => ['comprobante'],
+                'proponer' => function (User $u, array $a) {
+                    $c = Busca::comprobante($a['comprobante']); if (! $c) return ['error' => "No encuentro el comprobante {$a['comprobante']}."];
+                    if (! $c->sin_arca || $c->estado !== 'emitido' || ! $c->esFactura()) return ['error' => "{$c->nombreTipo()} {$c->numeroFormateado()} no es una factura interna emitida."];
+                    return ['titulo' => "Pasar a factura fiscal el interno {$c->numeroFormateado()} de " . ($c->contact?->name ?? 'Consumidor final') . ' por ' . Busca::pesos($c->total), 'detalle' => 'Se pide el CAE con la fecha de hoy. Stock, cuenta corriente y cobros quedan como están.', 'datos' => ['id' => $c->id]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $c = app(ComprobanteService::class)->facturarInterno(Comprobante::findOrFail($d['id']));
+                    return ['texto' => "Listo: ahora es {$c->nombreTipo()} {$c->numeroFormateado()}" . ($c->cae ? " con CAE {$c->cae}." : ($c->afip_estado === 'pendiente' ? ' (pendiente de CAE, se reintenta solo).' : '.')), 'comprobante' => Busca::comp($c->fresh())];
+                }],
             ['nombre' => 'anular_comprobante', 'titulo' => 'Anular un comprobante', 'modulo' => 'comprobantes', 'permiso' => 'anular', 'tipo' => 'accion', 'delicada' => true,
                 'descripcion' => 'Anula un comprobante: un presupuesto, remito o borrador se anula directo; una factura emitida genera su nota de crédito.',
                 'parametros' => ['comprobante' => ['type' => 'string'], 'motivo' => ['type' => 'string']], 'requeridos' => ['comprobante', 'motivo'],

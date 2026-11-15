@@ -225,6 +225,7 @@
             <div class="flex justify-between" :class="cancela - totalImputado < -0.005 ? 'text-carmin' : ''"><span>A cuenta</span><span class="tabular-nums">{{ moneda(cancela - totalImputado) }}</span></div>
           </div>
           <p v-if="cobro.errors.imputaciones" class="text-carmin text-xs mt-2">{{ cobro.errors.imputaciones }}</p>
+          <p v-if="avisoInternoCobro" class="text-xs text-amber-700 mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2" data-e2e="aviso-interno-cobro">Cobrás con {{ avisoInternoCobro }} un comprobante interno: ARCA recibe los movimientos de tarjetas, bancos y billeteras. Conviene facturarlo (desde el comprobante, «Facturar»).</p>
         </div>
       </div>
       <template #pie>
@@ -306,6 +307,9 @@ const cobroAbierto = ref(false)
 const cobro = useForm({ fecha: hoyISO(), notas: '', descuento: 0, interes: 0, vendedor_id: null, cobrador_id: null, cotizacion: props.cotizacionUsd || null, medios: [{ medio: 'efectivo', monto: 0, referencia: '', cuenta_fondos_id: null, datos: {}, moneda: 'ARS', cotizacion: null }], imputaciones: [] })
 const cancela = computed(() => totalCobro.value + (Number(cobro.descuento) || 0) - (Number(cobro.interes) || 0))
 const imput = reactive({})
+// Fase 104: aviso cuando un recibo con medio electrónico cancela un comprobante interno.
+const ELECTRONICOS = { tarjeta: 'tarjeta', transferencia: 'transferencia', mercadopago: 'Mercado Pago', billetera: 'billetera virtual' }
+const avisoInternoCobro = computed(() => { const m = cobro.medios.find(x => Number(x.monto) > 0 && ELECTRONICOS[x.medio]); if (!m) return null; return props.pendientes.some(p => p.interno && Number(imput[p.id]) > 0) ? ELECTRONICOS[m.medio] : null })
 const totalCobro = computed(() => cobro.medios.reduce((a, m) => a + (Number(m.monto) || 0) * (m.moneda === 'USD' ? (Number(m.cotizacion) || 0) : 1), 0))
 const totalImputado = computed(() => Object.values(imput).reduce((a, v) => a + (Number(v) || 0), 0))
 function autoImputar() {

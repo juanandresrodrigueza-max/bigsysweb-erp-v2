@@ -120,6 +120,7 @@
         <input v-model="receptor.documento" class="input !py-1.5 text-sm" placeholder="DNI del cliente (opcional)" inputmode="numeric" /><input v-model="receptor.nombre" class="input !py-1.5 text-sm" placeholder="Nombre (opcional)" />
       </div>
       <label class="flex items-center gap-2 text-sm mt-3" title="Numeración propia, sin CAE. Mueve stock, cuenta corriente y caja; no se informa a ARCA."><input v-model="interno" type="checkbox" class="accent-carmin" data-e2e="pos-interno" /> Comprobante interno (no se informa a ARCA)</label>
+      <p v-if="avisoInterno" class="text-xs text-amber-700 mt-1 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2" data-e2e="aviso-interno">Cobrás con {{ avisoInterno }}: ARCA recibe los movimientos de tarjetas, bancos y billeteras. Conviene facturarlo (destildá «Comprobante interno»).</p>
       <label v-if="pagado < aCobrar + recargoTotal - 0.005 && contactId !== consumidorFinalId" class="flex items-center gap-2 text-sm mt-3"><input v-model="aCuenta" type="checkbox" class="accent-carmin" /> Lo que falta queda en cuenta corriente del cliente</label>
       <p v-if="error" class="text-carmin text-xs mt-2">{{ error }}</p>
       <template #pie>
@@ -178,6 +179,8 @@ const cliente = computed(() => props.clientes.find(c => c.id === contactId.value
 const letra = computed(() => props.empresaLetra === 'B' && cliente.value?.cuit && ['Responsable Inscripto', 'Monotributista', 'Monotributista Social'].includes(cliente.value?.condicion_iva) ? 'A' : props.empresaLetra)
 // Fase 103: comprobante interno (numeración propia, sin ARCA). Por defecto, lo que diga la ficha del cliente.
 const interno = ref(false)
+const ELECTRONICOS = { tarjeta: 'tarjeta', transferencia: 'transferencia', mercadopago: 'Mercado Pago', billetera: 'billetera virtual' }
+const avisoInterno = computed(() => { if (!interno.value) return null; const m = medios.value.find(x => Number(x.monto) > 0 && ELECTRONICOS[x.medio]); return m ? ELECTRONICOS[m.medio] : null })
 watch(() => contactId.value, () => { interno.value = !!cliente.value?.comprobante_interno })
 // Factura A (cliente RI): se muestra neto + IVA aparte; B/C: precio final.
 const precioDe = p => { const f = p.prices?.[cliente.value?.lista_precios ?? 1] ?? p.price; return letra.value === 'A' && props.preciosConIva ? Math.round(f / (1 + p.iva / 100) * 100) / 100 : f }
