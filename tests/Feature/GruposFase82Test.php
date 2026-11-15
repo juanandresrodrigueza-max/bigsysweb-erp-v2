@@ -44,7 +44,7 @@ class GruposFase82Test extends ErpTestCase
         $keys = collect($this->props($u, '/dashboard')['nav'])->flatMap(fn($g) => array_column($g['items'], 'key'))->all();
         $this->assertContains('sueldos', $keys); $this->assertNotContains('contable', $keys);
         $s = $this->props($u, '/sueldos')['subnav'];
-        $this->assertSame('sueldos', $s['key']); $this->assertSame(['liquidaciones', 'recibos'], array_column($s['items'], 'key'));
+        $this->assertSame('sueldos', $s['key']); $this->assertSame(['liquidaciones', 'recibos', 'personal'], array_column($s['items'], 'key'));
     }
 
     public function test_ctrl_k_encuentra_las_secciones_porque_viajan_con_el_menu(): void

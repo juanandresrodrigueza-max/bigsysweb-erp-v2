@@ -69,6 +69,67 @@ class Personal
                     $ot = app(OrdenesService::class)->crear(array_filter($d, fn($v) => $v !== null));
                     return ['texto' => "Orden {$ot->numeroFormateado()} creada.", 'orden_id' => $ot->id, 'url' => Busca::url("/servicios/{$ot->id}")];
                 }],
+            // Fase 98: ausencias, vacaciones (LCT), feriados y el Libro de Sueldos Digital.
+            ['nombre' => 'vacaciones_empleado', 'titulo' => 'Vacaciones que le quedan a un empleado', 'modulo' => 'sueldos', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Días de vacaciones que le corresponden por antigüedad (LCT), los que ya tomó y el saldo. Sin empleado, el tablero de todos.',
+                'parametros' => ['empleado' => ['type' => 'string', 'description' => 'Nombre o legajo'], 'anio' => ['type' => 'integer']],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Personal\AusenciasService::class); $anio = (int) ($a['anio'] ?? today()->year);
+                    if (! empty($a['empleado'])) { $e = self::empleado($a['empleado']); if (! $e) return ['error' => "No encuentro al empleado {$a['empleado']}."]; return ['empleado' => $e->nombre, 'legajo' => $e->legajo, 'ingreso' => $e->fecha_ingreso->format('d/m/Y')] + $svc->saldoVacaciones($e, $anio) + ['url' => Busca::url('/sueldos/personal?anio=' . $anio)]; }
+                    return ['anio' => $anio, 'empleados' => $svc->tableroVacaciones($u->business, $anio), 'url' => Busca::url('/sueldos/personal?anio=' . $anio)];
+                }],
+            ['nombre' => 'ausencias', 'titulo' => 'Quién falta hoy, licencias del mes y próximas vacaciones', 'modulo' => 'sueldos', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Quién está ausente hoy (vacaciones, enfermedad, licencia), las ausencias de un mes y las vacaciones que arrancan en los próximos 30 días. También las pendientes de aprobar.',
+                'parametros' => ['mes' => ['type' => 'string', 'description' => 'YYYY-MM; sin mes, el actual']],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Personal\AusenciasService::class); $mes = preg_match('/^\d{4}-\d{2}$/', (string) ($a['mes'] ?? '')) ? $a['mes'] : today()->format('Y-m');
+                    return ['hoy' => $svc->hoy($u->business), 'mes' => $mes, 'del_mes' => $svc->delMes($u->business, $mes), 'proximas_vacaciones' => $svc->proximasVacaciones($u->business, 30),
+                        'pendientes' => \App\Models\Ausencia::with('empleado:id,nombre,legajo')->where('estado', 'pendiente')->orderBy('desde')->get()->map(fn($x) => $svc->arr($x))->all(), 'url' => Busca::url('/sueldos/personal?mes=' . $mes)];
+                }],
+            ['nombre' => 'cargar_ausencia', 'titulo' => 'Cargar vacaciones, licencia o falta', 'modulo' => 'sueldos', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Carga una ausencia de un empleado: vacaciones, enfermedad, examen, matrimonio, nacimiento, fallecimiento, sin goce, falta injustificada, suspensión u otra. Cuenta los días sola y, al liquidar, ya aparece en las novedades del mes.',
+                'parametros' => ['empleado' => ['type' => 'string'], 'tipo' => ['type' => 'string', 'enum' => array_keys(\App\Models\Ausencia::TIPOS)], 'desde' => ['type' => 'string', 'description' => 'YYYY-MM-DD'], 'hasta' => ['type' => 'string', 'description' => 'YYYY-MM-DD; si falta, el mismo día'], 'notas' => ['type' => 'string'], 'certificado' => ['type' => 'boolean']],
+                'requeridos' => ['empleado', 'tipo', 'desde'],
+                'proponer' => function (User $u, array $a) {
+                    $e = self::empleado($a['empleado']); if (! $e) return ['error' => "No encuentro al empleado {$a['empleado']}."];
+                    if (! isset(\App\Models\Ausencia::TIPOS[$a['tipo']])) return ['error' => 'Tipo desconocido. Puede ser: ' . implode(', ', array_keys(\App\Models\Ausencia::TIPOS)) . '.'];
+                    try { $desde = \Carbon\Carbon::parse($a['desde']); $hasta = \Carbon\Carbon::parse($a['hasta'] ?? $a['desde']); } catch (\Throwable) { return ['error' => 'Las fechas van como YYYY-MM-DD.']; }
+                    if ($hasta->lt($desde)) return ['error' => 'La fecha "hasta" es anterior a "desde".'];
+                    $svc = app(\App\Services\Personal\AusenciasService::class); $dias = $svc->contarDias($u->business, $a['tipo'], $desde, $hasta);
+                    $det = "{$dias} días, del {$desde->format('d/m/Y')} al {$hasta->format('d/m/Y')}.";
+                    if ($a['tipo'] === 'vacaciones') { $s = $svc->saldoVacaciones($e, $desde->month <= 4 ? $desde->year - 1 : $desde->year); $det .= " Le quedan {$s['saldo']} de {$s['derecho']} del {$s['anio']}" . ($s['saldo'] - $dias < 0 ? ' (se pasa ' . ($dias - $s['saldo']) . ')' : '') . '.'; }
+                    return ['titulo' => \App\Models\Ausencia::TIPOS[$a['tipo']]['label'] . " de {$e->nombre}", 'detalle' => $det . ($a['notas'] ?? '' ? " {$a['notas']}" : ''), 'datos' => ['empleado_id' => $e->id, 'tipo' => $a['tipo'], 'desde' => $desde->toDateString(), 'hasta' => $hasta->toDateString(), 'notas' => $a['notas'] ?? null, 'certificado' => (bool) ($a['certificado'] ?? false)]];
+                },
+                'confirmar' => function (User $u, array $d) {
+                    $x = app(\App\Services\Personal\AusenciasService::class)->guardar($u->business, $u, $d);
+                    return ['texto' => "{$x->tipoLabel()} de {$x->empleado->nombre} cargada: {$x->dias} días.", 'ausencia_id' => $x->id, 'url' => Busca::url('/sueldos/personal?mes=' . $x->desde->format('Y-m'))];
+                }],
+            ['nombre' => 'feriados', 'titulo' => 'Próximos feriados y los del año', 'modulo' => 'sueldos', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Los próximos feriados (nacionales calculados más los propios de la empresa) y, con año, el calendario completo. También cuántos feriados tiene un mes para el recibo.',
+                'parametros' => ['anio' => ['type' => 'integer'], 'mes' => ['type' => 'string', 'description' => 'YYYY-MM']],
+                'ejecutar' => function (User $u, array $a) {
+                    $f = app(\App\Services\Personal\FeriadosService::class); $r = ['proximos' => $f->proximos($u->business, 5)];
+                    if (! empty($a['anio'])) $r['anio'] = collect($f->listado($u->business, (int) $a['anio']))->where('quitado', false)->values()->all();
+                    if (! empty($a['mes']) && preg_match('/^\d{4}-\d{2}$/', $a['mes'])) $r['feriados_del_mes'] = $f->enMes($u->business, $a['mes']);
+                    return $r + ['url' => Busca::url('/sueldos/personal')];
+                }],
+            ['nombre' => 'libro_sueldos_digital', 'titulo' => 'Libro de Sueldos Digital de un período', 'modulo' => 'sueldos', 'permiso' => 'exportar', 'tipo' => 'consulta',
+                'descripcion' => 'Resumen y link de descarga del archivo del Libro de Sueldos Digital (ARCA) de una liquidación: empleados, conceptos, remuneración y qué falta (CUIL).',
+                'parametros' => ['periodo' => ['type' => 'string', 'description' => 'YYYY-MM; sin período, la última'], 'tipo' => ['type' => 'string', 'enum' => ['mensual', 'sac', 'final']]],
+                'ejecutar' => function (User $u, array $a) {
+                    $liq = Liquidacion::when(! empty($a['periodo']), fn($q) => $q->where('periodo', $a['periodo']))->when(! empty($a['tipo']), fn($q) => $q->where('tipo', $a['tipo']))->orderByDesc('periodo')->orderByDesc('id')->first();
+                    if (! $liq) return ['error' => 'No hay liquidación para ese período.'];
+                    return app(\App\Services\Sueldos\LibroSueldosDigitalService::class)->resumen($liq) + ['estado' => $liq->estado, 'descarga' => Busca::url("/sueldos/{$liq->id}/lsd"), 'aviso' => $liq->estado === 'borrador' ? 'La liquidación está en borrador: confirmala antes de presentar el libro.' : null];
+                }],
         ];
+    }
+
+    private static function empleado($texto): ?\App\Models\Empleado
+    {
+        $t = trim((string) $texto); if ($t === '') return null;
+        $like = \App\Support\Sql::like();
+        return (ctype_digit($t) ? \App\Models\Empleado::where('legajo', (int) $t)->first() : null)
+            ?? \App\Models\Empleado::where('activo', true)->where('nombre', $like, "%{$t}%")->first()
+            ?? \App\Models\Empleado::where('activo', true)->where(function ($w) use ($t, $like) { foreach (array_filter(explode(' ', $t), fn($p) => mb_strlen($p) > 2) as $p) $w->where('nombre', $like, "%{$p}%"); })->first();
     }
 }
