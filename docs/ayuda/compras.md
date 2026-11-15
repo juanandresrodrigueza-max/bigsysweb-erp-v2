@@ -61,6 +61,10 @@ Los cheques propios quedan en Plata → Cheques y valores hasta que se debitan; 
 
 La ficha del proveedor muestra saldo, facturas pendientes por vencimiento y el historial. **Comprar → Proveedores (por pagar)** ordena lo que vence esta semana y este mes para armar el flujo de fondos.
 
+## Reposición propuesta de noche (fase 107)
+
+Lo mismo que **Comprar → Qué reponer**, pero hecho solo: cada madrugada Bigcito arma una orden sugerida por proveedor con lo que está bajo mínimo o sin stock y la plata que hace falta, y la deja en **Inicio → Propuestas**. Aprobar la crea en borrador en Órdenes de compra; la revisás y la mandás. Si ya tenés una orden abierta con ese proveedor, no propone otra.
+
 ## Precios de proveedores
 
 **Stock → Importar precios**: subí la lista del proveedor (Excel, PDF); el sistema cruza cada fila con tu catálogo (con IA si está activa), muestra qué sube y cuánto, y aplicás lo que quieras.

@@ -16,7 +16,7 @@ class Business extends Model
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
         'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
-        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'aprobacion', 'aprobacion_pedida_por', 'aprobada_en', 'aprobada_por', 'aprobacion_avisos', 'onboarding', 'induccion', 'modulos_ocultos', 'gastronomia_config', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'modulos_contratados', 'bigconnect', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'conciliacion', 'servicios_config', 'estudio', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
+        'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'aprobacion', 'aprobacion_pedida_por', 'aprobada_en', 'aprobada_por', 'aprobacion_avisos', 'agentes', 'onboarding', 'induccion', 'modulos_ocultos', 'gastronomia_config', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'modulos_contratados', 'bigconnect', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'conciliacion', 'servicios_config', 'estudio', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
     ];
 
     public const VERTICALES = ['corralon' => 'Corralón / materiales', 'gastronomia' => 'Gastronomía', 'retail' => 'Comercio / indumentaria', 'minimarket' => 'Minimarket / almacén', 'servicios' => 'Servicios', 'industria' => 'Industria / producción', 'hoteleria' => 'Hotelería / alojamiento', 'otro' => 'Otro'];
@@ -36,6 +36,7 @@ class Business extends Model
         'ventas_config'        => 'array',
         'compras_config'       => 'array',
         'avisos'               => 'array',
+        'agentes'              => 'array', // Fase 107
         'fidelizacion'         => 'array',
         'onboarding_completado_en' => 'datetime',
         'backup_auto'          => 'boolean',

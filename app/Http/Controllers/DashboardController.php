@@ -91,7 +91,9 @@ class DashboardController extends Controller
             ];
         }
 
-        return Inertia::render('Dashboard', compact('kpis', 'serie', 'ultimas', 'destacadas', 'periodo', 'operacion') + ['panel' => $this->panelRol($user, $desde, $hasta)]);
+        // Fase 107: lo que Bigcito dejó de noche, para quien puede aprobarlo.
+        $propuestas = ($user->esDueno() || $user->puede('configuracion', 'editar')) ? \App\Models\Propuesta::pendientes()->count() : 0;
+        return Inertia::render('Dashboard', compact('kpis', 'serie', 'ultimas', 'destacadas', 'periodo', 'operacion', 'propuestas') + ['panel' => $this->panelRol($user, $desde, $hasta)]);
     }
 
     // Panel por rol: lo que esa persona tiene que mirar hoy (vendedor, cajero, depósito, contador). El dueño/admin ve todo lo demás.

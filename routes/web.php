@@ -195,6 +195,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/avisos-celular/desuscribir',   [\App\Http\Controllers\AvisosCelularController::class, 'desuscribir']);
     Route::post('/avisos-celular/probar',        [\App\Http\Controllers\AvisosCelularController::class, 'probar'])->middleware('throttle:6,1');
     Route::post('/avisos-celular/manana',        [\App\Http\Controllers\AvisosCelularController::class, 'manana']);
+    // Fase 107: lo que Bigcito dejó de noche, y el resumen hablado.
+    Route::get('/propuestas',                    [\App\Http\Controllers\PropuestasController::class, 'index'])->middleware('permiso:dashboard');
+    Route::post('/propuestas/correr',            [\App\Http\Controllers\PropuestasController::class, 'correr'])->middleware(['permiso:configuracion,editar', 'throttle:6,1']);
+    Route::post('/propuestas/configurar',        [\App\Http\Controllers\PropuestasController::class, 'configurar']);
+    Route::post('/propuestas/{id}/resolver',     [\App\Http\Controllers\PropuestasController::class, 'resolver'])->middleware('permiso:configuracion,editar')->whereNumber('id');
+    Route::get('/resumen-hablado',               [\App\Http\Controllers\PropuestasController::class, 'resumenHablado'])->middleware('permiso:dashboard');
     Route::get('/novedades',                     [\App\Http\Controllers\AvisosCelularController::class, 'novedades']);
     Route::post('/novedades/{id}',               [\App\Http\Controllers\AvisosCelularController::class, 'marcar'])->whereNumber('id');
     Route::get('/mejoras',                       [\App\Http\Controllers\AvisosCelularController::class, 'mejoras']);

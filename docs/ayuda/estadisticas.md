@@ -71,6 +71,8 @@ La pantalla del dueño: ventas de hoy contra ayer, cobrado, caja y bancos, por c
 - **Hallazgos de la semana:** lo que no sabés y te cuesta plata, con el número y qué hacer: listas de precios al revés (una mayorista más cara que la lista 1), clientes que compraban seguido y no compran hace más de 60 días (con teléfono), deuda vencida hace más de 60 días, cajas sin cerrar hace más de un día y artículos bajo su margen mínimo. Cada tarjeta tiene «Ver cuáles» y el link a donde se arregla.
 - **Control de usuarios:** por usuario, en los últimos 7, 30 o 90 días: qué anuló, qué comprobantes modificó después de emitidos, qué cargó a deshora (antes de las 7, después de las 22 o un domingo) y qué cargó con fecha atrasada, con el detalle de cada caso.
 
+- **Control interno de Bigcito (fase 107):** además del control de usuarios, cada madrugada compara a cada usuario con el resto del equipo (anulaciones, descuentos, cajas con diferencia, ventas bajo lista, cargas a deshora) y, si alguien se sale de lo normal, lo deja en Inicio → Propuestas con la evidencia y una alerta crítica al celular.
+
 ## Unidades por producto, lo que salió y quién ve qué (Fase 44)
 
 - **Ventas → Matriz ABC**: muestra todos los artículos vendidos en el período. Podés filtrar por rubro, ordenar (más o menos vendidos, más facturado, por nombre), buscar sin preocuparte por las tildes y bajar a Excel lo que estás viendo, sea todas las clases o solo la A, B o C.

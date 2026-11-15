@@ -11,6 +11,13 @@
       </div>
     </div>
 
+    <!-- Fase 107: lo que Bigcito dejó de noche -->
+    <Link v-if="propuestas" href="/propuestas" class="flex items-center gap-3 mb-6 px-4 py-3 rounded-2xl bg-lavanda-light border border-violeta/20 text-violeta hover:bg-violeta/10 transition" data-e2e="banner-propuestas">
+      <img src="/img/bigcito-cara.webp" alt="" class="w-9 h-9 rounded-full object-cover shrink-0" />
+      <span class="flex-1 text-sm"><b>Bigcito te dejó {{ propuestas }} propuesta{{ propuestas > 1 ? 's' : '' }}</b> para aprobar: cobranzas, reposición, precios o el cierre del mes.</span>
+      <span class="text-xs font-bold whitespace-nowrap">Ver y aprobar →</span>
+    </Link>
+
     <!-- Panel por rol: lo que esa persona tiene que mirar hoy -->
     <div v-if="panel" class="card mb-6 border-violeta/30">
       <template v-if="panel.tipo === 'vendedor'">
@@ -170,7 +177,7 @@ import Icono from '@/Components/Icono.vue'
 import { usePermisos } from '@/util/permisos'
 import { estadoCobro, cantidad } from '@/util/formato'
 
-const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String, operacion: Object, panel: Object })
+const props = defineProps({ kpis: Array, serie: Array, ultimas: Array, destacadas: Array, periodo: String, operacion: Object, panel: Object, propuestas: Number })
 const page = usePage()
 const { puede } = usePermisos()
 const modulos = computed(() => new Set((page.props.nav ?? []).flatMap(g => g.items.map(i => i.modulo))))

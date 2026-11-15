@@ -56,6 +56,10 @@ A Bigcito: "traé los movimientos de Mercado Pago", "¿qué quedó sin conciliar
 
 Si el contador ya usa BigSysWeb con otro cliente, se le da acceso con el **mismo email**: le aparece un selector para cambiar de empresa y una pantalla **Mis empresas** con el IVA del mes, comprobantes sin asiento y pendientes de cada una.
 
+### Cierre del mes propuesto (fase 107)
+
+Los primeros 10 días del mes, Bigcito revisa el mes anterior antes de que entre el estudio: comprobantes sin asiento (propone sincronizar), gastos sin categoría (propone la que usaste antes para el mismo concepto), cajas con diferencia y lo que el informe marca para revisar. Queda en **Inicio → Propuestas**; el contador o el dueño aceptan de a un toque. A pedido, **Revisar ahora** en esa pantalla.
+
 ## Cierre de ejercicio
 
 **Contable → Ejercicio**: ajuste por inflación con el índice IPC (se actualiza desde INDEC), asiento de cierre y apertura del ejercicio siguiente. El mes de cierre se configura en Impuestos.

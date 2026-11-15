@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Bigcito trabaja de noche (fase 107)
+
+Cinco agentes dejan propuestas cada madrugada en **Inicio → Propuestas**: el cobrador (a quién escribirle, con el mensaje listo), la reposición (órdenes por proveedor), los precios (cuando sube el costo), el cierre del mes (asientos, categorías, cajas) y el control interno. Nada se ejecuta hasta que aprobás. El parte de la mañana ahora se abre en **Resumen hablado**, que te lo lee en voz alta. En la ficha del cliente, con 11 dígitos de CUIT el padrón de ARCA se consulta solo y dice qué letra de factura le corresponde.
+
 ## Facturar después y aviso al cobrar (fase 104)
 
 Desde un comprobante interno, **Facturar (pasar a fiscal)** le pide el CAE a ARCA con la fecha de hoy y conserva stock, cuenta corriente y cobros. Y cuando un interno se cobra con tarjeta, transferencia, Mercado Pago o billetera, el mostrador y el recibo avisan que conviene facturarlo. Está contado en **Facturar → Comprobante interno**.

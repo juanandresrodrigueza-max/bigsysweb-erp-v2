@@ -117,6 +117,10 @@ Podés cargar la compra con **IA** desde una foto o PDF de la factura: la lee y 
 - **Precios en dólares**: los artículos pueden tener costo en USD; se pesifican con la cotización del día.
 - **Lista por cliente**: cada cliente tiene su lista y su descuento; la factura los aplica sola.
 
+### Precios con criterio (fase 107)
+
+Cuando le cambiás el costo a un artículo (a mano, desde una compra o con la planilla), al otro día Bigcito te propone el precio nuevo respetando el margen que corresponde: el objetivo del artículo, si no el que tenía antes de la suba, si no el mínimo de Rentabilidad; redondeado a 10, 50 o 100 según el precio. Aprobás en **Inicio → Propuestas** y cambia la lista 1. Si el artículo tiene la cadena de márgenes cargada, no hace falta: se recalcula solo.
+
 ## Errores comunes
 
 - **Stock negativo**: el sistema deja vender sin stock (configurable), pero lo marca en rojo. Un inventario lo corrige.
