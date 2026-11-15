@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Comprobante interno completo (fase 103)
+
+El **comprobante interno** (la «E» de BigSys) ahora se puede dejar **por defecto por cliente** en su ficha y tildar en el **mostrador** al cobrar. Mueve stock, cuenta corriente y caja; no va a ARCA, a los libros de IVA ni a la contabilidad, y no aparece en lo del contador. En Comprobantes hay filtro **Sólo internos / Sólo fiscales** y Bigcito separa lo fiscal de lo interno al contar las ventas. Está contado en **Facturar → Comprobante interno**.
+
 ## La letra de la factura como la pide ARCA (fase 102)
 
 El responsable inscripto le factura **A** también a los **monotributistas** (RG 5003, con la leyenda de la ley 27.618 al pie); la **B** queda para exentos, consumidores finales, no categorizados e IVA no alcanzado; el monotributista o exento emite **C**; al exterior, **E**. Antes de pedir el CAE el sistema frena lo que ARCA rechazaría: la A sin CUIT y el consumidor final sin DNI por encima de $ 10.000.000 (RG 5700). En la ficha del cliente hay más condiciones de IVA (monotributista social, no categorizado, IVA no alcanzado). Está contado en **Facturar → Qué letra lleva cada factura**.

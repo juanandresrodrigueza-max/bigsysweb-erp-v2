@@ -152,7 +152,7 @@ class VenderController extends Controller
     public function vender(Request $request)
     {
         $d = $request->validate([
-            'modo' => 'nullable|in:calle,mostrador,caja', 'tipo' => 'nullable|in:PRE,FX,REM', 'contact_id' => 'nullable|exists:contacts,id', 'notas' => 'nullable|string|max:300', 'a_cuenta' => 'boolean', 'precios_con_iva' => 'boolean', 'forzar' => 'boolean',
+            'modo' => 'nullable|in:calle,mostrador,caja', 'tipo' => 'nullable|in:PRE,FX,REM', 'contact_id' => 'nullable|exists:contacts,id', 'notas' => 'nullable|string|max:300', 'a_cuenta' => 'boolean', 'interno' => 'nullable|boolean', 'precios_con_iva' => 'boolean', 'forzar' => 'boolean',
             'items' => 'required|array|min:1', 'items.*.product_id' => 'nullable|exists:products,id', 'items.*.serie' => 'nullable|string|max:2000', 'items.*.descripcion' => 'nullable|string|max:150', 'items.*.cantidad' => 'required|numeric|min:0.001', 'items.*.precio_unit' => 'required|numeric|min:0', 'items.*.descuento' => 'nullable|numeric|min:0|max:100', 'items.*.autorizado' => 'nullable|string|max:80',
             'medios' => 'nullable|array', 'medios.*.medio' => 'required|in:' . implode(',', array_keys(Cobro::MEDIOS)), 'medios.*.monto' => 'required|numeric|min:0', 'medios.*.cuenta_fondos_id' => 'nullable|integer', 'medios.*.referencia' => 'nullable|string|max:120', 'medios.*.datos' => 'nullable|array', 'medios.*.datos.tarjeta' => 'nullable|string|max:60', 'medios.*.datos.cuotas' => 'nullable|integer|min:1|max:60',
             'lat' => 'nullable|numeric', 'lng' => 'nullable|numeric', 'offline_id' => 'nullable|string|max:64', 'fecha_offline' => 'nullable|date',

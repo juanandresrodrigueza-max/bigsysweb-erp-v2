@@ -43,6 +43,7 @@ En **Hoy** el vendedor ve lo cobrado, lo vendido y **Cerrar el turno y rendir**:
 Escaneá o buscá el artículo (F2), ajustá cantidades, **Cobrar** (F9). Elegís el medio (efectivo, tarjeta, transferencia, Mercado Pago) y sale la factura y el ticket. Con efectivo, los botones de billetes calculan el vuelto.
 
 - **Cliente**: por defecto Consumidor Final. Si elegís un responsable inscripto, sale Factura A con IVA discriminado.
+- **Comprobante interno** (fase 103): al cobrar, un tilde para que la venta salga con numeración propia y sin ARCA; si el cliente lo tiene por defecto en su ficha, viene tildado. Mueve stock, cuenta corriente y caja igual.
 - **Pago mixto**: parte efectivo y parte tarjeta.
 - **Queda a cuenta**: si falta cobrar y el cliente tiene cuenta corriente.
 

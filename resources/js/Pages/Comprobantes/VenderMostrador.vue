@@ -119,6 +119,7 @@
       <div v-if="contactId === consumidorFinalId" class="grid grid-cols-2 gap-2 mt-3" data-e2e="dni">
         <input v-model="receptor.documento" class="input !py-1.5 text-sm" placeholder="DNI del cliente (opcional)" inputmode="numeric" /><input v-model="receptor.nombre" class="input !py-1.5 text-sm" placeholder="Nombre (opcional)" />
       </div>
+      <label class="flex items-center gap-2 text-sm mt-3" title="Numeración propia, sin CAE. Mueve stock, cuenta corriente y caja; no se informa a ARCA."><input v-model="interno" type="checkbox" class="accent-carmin" data-e2e="pos-interno" /> Comprobante interno (no se informa a ARCA)</label>
       <label v-if="pagado < aCobrar + recargoTotal - 0.005 && contactId !== consumidorFinalId" class="flex items-center gap-2 text-sm mt-3"><input v-model="aCuenta" type="checkbox" class="accent-carmin" /> Lo que falta queda en cuenta corriente del cliente</label>
       <p v-if="error" class="text-carmin text-xs mt-2">{{ error }}</p>
       <template #pie>
@@ -174,7 +175,10 @@ const mediosLabels = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 
 const q = ref(''), rubroSel = ref(props.frecuentes.length && !props.productos.some(p => p.favorito) ? 'frec' : null), buscador = ref(null)
 const ticket = ref([]), contactId = ref(props.consumidorFinalId)
 const cliente = computed(() => props.clientes.find(c => c.id === contactId.value))
-const letra = computed(() => cliente.value?.condicion_iva === 'Responsable Inscripto' && props.empresaLetra === 'B' ? 'A' : props.empresaLetra)
+const letra = computed(() => props.empresaLetra === 'B' && cliente.value?.cuit && ['Responsable Inscripto', 'Monotributista', 'Monotributista Social'].includes(cliente.value?.condicion_iva) ? 'A' : props.empresaLetra)
+// Fase 103: comprobante interno (numeración propia, sin ARCA). Por defecto, lo que diga la ficha del cliente.
+const interno = ref(false)
+watch(() => contactId.value, () => { interno.value = !!cliente.value?.comprobante_interno })
 // Factura A (cliente RI): se muestra neto + IVA aparte; B/C: precio final.
 const precioDe = p => { const f = p.prices?.[cliente.value?.lista_precios ?? 1] ?? p.price; return letra.value === 'A' && props.preciosConIva ? Math.round(f / (1 + p.iva / 100) * 100) / 100 : f }
 const norm = s => (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -297,7 +301,7 @@ async function sincronizar() {
 function cobrar() {
   if (enviando.value) return
   enviando.value = true; error.value = null
-  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' || m.medio === 'cheque' ? m.datos : null, cuenta_fondos_id: m.cuenta_fondos_id ?? null })), receptor: contactId.value === props.consumidorFinalId && (receptor.documento || receptor.nombre) ? { documento: receptor.documento || null, nombre: receptor.nombre || null } : null }
+  const datos = { modo: props.modo, contact_id: contactId.value, a_cuenta: aCuenta.value, interno: interno.value, precios_con_iva: props.preciosConIva && letra.value !== 'A', items: ticket.value, medios: medios.value.filter(m => m.monto > 0).map(m => ({ medio: m.medio, monto: m.monto, referencia: m.referencia ?? null, datos: m.medio === 'tarjeta' || m.medio === 'cheque' ? m.datos : null, cuenta_fondos_id: m.cuenta_fondos_id ?? null })), receptor: contactId.value === props.consumidorFinalId && (receptor.documento || receptor.nombre) ? { documento: receptor.documento || null, nombre: receptor.nombre || null } : null }
   if (!navigator.onLine) {
     cola.value.push({ ...datos, offline_id: 'off-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), fecha_offline: new Date().toISOString() }); guardarCola()
     ultimaVenta.value = { numero: 'SIN CONEXIÓN', total: totalFinal.value, vuelto: Math.max(0, pagado.value - aCobrar.value), offline: true }

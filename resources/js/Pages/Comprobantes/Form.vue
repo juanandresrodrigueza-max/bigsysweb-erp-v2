@@ -328,7 +328,7 @@ function alElegirProducto(it, o) {
   const k = condPara(o, it.cantidad); it.precio_unit = k.precio; it.descuento = k.descuento; it._cantPrev = it.cantidad
 }
 const puntos = ref(null)
-watch(() => form.contact_id, async id => { puntos.value = null; form.canje_puntos = 0; if (!id) return; try { const r = await fetch(`/clientes/${id}/puntos`, { headers: { Accept: 'application/json' } }); if (r.ok) puntos.value = await r.json() } catch (e) {} }, { immediate: true })
+watch(() => form.contact_id, async id => { puntos.value = null; form.canje_puntos = 0; if (!id) return; if (!props.comprobante && esFiscal.value && !form.origen_id) { const cl = clientesCat.value.find(c => c.id === id); if (cl && cl.comprobante_interno !== undefined) form.sin_arca = !!cl.comprobante_interno } /* Fase 103 */ try { const r = await fetch(`/clientes/${id}/puntos`, { headers: { Accept: 'application/json' } }); if (r.ok) puntos.value = await r.json() } catch (e) {} }, { immediate: true })
 function usarPuntos() {
   if (!puntos.value) return
   const neto = form.items.reduce((a, it) => a + netoItem(it) * (1 + (Number(it.alicuota_iva) || 0) / 100), 0)

@@ -122,7 +122,7 @@ class ClientesController extends Controller
             'address' => 'nullable|string|max:255', 'city' => 'nullable|string|max:100', 'province' => 'nullable|string|max:100', 'postal_code' => 'nullable|string|max:20',
             'tipo_cliente_id' => ['nullable', Rule::exists('tipos_cliente', 'id')->where('business_id', $b)],
             'credit_limit' => 'nullable|numeric|min:0', 'lista_precios' => 'nullable|integer|min:1|max:6', 'dias_pago' => 'nullable|integer|min:0|max:365', 'interes_mora' => 'nullable|numeric|min:0|max:100', 'vendedor_id' => 'nullable|exists:vendedores,id', 'cobrador_id' => 'nullable|exists:vendedores,id',
-            'descuento' => 'nullable|numeric|min:0|max:100', 'percepcion_iibb' => 'boolean', 'percepcion_iva' => 'boolean', 'percepcion_ganancias' => 'boolean', 'pais_codigo' => 'nullable|string|max:4', 'cuit_pais' => 'nullable|string|max:15', 'id_impositivo' => 'nullable|string|max:40', 'is_active' => 'boolean', 'notes' => 'nullable|string|max:2000', 'recordar_precio' => 'boolean',
+            'descuento' => 'nullable|numeric|min:0|max:100', 'percepcion_iibb' => 'boolean', 'percepcion_iva' => 'boolean', 'percepcion_ganancias' => 'boolean', 'comprobante_interno' => 'boolean', 'pais_codigo' => 'nullable|string|max:4', 'cuit_pais' => 'nullable|string|max:15', 'id_impositivo' => 'nullable|string|max:40', 'is_active' => 'boolean', 'notes' => 'nullable|string|max:2000', 'recordar_precio' => 'boolean',
         ]);
         if (($data['condicion_iva'] === 'Responsable Inscripto' || $data['condicion_iva'] === 'Monotributista') && empty($data['cuit'])) {
             return back()->withErrors(['cuit' => 'Un responsable inscripto o monotributista necesita CUIT para facturar.']);

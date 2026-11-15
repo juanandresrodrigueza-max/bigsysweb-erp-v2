@@ -42,7 +42,7 @@ class PosController extends Controller
             'vertical' => $vertical,
             'productos' => $productos, 'catalogoParcial' => $parcial,
             'rubros' => Rubro::orderBy('orden')->orderBy('nombre')->get(['id', 'nombre', 'color', 'parent_id']),
-            'clientes' => Contact::customers()->where('is_active', true)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$pos->consumidorFinal()->id])->orderBy('name')->limit(300)->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit']),
+            'clientes' => Contact::customers()->where('is_active', true)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$pos->consumidorFinal()->id])->orderBy('name')->limit(300)->get(['id', 'name', 'cuit', 'condicion_iva', 'lista_precios', 'descuento', 'balance', 'credit_limit', 'comprobante_interno']),
             'consumidorFinalId' => $pos->consumidorFinal()->id,
             'frecuentes' => $pos->frecuentes($user->business_id),
             'cuentas' => CuentaFondos::where('activa', true)->orderBy('tipo')->get(['id', 'tipo', 'nombre']),

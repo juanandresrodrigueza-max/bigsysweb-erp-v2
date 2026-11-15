@@ -60,7 +60,7 @@ class ComprobanteService
                 // Interno = no se informa a ARCA. Una nota sobre un comprobante interno también es interna.
                 // Manual (talonario en papel): lleva el número y punto de venta del papel y no es interno.
                 'manual'          => $manual = (bool) ($data['manual'] ?? ($c->exists ? $c->manual : false)),
-                'sin_arca'        => ! $manual && ((bool) ($data['sin_arca'] ?? ($c->exists ? $c->sin_arca : false)) || (bool) ($origen?->sin_arca ?? false)),
+                'sin_arca'        => ! $manual && ((bool) ($data['sin_arca'] ?? ($c->exists ? $c->sin_arca : (bool) ($contact?->comprobante_interno ?? false))) || (bool) ($origen?->sin_arca ?? false)), // Fase 103: el cliente puede tener interno por defecto
                 'numero'          => $manual ? ($data['numero_manual'] ?? $c->numero) : $c->numero,
                 'punto_venta'     => $manual ? ($data['pv_manual'] ?? $c->punto_venta) : $c->punto_venta,
                 'cai'             => $manual ? ($data['cai'] ?? $c->cai) : null,

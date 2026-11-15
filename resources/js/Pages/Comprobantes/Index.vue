@@ -13,9 +13,10 @@
       <button v-for="g in grupos" :key="g.key" @click="f.grupo = g.key; filtrar()" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition" :class="(f.grupo || 'todos') === g.key ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">{{ g.label }}</button>
     </div>
 
-    <div class="card mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="card mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
       <input v-model="f.buscar" @keyup.enter="filtrar" class="input lg:col-span-2" placeholder="Buscar por número, cliente o nota…" />
       <select v-model="f.estado" @change="filtrar" class="input"><option value="">Todo estado</option><option value="borrador">Borradores</option><option value="emitido">Emitidos</option><option value="pendiente">Pendientes de cobro</option><option value="vencido">Vencidos</option><option value="anulado">Anulados</option></select>
+      <select v-model="f.fiscal" @change="filtrar" class="input" data-e2e="filtro-fiscal"><option value="">Fiscales e internos</option><option value="fiscales">Sólo fiscales (ARCA)</option><option value="internos">Sólo internos</option></select>
       <select v-model="f.contact_id" @change="filtrar" class="input"><option value="">Todos los clientes</option><option v-for="c in clientes" :key="c.id" :value="c.id">{{ c.name }}</option></select>
       <input v-model="f.desde" @change="filtrar" type="date" class="input" />
       <input v-model="f.hasta" @change="filtrar" type="date" class="input" />
@@ -73,7 +74,7 @@ import { usePermisos } from '@/util/permisos'
 const { puede } = usePermisos()
 
 const props = defineProps({ lista: Object, resumen: Object, filtros: Object, grupos: Array, clientes: Array, afipConfigurado: Boolean })
-const f = reactive({ grupo: props.filtros.grupo ?? 'todos', estado: props.filtros.estado ?? '', contact_id: props.filtros.contact_id ?? '', desde: props.filtros.desde ?? '', hasta: props.filtros.hasta ?? '', buscar: props.filtros.buscar ?? '' })
+const f = reactive({ grupo: props.filtros.grupo ?? 'todos', estado: props.filtros.estado ?? '', contact_id: props.filtros.contact_id ?? '', desde: props.filtros.desde ?? '', hasta: props.filtros.hasta ?? '', buscar: props.filtros.buscar ?? '', fiscal: props.filtros.fiscal ?? '' })
 function filtrar() { router.get('/comprobantes', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
 const letraClase = c => c.estado === 'anulado' ? 'bg-gris-light text-marca-muted line-through' : ({ factura: 'bg-carmin text-white', nc: 'bg-violeta text-white', nd: 'bg-magenta text-white', remito: 'bg-lavanda text-violeta', presupuesto: 'bg-gris-light text-marca-texto' }[c.grupo])
 </script>
