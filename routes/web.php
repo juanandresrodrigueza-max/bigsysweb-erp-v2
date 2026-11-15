@@ -46,6 +46,10 @@ Route::get('/p/{token}/pdf',             [\App\Http\Controllers\PublicoControlle
 Route::post('/p/{token}/responder',      [\App\Http\Controllers\PublicoController::class, 'responder'])->middleware('throttle:publico');
 Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoController::class, 'pagarSimulado'])->middleware('throttle:publico');
 
+// Fase 108: la página de ventas pública. La raíz, sin sesión, la muestra; con sesión sigue yendo al panel o al tablero.
+Route::get('/conocer', [\App\Http\Controllers\ConocerController::class, 'index'])->name('conocer');
+Route::get('/', fn() => auth()->check() ? redirect(auth()->user()->is_superadmin ? '/admin' : '/dashboard') : app(\App\Http\Controllers\ConocerController::class)->index());
+
 // Fase 93.1: privacidad y términos (públicos; las tiendas de apps los exigen) y los archivos de deep links de la app.
 Route::view('/privacidad', 'legal.privacidad', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
 Route::view('/terminos', 'legal.terminos', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
@@ -159,7 +163,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
 });
 
 Route::middleware(['auth', 'suscripcion'])->group(function () {
-    Route::get('/', fn() => redirect(request()->user()?->is_superadmin ? '/admin' : '/dashboard')); // Fase 87: el superadmin entra por el panel y salta a su empresa desde ahí
+    // Fase 87/108: la raíz está arriba (pública sin sesión; con sesión, panel o tablero).
     Route::get('/mis-repartos', [\App\Http\Controllers\Comprobantes\RepartoController::class, 'misRepartos']); // Fase 43.2: el chofer
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permiso:dashboard')->name('dashboard');
     Route::get('/integraciones/crm/ir', [\App\Http\Controllers\Integraciones\CrmHandoffController::class, 'ir']);
