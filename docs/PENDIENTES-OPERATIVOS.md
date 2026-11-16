@@ -53,6 +53,13 @@ Está compilable y con la ficha redactada (`docs/MOVIL.md`). Falta lo que cuesta
 
 Lo que sigue es lo que **no** puede hacer el sistema solo. El resto (artículos, clientes, roles) está en la guía.
 
+### Bigcito por WhatsApp (fase 111)
+
+- [ ] Cargar el **celular de cada usuario** en Configuración → Usuarios (con código de área).
+- [ ] WhatsApp Cloud API de la empresa en Configuración → Tienda y canales → Pedidos por WhatsApp (phone ID, token, webhook) y dejar tildado «Bigcito atiende al equipo».
+- [ ] Para audios: clave de **OpenAI o Gemini** en Configuración → Conexiones IA (Claude no escucha audio).
+- [ ] Probar: mandar «cuánto vendí hoy» y después un audio «cobrale 1000 a (cliente) en efectivo» y responder SÍ.
+
 ### ARCA (fase 102 a 104 ya contemplan letras y condiciones)
 
 - [ ] **Certificado**: clave fiscal → Administrador de Relaciones → adherir **WSFE** (y `ws_sr_padron_a13`/`a5` para padrón). CSR con `openssl` (comando en `docs/arca.md`), bajar el `.crt`. Para homologación, certificado del entorno de homologación.

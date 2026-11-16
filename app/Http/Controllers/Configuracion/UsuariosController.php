@@ -19,7 +19,7 @@ class UsuariosController extends Controller
 
         return Inertia::render('Configuracion/Usuarios', [
             'usuarios' => $b->users()->with(['role:id,nombre', 'locations:id,name'])->orderBy('name')->get()->map(fn($u) => [
-                'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'status' => $u->status, 'avatar' => $u->avatar,
+                'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'mobile' => $u->mobile, 'status' => $u->status, 'avatar' => $u->avatar,
                 'role_id' => $u->role_id, 'rol' => $u->id === $b->owner_id ? 'Dueño' : $u->role?->nombre, 've_costos' => (bool) $u->ve_costos, 've_proveedores' => (bool) $u->ve_proveedores,
                 'es_dueno' => $u->id === $b->owner_id,
                 'sucursales' => $u->locations->map(fn($l) => ['id' => $l->id, 'name' => $l->name, 'role_id' => $l->pivot->role_id]),
@@ -42,6 +42,7 @@ class UsuariosController extends Controller
         $b = $request->user()->business;
         $data = $request->validate([
             'name'       => 'required|string|max:120',
+            'mobile'     => 'nullable|string|max:40', // Fase 111: con el celular cargado le habla a Bigcito por el WhatsApp de la empresa
             'email'      => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'password'   => [$id ? 'nullable' : 'required', 'string', \App\Support\Clave::regla()],
             'role_id'    => ['required', Rule::exists('roles', 'id')->where('business_id', $b->id)],
@@ -66,7 +67,7 @@ class UsuariosController extends Controller
             return back()->with('error', 'El dueño de la empresa no se puede desactivar.');
         }
 
-        $user->fill(['name' => $data['name'], 'email' => $data['email'], 'role_id' => $data['role_id'], 'status' => $data['status'], 've_costos' => (bool) ($data['ve_costos'] ?? false), 've_proveedores' => (bool) ($data['ve_proveedores'] ?? false)]);
+        $user->fill(['name' => $data['name'], 'email' => $data['email'], 'mobile' => $data['mobile'] ?? null, 'role_id' => $data['role_id'], 'status' => $data['status'], 've_costos' => (bool) ($data['ve_costos'] ?? false), 've_proveedores' => (bool) ($data['ve_proveedores'] ?? false)]);
         if (! empty($data['password'])) {
             $user->password = $data['password'];
         }

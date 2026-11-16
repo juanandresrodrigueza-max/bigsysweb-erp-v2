@@ -111,6 +111,7 @@
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_pedidos" type="checkbox" class="accent-carmin" /> Crear el pedido automáticamente</label>
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_responder" type="checkbox" class="accent-carmin" /> Responder automáticamente</label>
           <label class="flex items-center gap-2 text-sm" title="Saldo, estado del pedido, si hay un artículo y a cuánto; los reclamos quedan en la ficha del cliente con aviso."><input v-model="fw.atencion_clientes" type="checkbox" class="accent-carmin" data-e2e="wa-atencion" /> Bigcito atiende consultas de clientes (saldo, pedido, stock, reclamos)</label>
+          <label class="flex items-center gap-2 text-sm" title="Quien tenga su celular cargado en Configuración → Usuarios puede pedirle cosas a Bigcito por este WhatsApp, por texto o audio. Propone y ejecuta con «sí», con los permisos de esa persona."><input v-model="fw.bigcito_equipo" type="checkbox" class="accent-carmin" data-e2e="wa-equipo" /> Bigcito atiende al equipo (órdenes por texto o audio desde el celular de cada usuario)</label>
           <button class="btn-primary w-full" :disabled="fw.processing">Guardar</button>
         </form>
       </div>
@@ -205,7 +206,7 @@ const tab = ref(location.hash === '#canales' ? 'canales' : location.hash === '#p
 const base = location.origin
 const ft = useForm({ tienda: JSON.parse(JSON.stringify({ ...props.config, rubros: props.config.rubros ?? [] })) })
 const ff = useForm({ ...props.fidelizacion })
-const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: true, auto_responder: true, atencion_clientes: props.whatsapp.atencion_clientes ?? true })
+const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: true, auto_responder: true, atencion_clientes: props.whatsapp.atencion_clientes ?? true, bigcito_equipo: props.whatsapp.bigcito_equipo ?? true })
 const qr = ref(null)
 onMounted(() => { if (qr.value) QRCode.toCanvas(qr.value, props.urlTienda, { width: 140, margin: 1 }).catch(() => {}) })
 const canalAbierto = ref(false)

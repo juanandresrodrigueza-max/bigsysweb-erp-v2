@@ -28,6 +28,10 @@ Con la API conectada, además de tomar pedidos, Bigcito contesta las consultas d
 
 Lo que no es consulta (un pedido de mercadería, un saludo) sigue como hasta ahora. Se apaga en **Configuración → Tienda y canales → Pedidos por WhatsApp → "Bigcito atiende consultas de clientes"**. A Bigcito (el tuyo) le podés preguntar "¿hay reclamos de clientes por WhatsApp?".
 
+### Bigcito atiende al equipo por el mismo WhatsApp (Fase 111)
+
+Si quien escribe es alguien de tu equipo (su celular está cargado en Configuración → Usuarios), el mensaje o el audio no es un pedido: es una orden para Bigcito («cobrale 5000 a López», «cuánto vendí hoy»). Propone, espera el SÍ y ejecuta con los permisos de esa persona. Se apaga con el tilde «Bigcito atiende al equipo». Más en la guía de Alertas y asistente.
+
 ## Marketplaces y delivery
 
 **Conectar canal**: Mercado Libre, Tiendanube, WooCommerce, Shopify, PedidosYa, Rappi. Cada uno pide sus credenciales (la pantalla explica dónde conseguirlas). Se importan los pedidos, se empuja stock y precio si lo activás, y los pedidos entran como los demás. Los artículos se cruzan por SKU: usá el mismo código en ambos lados.

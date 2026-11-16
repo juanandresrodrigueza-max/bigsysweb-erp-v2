@@ -88,6 +88,19 @@ Lo que le podés pedir, además de ventas, cobros, stock y gastos:
 
 Lo mismo funciona desde Claude o ChatGPT conectados por MCP (Configuración → Conexiones IA): son las mismas herramientas y las acciones también se confirman.
 
+## Bigcito por WhatsApp y manos libres (fase 111)
+
+**Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:
+
+- «cobrale 5000 a López en efectivo», «facturale a Pérez dos bolsas de cemento», «cuánto vendí hoy», «cambiale el teléfono a Gómez», «qué podés hacer».
+- Antes de hacer algo contesta con la propuesta y **espera que respondas SÍ** (o NO para cancelar). Si no contestás, la propuesta vence sola a los 30 minutos.
+- Actúa con los permisos de quien escribe y todo queda en Auditoría, igual que desde el panel o desde Claude.
+- Para los **audios** hace falta la clave de OpenAI o Gemini en Configuración → Conexiones IA (Claude no escucha audio); sin esa clave te pide que lo escribas.
+- Se acuerda de la charla dos horas. Un número que no es de ningún usuario sigue como cliente (pedidos y consultas de siempre); los audios de clientes no se procesan.
+- Se apaga con el tilde «Bigcito atiende al equipo» en la configuración de WhatsApp.
+
+**Manos libres en el panel.** El botón 🎙️ en el encabezado de Bigcito hace que, después de contestarte en voz alta, vuelva a escuchar solo: dictás, oís la propuesta, decís «sí» y seguís sin tocar nada. **Alt + B** abre a Bigcito escuchando desde cualquier pantalla.
+
 ## Respuestas que sirven y consejos
 
 Bigcito siempre te dice **el período** que usó y, si hizo una cuenta, **cómo la hizo**. Cuando la respuesta es una lista, abajo aparece **Bajar la lista a Excel**; cuando ayuda, un **gráfico de barras**. Y al final te sugiere 2 o 3 preguntas para seguir: tocalas y las pregunta.
