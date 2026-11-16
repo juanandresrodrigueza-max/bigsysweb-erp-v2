@@ -36,6 +36,28 @@ El botón violeta abajo a la derecha. Escribí o **dictá**:
 
 Respeta los permisos: un vendedor no puede registrar gastos ni por chat.
 
+### Todo lo del día se puede pedir hablando (fase 109)
+
+La regla es una sola: **si lo podés hacer en pantalla, se lo podés pedir a Bigcito**; si no tenés el permiso, tampoco por acá. Toda acción se muestra primero como propuesta y se ejecuta recién cuando decís «dale». Queda en la auditoría como hecha por vos a través del asistente. Preguntale «¿qué podés hacer?» y te lista lo que tu usuario puede pedir.
+
+| Querés… | Decile, por ejemplo | Permiso |
+|---|---|---|
+| Vender y facturar | «facturale a Pérez dos bolsas de cemento», «emití el borrador 12», «mandale la factura por WhatsApp», «facturá el interno 8» | Ventas crear |
+| Nota de crédito o remito | «hacé la nota de crédito de la factura 27 por 10.000», «nota de crédito total de la 27», «remito desde la factura 27» | Ventas crear |
+| Cobrar | «cobrale 50.000 a López por transferencia», «recordale la deuda a Gómez», «proponele un plan de pago» | Clientes crear |
+| Clientes | «cargá el cliente Juan López, monotributista, CUIT 20-…» (el padrón lo completa), «cambiale el teléfono a López», «ponele 30 días de pago», «marcalo con comprobante interno» | Clientes crear / editar |
+| Proveedores y compras | «dá de alta el proveedor Aceros Sur», «cargá la factura A 0003-123 de Aceros Sur: 10 hierros a 1.100 más IVA», «asentá el pago de 50.000 a Norte por transferencia», «armá la orden de compra» | Compras crear |
+| Artículos y stock | «creá el artículo Tornillo 3 mm a 120», «cambiale el precio», «ponele rubro Herrajes y proveedor Norte», «ajustá el stock a 40», «registrá la merma» | Stock crear / editar |
+| Plata | «gasté 2.500 en nafta», «pasá 100.000 de caja a banco», «depositá el cheque 123456 en Galicia», «abrí la caja con 10.000», «cerrá la caja con 85.300» | Plata crear / editar |
+| Dar de baja | «dá de baja el cliente López» (con movimientos se desactiva; sin movimientos se borra), «borrá el artículo…», «anulá el recibo 15, se cargó dos veces», «anulá la orden de pago 8», «borrá el gasto de nafta», «cancelá la orden de compra 3», «cancelá el turno de Ana» | Anular del módulo |
+| Anular una factura emitida | «anulá la factura 27» (sin CAE) o «nota de crédito total de la 27» (con CAE) | Ventas anular / crear |
+| Usuarios | «creá el usuario Caja Uno, cajero, caja1@…» (te da una contraseña provisoria), «pasalo a vendedor», «desactivalo» | Configuración editar |
+| Sueldos | «dá de alta a Marta Gómez, CUIL 27-…, básico 900.000», «cargale vacaciones del 2 al 15», «liquidá octubre», «mandá los recibos a firmar» | Sueldos crear |
+| Agenda | «agendá a Gómez el martes a las 10 con Marta, 45 minutos», «cancelá el turno de Gómez» | Agenda crear / editar |
+| Bigcito de noche | «¿qué me dejaste para aprobar?», «aprobá la propuesta 12», «revisá ahora la reposición» | Configuración editar |
+
+Lo que no se pide por acá, a propósito: cambiar la configuración de ARCA, claves, planes y suscripción, y borrar comprobantes emitidos.
+
 ## Mi negocio (celular)
 
 **Mi negocio** es la pantalla del dueño en el teléfono: ventas de hoy contra ayer, cobrado, caja y bancos, por cobrar y por pagar con lo vencido, pedidos web, alertas, lo más vendido y las últimas ventas, con Cobrar, Gasto y Factura a un toque. Instalá la app desde el navegador ("Agregar a la pantalla de inicio").

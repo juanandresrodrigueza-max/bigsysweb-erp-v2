@@ -14,7 +14,7 @@ use App\Services\Ventas\CondicionesClienteService;
 class Ventas
 {
     public const GRUPOS = ['factura' => ['FA', 'FB', 'FC', 'FE'], 'nota_credito' => ['NCA', 'NCB', 'NCC', 'NCE'], 'nota_debito' => ['NDA', 'NDB', 'NDC', 'NDE'], 'presupuesto' => ['PRE'], 'remito' => ['REM']];
-    private const ITEMS = ['type' => 'array', 'description' => 'Renglones: artículo (nombre, código o id), cantidad y, opcional, precio unitario neto.', 'items' => ['type' => 'object', 'properties' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number'], 'precio' => ['type' => 'number']], 'required' => ['articulo', 'cantidad']]];
+    public const ITEMS = ['type' => 'array', 'description' => 'Renglones: artículo (nombre, código o id), cantidad y, opcional, precio unitario neto.', 'items' => ['type' => 'object', 'properties' => ['articulo' => ['type' => 'string'], 'cantidad' => ['type' => 'number'], 'precio' => ['type' => 'number']], 'required' => ['articulo', 'cantidad']]];
 
     public static function herramientas(): array
     {
