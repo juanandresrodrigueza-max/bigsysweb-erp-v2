@@ -892,6 +892,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     Route::prefix('configuracion')->middleware('permiso:configuracion')->name('configuracion.')->group(function () {
         Route::get('/',            [EmpresaController::class, 'index'])->name('empresa');
+        Route::get('/empresa',     fn() => redirect('/configuracion')); // Fase 110: la dirección de guardar, abierta por GET, iba a un 405
         Route::post('/empresa',    [EmpresaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('empresa.guardar');
         Route::post('/empresa/avisos', [EmpresaController::class, 'guardarAvisos'])->middleware('permiso:configuracion,editar');
         Route::post('/empresa/avisos/resumen', [EmpresaController::class, 'resumenAhora'])->middleware('permiso:configuracion,editar');

@@ -14,7 +14,7 @@ En **Configuración → Empresa** cargá razón social, CUIT, condición frente 
 
 ## 2. Punto de venta y ARCA
 
-En **Configuración → Puntos de venta y AFIP** creá el punto de venta con el mismo número que tenés dado de alta en ARCA. Sin certificado, las facturas salen **simuladas** (sin CAE): sirven para probar. Cuando subas el certificado, salen con CAE real. La guía técnica está en *Ayuda → Guías → ARCA*.
+En **Configuración → Puntos de venta y ARCA** creá el punto de venta con el mismo número que tenés dado de alta en ARCA. Sin certificado, las facturas salen **simuladas** (sin CAE): sirven para probar. Cuando subas el certificado, salen con CAE real. La guía técnica está en *Ayuda → Guías → ARCA*.
 
 ## 3. Caja y banco
 

@@ -45,7 +45,7 @@
           <div class="flex justify-between py-1.5 border-t border-marca-borde/60 first:border-0"><span>Caja, bancos y billeteras</span><b class="tabular-nums">{{ moneda(posicion.caja, 0) }}</b></div>
           <div class="flex justify-between py-1.5 border-t border-marca-borde/60"><span>Cheques de terceros en cartera</span><b class="tabular-nums">{{ moneda(posicion.cheques, 0) }}</b></div>
           <div class="flex justify-between py-1.5 border-t border-marca-borde/60"><span>Nos deben los clientes</span><b class="tabular-nums">{{ moneda(posicion.deudores, 0) }}</b></div>
-          <div class="flex justify-between py-1.5 border-t border-marca-borde/60"><span>Mercaderías (a costo)</span><b class="tabular-nums">{{ moneda(posicion.mercaderias, 0) }}</b></div>
+          <div class="flex justify-between py-1.5 border-t border-marca-borde/60"><span>Mercaderías (stock a costo)</span><b class="tabular-nums">{{ moneda(posicion.mercaderias, 0) }}</b></div>
         </div>
       </div>
       <div class="card">

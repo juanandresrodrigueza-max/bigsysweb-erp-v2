@@ -6,7 +6,7 @@ use App\Models\Comprobante;
 use App\Models\Contact;
 use Illuminate\Support\Facades\Auth;
 
-// Importa el CSV de "Mis Comprobantes Recibidos" de AFIP y crea las facturas de compra que falten.
+// Importa el CSV de "Mis Comprobantes Recibidos" de ARCA y crea las facturas de compra que falten.
 class AfipCsvImportService
 {
     private const TIPOS = [1 => 'FA', 6 => 'FB', 11 => 'FC', 19 => 'FE', 2 => 'NDA', 7 => 'NDB', 12 => 'NDC', 3 => 'NCA', 8 => 'NCB', 13 => 'NCC', 51 => 'FA', 201 => 'FA', 206 => 'FB', 211 => 'FC'];
@@ -71,14 +71,14 @@ class AfipCsvImportService
                 $alic = $neto > 0 ? round($iva / $neto * 100, 1) : 0;
                 $alic = collect([0, 2.5, 5, 10.5, 21, 27])->sortBy(fn($a) => abs($a - $alic))->first();
                 $items = [];
-                if ($neto > 0) $items[] = ['descripcion' => 'Según comprobante AFIP (gravado)', 'cantidad' => 1, 'precio_unit' => $neto, 'alicuota_iva' => $alic];
-                if ($exento > 0) $items[] = ['descripcion' => 'Según comprobante AFIP (exento / no gravado)', 'cantidad' => 1, 'precio_unit' => $exento, 'alicuota_iva' => 0];
-                if (! $items) $items[] = ['descripcion' => 'Según comprobante AFIP', 'cantidad' => 1, 'precio_unit' => $total, 'alicuota_iva' => 0];
+                if ($neto > 0) $items[] = ['descripcion' => 'Según comprobante ARCA (gravado)', 'cantidad' => 1, 'precio_unit' => $neto, 'alicuota_iva' => $alic];
+                if ($exento > 0) $items[] = ['descripcion' => 'Según comprobante ARCA (exento / no gravado)', 'cantidad' => 1, 'precio_unit' => $exento, 'alicuota_iva' => 0];
+                if (! $items) $items[] = ['descripcion' => 'Según comprobante ARCA', 'cantidad' => 1, 'precio_unit' => $total, 'alicuota_iva' => 0];
 
                 $c = $this->compras->guardarBorrador([
                     'contact_id' => $prov->id, 'tipo' => $tipo, 'numero_proveedor' => $numero, 'fecha' => $fecha, 'condicion' => 'cta_cte', 'origen_carga' => 'afip_csv',
                     'cae_proveedor' => $f['cae'], 'items' => $items, 'impuestos' => $otros > 0 ? [['tipo' => 'otros', 'monto' => $otros]] : [],
-                    'notas' => 'Importado de AFIP Mis Comprobantes. Completá los artículos si querés que impacte en stock.',
+                    'notas' => 'Importado de ARCA Mis Comprobantes. Completá los artículos si querés que impacte en stock.',
                 ]);
                 if ($registrar) {
                     $this->compras->registrar($c);

@@ -1,7 +1,7 @@
 <template>
   <AppLayout titulo="Libros IVA">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div><h1 class="page-title">Libro IVA {{ libro }}</h1><p class="page-subtitle">Listo para el contador o para cargar en AFIP. Las notas de crédito restan.</p></div>
+      <div><h1 class="page-title">Libro IVA {{ libro }}</h1><p class="page-subtitle">Listo para el contador o para cargar en ARCA. Las notas de crédito restan.</p></div>
       <PeriodoSelector :desde="periodo.desde" :hasta="periodo.hasta" :extra="{ libro }" />
     </div>
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">

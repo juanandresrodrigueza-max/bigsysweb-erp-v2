@@ -71,12 +71,12 @@ class PuntosVentaController extends Controller
         $b = $request->user()->business;
         $cert = file_get_contents($request->file('cert')->getRealPath()); $key = file_get_contents($request->file('key')->getRealPath());
         if (! str_contains($cert, '-----BEGIN') || ! str_contains($key, '-----BEGIN')) return back()->withErrors(['cert' => 'El certificado y la clave tienen que ser archivos PEM (empiezan con -----BEGIN).']);
-        // Se guardan cifrados con la clave de la aplicación; el servicio de AFIP los descifra a un archivo temporal al usarlos.
+        // Se guardan cifrados con la clave de la aplicación; el servicio de ARCA los descifra a un archivo temporal al usarlos.
         $b->update([
             'afip_cert_path' => \App\Services\Afip\CertificadoCifrado::guardar($b, 'cert.crt', $cert),
             'afip_key_path'  => \App\Services\Afip\CertificadoCifrado::guardar($b, 'private.key', $key),
         ]);
-        AuditLog::registrar('editar', $b, 'Cargó certificados AFIP');
-        return back()->with('success', 'Certificados AFIP cargados. Ya podés emitir comprobantes electrónicos.');
+        AuditLog::registrar('editar', $b, 'Cargó certificados ARCA');
+        return back()->with('success', 'Certificados ARCA cargados. Ya podés emitir comprobantes electrónicos.');
     }
 }

@@ -6,7 +6,7 @@
       :mas="[{ label: 'Nuevo presupuesto', href: '/comprobantes/nuevo?tipo=PRE', cuando: puede('comprobantes', 'crear') }]" />
 
     <div v-if="!afipConfigurado" class="mb-4 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex flex-wrap items-center gap-2">
-      <Icono nombre="alert" clase="w-4 h-4" /> Sin certificado AFIP: las facturas se emiten <b>simuladas</b> (sin CAE). <Link href="/configuracion/puntos-venta" class="underline font-semibold">Configurar AFIP</Link>
+      <Icono nombre="alert" clase="w-4 h-4" /> Sin certificado ARCA: las facturas se emiten <b>simuladas</b> (sin CAE). <Link href="/configuracion/puntos-venta" class="underline font-semibold">Configurar ARCA</Link>
     </div>
 
     <div class="flex gap-1 overflow-x-auto mb-4 bg-white border border-marca-borde rounded-full p-1 w-fit max-w-full">

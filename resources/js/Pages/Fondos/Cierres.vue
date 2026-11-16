@@ -49,10 +49,10 @@
       </div>
       <div class="card p-0 overflow-hidden">
         <div class="px-4 py-3 border-b border-marca-borde"><h2 class="font-bold">Por cajero</h2><p class="text-xs text-marca-muted">Ordenado del que más falta al que más sobra</p></div>
-        <table class="table text-xs">
-          <thead><tr><th>Cajero</th><th class="text-right">Turnos</th><th class="text-right">Con dif.</th><th class="text-right">Neto</th></tr></thead>
+        <div class="overflow-x-auto"><table class="table text-xs">
+          <thead><tr><th>Cajero</th><th class="text-right">Turnos</th><th class="text-right">Con dif.</th><th class="text-right whitespace-nowrap">Neto</th></tr></thead>
           <tbody><tr v-for="c in porCajero" :key="c.cajero"><td class="font-medium">{{ c.cajero }}<p class="text-marca-muted">{{ c.horas }} h · cobró {{ moneda(c.cobros, 0) }}</p></td><td class="text-right tabular-nums">{{ c.turnos }}</td><td class="text-right tabular-nums" :class="c.con_diferencia ? 'text-carmin font-semibold' : ''">{{ c.con_diferencia }}</td><td class="text-right tabular-nums font-bold" :class="c.neto < 0 ? 'text-carmin' : c.neto > 0 ? 'text-emerald-700' : ''">{{ moneda(c.neto, 0) }}<p class="font-normal text-marca-muted">−{{ moneda(-c.faltantes, 0) }} / +{{ moneda(c.sobrantes, 0) }}</p></td></tr><tr v-if="!porCajero.length"><td colspan="4" class="!py-0"><EstadoVacio texto="Sin datos." compacto /></td></tr></tbody>
-        </table>
+        </table></div>
       </div>
     </div>
 

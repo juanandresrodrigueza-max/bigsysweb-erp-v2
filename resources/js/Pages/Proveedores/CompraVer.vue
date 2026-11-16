@@ -6,7 +6,7 @@
         <div>
           <Link href="/proveedores/compras" class="text-xs text-marca-muted hover:text-carmin">← Compras</Link>
           <h1 class="page-title">{{ c.nombre }} <span class="tabular-nums">{{ c.numero ?? '(sin número)' }}</span></h1>
-          <p class="page-subtitle">{{ c.fecha }} · {{ c.sucursal }} · {{ c.usuario }} <span v-if="c.origen_carga && c.origen_carga !== 'manual'">· cargada por {{ c.origen_carga === 'ocr' ? 'IA' : 'AFIP' }}</span></p>
+          <p class="page-subtitle">{{ c.fecha }} · {{ c.sucursal }} · {{ c.usuario }} <span v-if="c.origen_carga && c.origen_carga !== 'manual'">· cargada por {{ c.origen_carga === 'ocr' ? 'IA' : 'ARCA' }}</span></p>
           <div class="flex flex-wrap gap-1.5 mt-1.5">
             <span class="badge" :class="estadoComprobante[c.estado].clase">{{ c.estado === 'emitido' ? 'Registrada' : estadoComprobante[c.estado].label }}</span>
             <span v-if="c.estado === 'emitido' && c.estado_pago !== 'na'" class="badge" :class="estadoCobro[c.estado_pago].clase">{{ { pendiente: 'A pagar', parcial: 'Pago parcial', cobrado: 'Pagada' }[c.estado_pago] }}</span>

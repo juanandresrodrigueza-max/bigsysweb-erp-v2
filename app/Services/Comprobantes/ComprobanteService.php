@@ -323,7 +323,7 @@ class ComprobanteService
         return DB::transaction(function () use ($c, $motivo) {
             abort_if($c->estado === 'anulado', 422, 'Ya está anulado.');
             if ($c->estado === 'emitido' && $c->esFiscal() && $c->afip_estado === 'aprobado') {
-                abort(422, 'Un comprobante fiscal aprobado por AFIP no se anula: emití una nota de crédito.');
+                abort(422, 'Un comprobante fiscal aprobado por ARCA no se anula: emití una nota de crédito.');
             }
             if ($c->estado === 'emitido' && $c->imputaciones()->exists()) {
                 abort(422, 'Tiene cobros imputados. Anulá primero los cobros.');

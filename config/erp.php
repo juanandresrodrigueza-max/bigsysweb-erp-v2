@@ -184,7 +184,7 @@ return [
             ['key' => 'sucursales',   'label' => 'Sucursales',              'ruta' => '/configuracion/sucursales',   'grupo' => 'Mi empresa', 'palabras' => 'depósitos casa central'],
             ['key' => 'usuarios',     'label' => 'Usuarios',                'ruta' => '/configuracion/usuarios',     'grupo' => 'Mi empresa', 'palabras' => 'contraseña invitar'],
             ['key' => 'roles',        'label' => 'Roles y permisos',        'ruta' => '/configuracion/roles',        'grupo' => 'Mi empresa', 'palabras' => 'qué puede hacer cada uno'],
-            ['key' => 'puntos-venta', 'label' => 'Puntos de venta y AFIP',  'ruta' => '/configuracion/puntos-venta', 'grupo' => 'Ventas y fiscal', 'palabras' => 'arca certificado cae factura electrónica'],
+            ['key' => 'puntos-venta', 'label' => 'Puntos de venta y ARCA',  'ruta' => '/configuracion/puntos-venta', 'grupo' => 'Ventas y fiscal', 'palabras' => 'arca certificado cae factura electrónica'],
             ['key' => 'impuestos',    'label' => 'Impuestos',               'ruta' => '/configuracion/impuestos',    'grupo' => 'Ventas y fiscal', 'palabras' => 'iva percepciones ingresos brutos'],
             ['key' => 'tienda',       'label' => 'Tienda y canales',        'ruta' => '/configuracion/tienda',       'grupo' => 'Integraciones', 'palabras' => 'tienda online mercadolibre woocommerce delivery pedidos web'],
             ['key' => 'crm',          'label' => 'CRM',                     'ruta' => '/configuracion/crm',          'grupo' => 'Integraciones', 'palabras' => 'vendedores oportunidades'],

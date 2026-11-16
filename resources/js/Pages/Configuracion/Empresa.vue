@@ -23,7 +23,7 @@
           <div><label class="label">Ingresos Brutos</label><input v-model="form.iibb" class="input" placeholder="Nº o Convenio Multilateral" data-iibb /></div>
           <div><label class="label">Inicio de actividades</label><input v-model="form.inicio_actividades" type="date" class="input" data-inicio /></div>
         </div>
-        <h2 class="font-bold pt-2">AFIP</h2>
+        <h2 class="font-bold pt-2">ARCA</h2>
         <div class="grid sm:grid-cols-2 gap-4">
           <div><label class="label">Punto de venta</label><input v-model="form.afip_punto_venta" class="input" placeholder="0001" /></div>
           <label class="flex items-center gap-2 text-sm mt-6"><input v-model="form.afip_produccion" type="checkbox" class="accent-carmin" /> Modo producción (desmarcado = homologación)</label>
