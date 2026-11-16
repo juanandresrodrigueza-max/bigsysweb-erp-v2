@@ -10,11 +10,11 @@ Orden sugerido: primero el bloque A (mañana a la mañana), después B y C en el
 
 ## A · Mañana, antes que nada (15 minutos)
 
-- [ ] **Salud**: entrar a `https://erp.bigsysweb.com/salud` (o Superadmin → Salud). Tiene que decir `ok` o `aviso`. Anoche corrieron las rondas que estaban rojas: 03:40 ensayo de restauración de copias (arreglado en PR #152) y 04:40 páginas lentas (ahora con calentamiento). Si sigue `critico`, pedirle a la sesión «CRM Producción» que mande el detalle de la ronda que falla; no tocar nada a mano.
+- [x] **Salud**: `ok` desde el 15/11 a la noche (CRM Producción volvió a medir las páginas, 14 a 89 ms, y resolvió 6 errores que eran de su propia consola).
 - [ ] **Probar en producción «Facturar después»** con la empresa de BigSys o una de prueba: hacer una venta tildada como comprobante interno, y desde el comprobante apretar **Facturar** (fase 104). Tiene que salir con numeración fiscal y CAE (o simulado si la empresa no tiene certificado). Es la única función nueva que no se probó con datos reales.
 - [ ] **Cargar la clave de aprobación** en Panel → Sistema → Altas con aprobación (fase 106) y, si querés WhatsApp, los celulares. Después probar: registrarte con un mail de prueba en `/registro`, ver que te llega el aviso y aprobarla en Panel → Pendientes.
 - [ ] **Probar las propuestas de Bigcito** (fase 107): en Inicio → Propuestas, botón «Revisar ahora»; aprobar una de cobranza y una de precios y ver que ejecuta. Abrir «Resumen hablado» en el celular y tocar Escuchar.
-- [ ] **Actualizar producción AHORA**: está en el commit `0af7130` y main va por la fase 108 (PRs #153 a #158: aprobación de altas, agentes de Bigcito, página de ventas, arreglo del link de WhatsApp). Mensaje para la sesión CRM Producción: «corré el actualizador del ERP desde main». Después, actualizar: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
+- [x] **Producción actualizada** el 15/11 a las 23:42 (commit `14712c5`, fases 106 a 108.1; copia previa en `/root/erp-antes-20261115-2342.sql.gz`). Para las próximas: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
 
 ## B · Plataforma BigSys (Superadmin → Sistema, una sola vez)
 

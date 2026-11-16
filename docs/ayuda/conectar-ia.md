@@ -51,7 +51,9 @@ claude mcp add --transport http bigsys https://erp.bigsysweb.com/mcp --header "A
 
 - **Solo consultas**: ventas, clientes, cuentas corrientes, stock, lotes, series, cajas, cheques, IVA, resultado, sueldos, órdenes de servicio. No cambia nada.
 - **Consultas y acciones con confirmación**: además, dar de alta clientes y artículos, registrar cobros y gastos, armar presupuestos y facturas en borrador, órdenes de compra, cambiar precios, bloquear lotes, crear órdenes de servicio y mandar recordatorios.
-- **También acciones delicadas**: emitir facturas en ARCA, anular comprobantes, pagar a proveedores, transferir entre cuentas y ajustar stock.
+- **También acciones delicadas**: emitir facturas en ARCA, notas de crédito, anular comprobantes, pagar a proveedores, transferir entre cuentas, ajustar stock, dar de baja (clientes, artículos, cobros, pagos, gastos), crear o cambiar usuarios y cerrar la caja.
+
+Desde la fase 109 también se puede **editar** (cliente, proveedor, artículo), **cargar compras**, **remitos**, **empleados**, **turnos**, **depositar cheques** y **abrir la caja**. La lista completa con ejemplos está en *Alertas y asistente → Todo lo del día se puede pedir hablando*; la herramienta `que_podes_hacer` la devuelve según los permisos del usuario.
 
 El token de una conexión de IA sirve **solo para la IA** (la dirección `/mcp`): la API del ERP lo rechaza. Así, un token de «Solo consultas» no puede cambiar nada por otro camino. Para integrar otro sistema por la API, creá un token de API en **Seguridad y API → Tokens**.
 

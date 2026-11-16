@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Todo por voz (fase 109)
+
+Lo que faltaba para que cualquier cosa del día se pueda pedir hablando: cambiar datos de clientes, proveedores y artículos; dar de baja con la regla de cada cosa (desactivar o borrar, anular con motivo); cargar facturas de proveedor; notas de crédito totales o parciales; remitos; usuarios y empleados; turnos de la agenda; depositar cheques; abrir y cerrar la caja. Siempre con propuesta y confirmación, y con tu permiso. «¿Qué podés hacer?» te lo lista.
+
 ## Bigcito trabaja de noche (fase 107)
 
 Cinco agentes dejan propuestas cada madrugada en **Inicio → Propuestas**: el cobrador (a quién escribirle, con el mensaje listo), la reposición (órdenes por proveedor), los precios (cuando sube el costo), el cierre del mes (asientos, categorías, cajas) y el control interno. Nada se ejecuta hasta que aprobás. El parte de la mañana ahora se abre en **Resumen hablado**, que te lo lee en voz alta. En la ficha del cliente, con 11 dígitos de CUIT el padrón de ARCA se consulta solo y dice qué letra de factura le corresponde.
