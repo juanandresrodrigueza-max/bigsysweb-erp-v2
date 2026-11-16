@@ -26,6 +26,13 @@ Como en el CRM: **nadie queda adentro sin que alguien de BigSys lo apruebe con l
 
 A Bigcito (superadmin): «¿qué empresas están pendientes de aprobar?». Aprobar se hace en el panel: Bigcito no pide ni recibe la clave.
 
+## Dar de baja o eliminar una empresa (fase 113)
+
+En la ficha de la empresa hay dos cosas distintas:
+
+- **Dar de baja**: deja de operar, se cancela la suscripción y se desactivan sus usuarios. **Los datos quedan** y se puede **Restaurar** después. Es lo normal cuando un cliente se va.
+- **Eliminar definitivamente**: borra la empresa con **todo** lo suyo (comprobantes, clientes, stock, plata, contable, usuarios, archivos). Antes muestra cuántas filas se van a borrar, pide escribir el **nombre exacto** de la empresa y la **clave de aprobación** (si está cargada). No se puede eliminar la empresa de BigSys ni la empresa en la que estás. Después no hay vuelta atrás salvo la copia de seguridad. Sirve para empresas de prueba o de demostración.
+
 ## Planes y cobros
 
 **Planes**: nombre, precio mensual y anual, usuarios, sucursales, artículos y **facturas por mes** incluidos (-1 = sin límite), módulos. **Cobros**: pagos por Mercado Pago (automáticos) o transferencia (se aprueban a mano). La revisión diaria avisa vencimientos, aplica gracia y suspende; se puede correr a mano desde Sistema.

@@ -17,6 +17,7 @@
       <div class="flex flex-wrap gap-2">
         <template v-if="empresa.dada_de_baja">
           <Link :href="`/admin/empresas/${empresa.id}/restaurar`" method="post" as="button" class="btn-primary">Restaurar empresa</Link>
+          <button @click="abrirEliminar" class="btn-danger" data-e2e="eliminar-empresa">Eliminar definitivamente</button>
         </template>
         <template v-else>
           <Link :href="`/admin/empresas/${empresa.id}/entrar`" method="post" as="button" class="btn-violeta"><Icono nombre="logout" clase="w-4 h-4" /> Entrar como dueño</Link>
@@ -25,6 +26,7 @@
           <Link v-if="empresa.suspended_at" :href="`/admin/empresas/${empresa.id}/reactivar`" method="post" as="button" class="btn-secondary text-emerald-700">Reactivar</Link>
           <button v-else @click="suspAbierto = true" class="btn-secondary">Suspender</button>
           <button @click="bajaAbierto = true" class="btn-danger">Dar de baja</button>
+          <button @click="abrirEliminar" class="btn-ghost text-carmin text-xs" data-e2e="eliminar-empresa" title="Borra la empresa con todos sus datos y usuarios. Definitivo.">Eliminar definitivamente</button>
         </template>
       </div>
     </div>
@@ -185,6 +187,19 @@
       <template #pie><button class="btn-secondary" @click="suspAbierto = false">Cancelar</button><button class="btn-danger" :disabled="susp.processing" @click="susp.post(`/admin/empresas/${empresa.id}/suspender`, { preserveScroll: true, onSuccess: () => (suspAbierto = false) })">Suspender</button></template>
     </Modal>
 
+    <!-- Fase 113: eliminar la empresa entera -->
+    <Modal :abierto="eliminarAbierto" titulo="Eliminar la empresa definitivamente" @cerrar="eliminarAbierto = false">
+      <div class="space-y-3 text-sm">
+        <p class="p-3 rounded-xl bg-carmin-light text-carmin-dark"><b>Esto no se deshace.</b> Se borran todos los datos de <b>{{ empresa.nombre }}</b>: comprobantes, clientes, stock, plata, contable, usuarios. Si sólo querés que deje de operar, usá «Dar de baja», que guarda todo.</p>
+        <p v-if="planEliminar" class="text-marca-muted">Se van a borrar <b>{{ planEliminar.filas }}</b> filas en {{ planEliminar.tablas }} tablas y {{ planEliminar.usuarios }} usuarios. Lo más grande: <span v-for="(n, t) in planEliminar.detalle" :key="t" class="inline-block mr-2">{{ t }} ({{ n }})</span></p>
+        <p v-else class="text-marca-muted">Contando lo que hay…</p>
+        <div><label class="label">Escribí el nombre de la empresa para confirmar</label><input v-model="eliminar.nombre" class="input" :placeholder="empresa.nombre" data-e2e="eliminar-nombre" /><p v-if="eliminar.errors.nombre" class="text-carmin text-xs mt-1">{{ eliminar.errors.nombre }}</p></div>
+        <div v-if="claveAprobacion"><label class="label">Clave de aprobación</label><input v-model="eliminar.clave" type="password" class="input" autocomplete="off" data-e2e="eliminar-clave" /><p v-if="eliminar.errors.clave" class="text-carmin text-xs mt-1">{{ eliminar.errors.clave }}</p></div>
+        <p v-if="eliminar.errors.empresa" class="text-carmin text-xs">{{ eliminar.errors.empresa }}</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="eliminarAbierto = false">Cancelar</button><button class="btn-danger" :disabled="eliminar.processing || !eliminar.nombre" @click="eliminar.delete(`/admin/empresas/${empresa.id}`)" data-e2e="eliminar-confirmar">{{ eliminar.processing ? 'Borrando…' : 'Eliminar para siempre' }}</button></template>
+    </Modal>
+
     <Modal :abierto="bajaAbierto" titulo="Dar de baja la empresa" @cerrar="bajaAbierto = false">
       <p class="text-sm text-marca-muted mb-3">La empresa deja de operar, se cancela la suscripción y se desactivan sus usuarios. Los datos no se borran: se puede restaurar.</p>
       <input v-model="baja.motivo" class="input" placeholder="Motivo" /><p v-if="baja.errors.motivo" class="text-carmin text-xs mt-1">{{ baja.errors.motivo }}</p>
@@ -235,5 +250,12 @@ const ext = useForm({ dias: 7 })
 const aprobAbierto = ref(null), aprob = useForm({ clave: '', motivo: '' }) // Fase 106
 const susp = useForm({ motivo: '' })
 const baja = useForm({ motivo: '' })
+// Fase 113: eliminar definitivamente. Antes de pedir el nombre muestra cuánto se va a borrar.
+const eliminarAbierto = ref(false), planEliminar = ref(null)
+const eliminar = useForm({ nombre: '', clave: '' })
+async function abrirEliminar() {
+  eliminar.reset(); eliminar.clearErrors(); planEliminar.value = null; eliminarAbierto.value = true
+  try { const { data } = await window.axios.get(`/admin/empresas/${props.empresa.id}/eliminar`); planEliminar.value = data } catch { planEliminar.value = { filas: '?', tablas: '?', usuarios: '?', detalle: {} } }
+}
 const datos = useForm({ name: props.empresa.nombre, razon_social: props.empresa.razon_social, cuit: props.empresa.cuit, email: props.empresa.email, phone: props.empresa.phone, vertical: props.empresa.vertical_key ?? 'otro', condicion_iva: props.empresa.condicion_iva ?? 'Responsable Inscripto', notas_internas: props.empresa.notas_internas })
 </script>
