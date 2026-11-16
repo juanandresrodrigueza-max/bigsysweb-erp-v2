@@ -71,6 +71,13 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Bigcito por WhatsApp y manos libres (fase 111)
+
+- Cada usuario tiene **Celular (WhatsApp)** en Configuración → Usuarios. Con eso cargado, le escribe o le manda un audio a Bigcito al WhatsApp de la empresa y Bigcito propone, espera el SÍ y ejecuta con sus permisos.
+- En la configuración de WhatsApp hay un tilde nuevo: **Bigcito atiende al equipo**.
+- En el panel de Bigcito: botón 🎙️ **manos libres** (vuelve a escuchar después de contestarte) y el atajo **Alt + B** desde cualquier pantalla.
+- Bigcito ahora sabe que puede hacer todo lo del día (facturar, cobrar, cargar, editar, dar de baja) y lo dice con los nombres actuales del menú (Vender, Cobrar, Comprar, Plata, ARCA).
+
 ## Repaso de primer uso (fase 110)
 
 Recorrimos las 142 pantallas con una empresa recién creada y con la empresa de demostración, en computadora y en celular, y arreglamos lo que confundía:

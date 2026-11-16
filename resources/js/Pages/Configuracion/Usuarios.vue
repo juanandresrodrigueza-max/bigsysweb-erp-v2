@@ -34,6 +34,7 @@
         <div class="grid sm:grid-cols-2 gap-4">
           <div><label class="label">Nombre</label><input v-model="form.name" class="input" /><p v-if="form.errors.name" class="text-carmin text-xs mt-1">{{ form.errors.name }}</p></div>
           <div><label class="label">Email</label><input v-model="form.email" type="email" class="input" /><p v-if="form.errors.email" class="text-carmin text-xs mt-1">{{ form.errors.email }}</p></div>
+          <div class="sm:col-span-2"><label class="label">Celular (WhatsApp)</label><input v-model="form.mobile" class="input" placeholder="351 555 1234 (con código de área)" data-e2e="usuario-celular" /><p class="text-[11px] text-marca-muted mt-1">Con el celular cargado, esta persona puede escribirle o mandarle un audio a Bigcito por el WhatsApp de la empresa: «cobrale 5000 a López», «cuánto vendí hoy». Actúa con sus permisos y siempre pide confirmación.</p></div>
           <div><label class="label">{{ form.id ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</label><input v-model="form.password" type="password" class="input" autocomplete="new-password" /><p v-if="form.errors.password" class="text-carmin text-xs mt-1">{{ form.errors.password }}</p></div>
           <div><label class="label">Estado</label><select v-model="form.status" class="input" :disabled="esDueno"><option value="active">Activo</option><option value="inactive">Inactivo</option></select></div>
           <!-- Fase 39.1: perfiles listos que tildan todo de una -->
@@ -93,14 +94,14 @@ const emp = reactive({})
 function guardarEmpresas() { router.post(`/configuracion/usuarios/${form.id}/empresas`, { empresas: Object.entries(emp).filter(([, v]) => v).map(([id, perfil]) => ({ business_id: Number(id), perfil })) }, { preserveScroll: true }) }
 const modal = ref(false)
 const esDueno = ref(false)
-const vacio = { id: null, name: '', email: '', password: '', status: 'active', role_id: null, sucursales: [], ve_costos: false, ve_proveedores: false }
+const vacio = { id: null, name: '', email: '', mobile: '', password: '', status: 'active', role_id: null, sucursales: [], ve_costos: false, ve_proveedores: false }
 const form = useForm({ ...vacio })
 
 const iniciales = n => (n ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
 function abrir(u) {
   form.clearErrors()
   esDueno.value = !!u?.es_dueno
-  Object.assign(form, u ? { ...vacio, id: u.id, name: u.name, email: u.email, status: u.status, ve_costos: !!u.ve_costos, ve_proveedores: !!u.ve_proveedores, role_id: u.role_id ?? props.roles[0]?.id, sucursales: u.sucursales.map(s => ({ id: s.id, role_id: s.role_id })) } : { ...vacio, role_id: props.roles.find(r => r.slug === 'vendedor')?.id ?? props.roles[0]?.id })
+  Object.assign(form, u ? { ...vacio, id: u.id, name: u.name, email: u.email, mobile: u.mobile ?? '', status: u.status, ve_costos: !!u.ve_costos, ve_proveedores: !!u.ve_proveedores, role_id: u.role_id ?? props.roles[0]?.id, sucursales: u.sucursales.map(s => ({ id: s.id, role_id: s.role_id })) } : { ...vacio, role_id: props.roles.find(r => r.slug === 'vendedor')?.id ?? props.roles[0]?.id })
   Object.keys(emp).forEach(k => delete emp[k]); (u?.empresas ?? []).forEach(e => (emp[e.business_id] = e.perfil ?? 'solo_mirar'))
   modal.value = true
 }

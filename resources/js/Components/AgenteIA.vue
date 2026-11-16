@@ -11,13 +11,15 @@
             </div>
           </div>
           <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
+          <button v-if="dictado.soportado" @click="alternarManos" class="p-1 rounded hover:bg-white/15 text-xs" :class="manosLibres ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="manosLibres ? 'Manos libres activado: después de contestarte vuelve a escuchar (tocá para apagar)' : 'Manos libres: hablale, te contesta y vuelve a escuchar sin tocar nada'" data-e2e="manos-libres">🎙️</button>
           <a v-if="whatsappSoporte" :href="whatsappSoporte" target="_blank" class="p-1 rounded hover:bg-white/15 text-xs" title="Hablar con una persona de soporte por WhatsApp (con lo que venías preguntando)" data-e2e="bigcito-soporte">🙋</a>
           <button @click="abierto = false" class="p-1 rounded hover:bg-white/15" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button></div>
         </div>
 
         <div ref="scroll" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-marca-fondo">
           <div v-if="!mensajes.length" class="text-xs text-marca-muted space-y-2 px-1 pt-1">
-            <p>Hola {{ nombre }}. Preguntame cómo hacer algo en el sistema o consultame datos de {{ empresa }}.</p>
+            <p>Hola {{ nombre }}. Preguntame cómo hacer algo, consultame datos de {{ empresa }} o pedime que haga cosas: facturar, cobrar, cargar un cliente, cambiar un precio. Siempre te muestro qué voy a hacer y espero tu sí.</p>
+            <p v-if="dictado.soportado" class="text-[11px]">Tocá el micrófono o apretá <kbd class="px-1 rounded border border-marca-borde bg-white">Alt</kbd>+<kbd class="px-1 rounded border border-marca-borde bg-white">B</kbd> desde cualquier pantalla. Con 🎙️ (manos libres) te vuelve a escuchar después de contestarte.</p>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="s in sugerencias" :key="s" @click="enviar(s)" class="px-2.5 py-1 rounded-full bg-white border border-marca-borde text-marca-texto hover:border-violeta text-[11px]">{{ s }}</button>
             </div>
@@ -83,7 +85,21 @@ function decir(t) {
   const limpio = t.replace(/https?:\/\/\S+/g, '').replace(/[*_#`]/g, '').replace(/\$\s?([\d.]+),(\d{2})/g, '$1 pesos con $2').slice(0, 600)
   const u = new SpeechSynthesisUtterance(limpio); u.lang = 'es-AR'; u.rate = 1.05
   const v = window.speechSynthesis.getVoices().find(x => x.lang?.startsWith('es')); if (v) u.voice = v
+  u.onend = volverAEscuchar
   window.speechSynthesis.cancel(); window.speechSynthesis.speak(u)
+}
+// Fase 111: manos libres. Después de hablarte, Bigcito vuelve a escuchar solo; Alt+B lo abre escuchando desde cualquier pantalla.
+const manosLibres = ref((() => { try { return localStorage.getItem('bigcito_manos') === '1' } catch { return false } })())
+function alternarManos() {
+  manosLibres.value = !manosLibres.value
+  try { localStorage.setItem('bigcito_manos', manosLibres.value ? '1' : '0') } catch {}
+  if (manosLibres.value) { habla.value = true; if (!dictado.escuchando.value) dictado.iniciar() } else dictado.detener()
+}
+function volverAEscuchar() { if (manosLibres.value && abierto.value && dictado.soportado && !dictado.escuchando.value && !cargando.value) dictado.iniciar() }
+const atajo = e => {
+  if (!e.altKey || e.ctrlKey || e.metaKey || (e.key || '').toLowerCase() !== 'b') return
+  e.preventDefault(); abierto.value = true
+  nextTick(() => { if (dictado.soportado && !dictado.escuchando.value) dictado.iniciar() })
 }
 // Fase 40.4: si Bigcito no alcanza, el WhatsApp a soporte sale ya escrito: quién, de qué empresa, en qué pantalla y qué preguntó.
 const whatsappSoporte = computed(() => {
@@ -101,7 +117,7 @@ const scroll = ref(null)
 
 const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0] ?? '')
 const empresa = computed(() => page.props.empresa?.nombre ?? 'tu empresa')
-const sugerencias = ['¿Cuánto vendí hoy?', '¿Quiénes me deben?', 'Cobrale 10000 a … en efectivo', 'Gasté 5000 en nafta', 'Stock de cemento', 'Recordale a … la deuda']
+const sugerencias = ['¿Qué podés hacer?', '¿Cuánto vendí hoy?', '¿Quiénes me deben?', 'Cobrale 10000 a … en efectivo', 'Facturale a … 2 bolsas de cemento', 'Gasté 5000 en nafta', 'Cambiale el teléfono a …']
 const ejecutando = ref(false)
 async function confirmar(m) {
   ejecutando.value = true
@@ -151,8 +167,8 @@ async function alternarGrabacion() {
 }
 // Fase 107: otra pantalla (el resumen hablado) abre a Bigcito con una pregunta ya escrita.
 const alPreguntar = (e) => { abierto.value = true; nextTick(() => enviar(e.detail?.texto ?? '')) }
-onMounted(() => window.addEventListener('bigcito:preguntar', alPreguntar))
-onBeforeUnmount(() => window.removeEventListener('bigcito:preguntar', alPreguntar))
+onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo) })
+onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo) })
 async function enviar(pre, porVoz = false) {
   let msg = (pre ?? texto.value).trim()
   if (!msg && foto.value) msg = '¿Qué ves en esta foto?'

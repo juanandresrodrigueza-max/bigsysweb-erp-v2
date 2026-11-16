@@ -25,11 +25,21 @@ class WhatsappController extends Controller
         \App\Support\Ia::aplicar($b);
         $ws = $b->whatsapp_settings ?? [];
         $mensajes = [];
-        foreach ($request->input('entry', []) as $e) foreach ($e['changes'] ?? [] as $ch) foreach ($ch['value']['messages'] ?? [] as $m) if (($m['type'] ?? '') === 'text') $mensajes[] = ['de' => $m['from'] ?? null, 'texto' => $m['text']['body'] ?? ''];
+        foreach ($request->input('entry', []) as $e) foreach ($e['changes'] ?? [] as $ch) foreach ($ch['value']['messages'] ?? [] as $m) {
+            if (($m['type'] ?? '') === 'text') $mensajes[] = ['de' => $m['from'] ?? null, 'texto' => $m['text']['body'] ?? ''];
+            // Fase 111: los audios sólo se escuchan si vienen de alguien del equipo (Bigcito los transcribe); de un cliente no se usan.
+            elseif (($m['type'] ?? '') === 'audio' && ! empty($m['audio']['id'])) $mensajes[] = ['de' => $m['from'] ?? null, 'texto' => '', 'audio_id' => $m['audio']['id'], 'mime' => $m['audio']['mime_type'] ?? 'audio/ogg'];
+        }
         // Formato simple para integradores: {"telefono": "...", "texto": "..."}
         if (! $mensajes && $request->filled('texto')) $mensajes[] = ['de' => $request->input('telefono'), 'texto' => $request->input('texto')];
         $creados = []; $atendidos = [];
         foreach ($mensajes as $m) {
+            // Fase 111: si escribe (o manda un audio) alguien del equipo, es una orden para Bigcito: propone y con «sí» ejecuta.
+            if (\App\Services\IA\BigcitoWhatsappService::activo($b) && ($bg = app(\App\Services\IA\BigcitoWhatsappService::class)->atender($b, $m))) {
+                if ($m['de']) $wa->responder($b, $m['de'], $bg['respuesta']);
+                $atendidos[] = 'bigcito';
+                continue;
+            }
             if (trim($m['texto']) === '') continue;
             // Fase 60: si es una consulta (saldo, pedido, stock, reclamo, hablar con alguien) la atiende Bigcito y no sigue como pedido.
             if (\App\Services\Canales\AtencionClientesService::activo($b) && ($at = app(\App\Services\Canales\AtencionClientesService::class)->atender($b, $m['de'], $m['texto']))) {
