@@ -26,7 +26,8 @@ class RegistroController extends Controller
     {
         // Contra robots: el campo trampa tiene que venir vacío y el formulario no se completa en menos de 3 segundos.
         try { $t = (int) Crypt::decryptString((string) $request->input('marca')); } catch (\Throwable) { $t = 0; }
-        if (filled($request->input('sitio_web')) || ! $t || now()->timestamp - $t < 3) abort(422, 'No pudimos validar el formulario. Probá de nuevo.');
+        // Fase 113.1: con error en el formulario (no un 422 pelado, que el panel mostraba como «Oops! An Error Occurred»).
+        if (filled($request->input('sitio_web')) || ! $t || now()->timestamp - $t < 3) return back()->withErrors(['empresa' => 'No pudimos validar el formulario. Esperá unos segundos y volvé a tocar «Crear mi cuenta gratis».'])->withInput($request->except('password', 'password_confirmation'));
 
         if ($secret = config('services.turnstile.secret')) {
             $ok = \Illuminate\Support\Facades\Http::asForm()->timeout(8)->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', ['secret' => $secret, 'response' => (string) $request->input('cf-turnstile-response'), 'remoteip' => $request->ip()])->json('success');

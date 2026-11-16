@@ -41,8 +41,8 @@ class RegistroFase46Test extends ErpTestCase
 
     public function test_robots_y_mail_repetido(): void
     {
-        $this->post('/registro', $this->datos(['sitio_web' => 'http://spam']))->assertStatus(422);
-        $this->post('/registro', $this->datos(['marca' => Crypt::encryptString((string) now()->timestamp)]))->assertStatus(422);
+        $this->post('/registro', $this->datos(['sitio_web' => 'http://spam']))->assertSessionHasErrors('empresa');
+        $this->post('/registro', $this->datos(['marca' => Crypt::encryptString((string) now()->timestamp)]))->assertSessionHasErrors('empresa');
         $this->post('/registro', $this->datos(['email' => $this->dueno->email]))->assertSessionHasErrors('email');
         $this->assertFalse(Business::where('name', 'Kiosco Nuevo')->exists());
     }
