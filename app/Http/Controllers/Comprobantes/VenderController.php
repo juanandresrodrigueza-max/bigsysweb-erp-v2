@@ -31,6 +31,7 @@ class VenderController extends Controller
         return Inertia::render('Comprobantes/Vender', $base + [
             'modo' => $modo, 'modos' => VenderService::MODOS,
             'vendedor' => $v ? ['id' => $v->id, 'nombre' => $v->nombre, 'modo_default' => $v->modo_default] : null,
+            'hayVendedores' => Vendedor::where('business_id', $u->business_id)->exists(),
             'encargado' => $u->puede('clientes', 'editar'),
             'config' => $this->vender->config($u->business),
             'puede' => ['anular' => $u->puede(str_contains($request->path(), 'retail') ? 'retail' : (str_contains($request->path(), 'minimarket') ? 'minimarket' : 'comprobantes'), 'anular'), 'facturar' => $u->puede('comprobantes', 'crear'), 'precios' => $u->puede('comprobantes', 'editar'), 'cobrar' => $u->puede('clientes', 'crear')],

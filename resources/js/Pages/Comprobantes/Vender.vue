@@ -5,7 +5,7 @@
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
         <h1 class="font-display font-medium text-xl">Vender</h1>
         <button class="rounded-full bg-white/20 hover:bg-white/30 px-3 py-1 text-sm font-semibold whitespace-nowrap shrink-0" @click="selector = true" data-e2e="cambiar-modo">{{ modos[modo] }} <span class="opacity-70">· cambiar</span></button>
-        <span class="text-xs opacity-90 basis-full sm:basis-auto">{{ vendedor ? `a nombre de ${vendedor.nombre}` : 'tu usuario no es vendedor: las ventas van sin vendedor' }}</span>
+        <span class="text-xs opacity-90 basis-full sm:basis-auto">{{ vendedor ? `a nombre de ${vendedor.nombre}` : (hayVendedores ? 'tu usuario no es vendedor: las ventas van sin vendedor' : '') }}</span>
       </div>
       <Link href="/comprobantes" class="text-xs opacity-80 hover:opacity-100">← Comprobantes</Link>
     </div>
@@ -32,7 +32,7 @@ import Modal from '@/Components/Modal.vue'
 import VenderMostrador from './VenderMostrador.vue'
 import VenderCalle from './VenderCalle.vue'
 
-const props = defineProps({ modo: String, modos: Object, vendedor: Object, encargado: Boolean, config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, tiposRelevamiento: Object, avisos: Array, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: Object, planesCuotas: Array, mp: Object, frecuentes: Array })
+const props = defineProps({ modo: String, modos: Object, vendedor: Object, hayVendedores: Boolean, encargado: Boolean, config: Object, puede: Object, motivos: Object, motivosDevolucion: Object, bancos: Array, tiposRelevamiento: Object, avisos: Array, vertical: String, catalogoParcial: Boolean, productos: Array, rubros: Array, clientes: Array, consumidorFinalId: Number, cuentas: Array, caja: Object, hoy: Object, empresaLetra: String, preciosConIva: Boolean, posConfig: Object, planesCuotas: Array, mp: Object, frecuentes: Array })
 const selector = ref(false)
 const franja = { calle: 'bg-gradient-to-r from-sky-700 to-sky-600', mostrador: 'bg-gradient-to-r from-emerald-700 to-emerald-600', caja: 'bg-gradient-to-r from-slate-800 to-slate-700' }
 const ayuda = { calle: 'Arranca en tus clientes: la ruta del día, su cuenta y su lista. Anda sin señal y registra dónde estuviste.', mostrador: 'Arranca buscando productos. Consumidor final, cobrás en el momento y sale el ticket.', caja: 'El mismo mostrador con la pantalla ancha de una caja: ticket a la izquierda y el total grande.' }

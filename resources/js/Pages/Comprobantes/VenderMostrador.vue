@@ -45,7 +45,7 @@
             <p class="text-lg font-extrabold tabular-nums mt-1">{{ moneda(precioDe(p), 0) }}</p>
             <p class="text-[11px] text-marca-muted">{{ p.controla ? `${cantidad(p.stock)} ${p.unit}` : p.sku }}</p>
           </button>
-          <p v-if="!visibles.length" class="col-span-full text-center text-sm text-marca-muted py-10">{{ q ? 'Nada coincide.' : 'Sin favoritos: marcá artículos como favoritos desde Stock, o elegí un rubro.' }}</p>
+          <p v-if="!visibles.length" class="col-span-full text-center text-sm text-marca-muted py-10"><template v-if="q">Nada coincide.</template><template v-else-if="!catalogo.length">Todavía no hay artículos. Cargalos en <Link href="/stock" class="font-bold text-carmin underline">Stock → Artículos</Link> o importá tu lista de precios, y acá aparecen para tocar y vender.</template><template v-else>Sin favoritos: marcá artículos como favoritos desde Stock, o elegí un rubro.</template></p>
         </div>
       </div>
 

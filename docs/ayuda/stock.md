@@ -87,7 +87,7 @@ Para supermercados, farmacias, alimentos y todo lo que vence. Marcá el artícul
 
 ## Rubros y lo que heredan los artículos
 
-En **Stock → ⚙ Rubros y depósitos → editar**, cada rubro tiene **Datos que heredan los artículos**: IVA, tipo (producto, servicio…), controla stock, perecedero, con número de serie, se cuenta en el cierre de turno, sale en la tienda, **cuenta contable de ventas**, **percepción especial de IVA e IIBB** y la foto que muestra la tienda.
+En **Stock → Más → Preferencias de stock → Rubros → editar**, cada rubro tiene **Datos que heredan los artículos**: IVA, tipo (producto, servicio…), controla stock, perecedero, con número de serie, se cuenta en el cierre de turno, sale en la tienda, **cuenta contable de ventas**, **percepción especial de IVA e IIBB** y la foto que muestra la tienda.
 
 - Lo que queda en **Hereda** lo toma del rubro de arriba: si "Almacén" tiene IVA 10,5 %, "Almacén › Lácteos" también, salvo que le pongas otro.
 - Un artículo nuevo, al elegir el rubro, arranca con esos datos.

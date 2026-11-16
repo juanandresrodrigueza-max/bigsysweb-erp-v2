@@ -125,10 +125,11 @@
       </div>
       <!-- Fase 106: alta pendiente de aprobación: acceso provisional -->
       <div v-if="suscripcion?.provisional" class="px-4 md:px-6 py-2 text-sm flex items-center gap-2 bg-lavanda-light text-violeta" data-e2e="banner-provisional">
-        <Icono nombre="clock" clase="w-4 h-4 shrink-0" /><span>{{ suscripcion.provisional.texto }}</span>
+        <Icono nombre="clock" clase="w-4 h-4 shrink-0" /><span class="flex-1 min-w-0">{{ suscripcion.provisional.texto }}<template v-if="suscripcion.aviso && suscripcion.puede && suscripcion.estado === 'trial'">&nbsp;{{ suscripcion.aviso.texto }}</template></span>
+        <Link v-if="suscripcion.aviso && suscripcion.puede && suscripcion.estado === 'trial'" href="/suscripcion" class="text-xs font-bold underline whitespace-nowrap">Ver planes</Link>
       </div>
-      <!-- Aviso de suscripción: solo a quien puede renovarla -->
-      <div v-if="suscripcion?.aviso && suscripcion.puede" class="px-4 md:px-6 py-2 text-sm flex items-center gap-2" :class="{ info: 'bg-lavanda-light text-violeta', warn: 'bg-amber-50 text-amber-800', error: 'bg-carmin text-white' }[suscripcion.aviso.nivel]">
+      <!-- Aviso de suscripción: solo a quien puede renovarla (en prueba y pendiente de aprobación ya va en el banner de arriba) -->
+      <div v-if="suscripcion?.aviso && suscripcion.puede && !(suscripcion.provisional && suscripcion.estado === 'trial')" class="px-4 md:px-6 py-2 text-sm flex items-center gap-2" :class="{ info: 'bg-lavanda-light text-violeta', warn: 'bg-amber-50 text-amber-800', error: 'bg-carmin text-white' }[suscripcion.aviso.nivel]">
         <Icono :nombre="suscripcion.aviso.nivel === 'info' ? 'info' : 'alert'" clase="w-4 h-4 shrink-0" /><span>{{ suscripcion.aviso.texto }}</span>
         <Link href="/suscripcion" class="ml-auto text-xs font-bold underline whitespace-nowrap">{{ suscripcion.estado === 'trial' ? 'Contratar plan' : 'Renovar' }}</Link>
       </div>

@@ -99,7 +99,7 @@ class HandleInertiaRequests extends Middleware
         // Fase 106: alta pendiente de aprobación: el dueño ve hasta cuándo tiene acceso provisional.
         if ($user->business->aprobacion === 'pendiente') {
             $corte = app(\App\Services\Suscripciones\AprobacionService::class)->corte($user->business);
-            $r['provisional'] = ['hasta' => $corte->format('d/m H:i'), 'texto' => 'Acceso provisional hasta el ' . $corte->format('d/m \\a \\l\\a\\s H:i') . ': en ese plazo el equipo de BigSys habilita tu prueba. Si querés acelerarlo, escribinos.'];
+            $r['provisional'] = ['hasta' => $corte->format('d/m H:i'), 'texto' => 'Ya podés usar todo. El equipo de BigSys confirma tu alta antes del ' . $corte->format('d/m \\a \\l\\a\\s H:i') . '; si querés acelerarlo, escribinos.'];
         }
         return $r;
     }
