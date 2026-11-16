@@ -68,7 +68,7 @@
       </section>
 
       <!-- Lo nuevo: sale solo de las novedades que publica cada fase -->
-      <section v-if="novedades.length" class="py-14 border-t border-marca-borde" data-e2e="lo-nuevo">
+      <section v-if="novedades.length" id="lo-nuevo" class="py-14 border-t border-marca-borde scroll-mt-6" data-e2e="lo-nuevo">
         <p class="kicker">Lo nuevo</p>
         <h2 class="page-title !text-3xl mt-2">Mejora todas las semanas</h2>
         <p class="text-marca-muted mt-2">Esto es lo último que agregamos. Las empresas lo reciben solo, sin instalar nada.</p>
