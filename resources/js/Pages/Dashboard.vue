@@ -192,6 +192,6 @@ const periodos = [{ key: 'hoy', label: 'Hoy' }, { key: 'semana', label: 'Semana'
 const etiquetaPeriodo = computed(() => ({ hoy: 'hoy', semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este año' }[props.periodo]))
 const maxSerie = computed(() => Math.max(1, ...props.serie.map(d => d.monto)))
 const totalSerie = computed(() => props.serie.reduce((a, d) => a + d.monto, 0))
-const moneda = n => '$\u00a0' + Number(n ?? 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })
+const moneda = n => { let v = Math.round(Number(n ?? 0)); if (! Number.isFinite(v) || v === 0) v = 0; return '$\u00a0' + v.toLocaleString('es-AR', { maximumFractionDigits: 0 }) }
 function cambiar(p) { router.get('/dashboard', { periodo: p }, { preserveState: true, preserveScroll: true, replace: true }) }
 </script>

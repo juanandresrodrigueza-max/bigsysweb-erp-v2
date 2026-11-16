@@ -34,7 +34,7 @@ Tené a mano:
 1. ★ **Configuración → Importar datos → Artículos**: bajá la plantilla, pegá tu lista (código, descripción, rubro, costo, precios, IVA, stock) y subila. Si venís de Tango, Bejerman, Colppy o del BigSys viejo, elegí el perfil en "Viene de" y el mapeo se arma solo. Con BigSys tildá "Los precios del archivo son finales con IVA". Revisá la vista previa y confirmá.
 2. **Stock → artículo**: revisá que los rubros hayan quedado bien y que los artículos de servicio (mano de obra, flete) estén como "servicio" para que no muevan stock.
 3. **Stock → Precios**: si tus precios son un margen sobre el costo, configurá el margen por rubro; así al subir el costo sube el precio.
-4. **Stock → ⚙ Rubros**: cargá en cada rubro lo que heredan sus artículos (IVA, perecedero, con serie, pesable en la tienda, cuenta de ventas) y tocá **Aplicar a sus artículos**.
+4. **Stock → Más → Preferencias de stock → Rubros**: cargá en cada rubro lo que heredan sus artículos (IVA, perecedero, con serie, pesable en la tienda, cuenta de ventas) y tocá **Aplicar a sus artículos**.
 5. Según el rubro del negocio:
    - **Supermercado, farmacia, alimentos**: marcá **Perecedero** y cargá lote y vencimiento en las compras. Revisá **Stock → Lotes y vencimientos**.
    - **Electrónica, celulares, herramientas**: marcá **Con número de serie** y la garantía en meses.

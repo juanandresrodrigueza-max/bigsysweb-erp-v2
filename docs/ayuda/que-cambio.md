@@ -71,6 +71,19 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Repaso de primer uso (fase 110)
+
+Recorrimos las 142 pantallas con una empresa recién creada y con la empresa de demostración, en computadora y en celular, y arreglamos lo que confundía:
+
+- Las páginas de error (sin permiso, no encontrada, sesión vencida) tienen la marca y dicen qué pasó; la de «sin permiso» nombra el permiso que falta.
+- Mientras el alta está pendiente de aprobación hay **un solo aviso** arriba: «Ya podés usar todo. El equipo de BigSys confirma tu alta antes del…», con el link a los planes.
+- **Vender** ya no avisa «tu usuario no es vendedor» si la empresa no cargó vendedores. Sin artículos, el mostrador explica que se cargan en Stock → Artículos o importando la lista de precios.
+- Ningún importe sale como «$ -0».
+- Las alertas de stock bajo salen sólo para artículos que controlan stock y tienen mínimo cargado, y se cierran solas cuando se repone.
+- En Contable, «Mercaderías» es el stock a costo de los artículos que controlan stock.
+- Decimos **ARCA** en todas las pantallas (antes quedaba «AFIP» en algunas).
+- En la ayuda, los caminos de menú apuntan a donde están hoy las cosas (por ejemplo, los rubros se editan desde Stock → Más → Preferencias de stock).
+
 ## Todo por voz (fase 109)
 
 Lo que faltaba para que cualquier cosa del día se pueda pedir hablando: cambiar datos de clientes, proveedores y artículos; dar de baja con la regla de cada cosa (desactivar o borrar, anular con motivo); cargar facturas de proveedor; notas de crédito totales o parciales; remitos; usuarios y empleados; turnos de la agenda; depositar cheques; abrir y cerrar la caja. Siempre con propuesta y confirmación, y con tu permiso. «¿Qué podés hacer?» te lo lista.
