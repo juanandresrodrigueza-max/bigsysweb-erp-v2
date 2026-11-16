@@ -36,6 +36,7 @@
       <div v-for="p in visibles" :key="p.id" class="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b border-marca-borde/60 text-sm">
         <div class="flex-1 min-w-[180px]"><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted">{{ p.rubro ?? 'Sin rubro' }} · {{ moneda(p.price, 0) }}</p>
           <p class="text-xs" :data-margen="p.id"><span class="text-marca-muted">costo {{ moneda(p.costo, 0) }}{{ p.receta ? ' (receta)' : '' }} · margen </span><b :class="p.margen === null ? 'text-marca-muted' : p.margen < (p.margen_objetivo ?? 30) ? 'text-carmin' : 'text-emerald-700'">{{ p.margen === null ? '—' : p.margen + ' %' }}</b><span v-if="p.margen_objetivo !== null" class="text-marca-muted"> / objetivo {{ p.margen_objetivo }} %</span></p></div>
+        <button class="btn-ghost !py-1 text-xs" @click="verHistoria(p)" :data-historia="p.id" title="Cómo fue cambiando el costo, el precio y el margen mes a mes">Historia</button>
         <button v-if="puede('gastronomia','editar')" class="btn-ghost !py-1 text-xs" @click="editarReceta(p)" :data-receta="p.id">{{ p.receta ? 'Receta' : '+ Receta' }}</button>
         <div class="flex flex-wrap gap-1 max-w-md"><span v-if="p.horario" class="badge bg-amber-50 text-amber-700">{{ p.horario.desde }}–{{ p.horario.hasta }}</span><span v-for="g in p.modificadores" :key="g.nombre" class="badge bg-lavanda-light text-violeta">{{ g.nombre }}{{ g.obligatorio ? ' *' : '' }} · {{ g.opciones.length }}</span></div>
         <label class="flex items-center gap-1.5 text-xs"><input type="checkbox" class="accent-carmin" :checked="p.va_cocina" :disabled="!puede('gastronomia','editar')" @change="router.post(`/gastronomia/carta/${p.id}`, { va_cocina: $event.target.checked, modificadores: p.modificadores }, { preserveScroll: true })" /> Se prepara</label>
@@ -109,6 +110,34 @@
       <template #pie><button class="btn-secondary" @click="lc = null">Cancelar</button><button v-if="lc && !lc.error" class="btn-primary" :disabled="!aCargar" @click="router.post('/gastronomia/carta/importar', { rubros: lc.rubros }, { preserveScroll: true, onSuccess: () => (lc = null) })" data-e2e="carta-importar">Cargar {{ aCargar }} platos</button></template>
     </Modal>
 
+    <!-- Fase 114: historia del plato: costo de la receta, precio y margen mes a mes -->
+    <Modal :abierto="!!hp" :titulo="hp ? `Historia de ${hp.nombre}` : ''" ancho="max-w-3xl" @cerrar="hp = null">
+      <div v-if="hp" class="space-y-3 text-sm" data-e2e="historia-plato">
+        <p v-if="hp.cargando" class="text-marca-muted">Reconstruyendo los últimos meses…</p>
+        <template v-else-if="hp.datos">
+          <p class="text-xs text-marca-muted">{{ hp.datos.resumen }}</p>
+          <div class="grid grid-cols-3 gap-2 text-center rounded-xl bg-marca-fondo p-3">
+            <div><p class="text-[11px] uppercase text-marca-muted font-bold">Costo hoy</p><p class="font-extrabold tabular-nums">{{ moneda(hp.datos.hoy.costo, 0) }}</p><p v-if="hp.datos.variacion.costo_pct !== null" class="text-[11px]" :class="hp.datos.variacion.costo_pct > 0 ? 'text-carmin' : 'text-emerald-700'">{{ hp.datos.variacion.costo_pct > 0 ? '+' : '' }}{{ hp.datos.variacion.costo_pct }} % en el período</p></div>
+            <div><p class="text-[11px] uppercase text-marca-muted font-bold">Precio neto</p><p class="font-extrabold tabular-nums">{{ moneda(hp.datos.hoy.precio, 0) }}</p><p v-if="hp.datos.variacion.precio_pct !== null" class="text-[11px] text-marca-muted">{{ hp.datos.variacion.precio_pct > 0 ? '+' : '' }}{{ hp.datos.variacion.precio_pct }} %</p></div>
+            <div><p class="text-[11px] uppercase text-marca-muted font-bold">Margen</p><p class="font-extrabold tabular-nums" :class="hp.datos.margen_objetivo !== null && hp.datos.hoy.margen < hp.datos.margen_objetivo ? 'text-carmin' : ''">{{ hp.datos.hoy.margen ?? '—' }} %</p><p v-if="hp.datos.margen_objetivo !== null" class="text-[11px] text-marca-muted">objetivo {{ hp.datos.margen_objetivo }} %</p></div>
+          </div>
+          <div class="overflow-x-auto"><table class="table text-xs">
+            <thead><tr><th>Mes</th><th class="text-right">Costo</th><th class="text-right">Precio</th><th class="text-right">Margen</th><th>Qué cambió</th></tr></thead>
+            <tbody><tr v-for="m in hp.datos.meses" :key="m.mes">
+              <td class="whitespace-nowrap">{{ m.etiqueta }}</td>
+              <td class="text-right tabular-nums"><div class="flex items-center justify-end gap-2"><div class="h-2 rounded bg-carmin/70" :style="{ width: barra(m.costo, hp.datos.meses) }"></div>{{ moneda(m.costo, 0) }}</div></td>
+              <td class="text-right tabular-nums">{{ moneda(m.precio, 0) }}</td>
+              <td class="text-right tabular-nums font-semibold" :class="hp.datos.margen_objetivo !== null && m.margen !== null && m.margen < hp.datos.margen_objetivo ? 'text-carmin' : (m.margen !== null && m.margen < 30 ? 'text-amber-700' : 'text-emerald-700')">{{ m.margen ?? '—' }} %</td>
+              <td class="text-marca-muted"><span v-if="m.cambio_precio" class="mr-2">Precio {{ moneda(m.cambio_precio.de, 0) }} → {{ moneda(m.cambio_precio.a, 0) }}.</span><span v-for="c in m.cambios.slice(0, 3)" :key="c.que" class="mr-2">{{ c.que }} {{ moneda(c.de, 0) }} → {{ moneda(c.a, 0) }} ({{ c.impacto > 0 ? '+' : '' }}{{ moneda(c.impacto, 0) }} por porción)</span><span v-if="!m.cambio_precio && !m.cambios.length">—</span></td>
+            </tr></tbody>
+          </table></div>
+          <p v-if="!hp.datos.con_receta" class="text-xs text-amber-700">Este plato no tiene receta: la historia es del costo cargado a mano. Con receta, cada compra que cambia un insumo queda explicada acá.</p>
+        </template>
+        <p v-else class="text-carmin text-xs">No pude traer la historia. Probá de nuevo.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="hp = null">Cerrar</button></template>
+    </Modal>
+
     <!-- Fase 53: la receta del plato, con sugerencia de la IA -->
     <Modal :abierto="!!rc" :titulo="rc ? `Receta de ${rc.name}` : ''" ancho="max-w-2xl" @cerrar="rc = null">
       <div v-if="rc" class="space-y-3 text-sm">
@@ -122,6 +151,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2"><button class="btn-ghost !px-2 text-xs" @click="rc.items.push({ product_id: null, quantity: 1 })">+ Insumo</button>
           <button class="btn-secondary !py-1 text-xs" :disabled="rc.pensando" @click="sugerirReceta" data-e2e="receta-ia">{{ rc.pensando ? 'Pensando…' : '✦ Sugerir con IA' }}</button>
+          <button class="btn-ghost !py-1 text-xs" @click="verHistoria(rc)">Historia del plato</button>
           <span v-if="rc.nota" class="text-xs text-amber-700">{{ rc.nota }}</span><span v-if="rc.error" class="text-xs text-carmin">{{ rc.error }}</span></div>
         <div class="rounded-xl bg-marca-fondo p-3 grid grid-cols-3 gap-2 text-center"><div><p class="text-[11px] uppercase text-marca-muted font-bold">Costo</p><p class="font-extrabold tabular-nums">{{ moneda(costoReceta, 0) }}</p></div><div><p class="text-[11px] uppercase text-marca-muted font-bold">Precio neto</p><p class="font-extrabold tabular-nums">{{ moneda(rc.precio_neto, 0) }}</p></div><div><p class="text-[11px] uppercase text-marca-muted font-bold">Margen</p><p class="font-extrabold tabular-nums" :class="margenReceta !== null && margenReceta < (rc.margen_objetivo ?? 30) ? 'text-carmin' : 'text-emerald-700'">{{ margenReceta === null ? '—' : margenReceta + ' %' }}</p></div></div>
         <label class="flex items-center gap-2 text-xs">Margen objetivo <input v-model.number="rc.margen_objetivo" type="number" min="0" max="99" class="input !py-0.5 !w-16 text-right" /> % · si una compra lo deja por debajo, te avisa con el precio sugerido.</label>
@@ -166,6 +196,14 @@ const modelos = [
   { nombre: 'Sin', obligatorio: false, multiple: true, opciones: [{ nombre: 'Sin sal', precio: 0 }, { nombre: 'Sin cebolla', precio: 0 }, { nombre: 'Sin TACC', precio: 0 }] },
 ]
 const ed = ref(null), rc = ref(null)
+// Fase 114: historia del plato (costo de la receta, precio y margen mes a mes).
+const hp = ref(null)
+async function verHistoria(p) {
+  hp.value = { nombre: p.name, cargando: true, datos: null }
+  try { const { data } = await window.axios.get(`/gastronomia/carta/${p.id}/historia`); hp.value = { nombre: p.name, cargando: false, datos: data } }
+  catch { hp.value = { nombre: p.name, cargando: false, datos: null } }
+}
+const barra = (v, meses) => { const max = Math.max(...meses.map(m => m.costo), 1); return Math.max(4, Math.round(v / max * 90)) + 'px' }
 function editarReceta(p) { rc.value = { id: p.id, name: p.name, precio_neto: p.precio_neto, margen_objetivo: p.margen_objetivo, items: JSON.parse(JSON.stringify(p.receta?.items ?? [])), pensando: false, nota: '', error: '' } }
 const costoReceta = computed(() => (rc.value?.items ?? []).reduce((a, it) => a + (props.insumos.find(x => x.id === it.product_id)?.cost ?? 0) * (Number(it.quantity) || 0), 0))
 const margenReceta = computed(() => rc.value?.precio_neto > 0 ? Math.round((rc.value.precio_neto - costoReceta.value) / rc.value.precio_neto * 1000) / 10 : null)

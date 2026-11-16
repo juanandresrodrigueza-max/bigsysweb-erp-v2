@@ -871,6 +871,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/comandas/{id}/imprimir',         [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'imprimir']);
         Route::get('/llamador',                       [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'llamador']);
         Route::post('/comandas/{id}/retirado',        [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'retirado'])->middleware('permiso:gastronomia,crear');
+        Route::get('/carta/{id}/historia',            [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'historiaPlato'])->whereNumber('id'); // Fase 114
         Route::post('/carta/{id}/receta',             [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarReceta'])->middleware('permiso:gastronomia,editar');
         Route::post('/carta/{id}/sugerir-receta',     [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'sugerirReceta'])->middleware(['permiso:gastronomia,editar', 'throttle:20,1']);
         Route::post('/carta/leer',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'leerCarta'])->middleware(['permiso:gastronomia,editar', 'throttle:10,1']);
