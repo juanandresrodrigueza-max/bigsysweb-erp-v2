@@ -128,6 +128,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/empresas/{id}/reactivar',           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'reactivar']);
     Route::post('/empresas/{id}/baja',                [\App\Http\Controllers\Superadmin\EmpresasController::class, 'baja']);
     Route::post('/empresas/{id}/restaurar',           [\App\Http\Controllers\Superadmin\EmpresasController::class, 'restaurar']);
+    Route::get('/empresas/{id}/eliminar',             [\App\Http\Controllers\Superadmin\EmpresasController::class, 'planEliminar'])->whereNumber('id'); // Fase 113
+    Route::delete('/empresas/{id}',                   [\App\Http\Controllers\Superadmin\EmpresasController::class, 'eliminar'])->whereNumber('id');
     Route::post('/empresas/{id}/plan',                [\App\Http\Controllers\Superadmin\EmpresasController::class, 'cambiarPlan']);
     Route::post('/empresas/{id}/extender-prueba',     [\App\Http\Controllers\Superadmin\EmpresasController::class, 'extenderPrueba']);
     Route::post('/empresas/{id}/pagos',               [\App\Http\Controllers\Superadmin\EmpresasController::class, 'registrarPago']);
