@@ -154,6 +154,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
     Route::post('/sistema/clave-duenos',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'claveDuenos']); // Fase 106
     Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
+    Route::post('/sistema/probar-aviso',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarAviso'])->middleware('throttle:10,1'); // Fase 113.2
     Route::post('/sistema/probar-push',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarPush']); // Fase 93
     Route::post('/sistema/probar-ia',                 [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarIa']);
     Route::post('/sistema/empresa-bigsys',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'empresaBigsys']); // Fase 87

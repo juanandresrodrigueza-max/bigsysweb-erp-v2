@@ -90,7 +90,7 @@ class SistemaController extends Controller
             // Fase 106: altas con aprobación
             'aprobacion' => (function () use ($c) { $a = app(\App\Services\Suscripciones\AprobacionService::class); $yo = request()->user();
                 return ['horas' => (int) ($c['horas_provisional'] ?? 72), 'clave_set' => (bool) ($c['clave_aprobacion'] ?? null), 'emails' => $c['aviso_registros_emails'] ?? null, 'whatsapp' => $c['aviso_registros_whatsapp'] ?? null, 'pendientes' => Business::where('aprobacion', 'pendiente')->count(),
-                    'puede_cambiar' => $a->puedeCambiarClave($yo), 'es_dueno' => $a->esDueno($yo), 'duenos' => $a->duenos(), 'nombres_duenos' => $a->nombresDuenos(),
+                    'puede_cambiar' => $a->puedeCambiarClave($yo), 'es_dueno' => $a->esDueno($yo), 'duenos' => $a->duenos(), 'nombres_duenos' => $a->nombresDuenos(), 'canales' => $a->canales(),
                     'superadmins' => User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->orderBy('name')->get(['id', 'name', 'email'])]; })(),
             'mantenimiento' => $c['mantenimiento'] ?? SistemaConfig::DEFAULTS['mantenimiento'],
             // Fase 93: la app nativa: cuenta de servicio de Firebase (cifrada) y links a las tiendas.
@@ -160,6 +160,15 @@ class SistemaController extends Controller
     }
 
     // Manda un correo de prueba con la configuración del panel (o del .env si no hay).
+    // Fase 113.2: manda el aviso de alta de prueba por los tres canales y cuenta qué salió y qué no.
+    public function probarAviso(Request $request)
+    {
+        $r = app(\App\Services\Suscripciones\AprobacionService::class)->avisar('Prueba de aviso de altas', "Esto es una prueba desde Panel → Sistema, pedida por {$request->user()->email}. Si lo recibís, los avisos de altas nuevas llegan por este canal.");
+        $ok = collect($r)->contains(fn($c) => $c && $c['ok']);
+        $texto = collect(['mail' => 'Mail', 'whatsapp' => 'WhatsApp', 'celular' => 'Celular'])->map(fn($n, $k) => ($r[$k]['ok'] ?? false ? '✓ ' : '✗ ') . "{$n}: " . ($r[$k]['texto'] ?? '—'))->implode("\n");
+        return back()->with('prueba', ['que' => 'aviso', 'ok' => $ok, 'texto' => $texto]);
+    }
+
     public function probarCorreo(Request $request)
     {
         $d = $request->validate(['a' => 'required|email']);

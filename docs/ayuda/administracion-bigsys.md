@@ -26,6 +26,16 @@ Como en el CRM: **nadie queda adentro sin que alguien de BigSys lo apruebe con l
 
 A Bigcito (superadmin): «¿qué empresas están pendientes de aprobar?». Aprobar se hace en el panel: Bigcito no pide ni recibe la clave.
 
+### Por dónde llega el aviso de cada alta (fase 113.2)
+
+En Panel → Sistema → Altas con aprobación, el recuadro **«Cuando alguien se registra, el aviso sale por»** muestra con ✓ o ✗ cada canal y por qué:
+
+- **Mail**: necesita el correo saliente (bloque SMTP de la misma pantalla). Va a los mails de «Avisar por mail a» o, si está vacío, a soporte y a todos los superadmins.
+- **WhatsApp**: sale por la **línea de WhatsApp Cloud de la empresa de BigSys** en el ERP. Hacen falta las dos cosas: los celulares en «Avisar por WhatsApp a» y, entrando como dueño de esa empresa, la API conectada en Configuración → Tienda y canales → Pedidos por WhatsApp.
+- **Celular**: a los superadmins que tengan la app o el navegador suscriptos a los avisos.
+
+El botón **«Enviar aviso de prueba por los tres canales»** manda uno de verdad y cuenta, canal por canal, qué salió y qué no (por ejemplo «Meta respondió 401: token inválido»).
+
 ## Dar de baja o eliminar una empresa (fase 113)
 
 En la ficha de la empresa hay dos cosas distintas:

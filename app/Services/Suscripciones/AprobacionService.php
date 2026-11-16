@@ -139,22 +139,47 @@ class AprobacionService
     }
 
     // Mail + WhatsApp + celular de los superadmins. Nunca tira: el registro no espera esto.
-    public function avisar(string $asunto, string $texto, string $url = '/admin/pendientes'): void
+    public function avisar(string $asunto, string $texto, string $url = '/admin/pendientes'): array
     {
-        $url = url($url);
-        try { if ($to = $this->destinatarios()) Mail::to($to)->send(new \App\Mail\AvisoAprobacion($asunto, $texto, $url)); }
-        catch (\Throwable $e) { Log::warning('Aviso de aprobación (mail): ' . $e->getMessage()); }
+        $url = url($url); $r = ['mail' => null, 'whatsapp' => null, 'celular' => null];
+        // Fase 113.2: cada canal dice qué pasó (para el botón «Enviar aviso de prueba» y el log); el registro nunca espera esto.
+        try {
+            if (! ($to = $this->destinatarios())) $r['mail'] = ['ok' => false, 'texto' => 'No hay a quién mandarlo.'];
+            else { SistemaConfig::aplicar(); Mail::to($to)->send(new \App\Mail\AvisoAprobacion($asunto, $texto, $url)); $r['mail'] = ['ok' => $this->mailConfigurado(), 'texto' => ($this->mailConfigurado() ? 'Mail a ' : 'Correo saliente sin configurar (bloque SMTP de esta pantalla): no llega. Iba a ') . implode(', ', $to) . '.']; }
+        } catch (\Throwable $e) { Log::warning('Aviso de aprobación (mail): ' . $e->getMessage()); $r['mail'] = ['ok' => false, 'texto' => 'El mail falló: ' . mb_substr($e->getMessage(), 0, 160)]; }
         try {
             $nums = collect(explode(',', (string) SistemaConfig::get('aviso_registros_whatsapp')))->map(fn($n) => preg_replace('/\D/', '', $n))->filter()->unique();
-            if ($nums->isNotEmpty() && ($bigsys = app(EmpresaBigSysService::class)->actual())) {
-                $wa = app(\App\Services\Canales\WhatsappPedidosService::class);
-                foreach ($nums as $n) $wa->responder($bigsys, $n, "*{$asunto}*\n{$texto}\n{$url}");
+            $bigsys = app(EmpresaBigSysService::class)->actual();
+            if ($nums->isEmpty()) $r['whatsapp'] = ['ok' => false, 'texto' => 'Sin celulares cargados en «Avisar por WhatsApp a».'];
+            elseif (! $bigsys) $r['whatsapp'] = ['ok' => false, 'texto' => 'No hay empresa de BigSys en el ERP (bloque «La empresa de BigSys» de esta pantalla): el WhatsApp sale por su línea.'];
+            else {
+                $wa = app(\App\Services\Canales\WhatsappPedidosService::class); $out = [];
+                foreach ($nums as $n) { $x = $wa->responder($bigsys, $n, "*{$asunto}*\n{$texto}\n{$url}"); $out[] = $x['enviado'] ? "{$n} ✓" : "{$n}: " . ($x['error'] ?? 'no salió'); }
+                $r['whatsapp'] = ['ok' => ! collect($out)->contains(fn($o) => ! str_ends_with($o, '✓')), 'texto' => implode(' · ', $out)];
             }
-        } catch (\Throwable $e) { Log::warning('Aviso de aprobación (WhatsApp): ' . $e->getMessage()); }
+        } catch (\Throwable $e) { Log::warning('Aviso de aprobación (WhatsApp): ' . $e->getMessage()); $r['whatsapp'] = ['ok' => false, 'texto' => 'WhatsApp falló: ' . mb_substr($e->getMessage(), 0, 160)]; }
         try {
-            $cel = app(\App\Services\Avisos\CelularService::class);
-            foreach (User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->get() as $u) $cel->enviar($u, $asunto, \Illuminate\Support\Str::limit($texto, 160), '/admin/pendientes');
-        } catch (\Throwable $e) { Log::warning('Aviso de aprobación (celular): ' . $e->getMessage()); }
+            $cel = app(\App\Services\Avisos\CelularService::class); $n = 0;
+            foreach (User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->get() as $u) $n += (int) $cel->enviar($u, $asunto, \Illuminate\Support\Str::limit($texto, 160), '/admin/pendientes');
+            $r['celular'] = ['ok' => $n > 0, 'texto' => $n ? "Aviso al celular en {$n} dispositivo(s) de superadmins." : 'Ningún superadmin tiene la app o el navegador suscripto a los avisos (Panel → Sistema → App del celular, o la campanita del navegador).'];
+        } catch (\Throwable $e) { Log::warning('Aviso de aprobación (celular): ' . $e->getMessage()); $r['celular'] = ['ok' => false, 'texto' => 'Celular falló: ' . mb_substr($e->getMessage(), 0, 160)]; }
+        return $r;
+    }
+
+    private function mailConfigurado(): bool { return config('mail.default') !== 'log' && (bool) (SistemaConfig::get('mail_host') ?: config('mail.mailers.smtp.host')); }
+
+    // Estado de cada canal de aviso, para mostrarlo antes de que alguien se registre y no enterarse tarde.
+    public function canales(): array
+    {
+        $bigsys = app(EmpresaBigSysService::class)->actual();
+        $nums = collect(explode(',', (string) SistemaConfig::get('aviso_registros_whatsapp')))->map(fn($n) => preg_replace('/\D/', '', $n))->filter();
+        $ids = User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->pluck('id');
+        return [
+            'mail' => ['ok' => $this->mailConfigurado(), 'texto' => $this->mailConfigurado() ? 'Mail a ' . implode(', ', $this->destinatarios()) : 'Correo saliente sin configurar (bloque SMTP de esta pantalla): el mail no sale.'],
+            'whatsapp' => ['ok' => $nums->isNotEmpty() && $bigsys && ! empty($bigsys->whatsapp_settings['token']) && ! empty($bigsys->whatsapp_settings['phone_id']),
+                'texto' => $nums->isEmpty() ? 'Sin celulares cargados.' : (! $bigsys ? 'Falta la empresa de BigSys en el ERP.' : (empty($bigsys->whatsapp_settings['token']) || empty($bigsys->whatsapp_settings['phone_id']) ? "La empresa {$bigsys->name} no tiene la API de WhatsApp Cloud conectada: entrá como dueño → Configuración → Tienda y canales → Pedidos por WhatsApp." : "Por la línea de {$bigsys->name} a " . $nums->implode(', ')))],
+            'celular' => ['ok' => \App\Models\PushSuscripcion::whereIn('user_id', $ids)->exists(), 'texto' => \App\Models\PushSuscripcion::whereIn('user_id', $ids)->exists() ? 'Hay superadmins con la app o el navegador suscriptos.' : 'Ningún superadmin tiene avisos al celular activados todavía.'],
+        ];
     }
 
     public function avisarAlta(Business $b): void
