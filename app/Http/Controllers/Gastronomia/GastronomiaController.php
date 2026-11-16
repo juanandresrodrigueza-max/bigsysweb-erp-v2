@@ -352,6 +352,12 @@ class GastronomiaController extends Controller
         return back()->with('success', "{$p->name}: receta guardada. Costo $ " . number_format(\App\Services\Gastronomia\RecetaVentaService::costo($p->fresh()), 2, ',', '.') . '.');
     }
 
+    // Fase 114: costo de la receta, precio y margen del plato mes a mes, y qué insumo explicó cada cambio.
+    public function historiaPlato(Request $request, int $id, \App\Services\Gastronomia\HistoriaPlatoService $h)
+    {
+        return response()->json($h->serie(Product::findOrFail($id), (int) $request->query('meses', 12)));
+    }
+
     public function sugerirReceta(Request $request, int $id, \App\Services\Gastronomia\RecetaIaService $ia)
     {
         return response()->json($ia->sugerir($request->user()->business, Product::findOrFail($id)));

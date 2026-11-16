@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Historia del plato (fase 114)
+
+Big Restó → Carta → **Historia**: costo de la receta, precio y margen de cada plato mes a mes, con el insumo que explicó cada salto. Bigcito lo cuenta con «¿cómo vino el costo de la milanesa?».
+
 ## Eliminar empresas (fase 113)
 
 En el panel de BigSys, en la ficha de una empresa, **Eliminar definitivamente** la borra con todos sus datos y usuarios (muestra cuánto se va a borrar y pide el nombre exacto y la clave de aprobación). **Dar de baja** sigue existiendo y guarda todo.

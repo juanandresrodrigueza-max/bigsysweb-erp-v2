@@ -8,6 +8,7 @@ use App\Models\Conciliacion;
 use App\Models\CuponTarjeta;
 use App\Models\CuentaFondos;
 use App\Models\Liquidacion;
+use App\Models\Product;
 use App\Models\OrdenEntrega;
 use App\Models\OrdenTrabajo;
 use App\Models\Rubro;
@@ -169,6 +170,23 @@ class Gestion
                 'descripcion' => 'Las opiniones de la encuesta al pagar (último mes): promedio, por mozo, cuándo se concentran las malas, los comentarios y el resumen.',
                 'parametros' => ['dias' => ['type' => 'integer']],
                 'ejecutar' => fn(User $u, array $a) => app(\App\Services\Gastronomia\OpinionesService::class)->resumen($u->business, max(1, min(365, (int) ($a['dias'] ?? 30)))) + ['url' => Busca::url('/estadisticas/gastronomia')]],
+            // Fase 114: la historia del plato, para preguntar «¿cómo vino el costo de la milanesa?».
+            ['nombre' => 'historia_plato', 'titulo' => 'Historia del costo y el margen de un plato', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Cómo fue cambiando el costo de la receta, el precio y el margen de un plato mes a mes, y qué insumo explicó cada cambio. Sin plato, lista los platos con receta y su margen de hoy.',
+                'parametros' => ['plato' => ['type' => 'string', 'description' => 'Nombre (o parte) del plato'], 'meses' => ['type' => 'integer', 'description' => '12 por defecto']],
+                'ejecutar' => function (User $u, array $a) {
+                    $h = app(\App\Services\Gastronomia\HistoriaPlatoService::class);
+                    if (blank($a['plato'] ?? null)) {
+                        $platos = \App\Models\Recipe::where('is_active', true)->with('product')->get()->map(fn($r) => $r->product)->filter()->map(fn($p) => ['plato' => $p->name, 'costo' => \App\Services\Gastronomia\RecetaVentaService::costo($p), 'precio' => (float) $p->price, 'margen' => \App\Services\Gastronomia\RecetaVentaService::margen($p)])->sortBy('margen')->values()->take(30)->all();
+                        return ['platos_con_receta' => $platos, 'nota' => 'Decime de qué plato querés la historia.', 'url' => Busca::url('/gastronomia/carta')];
+                    }
+                    // Primero los que tienen receta, después los que tienen precio de venta (un insumo como «Pavo» no es el plato), después el nombre más corto.
+                    $cands = Product::where('active', true)->where('name', 'like', '%' . trim($a['plato']) . '%')->limit(30)->get();
+                    $conReceta = \App\Models\Recipe::where('is_active', true)->whereIn('product_id', $cands->pluck('id'))->pluck('product_id')->flip();
+                    $p = $cands->sortBy(fn($x) => [$conReceta->has($x->id) ? 0 : 1, (float) $x->price > 0 ? 0 : 1, mb_strlen($x->name)])->first();
+                    if (! $p) return ['error' => 'No encontré el plato «' . $a['plato'] . '».'];
+                    return $h->serie($p, (int) ($a['meses'] ?? 12)) + ['url' => Busca::url('/gastronomia/carta')];
+                }],
             ['nombre' => 'ingenieria_de_menu', 'titulo' => 'Ingeniería de menú', 'modulo' => 'gastronomia', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Cada plato por popularidad y margen: estrellas, caballitos, rompecabezas y perros, con qué hacer con cada uno y tres acciones concretas para la semana.',
                 'parametros' => ['dias' => ['type' => 'integer']],

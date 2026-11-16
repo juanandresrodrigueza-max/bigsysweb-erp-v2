@@ -69,6 +69,14 @@ El QR de cada mesa, que se imprime en Big Restó → Reservas y QR, abre la cart
 - **Costo y margen por plato:** la carta muestra el costo (de la receta si tiene), el margen sobre el precio neto y el **margen objetivo** que le pongas. Cuando una compra sube el costo de un insumo y un plato queda por debajo de su objetivo, llega una alerta: «Café subió 100 %: Café con leche queda con 66 % de margen (objetivo 80 %) · precio sugerido $ X».
 - **Llamador (Big Restó → Llamador):** la pantalla para la tele del local con los pedidos de mostrador «Preparando» y «Listos para retirar», con el número grande. Cuando el último plato queda listo, al cliente le llega un WhatsApp si dejó su número. «Lo retiró» lo saca de la pantalla.
 
+## Historia del plato: costo, precio y margen mes a mes (Fase 114)
+
+En **Big Restó → Carta**, cada plato tiene el botón **Historia** (también dentro de la receta). Muestra, para los últimos 12 meses, el **costo de la receta**, el **precio neto** y el **margen** al cierre de cada mes, y en la columna «Qué cambió» el insumo que explicó cada salto: «Pavo $ 8.000 → $ 9.200 (+$ 240 por porción)», o el cambio de precio del plato. Arriba, el resumen: cuánto subió el costo y el precio en el período, el margen de entonces y el de hoy, y los tres insumos que más pesaron.
+
+Se reconstruye del historial de precios y costos (cada compra que cambia el costo de un insumo y cada cambio de precio quedan con fecha), así que no hay que cargar nada: es la misma receta de siempre. Si el plato no tiene receta, la historia es del costo cargado a mano. Los meses en rojo están por debajo del margen objetivo del plato.
+
+A Bigcito se le pregunta «¿cómo vino el costo de la milanesa?» o «¿qué pasó con el margen del sándwich de pavo?».
+
 ## IA en Big Restó: carta desde una foto, dictar la comanda y pedidos por WhatsApp (Fase 53)
 
 - **Cargar la carta desde una foto:** en Big Restó → Carta, «📷 Cargar carta desde foto». Sacale una foto a la carta, la pizarra o subí el PDF: Bigcito arma los rubros, los platos, los precios y las opciones (tamaños, variantes). Lo revisás en una vista previa, destildás lo que no quieras, y se carga. Lo que ya existía en tu carta no se duplica: solo se le actualiza el precio. Después, pasá por las recetas y por qué va a cocina.
