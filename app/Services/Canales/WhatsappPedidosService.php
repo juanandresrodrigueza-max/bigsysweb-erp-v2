@@ -87,9 +87,9 @@ class WhatsappPedidosService
         if (! empty($ws['token']) && ! empty($ws['phone_id'])) {
             try {
                 $r = Http::withToken($ws['token'])->timeout(10)->post("https://graph.facebook.com/v19.0/{$ws['phone_id']}/messages", ['messaging_product' => 'whatsapp', 'to' => preg_replace('/\D/', '', $telefono), 'type' => 'text', 'text' => ['body' => $texto]]);
-                return ['enviado' => $r->successful(), 'link' => null];
-            } catch (\Throwable $e) {}
+                return ['enviado' => $r->successful(), 'link' => null, 'error' => $r->successful() ? null : 'Meta respondió ' . $r->status() . ': ' . ($r->json('error.message') ?? mb_substr($r->body(), 0, 120))];
+            } catch (\Throwable $e) { return ['enviado' => false, 'link' => null, 'error' => 'No se pudo conectar con Meta: ' . mb_substr($e->getMessage(), 0, 120)]; }
         }
-        return ['enviado' => false, 'link' => 'https://wa.me/' . preg_replace('/\D/', '', $telefono) . '?text=' . rawurlencode($texto)];
+        return ['enviado' => false, 'link' => 'https://wa.me/' . preg_replace('/\D/', '', $telefono) . '?text=' . rawurlencode($texto), 'error' => 'La empresa no tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp).'];
     }
 }

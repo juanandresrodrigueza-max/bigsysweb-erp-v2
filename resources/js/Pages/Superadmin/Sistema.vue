@@ -54,7 +54,14 @@
           <div><label class="label">Avisar por mail a (separados por coma)</label><input v-model="form.aviso_registros_emails" class="input" placeholder="vacío = superadmins + soporte" /></div>
           <div><label class="label">Avisar por WhatsApp a (celulares, con 549…)</label><input v-model="form.aviso_registros_whatsapp" class="input" placeholder="5493515550000" /><p class="text-[11px] text-marca-muted mt-1">Sale por la línea de WhatsApp de la empresa de BigSys.</p></div>
         </div>
-        <div class="flex items-center justify-between"><p class="text-xs text-marca-muted">Pendientes ahora: <b>{{ aprobacion.pendientes }}</b>. Los avisos van también al celular de cada superadmin (app).</p><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+        <!-- Fase 113.2: por dónde sale el aviso de cada alta, y una prueba real -->
+        <div class="rounded-xl bg-marca-fondo p-3 text-xs space-y-1" data-e2e="canales-aviso">
+          <p class="font-semibold text-marca-texto">Cuando alguien se registra, el aviso sale por:</p>
+          <p v-for="(c, k) in aprobacion.canales" :key="k"><span :class="c.ok ? 'text-emerald-700' : 'text-carmin'">{{ c.ok ? '✓' : '✗' }}</span> <b>{{ { mail: 'Mail', whatsapp: 'WhatsApp', celular: 'Celular' }[k] }}:</b> {{ c.texto }}</p>
+          <p v-if="prueba?.que === 'aviso'" class="whitespace-pre-line mt-2 px-3 py-2 rounded-lg" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="prueba-aviso">{{ prueba.texto }}</p>
+          <div class="pt-1"><Link href="/admin/sistema/probar-aviso" method="post" as="button" preserve-scroll class="btn-secondary !py-1 text-xs" data-e2e="probar-aviso">Enviar aviso de prueba por los tres canales</Link></div>
+        </div>
+        <div class="flex items-center justify-between"><p class="text-xs text-marca-muted">Pendientes ahora: <b>{{ aprobacion.pendientes }}</b>.</p><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
         <!-- Quiénes pueden cambiar la clave: lo decide el dueño (quien la cargó primero y a quienes designe) -->
         <div v-if="aprobacion.clave_set" class="border-t border-marca-borde pt-3" data-e2e="clave-duenos">
           <p class="text-sm font-semibold">Quiénes pueden cambiar la clave y designar a otros</p>

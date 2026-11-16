@@ -98,4 +98,27 @@ class Fase113Test extends ErpTestCase
         $this->expectException(\Illuminate\Validation\ValidationException::class);
         app(EliminarEmpresaService::class)->eliminar($this->empresa, $this->dueno);
     }
+
+    // Fase 113.2: el botón «Enviar aviso de prueba» cuenta por canal qué salió y qué no (visto en producción: el WhatsApp no llegaba y nadie sabía por qué).
+    public function test_el_aviso_de_prueba_dice_por_que_no_sale_el_whatsapp_y_sale_cuando_hay_api(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $super = $this->superadmin();
+        \App\Models\SistemaConfig::set('aviso_registros_whatsapp', '5493515551234');
+        $r = $this->post('/admin/sistema/probar-aviso')->assertRedirect();
+        $p = session('prueba');
+        $this->assertSame('aviso', $p['que']);
+        $this->assertStringContainsString('✗ WhatsApp', $p['texto']); $this->assertStringContainsString('empresa de BigSys', $p['texto']);
+        // Con la empresa de BigSys y su API conectada, sale.
+        \App\Models\SistemaConfig::set(\App\Services\Suscripciones\EmpresaBigSysService::CLAVE, $this->empresa->id);
+        $this->empresa->update(['whatsapp_settings' => ['token' => 'tok', 'phone_id' => '777']]);
+        \Illuminate\Support\Facades\Http::fake(['graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response(['messages' => [['id' => 'wamid']]])]);
+        $this->post('/admin/sistema/probar-aviso')->assertRedirect();
+        $p = session('prueba');
+        $this->assertStringContainsString('✓ WhatsApp', $p['texto']); $this->assertStringContainsString('5493515551234 ✓', $p['texto']);
+        \Illuminate\Support\Facades\Http::assertSent(fn($req) => str_contains($req->url(), '/777/messages') && str_contains($req['text']['body'], 'Prueba de aviso de altas'));
+        $canales = app(\App\Services\Suscripciones\AprobacionService::class)->canales();
+        $this->assertTrue($canales['whatsapp']['ok']); $this->assertFalse($canales['celular']['ok']);
+        $this->get('/admin/sistema')->assertOk()->assertInertia(fn($a) => $a->has('aprobacion.canales.whatsapp.ok'));
+    }
 }
