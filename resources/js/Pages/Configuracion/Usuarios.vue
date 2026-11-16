@@ -75,6 +75,7 @@
         </div>
       </form>
       <template #pie>
+        <button v-if="form.id && !esDueno && form.id !== usePage().props.auth?.user?.id" type="button" class="btn-ghost text-carmin mr-auto text-xs" @click="eliminar" data-e2e="eliminar-usuario">Eliminar usuario</button>
         <button class="btn-secondary" @click="modal = false">Cancelar</button>
         <button class="btn-primary" @click="guardar" :disabled="form.processing">Guardar</button>
       </template>
@@ -84,7 +85,7 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
-import { useForm, router } from '@inertiajs/vue3'
+import { useForm, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
@@ -98,6 +99,11 @@ const vacio = { id: null, name: '', email: '', mobile: '', password: '', status:
 const form = useForm({ ...vacio })
 
 const iniciales = n => (n ?? '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
+// Fase 112: eliminar. Sin movimientos se borra; con movimientos queda sin acceso y como «Usuario eliminado» en el historial.
+function eliminar() {
+  if (!confirm(`¿Eliminar a ${form.name}?\n\nSi nunca cargó nada se borra. Si tiene ventas, cobros o movimientos, queda sin acceso y figura como «Usuario eliminado» en el historial. No se borra ningún comprobante.`)) return
+  router.delete(`/configuracion/usuarios/${form.id}`, { preserveScroll: true, onSuccess: () => (modal.value = false) })
+}
 function abrir(u) {
   form.clearErrors()
   esDueno.value = !!u?.es_dueno

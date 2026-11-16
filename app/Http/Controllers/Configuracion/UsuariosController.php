@@ -84,6 +84,15 @@ class UsuariosController extends Controller
         return back()->with('success', $id ? 'Usuario actualizado.' : 'Usuario creado.');
     }
 
+    // Fase 112: eliminar un usuario de la empresa (nunca el dueño ni uno mismo). Con movimientos queda anónimo y sin acceso.
+    public function eliminar(Request $request, int $id)
+    {
+        $b = $request->user()->business;
+        $u = $b->users()->findOrFail($id);
+        $r = app(\App\Services\Usuarios\BajaUsuarioService::class)->eliminar($u, $request->user());
+        return back()->with('success', $r['mensaje']);
+    }
+
     // Fase 39.2: a qué otras empresas entra esta persona y con qué perfil (validado: sólo las empresas donde manda quien lo hace).
     public function empresas(Request $request, int $id)
     {

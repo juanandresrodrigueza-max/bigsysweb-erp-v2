@@ -30,6 +30,15 @@ Lo que exige ARCA sale siempre y no se puede sacar: razón social, domicilio com
 
 Un usuario por persona. Los **roles del sistema** (dueño, administrador, contador, vendedor, cajero, compras, depósito, técnico, recepción) ya vienen armados; se pueden copiar y ajustar permiso por permiso (ver, crear, editar, anular, exportar) y por módulo. En la lista de usuarios se ve el último acceso y la actividad de los últimos 30 días.
 
+### Eliminar un usuario (fase 112)
+
+En Configuración → Usuarios, al editar a alguien, abajo a la izquierda está **Eliminar usuario**. Qué pasa:
+
+- Si esa persona **nunca cargó nada** (ni ventas, ni cobros, ni movimientos), se borra del todo.
+- Si **tiene movimientos**, no se puede borrar sin romper el historial: queda **sin acceso**, sin empresa ni rol, y en cada comprobante o movimiento figura como «Usuario eliminado». No se borra ningún comprobante.
+- No se puede eliminar al **dueño** de la empresa (primero pasá la titularidad) ni a uno mismo. Para una pausa, usá **Inactivo** en vez de eliminar.
+- El superadmin de BigSys tiene el mismo botón en Panel → Usuarios y en la ficha de cada empresa, con la misma regla; además no puede quedarse sin ningún superadmin activo.
+
 ## Impuestos
 
 Percepciones y retenciones de IIBB, IVA y Ganancias, padrones por jurisdicción, CBU para Factura de Crédito MiPyME, mes de cierre e índice IPC.
