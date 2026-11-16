@@ -1,6 +1,6 @@
 # Lo que falta para dejar el ERP 100 % operativo (lo hace Juan, no el código)
 
-Escrito el 15/11/2026, con producción en `erp.bigsysweb.com` al día con `main` (todo hasta la fase 104 y el arreglo de copias de seguridad, PR #152).
+Escrito el 15/11/2026 y actualizado el 16/11: producción en `erp.bigsysweb.com` al día con `main` (`0c6bfc4`, todo hasta la fase 111: Bigcito por WhatsApp).
 El software está. Lo que sigue son cuentas, claves, certificados y decisiones que sólo puede hacer el dueño de las cuentas.
 **Regla de siempre: ninguna clave, token, certificado ni contraseña va por el chat.** Todo se carga en los formularios del ERP o en el servidor desde la sesión «CRM Producción».
 
@@ -14,7 +14,7 @@ Orden sugerido: primero el bloque A (mañana a la mañana), después B y C en el
 - [ ] **Probar en producción «Facturar después»** con la empresa de BigSys o una de prueba: hacer una venta tildada como comprobante interno, y desde el comprobante apretar **Facturar** (fase 104). Tiene que salir con numeración fiscal y CAE (o simulado si la empresa no tiene certificado). Es la única función nueva que no se probó con datos reales.
 - [ ] **Cargar la clave de aprobación** en Panel → Sistema → Altas con aprobación (fase 106) y, si querés WhatsApp, los celulares. Después probar: registrarte con un mail de prueba en `/registro`, ver que te llega el aviso y aprobarla en Panel → Pendientes.
 - [ ] **Probar las propuestas de Bigcito** (fase 107): en Inicio → Propuestas, botón «Revisar ahora»; aprobar una de cobranza y una de precios y ver que ejecuta. Abrir «Resumen hablado» en el celular y tocar Escuchar.
-- [x] **Producción actualizada** el 15/11 a las 23:42 (commit `14712c5`, fases 106 a 108.1; copia previa en `/root/erp-antes-20261115-2342.sql.gz`). Para las próximas: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
+- [x] **Producción actualizada** el 16/11 al mediodía (commit `0c6bfc4`, fases 109 a 111; `/salud` ok y `/conocer` con la novedad de Bigcito por WhatsApp). Para las próximas: siempre con la sesión «CRM Producción», `curl -fsSL https://raw.githubusercontent.com/juanandresrodrigueza-max/bigsysweb-erp-v2/main/deploy/actualizar.sh | bash`.
 
 ## B · Plataforma BigSys (Superadmin → Sistema, una sola vez)
 
