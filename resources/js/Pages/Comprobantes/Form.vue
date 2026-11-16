@@ -178,7 +178,7 @@
           </div>
           <p v-if="form.sin_arca && esFiscal" class="text-[11px] text-amber-700 mt-3">Se emite como comprobante interno: no se informa a ARCA.</p>
           <p v-if="form.manual && esFiscal" class="text-[11px] text-violeta mt-3">Se carga como manual de talonario {{ form.pv_manual && form.numero_manual ? String(form.pv_manual).padStart(4, '0') + '-' + String(form.numero_manual).padStart(8, '0') : '' }}: no se pide CAE.</p>
-          <p v-else-if="!afipConfigurado && esFiscal" class="text-[11px] text-amber-700 mt-3">Sin certificado AFIP se emite simulado (sin CAE).</p>
+          <p v-else-if="!afipConfigurado && esFiscal" class="text-[11px] text-amber-700 mt-3">Sin certificado ARCA se emite simulado (sin CAE).</p>
         </div>
       </div>
     </div>

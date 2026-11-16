@@ -32,13 +32,13 @@
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Por cobrar</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.por_cobrar, 0) }}</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Vencido</p><p class="text-xl font-extrabold tabular-nums text-carmin">{{ moneda(kpis.vencido, 0) }}</p><p class="text-xs text-marca-muted">{{ kpis.deudores }} clientes</p></div>
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Mora acumulada</p><p class="text-xl font-extrabold tabular-nums text-amber-700">{{ moneda(kpis.mora, 0) }}</p><p class="text-xs text-marca-muted">según % de cada cliente</p></div>
-      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Avisos</p><p class="text-xl font-extrabold tabular-nums">{{ config.activo ? config.dias.join(' / ') : 'OFF' }}</p><p class="text-xs text-marca-muted">días respecto del vencimiento</p></div>
+      <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Avisos</p><p class="text-base font-extrabold leading-snug">{{ config.activo ? diasHumanos(config.dias) : 'Apagados' }}</p><p class="text-xs text-marca-muted">días respecto del vencimiento</p></div>
     </div>
 
     <div class="grid lg:grid-cols-[minmax(0,1fr)_20rem] gap-4">
       <div class="card p-0 overflow-x-auto min-w-0">
         <table class="table">
-          <thead><tr><th>Cliente</th><th>Riesgo</th><th class="text-right">Saldo</th><th class="text-right">Vencido</th><th class="text-right">Atraso</th><th class="text-right">Mora</th><th>Último aviso</th><th></th></tr></thead>
+          <thead><tr><th>Cliente</th><th>Riesgo</th><th class="text-right">Saldo</th><th class="text-right">Vencido</th><th class="text-right">Atraso</th><th class="text-right">Mora</th><th class="whitespace-nowrap">Último aviso</th><th></th></tr></thead>
           <tbody>
             <tr v-for="d in deudores" :key="d.id">
               <td class="max-w-[16rem]"><Link :href="`/clientes/${d.id}`" class="font-semibold hover:text-carmin">{{ d.nombre }}</Link><p class="text-xs text-marca-muted truncate" :title="[d.vendedor, d.email, d.telefono].filter(Boolean).join(' · ')">{{ [d.vendedor, d.email, d.telefono].filter(Boolean).join(' · ') }}<span v-if="d.plan" class="badge bg-violeta-light text-violeta ml-1">plan de pago</span></p></td>
@@ -157,6 +157,8 @@ async function leerTransferencia(ev) {
 function alertar(t) { page.props.flash = { ...(page.props.flash ?? {}), error: t } }
 const cf = useForm({ activo: props.config.activo, ia: props.config.ia ?? true, canales: [...props.config.canales], texto: props.config.texto, whatsapp_token: props.whatsapp.token, whatsapp_phone_id: props.whatsapp.phone_id })
 const diasTexto = ref(props.config.dias.join(', '))
+// Fase 110: «-3 / 0 / 7 / 30» → «3 días antes · el día · a los 7 · a los 30»
+function diasHumanos(ds) { return [...ds].map(Number).sort((a, b) => a - b).map(d => d < 0 ? `${-d} días antes` : (d === 0 ? 'el día' : `a los ${d}`)).join(' · ') }
 function recordar(d, canal) { router.post(`/clientes/cobranzas/${d.id}/recordar`, { canal }, { preserveScroll: true, onSuccess: () => { const abrir = page.props.flash?.abrir; if (abrir) { window.open(abrir, '_blank'); const id = page.props.flash?.envio_id; if (id) window.axios.post(`/envios/${id}/marcar`).catch(() => {}) } } }) }
 
 const refi = ref(null), pendRefi = ref([]), cargandoPend = ref(false)

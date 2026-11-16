@@ -6,7 +6,7 @@
         <div>
           <Link href="/admin/empresas" class="text-xs text-marca-muted hover:text-carmin">← Empresas</Link>
           <h1 class="page-title">{{ empresa.nombre }}</h1>
-          <p class="page-subtitle">{{ empresa.vertical }} · {{ empresa.cuit ?? 'sin CUIT' }} · alta {{ empresa.alta }}</p>
+          <p class="page-subtitle">{{ [empresa.vertical !== '—' ? empresa.vertical : null, empresa.cuit ?? 'sin CUIT', 'alta ' + empresa.alta].filter(Boolean).join(' · ') }}</p>
           <div class="flex flex-wrap gap-1.5 mt-1.5">
             <span class="badge" :class="estadoClase[empresa.estado]">{{ empresa.estado_label }}</span>
             <span v-if="suscripcion" class="badge bg-lavanda-light text-violeta">{{ suscripcion.plan }} · {{ cicloLabel[suscripcion.ciclo] }}</span>

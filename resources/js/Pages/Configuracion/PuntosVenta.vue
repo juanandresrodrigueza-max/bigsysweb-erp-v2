@@ -1,11 +1,11 @@
 <template>
-  <AppLayout titulo="Puntos de venta y AFIP">
-    <div class="mb-5"><h1 class="page-title">Puntos de venta y AFIP</h1><p class="page-subtitle">Los puntos de venta habilitados en ARCA y el certificado para facturar electrónicamente.</p></div>
+  <AppLayout titulo="Puntos de venta y ARCA">
+    <div class="mb-5"><h1 class="page-title">Puntos de venta y ARCA</h1><p class="page-subtitle">Los puntos de venta habilitados en ARCA y el certificado para facturar electrónicamente.</p></div>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card">
         <div class="flex items-center justify-between mb-3"><h2 class="font-bold">Puntos de venta</h2><button @click="abrir()" class="btn-primary !py-1.5 text-xs"><Icono nombre="plus" clase="w-3.5 h-3.5" /> Nuevo</button></div>
-        <p class="text-sm text-marca-muted mb-3">Cada punto de venta numera sus comprobantes. Tienen que estar dados de alta en AFIP con el mismo número.</p>
+        <p class="text-sm text-marca-muted mb-3">Cada punto de venta numera sus comprobantes. Tienen que estar dados de alta en ARCA con el mismo número.</p>
         <table class="table">
           <thead><tr><th>N°</th><th>Sucursal</th><th>Modo</th><th>Estado</th><th></th></tr></thead>
           <tbody>
@@ -20,7 +20,7 @@
       </div>
 
       <div class="card">
-        <h2 class="font-bold mb-1">Factura electrónica AFIP</h2>
+        <h2 class="font-bold mb-1">Factura electrónica ARCA</h2>
         <div class="flex items-center gap-2 mb-3">
           <span class="w-2.5 h-2.5 rounded-full" :class="afip.configurado ? 'bg-emerald-500' : 'bg-amber-500'"></span>
           <span class="text-sm">{{ afip.configurado ? `Configurado · CUIT ${afip.cuit} · ${afip.produccion ? 'Producción' : 'Homologación'}` : 'Sin certificado: las facturas se emiten simuladas (sin CAE).' }}</span>
@@ -52,7 +52,7 @@
       <div class="grid sm:grid-cols-2 gap-4">
         <div><label class="label">Número</label><input v-model.number="form.numero" type="number" min="1" max="9999" class="input" /><p v-if="form.errors.numero" class="text-carmin text-xs mt-1">{{ form.errors.numero }}</p></div>
         <div><label class="label">Sucursal</label><select v-model="form.business_location_id" class="input"><option :value="null">General</option><option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.name }}{{ s.cuit ? ' · CUIT propio ' + s.cuit : '' }}</option></select></div>
-        <div><label class="label">Modo</label><select v-model="form.modo" class="input"><option value="electronico">Electrónico (AFIP)</option><option value="manual">Manual / talonario</option></select></div>
+        <div><label class="label">Modo</label><select v-model="form.modo" class="input"><option value="electronico">Electrónico (ARCA)</option><option value="manual">Manual / talonario</option></select></div>
         <label class="flex items-center gap-2 text-sm mt-6"><input v-model="form.activo" type="checkbox" class="accent-carmin" /> Activo</label>
       </div>
       <template #pie>

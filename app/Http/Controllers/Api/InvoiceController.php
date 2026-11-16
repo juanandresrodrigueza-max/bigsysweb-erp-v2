@@ -69,7 +69,7 @@ class InvoiceController extends Controller
 
         if (! $business->cuit || ! $business->afip_cert_path || ! $business->afip_key_path) {
             return response()->json([
-                'message' => 'Configurá los datos AFIP del negocio antes de facturar.',
+                'message' => 'Configurá los datos ARCA del negocio antes de facturar.',
                 'missing' => array_filter([
                     'cuit'            => ! $business->cuit,
                     'afip_cert_path'  => ! $business->afip_cert_path,

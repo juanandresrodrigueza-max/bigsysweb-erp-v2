@@ -44,7 +44,9 @@ class ContableController extends Controller
         return Inertia::render('Contable/Index', [
             'periodo' => ['desde' => $desde, 'hasta' => $hasta], 'resultado' => $res, 'meses' => $meses,
             'posicion' => [
-                'caja' => $saldo('caja') + $saldo('banco') + $saldo('billetera'), 'cheques' => $saldo('cheques_cartera'), 'deudores' => $saldo('deudores'), 'mercaderias' => $saldo('mercaderias'),
+                'caja' => $saldo('caja') + $saldo('banco') + $saldo('billetera'), 'cheques' => $saldo('cheques_cartera'), 'deudores' => $saldo('deudores'),
+                // Fase 110: el mismo número que Stock → «Stock valorizado (costo)»: lo físico, no la cuenta contable (que depende de que las compras estén cargadas).
+                'mercaderias' => (float) \App\Models\Product::where('active', true)->where('controla_stock', true)->selectRaw('COALESCE(SUM(stock * cost),0) as v')->value('v'),
                 'proveedores' => -$saldo('proveedores'), 'cheques_propios' => -$saldo('cheques_propios'), 'iva' => -($saldo('iva_df') + $saldo('iva_cf')),
             ],
             'asientos' => Asiento::count(), 'ultimo' => Asiento::confirmados()->latest('fecha')->latest('id')->first()?->fecha?->format('d/m/Y'),

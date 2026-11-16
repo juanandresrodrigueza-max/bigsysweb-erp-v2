@@ -25,11 +25,13 @@ class GenerarAlertas extends Command
             $id = $b->id;
 
             // Stock bajo mínimo
-            $bajo = Product::withoutGlobalScopes()->where('business_id', $id)->where('active', true)->whereColumn('stock', '<=', 'stock_min')->get();
+            // Fase 110: sólo lo que controla stock y tiene mínimo cargado (un servicio o un artículo sin mínimo no es «bajo mínimo»).
+            $bajo = Product::withoutGlobalScopes()->where('business_id', $id)->where('active', true)->where('controla_stock', true)->where('stock_min', '>', 0)->whereColumn('stock', '<=', 'stock_min')->get();
+            Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'stock_minimo')->whereNull('resuelta_en')->whereNotIn('modelo_id', $bajo->pluck('id')->all() ?: [0])->update(['resuelta_en' => now()]); // las que dejaron de estar bajo mínimo se resuelven solas
             foreach ($bajo as $p) {
                 Alerta::withoutGlobalScopes()->updateOrCreate(
                     ['business_id' => $id, 'tipo' => 'stock_minimo', 'modelo' => 'Product', 'modelo_id' => $p->id],
-                    ['business_location_id' => $p->business_location_id, 'modulo' => 'stock', 'severidad' => (float) $p->stock <= 0 ? 'critica' : 'aviso', 'titulo' => "{$p->name} bajo mínimo", 'detalle' => "Stock {$p->stock} {$p->unit}, mínimo {$p->stock_min}.", 'url' => '/stock', 'resuelta_en' => null]
+                    ['business_location_id' => $p->business_location_id, 'modulo' => 'stock', 'severidad' => (float) $p->stock <= 0 ? 'critica' : 'aviso', 'titulo' => "{$p->name} bajo mínimo", 'detalle' => 'Stock ' . \App\Support\Formato::cantidad($p->stock) . " {$p->unit}, mínimo " . \App\Support\Formato::cantidad($p->stock_min) . '.', 'url' => '/stock', 'resuelta_en' => null]
                 );
             }
             $nuevasBajo = $bajo->filter(fn($p) => ! Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'stock_minimo')->where('modelo_id', $p->id)->whereNull('resuelta_en')->where('created_at', '<', now()->subMinute())->exists());
@@ -160,7 +162,7 @@ class GenerarAlertas extends Command
             foreach ($lotes as $l) {
                 $vencido = $l->vencimiento->isPast();
                 Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $id, 'tipo' => 'lote_vence', 'modelo' => 'Lote', 'modelo_id' => $l->id],
-                    ['modulo' => 'stock', 'severidad' => $vencido ? 'critica' : 'aviso', 'titulo' => ($vencido ? 'Vencido: ' : 'Por vencer: ') . $l->product?->name . ' · ' . $l->etiqueta(), 'detalle' => number_format((float) $l->cantidad, 2, ',', '.') . ' ' . ($l->product?->unit ?? '') . ($vencido ? ' vencidas. Retiralas de la venta o dalas de baja con un ajuste.' : ' vencen el ' . $l->vencimiento->format('d/m/Y') . '. Priorizá su venta o promocionalas.'), 'url' => "/stock/informes?tipo=vencimientos", 'resuelta_en' => null]);
+                    ['modulo' => 'stock', 'severidad' => $vencido ? 'critica' : 'aviso', 'titulo' => ($vencido ? 'Vencido: ' : 'Por vencer: ') . $l->product?->name . ' · ' . $l->etiqueta(), 'detalle' => \App\Support\Formato::cantidad($l->cantidad) . ' ' . ($l->product?->unit ?? '') . ($vencido ? ' vencidas. Retiralas de la venta o dalas de baja con un ajuste.' : ' vencen el ' . $l->vencimiento->format('d/m/Y') . '. Priorizá su venta o promocionalas.'), 'url' => "/stock/informes?tipo=vencimientos", 'resuelta_en' => null]);
             }
             Alerta::withoutGlobalScopes()->where('business_id', $id)->where('tipo', 'lote_vence')->whereNull('resuelta_en')->whereNotIn('modelo_id', $lotes->pluck('id'))->update(['resuelta_en' => now()]);
 

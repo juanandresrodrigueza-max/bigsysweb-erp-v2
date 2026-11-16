@@ -51,7 +51,7 @@ class GruposFase82Test extends ErpTestCase
     {
         $nav = collect($this->props($this->dueno, '/dashboard')['nav'])->flatMap(fn($g) => $g['items'])->keyBy('key');
         $this->assertContains('Liquidaciones', array_column($nav['contable']['secciones'], 'label'));
-        $this->assertContains('Puntos de venta y AFIP', array_column($nav['configuracion']['secciones'], 'label'));
+        $this->assertContains('Puntos de venta y ARCA', array_column($nav['configuracion']['secciones'], 'label'));
         $this->assertSame([], $nav['inicio']['secciones']);
         $this->assertStringContainsString('secciones', file_get_contents(resource_path('js/Components/Paleta.vue')));
         $this->assertStringContainsString('data-secciones', file_get_contents(resource_path('js/Components/MenuLateral.vue'))); // Fase 88: las secciones cuelgan del menú

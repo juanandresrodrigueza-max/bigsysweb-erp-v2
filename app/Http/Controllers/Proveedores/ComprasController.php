@@ -204,7 +204,7 @@ class ComprasController extends Controller
         $contenido = $request->hasFile('archivo') ? file_get_contents($request->file('archivo')->getRealPath()) : \Illuminate\Support\Facades\Cache::get('afip_csv_' . $request->user()->business_id . '_' . $request->input('token'));
         abort_if($contenido === null, 422, 'El archivo ya no está: volvé a subirlo.');
         $res = $import->importar($contenido, $request->boolean('registrar'), $request->filled('solo') ? $request->input('solo') : null);
-        $msg = "Importación AFIP: {$res['creadas']} compras creadas, {$res['existentes']} ya existían, {$res['proveedores_nuevos']} proveedores nuevos." . ($res['errores'] ? ' Errores: ' . implode(' | ', array_slice($res['errores'], 0, 5)) : '');
+        $msg = "Importación ARCA: {$res['creadas']} compras creadas, {$res['existentes']} ya existían, {$res['proveedores_nuevos']} proveedores nuevos." . ($res['errores'] ? ' Errores: ' . implode(' | ', array_slice($res['errores'], 0, 5)) : '');
         return back()->with($res['errores'] && ! $res['creadas'] ? 'error' : 'success', $msg);
     }
 

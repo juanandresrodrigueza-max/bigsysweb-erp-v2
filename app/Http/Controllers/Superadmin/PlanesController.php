@@ -19,7 +19,7 @@ class PlanesController extends Controller
                 'max_users' => $p->max_users, 'max_locations' => $p->max_locations, 'max_products' => $p->max_products, 'max_facturas_mes' => (int) $p->max_facturas_mes, 'features' => (array) $p->features, 'is_active' => $p->is_active, 'is_free' => $p->is_free, 'activas' => $p->activas,
             ]),
             'modulos' => collect(config('erp.modulos'))->map(fn($m, $k) => ['key' => $k, 'label' => $m['label'], 'core' => $m['core']])->values(),
-            'extras' => ['afip' => 'Facturación electrónica AFIP', 'crm' => 'CRM BigSys', 'mercadopago' => 'Cobros MercadoPago', 'tiendanube' => 'Tiendanube', 'api' => 'API', 'soporte_prioritario' => 'Soporte prioritario'],
+            'extras' => ['afip' => 'Facturación electrónica ARCA', 'crm' => 'CRM BigSys', 'mercadopago' => 'Cobros MercadoPago', 'tiendanube' => 'Tiendanube', 'api' => 'API', 'soporte_prioritario' => 'Soporte prioritario'],
         ]);
     }
 

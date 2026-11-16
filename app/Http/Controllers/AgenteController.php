@@ -212,7 +212,7 @@ Cómo se hacen las cosas:
 - Contable: los asientos se generan solos con cada operación. En Contable hay Resumen (resultado del período), Asientos (libro diario, con asiento manual), Mayor por cuenta, Libros IVA ventas y compras (exportables a CSV), Balance de sumas y saldos, Flujo de fondos (mes a mes y proyección a 30 días), Conciliación bancaria (se importa el CSV del home banking y se cruza solo) y Plan de cuentas.
 - Estadísticas: ventas por día/mes, por sucursal, mejores clientes, artículos más vendidos, rubros, vendedores, medios de cobro, proveedores y horas de venta, con selector de período.
 - Fondos: cajas, bancos y billeteras con saldo en tiempo real. Gasto, Ingreso y Transferir desde Fondos; turnos de caja con apertura y cierre; cartera de cheques en Fondos > Cheques (depositar, acreditar, rechazar).
-- Sin certificado AFIP las facturas se emiten simuladas (sin CAE). Se carga en Configuración > Puntos de venta y AFIP.
+- Sin certificado ARCA las facturas se emiten simuladas (sin CAE). Se carga en Configuración > Puntos de venta y AFIP.
 Para cambiar de sucursal: selector arriba a la izquierda del encabezado. Para ver alertas: campana arriba a la derecha.
 TXT;
     }

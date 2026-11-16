@@ -22,7 +22,7 @@ Tené a mano:
 
 1. ★ **Configuración → Empresa**: nombre comercial, razón social, CUIT, condición IVA, email y teléfono. En "Datos fiscales de la factura impresa" cargá domicilio comercial, Ingresos Brutos e inicio de actividades.
 2. **Configuración → Empresa → Diseño de comprobantes**: subí el logo, elegí tus dos colores, el estilo del encabezado, los datos extra (web, redes, CBU) y la leyenda al pie. Con "Ver una factura con este diseño" lo comprobás.
-3. ★ **Configuración → Puntos de venta y AFIP**: creá el punto de venta con el mismo número que en ARCA y marcá "electrónico". Subí el certificado y la clave; probá con "Probar conexión". Si todavía no tenés certificado, seguí igual: las facturas salen simuladas hasta que lo cargues.
+3. ★ **Configuración → Puntos de venta y ARCA**: creá el punto de venta con el mismo número que en ARCA y marcá "electrónico". Subí el certificado y la clave; probá con "Probar conexión". Si todavía no tenés certificado, seguí igual: las facturas salen simuladas hasta que lo cargues.
 4. ★ **Fondos**: verificá que exista una caja en efectivo y creá la cuenta bancaria (banco, CBU, saldo inicial al día del corte). Si usás Mercado Pago, creá también la billetera.
 5. **Configuración → Sucursales**: si tenés más de un local, creá cada sucursal con su depósito y su punto de venta.
 6. **Configuración → Impuestos**: si sos agente de percepción o retención, activá lo que corresponda. Si no, dejalo como está.

@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
         <h1 class="page-title">Compras</h1>
-        <p class="page-subtitle">Facturas de compra cargadas a mano, leídas con IA o importadas de AFIP.</p>
+        <p class="page-subtitle">Facturas de compra cargadas a mano, leídas con IA o importadas de ARCA.</p>
       </div>
       <div v-if="puede('proveedores','crear')" class="flex gap-2">
         <Link href="/proveedores/ordenes" class="btn-secondary">Órdenes de compra</Link>
@@ -35,7 +35,7 @@
         <thead><tr><th>Comprobante</th><th>Fecha</th><th>Proveedor</th><th>Vence</th><th class="text-right">Total</th><th class="text-right">Saldo</th><th>Estado</th></tr></thead>
         <tbody>
           <tr v-for="c in lista.data" :key="c.id" class="cursor-pointer" @click="$inertia.visit(`/proveedores/compras/${c.id}`)">
-            <td><div class="flex items-center gap-2"><span class="w-7 h-7 rounded-lg grid place-items-center text-xs font-extrabold" :class="c.estado === 'anulado' ? 'bg-gris-light text-marca-muted' : c.grupo === 'nc' ? 'bg-violeta text-white' : 'bg-lavanda text-violeta'">{{ c.letra }}</span><div><p class="font-semibold leading-tight">{{ c.nombre }}</p><p class="text-xs text-marca-muted tabular-nums">{{ c.numero ?? 'sin número' }} <span v-if="c.origen_carga && c.origen_carga !== 'manual'" class="badge bg-violeta-light text-violeta ml-1">{{ c.origen_carga === 'ocr' ? 'IA' : 'AFIP' }}</span></p></div></div></td>
+            <td><div class="flex items-center gap-2"><span class="w-7 h-7 rounded-lg grid place-items-center text-xs font-extrabold" :class="c.estado === 'anulado' ? 'bg-gris-light text-marca-muted' : c.grupo === 'nc' ? 'bg-violeta text-white' : 'bg-lavanda text-violeta'">{{ c.letra }}</span><div><p class="font-semibold leading-tight">{{ c.nombre }}</p><p class="text-xs text-marca-muted tabular-nums">{{ c.numero ?? 'sin número' }} <span v-if="c.origen_carga && c.origen_carga !== 'manual'" class="badge bg-violeta-light text-violeta ml-1">{{ c.origen_carga === 'ocr' ? 'IA' : 'ARCA' }}</span></p></div></div></td>
             <td class="text-marca-muted tabular-nums">{{ c.fecha }}</td><td class="font-medium">{{ c.proveedor }}</td>
             <td class="tabular-nums" :class="c.vencido ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ c.grupo === 'factura' || c.grupo === 'nd' ? c.fecha_vto : '' }}</td>
             <td class="text-right font-semibold tabular-nums">{{ moneda(c.total) }}</td><td class="text-right tabular-nums" :class="c.saldo > 0 ? 'text-carmin font-semibold' : 'text-marca-muted'">{{ c.estado_pago !== 'na' ? moneda(c.saldo) : '' }}</td>
