@@ -211,7 +211,8 @@ class EmpresasController extends Controller
     public function usuario(Request $request, int $id, int $userId)
     {
         $u = User::where('business_id', $id)->findOrFail($userId);
-        $d = $request->validate(['accion' => 'required|in:activar,desactivar,password', 'password' => 'required_if:accion,password|nullable|string|min:6']);
+        $d = $request->validate(['accion' => 'required|in:activar,desactivar,password,eliminar', 'password' => 'required_if:accion,password|nullable|string|min:6']);
+        if ($d['accion'] === 'eliminar') { $r = app(\App\Services\Usuarios\BajaUsuarioService::class)->eliminar($u, $request->user()); return back()->with('success', $r['mensaje']); } // Fase 112
         match ($d['accion']) {
             'activar' => $u->forceFill(['status' => 'active'])->save(),
             'desactivar' => $u->forceFill(['status' => 'inactive'])->save(),

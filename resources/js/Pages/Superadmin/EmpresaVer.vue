@@ -115,6 +115,7 @@
             <td class="text-right whitespace-nowrap">
               <button @click="pass = { id: u.id, nombre: u.name, password: '' }" class="btn-ghost !px-2 text-xs">Nueva contraseña</button>
               <Link :href="`/admin/empresas/${empresa.id}/usuarios/${u.id}`" method="post" :data="{ accion: u.status === 'active' ? 'desactivar' : 'activar' }" as="button" preserve-scroll class="btn-ghost !px-2 text-xs" :class="u.status === 'active' ? 'text-carmin' : 'text-emerald-700'">{{ u.status === 'active' ? 'Desactivar' : 'Activar' }}</Link>
+              <button v-if="u.name !== empresa.dueno" @click="eliminarUsuario(u)" class="btn-ghost !px-2 text-xs text-carmin" title="Eliminar: si no tiene movimientos se borra; si los tiene, queda sin acceso y anónimo">Eliminar</button>
             </td>
           </tr>
         </tbody>
@@ -220,6 +221,11 @@ const tab = ref('suscripcion')
 const tabs = computed(() => [{ key: 'suscripcion', label: 'Suscripción', n: props.pagos.filter(p => p.estado === 'pendiente').length }, { key: 'datos', label: 'Datos' }, { key: 'usuarios', label: 'Usuarios', n: props.usuarios.length }, { key: 'uso', label: 'Uso' }, { key: 'auditoria', label: 'Actividad' }])
 
 const planAbierto = ref(false), pagoAbierto = ref(false), suspAbierto = ref(false), bajaAbierto = ref(false), pass = ref(null)
+// Fase 112: eliminar usuario de la empresa desde el panel.
+function eliminarUsuario(u) {
+  if (!confirm(`¿Eliminar a ${u.name} (${u.email})?\n\nSi nunca cargó nada se borra. Si tiene movimientos, queda sin acceso y figura como «Usuario eliminado» en el historial.`)) return
+  router.post(`/admin/empresas/${props.empresa.id}/usuarios/${u.id}`, { accion: 'eliminar' }, { preserveScroll: true })
+}
 const enUnMes = () => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10) }
 const plan = useForm({ plan_id: props.suscripcion?.plan_id ?? props.planes[0]?.id, ciclo: props.suscripcion?.ciclo ?? 'monthly', ends_at: props.suscripcion?.vence_iso && props.suscripcion.dias > 0 ? props.suscripcion.vence_iso : enUnMes(), medio: 'cortesia', notas: '' })
 const pago = useForm({ plan_id: props.suscripcion?.plan_id ?? props.planes[0]?.id, ciclo: props.suscripcion?.ciclo ?? 'monthly', monto: 0, medio: 'transferencia', referencia: '', notas: '' })

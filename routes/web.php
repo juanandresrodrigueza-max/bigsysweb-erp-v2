@@ -920,6 +920,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/usuarios',              [UsuariosController::class, 'index'])->name('usuarios');
         Route::post('/usuarios/{id}/empresas', [UsuariosController::class, 'empresas'])->middleware('permiso:configuracion,editar')->whereNumber('id');
         Route::post('/usuarios/{id?}',       [UsuariosController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('usuarios.guardar');
+        Route::delete('/usuarios/{id}',      [UsuariosController::class, 'eliminar'])->middleware('permiso:configuracion,editar')->whereNumber('id'); // Fase 112
 
         Route::get('/roles',                 [RolesController::class, 'index'])->name('roles');
         Route::post('/roles/{id?}',          [RolesController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('roles.guardar');

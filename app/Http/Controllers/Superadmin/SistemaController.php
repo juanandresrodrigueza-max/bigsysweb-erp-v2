@@ -37,7 +37,7 @@ class SistemaController extends Controller
 
     public function usuarios(Request $request)
     {
-        $q = User::with('business:id,name', 'role:id,nombre')
+        $q = User::with('business:id,name', 'role:id,nombre')->where('email', 'not like', '%@' . \App\Services\Usuarios\BajaUsuarioService::DOMINIO_BORRADO)
             ->when($request->buscar, fn($q, $b) => $q->where(fn($w) => $w->where('name', 'like', "%$b%")->orWhere('email', 'like', "%$b%")))
             ->when($request->tipo === 'superadmin', fn($q) => $q->where('is_superadmin', true))
             ->when($request->tipo === 'inactivos', fn($q) => $q->where('status', '!=', 'active'))
@@ -51,7 +51,9 @@ class SistemaController extends Controller
     public function usuario(Request $request, int $id)
     {
         $u = User::findOrFail($id);
-        $d = $request->validate(['accion' => 'required|in:activar,desactivar,password,superadmin,quitar_superadmin', 'password' => 'required_if:accion,password|nullable|string|min:6']);
+        $d = $request->validate(['accion' => 'required|in:activar,desactivar,password,superadmin,quitar_superadmin,eliminar', 'password' => 'required_if:accion,password|nullable|string|min:6']);
+        // Fase 112: eliminar (de verdad si no tiene movimientos; si los tiene, queda sin acceso y anónimo).
+        if ($d['accion'] === 'eliminar') { $r = app(\App\Services\Usuarios\BajaUsuarioService::class)->eliminar($u, $request->user()); return back()->with('success', $r['mensaje']); }
         abort_if($u->id === $request->user()->id && in_array($d['accion'], ['desactivar', 'quitar_superadmin'], true), 422, 'No podés quitarte el acceso a vos mismo.');
         match ($d['accion']) {
             'activar' => $u->forceFill(['status' => 'active'])->save(),

@@ -24,6 +24,7 @@
               <button @click="pass = { id: u.id, nombre: u.name, password: '' }" class="btn-ghost !px-2 text-xs">Contraseña</button>
               <Link :href="`/admin/usuarios/${u.id}`" method="post" :data="{ accion: u.status === 'active' ? 'desactivar' : 'activar' }" as="button" preserve-scroll class="btn-ghost !px-2 text-xs" :class="u.status === 'active' ? 'text-carmin' : 'text-emerald-700'">{{ u.status === 'active' ? 'Desactivar' : 'Activar' }}</Link>
               <Link v-if="!u.business_id || u.is_superadmin" :href="`/admin/usuarios/${u.id}`" method="post" :data="{ accion: u.is_superadmin ? 'quitar_superadmin' : 'superadmin' }" as="button" preserve-scroll class="btn-ghost !px-2 text-xs">{{ u.is_superadmin ? 'Quitar superadmin' : 'Hacer superadmin' }}</Link>
+              <button @click="eliminar(u)" class="btn-ghost !px-2 text-xs text-carmin" title="Eliminar: si no tiene movimientos se borra; si los tiene, queda sin acceso y anónimo" data-e2e="eliminar-usuario">Eliminar</button>
             </td>
           </tr>
         </tbody>
@@ -58,5 +59,10 @@ const props = defineProps({ lista: Object, filtros: Object })
 const f = reactive({ buscar: props.filtros.buscar ?? '', tipo: props.filtros.tipo ?? '' })
 function filtrar() { router.get('/admin/usuarios', Object.fromEntries(Object.entries(f).filter(([, v]) => v)), { preserveState: true, replace: true }) }
 const nuevo = ref(false), pass = ref(null)
+// Fase 112: eliminar. El servidor decide si borra de verdad (sin movimientos) o lo deja anónimo y sin acceso (con movimientos).
+function eliminar(u) {
+  if (!confirm(`¿Eliminar a ${u.name} (${u.email})?\n\nSi nunca cargó nada se borra. Si tiene ventas, cobros o movimientos, queda sin acceso y figura como «Usuario eliminado» en el historial. No se borra ningún comprobante.`)) return
+  router.post(`/admin/usuarios/${u.id}`, { accion: 'eliminar' }, { preserveScroll: true })
+}
 const sa = useForm({ name: '', email: '', password: '' , clave: '' })
 </script>

@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Eliminar usuarios (fase 112)
+
+En Configuración → Usuarios (al editar) y en el panel de BigSys hay **Eliminar**. Sin movimientos se borra; con movimientos queda sin acceso y como «Usuario eliminado» en el historial. Nunca el dueño ni uno mismo.
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 - Cada usuario tiene **Celular (WhatsApp)** en Configuración → Usuarios. Con eso cargado, le escribe o le manda un audio a Bigcito al WhatsApp de la empresa y Bigcito propone, espera el SÍ y ejecuta con sus permisos.
