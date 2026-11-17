@@ -1,12 +1,12 @@
 <template>
   <Head :title="titulo ? `${titulo} · Superadmin` : 'Superadmin'" />
   <div class="min-h-screen flex bg-marca-fondo">
-    <aside class="hidden md:flex w-64 flex-col shrink-0 text-white bg-sidebar-grad">
+    <aside class="hidden md:flex w-64 flex-col shrink-0 text-white bg-sidebar-grad md:sticky md:top-0 md:h-screen">
       <div class="h-16 flex items-center px-5 gap-3 border-b border-white/10">
         <Logo negativo clase="h-7" />
         <span class="ml-auto text-[11px] font-bold uppercase tracking-widest px-2 py-1 rounded-md bg-white/15">Admin</span>
       </div>
-      <nav class="flex-1 py-4">
+      <nav class="flex-1 py-4 overflow-y-auto">
         <Link v-for="i in items" :key="i.href" :href="i.href" class="relative flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded-xl text-sm transition" :class="activo(i) ? 'bg-white text-ciruela-800 font-semibold shadow-card' : 'text-white/80 hover:bg-white/10 hover:text-white'">
           <span v-if="activo(i)" class="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-marca-grad"></span>
           <Icono :nombre="i.icono" clase="w-5 h-5 shrink-0" /><span>{{ i.label }}</span>

@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## La barra de la izquierda queda fija (fase 115.1)
+
+En la computadora, el menú de la izquierda (y la salida, abajo) ya no se van al scrollear una pantalla larga: quedan fijos. Si el menú es más largo que la pantalla, scrollea él solo. Igual en el panel de BigSys.
+
 ## El superadmin entra a su empresa (fase 115)
 
 Por el login común, el superadmin cae en la empresa de BigSys y va y vuelve al panel con el botón **Panel BigSys** (y **Ir a Bigsys Web ERP** desde el panel).
