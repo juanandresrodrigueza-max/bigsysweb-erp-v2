@@ -111,10 +111,12 @@ class CrmSaludService
         if (! CrmService::activo($b)) return ['clientes' => 0, 'articulos' => 0, 'comprobantes' => 0, 'cobros' => 0];
         $desde = now()->subHours($horas); $r = ['clientes' => 0, 'articulos' => 0, 'comprobantes' => 0, 'cobros' => 0];
         if (CrmService::config($b)['api_key'] !== '') {
-            $cli = Contact::withoutGlobalScopes()->where('business_id', $b->id)->whereIn('type', ['customer', 'both'])->where('updated_at', '>=', $desde)->pluck('id')->all();
+            $cli = Contact::withoutGlobalScopes()->where('business_id', $b->id)->where('updated_at', '>=', $desde)->pluck('id')->all(); // Fase 116: clientes y proveedores
             foreach (array_chunk($cli, 200) as $lote) SincronizarCrmJob::dispatch($b->id, 'contactos', $lote); $r['clientes'] = count($cli);
             $prod = Product::withoutGlobalScopes()->where('business_id', $b->id)->where('updated_at', '>=', $desde)->pluck('id')->all();
             foreach (array_chunk($prod, 200) as $lote) SincronizarCrmJob::dispatch($b->id, 'productos', $lote); $r['articulos'] = count($prod);
+            $usu = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->where('is_superadmin', false)->where('updated_at', '>=', $desde)->pluck('id')->all(); // Fase 116
+            foreach (array_chunk($usu, 200) as $lote) SincronizarCrmJob::dispatch($b->id, 'usuarios', $lote); $r['usuarios'] = count($usu);
         }
         foreach (Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('direccion', 'venta')->whereIn('estado', ['emitido', 'anulado'])->where('updated_at', '>=', $desde)->limit(500)->get() as $c) {
             NotificarCrmJob::avisar($b->id, $c->estado === 'anulado' ? 'comprobante.anulado' : 'comprobante.emitido', $c->estado === 'anulado' ? ['id' => $c->id, 'tipo' => $c->tipo, 'nombre' => $c->nombreTipo(), 'numero' => $c->numeroFormateado(), 'reconciliacion' => true] : WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['reconciliacion' => true]); $r['comprobantes']++;

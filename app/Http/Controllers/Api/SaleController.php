@@ -64,6 +64,7 @@ class SaleController extends Controller
 
                 $before = $product->stock;
                 $product->decrement('stock', $item['quantity']);
+                \App\Services\Integraciones\CrmSyncService::encolar($product->business_id, 'productos', [$product->id]); // Fase 116: el stock nuevo viaja al CRM
 
                 StockMovement::create([
                     'product_id'  => $product->id,

@@ -27,7 +27,7 @@ class CrmSaludFase68Test extends ErpTestCase
     private function crmOk(): void
     {
         Http::fake(['crm.bigsysweb.test/api/v1/me' => Http::response(['company' => ['name' => 'Ferretería López CRM']]), 'crm.bigsysweb.test/api/erp/webhook' => Http::response(['ok' => true]),
-            'crm.bigsysweb.test/api/v1/contacts/sync' => Http::response(['data' => ['summary' => ['total' => 1], 'results' => []]]), 'crm.bigsysweb.test/api/v1/products/sync' => Http::response(['data' => ['summary' => ['total' => 1], 'results' => []]])]);
+            'crm.bigsysweb.test/api/v1/users/sync' => Http::response(['data' => ['summary' => ['total' => 1], 'results' => []]]), 'crm.bigsysweb.test/api/v1/contacts/sync' => Http::response(['data' => ['summary' => ['total' => 1], 'results' => []]]), 'crm.bigsysweb.test/api/v1/products/sync' => Http::response(['data' => ['summary' => ['total' => 1], 'results' => []]])]);
     }
 
     public function test_cada_evento_queda_en_la_bitacora_y_el_semaforo_esta_verde(): void

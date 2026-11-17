@@ -19,6 +19,7 @@ class CrmSyncTest extends ErpTestCase
         $this->empresa->update(['cuit' => '30-71234567-8', 'crm_settings' => ['activo' => true, 'url' => 'https://crm.bigsysweb.test', 'secreto' => 'secreto-compartido-de-prueba-1234567890', 'api_key' => 'bsk_prueba', 'webhook_secreto' => self::WH, 'lista_precios' => 2]]);
         $this->dueno->unsetRelation('business');
         Http::fake([
+            'crm.bigsysweb.test/api/v1/users/sync' => Http::response(['data' => ['summary' => ['total' => 1], 'results' => []]], 200), // Fase 116
             'crm.bigsysweb.test/api/v1/contacts/sync' => function ($r) { return Http::response(['data' => ['summary' => ['total' => count($r['items']), 'created' => count($r['items']), 'updated' => 0, 'errors' => 0], 'results' => array_map(fn($i) => ['external_id' => $i['external_id'], 'action' => 'created', 'id' => 900 + (int) $i['external_id']], $r['items'])]], 200); },
             'crm.bigsysweb.test/api/v1/products/sync' => Http::response(['data' => ['summary' => ['total' => 1, 'created' => 1, 'updated' => 0, 'errors' => 0], 'results' => []]], 200),
         ]);
@@ -31,16 +32,17 @@ class CrmSyncTest extends ErpTestCase
             && $r['items'][0]['external_id'] === (string) $cli->id && $r['items'][0]['name'] === 'López SRL' && $r['items'][0]['cuit'] === '30-70012345-6' && $r['items'][0]['condicion_iva'] === 'Responsable Inscripto'
             && $r['items'][0]['domicilio_fiscal'] === 'Av. Colón 100, Córdoba' && $r['items'][0]['phone'] === '3511234567' && $r['items'][0]['lifecycle_stage'] === 'customer' && $r['items'][0]['credit_limit'] == 50000);
         $this->assertSame((string) (900 + $cli->id), $cli->fresh()->crm_external_id, 'Guarda el id del CRM');
-        // Un proveedor no viaja como cliente.
+        // Fase 116: el proveedor también viaja, con la etiqueta Proveedor (el CRM lo distingue por eso).
         Http::assertSentCount(1);
         $this->proveedor();
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
+        Http::assertSent(fn($r) => str_ends_with($r->url(), '/api/v1/contacts/sync') && in_array('Proveedor', $r['items'][0]['tags'] ?? [], true) && empty($r['items'][0]['lifecycle_stage']));
         // Dos cambios seguidos del mismo cliente se mandan una sola vez (30 s).
         $cli->update(['phone' => '351999']); $cli->update(['phone' => '351998']);
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
         Cache::flush();
         $cli->update(['phone' => '351997']);
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_un_articulo_viaja_con_el_precio_de_la_lista_elegida_rubro_y_stock(): void

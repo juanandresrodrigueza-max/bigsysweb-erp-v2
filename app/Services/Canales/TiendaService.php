@@ -72,7 +72,7 @@ class TiendaService
                     if ($dl['descuento'] !== null) $precio = round($precio * (1 - $dl['descuento'] / 100), 2);
                 } elseif (($dq = $p->descuentoPorCantidad($cant)) > 0) $precio = round($precio * (1 - $dq / 100), 2);
             } else { $precio = (float) ($it['precio_unit'] ?? 0); }
-            if (isset($it['precio_unit']) && in_array($canal, ['mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'pedidosya', 'rappi', 'ubereats'], true)) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
+            if (isset($it['precio_unit']) && (in_array($canal, ['mercadolibre', 'woocommerce', 'tiendanube', 'shopify', 'empretienda', 'pedidosya', 'rappi', 'ubereats'], true) || ! empty($d['precio_del_canal']))) $precio = (float) $it['precio_unit']; // el marketplace manda el precio real cobrado
             $items[] = ['product_id' => $p?->id, 'descripcion' => $p?->name ?? ($it['descripcion'] ?? 'Ítem'), 'cantidad' => $cant, 'precio_unit' => $precio, 'total' => round($cant * $precio, 2), 'unit' => $p?->unit] + array_filter(['external_item' => $it['external_item'] ?? null, 'variante' => $it['variante'] ?? null]);
             $subtotal += round($cant * $precio, 2);
         }
@@ -118,7 +118,8 @@ class TiendaService
             })->all();
             if ((float) $p->envio > 0) $items[] = ['descripcion' => 'Envío a domicilio', 'cantidad' => 1, 'precio_unit' => $ri ? round((float) $p->envio / 1.21, 4) : (float) $p->envio, 'descuento' => 0, 'alicuota_iva' => 21];
             $tipo = $opt['tipo'] ?? 'FX';
-            $c = $this->comprobantes->guardarBorrador(['receptor_datos' => $opt['receptor_datos'] ?? null, 'contact_id' => $contact->id, 'tipo' => $tipo, 'fecha' => today()->toDateString(), 'condicion' => in_array($p->pago, ['pagado_externo', 'efectivo'], true) || $tipo === 'REM' ? 'contado' : 'cta_cte', 'notas' => ($opt['notas'] ?? '') . "Pedido {$p->numeroFormateado()} por " . (PedidoWeb::CANALES[$p->canal] ?? $p->canal) . ($p->cliente['direccion'] ? ' · Entrega: ' . $p->cliente['direccion'] : '') . ($p->cliente['notas'] ? ' · ' . $p->cliente['notas'] : ''), 'entrega_pendiente' => $p->entrega === 'envio' && ($opt['entrega_pendiente'] ?? false), 'items' => $items]);
+            $c = $this->comprobantes->guardarBorrador(['receptor_datos' => $opt['receptor_datos'] ?? null, 'contact_id' => $contact->id, 'tipo' => $tipo, 'fecha' => today()->toDateString(), 'condicion' => in_array($p->pago, ['pagado_externo', 'efectivo'], true) || $tipo === 'REM' ? 'contado' : 'cta_cte', 'notas' => ($opt['notas'] ?? '') . "Pedido {$p->numeroFormateado()} por " . (PedidoWeb::CANALES[$p->canal] ?? $p->canal) . ($p->cliente['direccion'] ? ' · Entrega: ' . $p->cliente['direccion'] : '') . ($p->cliente['notas'] ? ' · ' . $p->cliente['notas'] : ''), 'entrega_pendiente' => $p->entrega === 'envio' && ($opt['entrega_pendiente'] ?? false), 'items' => $items, 'sin_arca' => $opt['sin_arca'] ?? null]);
+            if ($p->crm_order_id) $c->forceFill(['crm_order_id' => $p->crm_order_id])->save(); // Fase 116: el comprobante lleva el pedido del CRM
             if ($opt['emitir'] ?? true) $c = $this->comprobantes->emitir($c);
             if ($p->pago === 'link' && $c->estado === 'emitido' && $c->esFactura()) { try { $this->links->crear($c); } catch (\Throwable $e) {} }
             $p->forceFill(['comprobante_id' => $c->id, 'estado' => 'confirmado', 'confirmado_en' => now()])->save();

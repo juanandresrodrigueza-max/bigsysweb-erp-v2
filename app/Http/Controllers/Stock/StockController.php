@@ -247,7 +247,7 @@ class StockController extends Controller
         foreach (Rubro::conDescendientes($id) as $rid) {
             $vals = Rubro::find($rid)->valores();
             $upd = collect($d['campos'])->filter(fn($k) => array_key_exists($k, $vals))->mapWithKeys(fn($k) => [$k => $vals[$k]])->all();
-            if ($upd) $n += Product::where('rubro_id', $rid)->update($upd);
+            if ($upd) { $ids = Product::where('rubro_id', $rid)->pluck('id')->all(); $n += Product::where('rubro_id', $rid)->update($upd); \App\Services\Integraciones\CrmSyncService::encolar(auth()->user()->business_id, 'productos', $ids); } // Fase 116: el cambio masivo también viaja al CRM
         }
         AuditLog::registrar('editar', Rubro::find($id), "Aplicó los datos del rubro a {$n} artículos: " . implode(', ', $d['campos']));
         return back()->with('success', "Datos del rubro aplicados a {$n} artículos.");

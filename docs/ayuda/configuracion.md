@@ -49,6 +49,19 @@ Tienda online propia, portal de clientes, WhatsApp, Mercado Libre, Tiendanube, W
 
 ## CRM (integración con el CRM de BigSys)
 
+### Con el ERP conectado, quién hace qué (fase 116)
+
+- **Se factura sólo en el ERP.** El CRM no emite comprobantes.
+- **El stock manda el ERP.** El CRM lo muestra y lo empuja a las tiendas; cada cambio de stock o de precio (también los masivos) le llega solo.
+- **Los pedidos de las tiendas** (WooCommerce, Tienda Nube, Shopify, Mercado Libre, Empretienda) entran al ERP como **venta interna**: descuentan
+  el stock y quedan en Vender → Comprobantes para pasarlos a fiscal con **Facturar**. Si un renglón no tiene artículo emparejado, entra como
+  renglón libre y te avisa la campana: emparejá el SKU en Stock.
+- **La deuda vive en el ERP, la gestión del cobro en el CRM.** El CRM ve quién debe y cuánto, manda los recordatorios y anota los pagos; cada
+  pago aparece acá como recibo (y si lo anulás acá, el CRM se entera).
+- **Lo que la empresa ya tenía en el CRM** antes de conectar se pasa con el botón «Pasar todo al ERP» del CRM: clientes, presupuestos, y las
+  facturas ya emitidas como historial (quedan «Emitida en el CRM», no se re-emiten) con lo que cada cliente debía.
+
+
 Si tu empresa usa el ERP y el CRM de BigSys, se pasan de uno al otro con un botón, ya logueados, y se hablan por API sin que ninguno escriba en la base del otro.
 
 1. Cargá el **CUIT** de la empresa acá y el mismo en el CRM: es lo que une las dos empresas.

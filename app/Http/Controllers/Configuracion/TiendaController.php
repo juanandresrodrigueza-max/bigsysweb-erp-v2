@@ -57,6 +57,7 @@ class TiendaController extends Controller
     {
         $d = $request->validate(['ids' => 'required|array', 'en_tienda' => 'required|boolean']);
         $n = Product::whereIn('id', $d['ids'])->update(['en_tienda' => $d['en_tienda']]);
+        \App\Services\Integraciones\CrmSyncService::encolar($request->user()->business_id, 'productos', array_map('intval', $d['ids'])); // Fase 116
         return back()->with('success', "{$n} artículos " . ($d['en_tienda'] ? 'publicados' : 'ocultos') . ' en la tienda.');
     }
 

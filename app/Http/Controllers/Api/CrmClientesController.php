@@ -34,6 +34,27 @@ class CrmClientesController extends Controller
         ]]);
     }
 
+    // Fase 116: todos los que deben, para que el CRM gestione la cobranza (recordatorios, tareas, promesas). Paginado; ?solo_vencidos=1.
+    public function deudores(Request $request)
+    {
+        $porPagina = max(1, min(200, (int) $request->query('por_pagina', 100)));
+        $q = Contact::customers()->where('is_active', true)->where('balance', '>', 0.005)->orderByDesc('balance');
+        if ($request->boolean('solo_vencidos')) $q->whereIn('id', Comprobante::pendientesCobro()->where('fecha_vto', '<', today()->toDateString())->select('contact_id'));
+        $pag = $q->paginate($porPagina);
+        $ids = $pag->getCollection()->pluck('id');
+        $vencidos = Comprobante::whereIn('contact_id', $ids)->pendientesCobro()->where('fecha_vto', '<', today()->toDateString())->orderBy('fecha_vto')->get()->groupBy('contact_id');
+        $ultimos = Cobro::whereIn('contact_id', $ids)->where('estado', '!=', 'anulado')->orderByDesc('fecha')->orderByDesc('id')->get()->unique('contact_id')->keyBy('contact_id');
+        $data = $pag->getCollection()->map(function (Contact $c) use ($vencidos, $ultimos) {
+            $v = $vencidos->get($c->id, collect()); $u = $ultimos->get($c->id);
+            return ['contact_id' => $c->id, 'crm_external_id' => $c->crm_external_id, 'nombre' => $c->name, 'cuit' => $c->cuit, 'email' => $c->email, 'telefono' => $c->mobile ?: $c->phone,
+                'saldo' => round((float) $c->balance, 2), 'vencido' => round((float) $v->sum('saldo'), 2), 'dias_mayor_atraso' => (int) ($v->map(fn($x) => $x->fecha_vto->diffInDays(today()))->max() ?? 0),
+                'comprobantes_vencidos' => $v->map(fn($x) => ['id' => $x->id, 'tipo' => $x->tipo, 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha?->toDateString(), 'vence' => $x->fecha_vto?->toDateString(), 'saldo' => (float) $x->saldo, 'dias' => $x->fecha_vto->diffInDays(today())])->values()->all(),
+                'ultimo_cobro' => $u ? ['id' => $u->id, 'numero' => $u->numeroFormateado(), 'fecha' => $u->fecha?->toDateString(), 'total' => (float) $u->total] : null,
+                'dias_pago' => (int) $c->dias_pago, 'limite_credito' => (float) $c->credit_limit ?: null, 'url' => Busca::url("/clientes/{$c->id}")];
+        })->values();
+        return response()->json(['data' => $data, 'meta' => ['total' => $pag->total(), 'pagina' => $pag->currentPage(), 'por_pagina' => $pag->perPage(), 'paginas' => $pag->lastPage(), 'saldo_total' => round((float) Contact::customers()->where('balance', '>', 0)->sum('balance'), 2), 'actualizado' => now()->toIso8601String()]]);
+    }
+
     // El vendedor cobra desde el CRM: el recibo nace en el ERP (cuenta corriente, caja/banco y asiento), y el CRM lo ve volver por el aviso cobro.registrado.
     public function cobrar(Request $request, Contact $contact, CobroService $svc)
     {
@@ -43,7 +64,9 @@ class CrmClientesController extends Controller
             'imputaciones' => 'nullable|array', 'imputaciones.*.comprobante_id' => 'required|integer', 'imputaciones.*.monto' => 'required|numeric|min:0.01',
             'descuento' => 'nullable|numeric|min:0', 'interes' => 'nullable|numeric|min:0', 'notas' => 'nullable|string|max:300', 'crm_ref' => 'nullable|string|max:80',
             'vendedor_id' => 'nullable|integer', 'vendedor_email' => 'nullable|email', // Fase 74: quién cobró (para la comisión); por id del ERP o por mail
+            'crm_payment_id' => 'nullable|string|max:80', // Fase 116: si el CRM reintenta, el mismo pago no entra dos veces
         ]);
+        if (! empty($d['crm_payment_id']) && ($ya = Cobro::where('crm_payment_id', $d['crm_payment_id'])->where('estado', '!=', 'anulado')->first())) return response()->json(['data' => $this->salida($ya, $contact->fresh(), null) + ['duplicado' => true]], 200);
         // Quién cobró, para la comisión: por id del ERP o por mail. Si el mail es de un usuario del ERP que todavía no es vendedor, se le crea la
         // ficha de vendedor (0 % hasta que el dueño le cargue el porcentaje): el recibo nunca queda sin cobrador por eso (hallazgo de la prueba 3.4).
         $aviso = null;
@@ -63,9 +86,14 @@ class CrmClientesController extends Controller
         unset($d['vendedor_email']);
         foreach ($d['imputaciones'] ?? [] as $i) abort_unless(Comprobante::where('contact_id', $contact->id)->where('id', $i['comprobante_id'])->exists(), 422, "El comprobante {$i['comprobante_id']} no es de este cliente.");
         $d['notas'] = trim('Cobrado desde el CRM' . (! empty($d['crm_ref']) ? " ({$d['crm_ref']})" : '') . (! empty($d['notas']) ? ' · ' . $d['notas'] : ''));
+        $d['modo'] = 'crm'; // queda marcado de dónde vino (y el aviso al CRM sale con el crm_payment_id)
         $cobro = $svc->registrar($contact, $d);
-        $cobro->update(['modo' => 'crm']); // queda marcado de dónde vino
-        return response()->json(['data' => ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'total' => (float) $cobro->total, 'a_cuenta' => (float) $cobro->a_cuenta, 'saldo_cliente' => round((float) $contact->fresh()->balance, 2), 'url_imprimir' => url("/clientes/cobros/{$cobro->id}/imprimir"),
-            'cobrador' => $cobro->cobrador_id ? ['id' => $cobro->cobrador_id, 'nombre' => $cobro->cobrador?->nombre, 'email' => $cobro->cobrador?->email] : null, 'aviso' => $aviso]], 201);
+        return response()->json(['data' => $this->salida($cobro, $contact->fresh(), $aviso) + ['duplicado' => false]], 201);
+    }
+
+    private function salida(Cobro $cobro, Contact $contact, ?string $aviso): array
+    {
+        return ['id' => $cobro->id, 'numero' => $cobro->numeroFormateado(), 'fecha' => $cobro->fecha?->toDateString(), 'total' => (float) $cobro->total, 'a_cuenta' => (float) $cobro->a_cuenta, 'saldo_cliente' => round((float) $contact->balance, 2), 'crm_payment_id' => $cobro->crm_payment_id,
+            'url_imprimir' => url("/clientes/cobros/{$cobro->id}/imprimir"), 'cobrador' => $cobro->cobrador_id ? ['id' => $cobro->cobrador_id, 'nombre' => $cobro->cobrador?->nombre, 'email' => $cobro->cobrador?->email] : null, 'aviso' => $aviso];
     }
 }

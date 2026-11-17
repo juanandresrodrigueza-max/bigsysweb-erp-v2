@@ -200,7 +200,7 @@ class ComprobanteService
             app(\App\Services\Ventas\CondicionesClienteService::class)->recordarUltimos($c->fresh(['items', 'contact']));
             app(\App\Services\Contabilidad\ContabilidadService::class)->contabilizar($c->fresh(['items', 'contact']));
             app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
-            \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['crm_quote_id' => $c->crm_quote_id]);
+            \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['crm_quote_id' => $c->crm_quote_id, 'crm_order_id' => $c->crm_order_id, 'interno' => (bool) $c->sin_arca]);
             try { app(\App\Services\Ventas\FidelizacionService::class)->acreditarPorComprobante($c->fresh(['contact', 'business'])); } catch (\Throwable $e) { \Log::warning('Puntos: ' . $e->getMessage()); }
             return $c->fresh();
         });
@@ -272,6 +272,9 @@ class ComprobanteService
             $conta = app(\App\Services\Contabilidad\ContabilidadService::class);
             $conta->contabilizar($c->fresh(['items', 'contact']));
             foreach (\App\Models\Cobro::whereHas('imputaciones', fn($q) => $q->where('comprobante_id', $c->id))->get() as $cobro) $conta->contabilizar($cobro);
+            // Fase 116: el fiscal que nace del interno también se avisa (el CRM ya tenía el interno con el mismo id y crm_order_id).
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])));
+            \App\Jobs\NotificarCrmJob::avisar($c->business_id, 'comprobante.emitido', \App\Services\Integraciones\WebhookService::comprobante($c->fresh(['items', 'contact'])) + ['crm_quote_id' => $c->crm_quote_id, 'crm_order_id' => $c->crm_order_id, 'interno' => false, 'fiscal_desde_interno' => $numeroInterno]);
             return $c->fresh();
         });
     }

@@ -52,7 +52,14 @@ Route::middleware(['auth:sanctum', 'token.api'])->group(function () {
 
     Route::apiResource('contacts',        ContactController::class);
     Route::get('contacts/{contact}/cuenta',  [\App\Http\Controllers\Api\CrmClientesController::class, 'cuenta']);  // Fase 69: saldo, vencido, límite, riesgo y pendientes en vivo (para el CRM)
-    Route::post('contacts/{contact}/cobros', [\App\Http\Controllers\Api\CrmClientesController::class, 'cobrar']); // Fase 69: cobrar desde el CRM
+    Route::post('contacts/{contact}/cobros', [\App\Http\Controllers\Api\CrmClientesController::class, 'cobrar']); // Fase 69: cobrar desde el CRM (Fase 116: idempotente por crm_payment_id)
+    Route::get('crm/deudores',  [\App\Http\Controllers\Api\CrmClientesController::class, 'deudores']); // Fase 116: la deuda vive en el ERP, la gestión en el CRM
+    Route::post('crm/pedidos',  [\App\Http\Controllers\Api\CrmPedidosController::class, 'recibir']);   // Fase 116: pedidos de tiendas que entran por el CRM
+    // Fase 116: carga inicial CRM → ERP (lotes de 500, idempotentes)
+    Route::post('crm/importar/contactos',               [\App\Http\Controllers\Api\CrmImportacionController::class, 'contactos']);
+    Route::post('crm/importar/presupuestos',            [\App\Http\Controllers\Api\CrmImportacionController::class, 'presupuestos']);
+    Route::post('crm/importar/comprobantes-historicos', [\App\Http\Controllers\Api\CrmImportacionController::class, 'comprobantesHistoricos']);
+    Route::post('crm/importar/saldos-iniciales',        [\App\Http\Controllers\Api\CrmImportacionController::class, 'saldosIniciales']);
     Route::get('plan', fn(\Illuminate\Http\Request $r) => response()->json(['data' => \App\Services\Integraciones\CrmService::plan($r->user()->business)])); // Fase 75: el plan único, para que el CRM se habilite con él
     Route::get('comisiones/base', [\App\Http\Controllers\Api\ComisionesController::class, 'base']); // Fase 74: base de comisiones con lo facturado y cobrado (para el CRM)
     Route::apiResource('customers',       CustomerController::class);

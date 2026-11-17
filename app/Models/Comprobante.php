@@ -37,7 +37,7 @@ class Comprobante extends Model
         'business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'orden_compra_id', 'ordenes_compra', 'stock_en_business_id', 'abono_id', 'punto_venta_id', 'origen_id', 'entrega_pendiente', 'fce', 'fce_estado', 'fce_vto_pago', 'public_token', 'aprobado_en', 'rechazado_en', 'respuesta_cliente', 'link_pago', 'link_pago_id',
         'direccion', 'tipo', 'punto_venta', 'numero', 'fecha', 'fecha_vto', 'condicion', 'moneda', 'cotizacion',
         'neto', 'exento', 'iva', 'percepciones', 'descuento', 'total', 'saldo', 'estado', 'afip_estado',
-        'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'receptor', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id', 'crm_quote_id',
+        'cae', 'cae_vto', 'afip_respuesta', 'es_acopio', 'receptor', 'stock_impactado', 'notas', 'pdf_path', 'emitido_en', 'anulado_en', 'offline_id', 'crm_quote_id', 'crm_order_id', 'crm_external_id',
         'numero_proveedor', 'cae_proveedor', 'origen_carga', 'total_me', 'neto_me', 'proyecto_id', 'centro_costo_id', 'orden_trabajo_id', 'estadia_id', 'transportista', 'transportista_cuit', 'patente', 'bultos', 'peso_kg', 'domicilio_entrega', 'cot', 'sin_arca', 'exportacion', 'manual', 'cai', 'cai_vto', 'modo_venta', 'lat', 'lng', 'entrega_nombre', 'entrega_firma', 'entrega_foto', 'entregado_at', 'entregado_por', 'motivo_devolucion', 'solo_stock', 'solo_contable', 'remito_id',
     ];
 

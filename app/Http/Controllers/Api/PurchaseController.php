@@ -76,6 +76,7 @@ class PurchaseController extends Controller
 
                 $before = $product->stock;
                 $product->increment('stock', $item['quantity']);
+                \App\Services\Integraciones\CrmSyncService::encolar($product->business_id, 'productos', [$product->id]); // Fase 116
                 $product->update(['cost' => $item['unit_cost']]);
 
                 StockMovement::create([
