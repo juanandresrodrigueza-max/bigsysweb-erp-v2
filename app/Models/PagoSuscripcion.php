@@ -11,7 +11,7 @@ class PagoSuscripcion extends Model
     use \App\Models\Concerns\FechaSoloDia;
     protected $table = 'pagos_suscripcion';
 
-    public const MEDIOS = ['mercadopago' => 'MercadoPago', 'transferencia' => 'Transferencia', 'efectivo' => 'Efectivo', 'cortesia' => 'Cortesía / bonificado'];
+    public const MEDIOS = ['mercadopago' => 'MercadoPago', 'debito' => 'Débito automático (Mercado Pago)', 'transferencia' => 'Transferencia', 'efectivo' => 'Efectivo', 'cortesia' => 'Cortesía / bonificado'];
     public const ESTADOS = ['pendiente' => 'Pendiente', 'aprobado' => 'Aprobado', 'rechazado' => 'Rechazado', 'anulado' => 'Anulado'];
 
     protected $fillable = [

@@ -41,6 +41,8 @@ class SuscripcionController extends Controller
                 'medio' => PagoSuscripcion::MEDIOS[$p->medio] ?? $p->medio, 'estado' => $p->estado, 'periodo' => $p->periodo_desde ? $p->periodo_desde->format('d/m/Y') . ' → ' . $p->periodo_hasta?->format('d/m/Y') : null,
             ]),
             'mercadopago' => $mp->configurado(),
+            // Fase 117: débito automático (preapproval de Mercado Pago)
+            'debito' => ['activo' => (bool) ($sub && $sub->auto_renew && $sub->mp_preapproval_id), 'id' => $sub?->mp_preapproval_id, 'pendiente' => (bool) PagoSuscripcion::where('business_id', $b->id)->where('medio', 'debito')->where('estado', 'pendiente')->exists()],
             'transferencia' => ['cbu' => SistemaConfig::get('transferencia_cbu'), 'alias' => SistemaConfig::get('transferencia_alias'), 'titular' => SistemaConfig::get('transferencia_titular')],
             'soporte' => ['whatsapp' => SistemaConfig::get('soporte_whatsapp'), 'email' => SistemaConfig::get('soporte_email')],
         ]);
@@ -68,7 +70,7 @@ class SuscripcionController extends Controller
     // Elige plan y ciclo, crea el cobro pendiente y manda a MercadoPago (o registra la transferencia a confirmar).
     public function pagar(Request $request, SuscripcionService $service, MercadoPagoSuscripcionService $mp)
     {
-        $data = $request->validate(['plan_id' => 'required|exists:plans,id', 'ciclo' => 'required|in:monthly,yearly', 'medio' => 'required|in:mercadopago,transferencia', 'referencia' => 'nullable|string|max:120']);
+        $data = $request->validate(['plan_id' => 'required|exists:plans,id', 'ciclo' => 'required|in:monthly,yearly', 'medio' => 'required|in:mercadopago,debito,transferencia', 'referencia' => 'nullable|string|max:120']);
         $user = $request->user();
         abort_unless($user->esDueno() || $user->puede('configuracion', 'editar'), 403);
         $plan = Plan::findOrFail($data['plan_id']);
@@ -79,6 +81,16 @@ class SuscripcionController extends Controller
         }
 
         $pago = $service->crearPago($user->business, $plan, $data['ciclo'], $data['medio'], $user, null, $data['referencia'] ?? null);
+
+        // Fase 117: débito automático: se arma la suscripción en Mercado Pago y el dueño autoriza la tarjeta allá. El pago queda pendiente
+        // hasta que llegue el primer cobro (minutos) y ahí se activa el plan.
+        if ($data['medio'] === 'debito') {
+            PagoSuscripcion::where('business_id', $user->business_id)->where('medio', 'debito')->where('estado', 'pendiente')->where('id', '!=', $pago->id)->update(['estado' => 'anulado']);
+            $deb = $mp->crearDebito($user->business, $plan, $data['ciclo'], $user->business->email ?: $user->email);
+            $pago->update(['preference_id' => $deb['id'], 'notas' => 'Débito automático: esperando la autorización de la tarjeta en Mercado Pago']);
+            AuditLog::registrar('pago_suscripcion', $pago, 'Débito automático iniciado en Mercado Pago');
+            return Inertia::location($deb['init_point']);
+        }
 
         if ($data['medio'] === 'transferencia') {
             AuditLog::registrar('pago_suscripcion', $pago, 'Transferencia informada, pendiente de confirmación');
@@ -117,14 +129,70 @@ class SuscripcionController extends Controller
         return redirect('/suscripcion')->with('success', 'Estamos esperando la confirmación de MercadoPago. Se activa solo en cuanto llegue.');
     }
 
+    // Fase 117: vuelta de Mercado Pago después de autorizar (o no) el débito automático.
+    public function retornoDebito(Request $request, SuscripcionService $service, MercadoPagoSuscripcionService $mp)
+    {
+        $user = $request->user(); $b = $user->business;
+        $id = (string) ($request->query('preapproval_id') ?? $request->query('id') ?? '');
+        $pago = PagoSuscripcion::where('business_id', $b->id)->where('medio', 'debito')->where('estado', 'pendiente')->when($id, fn($q) => $q->where('preference_id', $id))->latest('id')->first();
+        if ($id === '' && ! $pago) return redirect('/suscripcion')->with('error', 'Mercado Pago no devolvió el débito. Si lo autorizaste, en minutos se refleja solo; si no, probá de nuevo.');
+        $id = $id ?: $pago->preference_id;
+        if ($request->boolean('simulado') && ! $mp->configurado()) {
+            $service->activarDebito($b, $id, $user);
+            if ($pago) $service->registrarCobroDebito($b->fresh()->subscription, 'SIMULADO-COBRO-' . $pago->id, (float) $pago->monto);
+            return redirect('/suscripcion')->with('success', 'Débito automático simulado (sin credenciales de Mercado Pago): plan activado y se renueva solo.');
+        }
+        try {
+            $info = $mp->consultarDebito($id);
+            if ($info['status'] === 'authorized') {
+                $service->activarDebito($b, $id, $user);
+                $n = $service->reconciliarDebito($b->fresh()->subscription); // el primer cobro suele estar ya hecho
+                return redirect('/suscripcion')->with('success', $n > 0 ? 'Débito automático activado y primer cobro aprobado. ¡Gracias! Tu plan ya está activo y se renueva solo.' : 'Débito automático autorizado. En cuanto Mercado Pago confirme el primer cobro (minutos) se activa el plan y de ahí en más se renueva solo.');
+            }
+            if (in_array($info['status'], ['cancelled', 'paused'], true)) { if ($pago) $service->rechazarPago($pago, 'rechazado', 'Mercado Pago: débito ' . $info['status']); return redirect('/suscripcion')->with('error', 'El débito no quedó autorizado. Podés intentarlo de nuevo o pagar con el link.'); }
+        } catch (\Throwable $e) { report($e); }
+        return redirect('/suscripcion')->with('success', 'Estamos esperando la confirmación de Mercado Pago. Se activa solo en cuanto llegue.');
+    }
+
+    public function cancelarDebito(Request $request, SuscripcionService $service)
+    {
+        $user = $request->user();
+        abort_unless($user->esDueno() || $user->puede('configuracion', 'editar'), 403);
+        $service->cancelarDebito($user->business, 'Cancelado por ' . $user->email, $user);
+        return redirect('/suscripcion')->with('success', 'Débito automático cancelado. Tu plan sigue hasta el vencimiento; después renovás con el link o transferencia cuando quieras.');
+    }
+
     // Aviso asincrónico de MercadoPago (ruta de API, sin CSRF).
     public function webhook(Request $request, SuscripcionService $service, MercadoPagoSuscripcionService $mp)
     {
-        $tipo = $request->query('type') ?? $request->input('type') ?? $request->input('action');
+        $tipo = $request->query('type') ?? $request->input('type') ?? $request->query('topic') ?? $request->input('action');
         $id = $request->query('data_id') ?? $request->input('data.id') ?? $request->query('id');
+        // Fase 117: cobros y cambios de estado del débito automático.
+        if ($id && $mp->configurado() && str_contains((string) $tipo, 'subscription_authorized_payment')) {
+            try {
+                $c = $mp->pagoAutorizado((string) $id);
+                $sub = $c['preapproval_id'] ? \App\Models\Subscription::where('mp_preapproval_id', $c['preapproval_id'])->first() : null;
+                if ($sub && (($c['pago_estado'] ?? '') === 'approved' || ($c['estado'] ?? '') === 'processed') && ($c['pago_id'] ?: $c['id'])) $service->registrarCobroDebito($sub, $c['pago_id'] ?: $c['id'], (float) $c['monto'], $c['fecha'] ?? null);
+            } catch (\Throwable $e) { report($e); }
+            return response()->json(['ok' => true]);
+        }
+        if ($id && $mp->configurado() && str_contains((string) $tipo, 'subscription_preapproval')) {
+            try {
+                $info = $mp->consultarDebito((string) $id);
+                $sub = \App\Models\Subscription::where('mp_preapproval_id', (string) $id)->first();
+                if (! $sub && ($info['external_reference'] ?? null) && preg_match('/^debito-(\d+)$/', $info['external_reference'], $m) && $info['status'] === 'authorized') { $emp = \App\Models\Business::withoutGlobalScopes()->find((int) $m[1]); if ($emp) $sub = $service->activarDebito($emp, (string) $id); }
+                if ($sub) $service->estadoDebito($sub, (string) $info['status']);
+            } catch (\Throwable $e) { report($e); }
+            return response()->json(['ok' => true]);
+        }
         if ($id && str_contains((string) $tipo, 'payment') && $mp->configurado()) {
             try {
                 $info = $mp->consultarPago((string) $id);
+                if (preg_match('/^debito-(\d+)$/', (string) $info['external_reference'], $m)) { // Fase 117: cobro del débito que llega como pago común
+                    $sub = \App\Models\Subscription::where('business_id', (int) $m[1])->whereNotNull('mp_preapproval_id')->latest('id')->first();
+                    if ($sub && $info['status'] === 'approved') $service->registrarCobroDebito($sub, (string) $id, (float) ($info['amount'] ?? 0));
+                    return response()->json(['ok' => true]);
+                }
                 $pago = PagoSuscripcion::find((int) $info['external_reference']);
                 if ($pago && $info['status'] === 'approved') {
                     $service->aprobarPago($pago, (string) $id);

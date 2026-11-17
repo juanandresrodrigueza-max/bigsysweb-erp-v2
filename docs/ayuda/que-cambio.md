@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Débito automático para la suscripción (fase 117)
+
+En Configuración → Suscripción: «Débito automático con Mercado Pago». Dejás la tarjeta una vez y el plan se cobra solo cada período; se cancela desde la misma pantalla.
+
 ## CRM y ERP conviven del todo (fase 116)
 
 Con el CRM conectado: se factura sólo en el ERP, el stock manda el ERP, los pedidos de las tiendas entran como venta interna lista para facturar, la deuda se ve y se cobra desde el CRM pero vive acá, y lo viejo del CRM se pasa con un botón. Detalle en Configuración → CRM de la ayuda.
