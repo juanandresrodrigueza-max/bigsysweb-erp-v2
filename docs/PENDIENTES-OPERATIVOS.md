@@ -28,7 +28,7 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 |---|---|---|---|
 | Inteligencia artificial (Claude) | API key y modelo | console.anthropic.com | Bigcito y la IA de cada empresa (las empresas pueden poner la suya en Configuración → IA) |
 | Correo saliente (SMTP) | servidor, puerto, usuario, contraseña, cifrado, remitente | el proveedor de mail (Hostinger / Google Workspace) | Invitaciones, recibos por mail, avisos, recuperar contraseña. Botón **Enviar prueba** |
-| Cobros de BigSys (Mercado Pago) | Public key y Access token de la cuenta de BigSys | Mercado Pago → Tus integraciones → credenciales de producción | Cobro de la suscripción de los clientes |
+| Cobros de BigSys (Mercado Pago) | Public key y Access token de la cuenta de BigSys | Mercado Pago → Tus integraciones → Crear aplicación (Checkout Pro, **API de Orders**) → credenciales de producción. Webhook: `/api/webhooks/mercadopago/suscripcion` con eventos Órdenes, Pagos y Planes y suscripciones | Cobro de la suscripción de los clientes (pago único y débito automático) |
 | Transferencia bancaria | titular, CBU, alias | banco de BigSys | Alternativa de pago de la suscripción |
 | Ciclo de suscripción | días de prueba (15), gracia, avisos | decisión comercial | Ya tiene valores por defecto |
 | Soporte y avisos | WhatsApp y email de soporte, mensaje global | — | Botón Soporte de las empresas |

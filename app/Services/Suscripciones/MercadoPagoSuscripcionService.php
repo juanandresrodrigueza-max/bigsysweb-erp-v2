@@ -6,6 +6,7 @@ use App\Models\PagoSuscripcion;
 use App\Models\SistemaConfig;
 use MercadoPago\Client\Payment\PaymentClient;
 use MercadoPago\Client\PreApproval\PreApprovalClient;
+use MercadoPago\Client\Order\OrderClient;
 use MercadoPago\Client\Preference\PreferenceClient;
 use Illuminate\Support\Facades\Http;
 use MercadoPago\MercadoPagoConfig;
@@ -20,6 +21,7 @@ class MercadoPagoSuscripcionService
     }
 
     // Devuelve la URL a la que mandar al dueño para pagar.
+    // Fase 117.1: Checkout Pro por la API de Orders (la de Preferences está en retirada). Si Orders falla, cae a Preferences.
     public function linkDePago(PagoSuscripcion $pago): string
     {
         if (! $this->configurado()) {
@@ -27,22 +29,72 @@ class MercadoPagoSuscripcionService
         }
 
         MercadoPagoConfig::setAccessToken(SistemaConfig::get('mp_access_token'));
+        $titulo = "BigSysWeb · Plan {$pago->plan->name} (" . ($pago->ciclo === 'yearly' ? 'anual' : 'mensual') . ")";
+        $vuelta = url('/suscripcion/retorno?pago=' . $pago->id);
+        try {
+            $opts = new \MercadoPago\Client\Common\RequestOptions();
+            $opts->setCustomHeaders(['X-Idempotency-Key: pago-suscripcion-' . $pago->id . '-' . $pago->updated_at?->timestamp]);
+            $orden = (new OrderClient())->create([
+                'type' => 'online',
+                'processing_mode' => 'manual',
+                'total_amount' => number_format((float) $pago->monto, 2, '.', ''),
+                'external_reference' => (string) $pago->id,
+                'description' => $titulo,
+                'expiration_time' => 'P3D',
+                'items' => [['external_code' => 'plan-' . $pago->plan_id, 'title' => $titulo, 'quantity' => 1, 'unit_price' => number_format((float) $pago->monto, 2, '.', '')]],
+                'payer' => ['email' => $pago->business->email],
+                'config' => [
+                    'statement_descriptor' => 'BIGSYSWEB',
+                    'online' => ['success_url' => $vuelta, 'pending_url' => $vuelta, 'failure_url' => $vuelta, 'auto_return' => 'approved'],
+                ],
+            ], $opts);
+            if (! empty($orden->checkout_url)) {
+                $pago->update(['preference_id' => (string) $orden->id]);
+                return $orden->checkout_url;
+            }
+            report(new \RuntimeException('Mercado Pago Orders devolvió la orden sin checkout_url (' . ($orden->id ?? '?') . ')'));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         $client = new PreferenceClient();
         $pref = $client->create([
             'items' => [[
                 'id' => (string) $pago->plan_id,
-                'title' => "BigSysWeb · Plan {$pago->plan->name} (" . ($pago->ciclo === 'yearly' ? 'anual' : 'mensual') . ")",
+                'title' => $titulo,
                 'quantity' => 1, 'unit_price' => (float) $pago->monto, 'currency_id' => 'ARS',
             ]],
             'external_reference' => (string) $pago->id,
             'payer' => ['email' => $pago->business->email],
-            'back_urls' => ['success' => url('/suscripcion/retorno?pago=' . $pago->id), 'failure' => url('/suscripcion/retorno?pago=' . $pago->id), 'pending' => url('/suscripcion/retorno?pago=' . $pago->id)],
+            'back_urls' => ['success' => $vuelta, 'failure' => $vuelta, 'pending' => $vuelta],
             'auto_return' => 'approved',
             'notification_url' => url('/api/webhooks/mercadopago/suscripcion'),
             'statement_descriptor' => 'BIGSYSWEB',
         ]);
         $pago->update(['preference_id' => $pref->id]);
         return $pref->init_point;
+    }
+
+    public static function esOrden(?string $id): bool { return $id !== null && str_starts_with($id, 'ORD'); }
+
+    // Consulta una orden (API de Orders) y la resume: estado normalizado como el de un pago, referencia y el id del pago aprobado.
+    public function consultarOrden(string $orderId): array
+    {
+        MercadoPagoConfig::setAccessToken(SistemaConfig::get('mp_access_token'));
+        $o = (new OrderClient())->get($orderId);
+        $pagos = is_object($o->transactions ?? null) ? ($o->transactions->payments ?? []) : (($o->transactions['payments'] ?? []) ?: []);
+        $pagoId = null; $pagoEstado = null;
+        foreach ($pagos as $pg) {
+            $pg = is_array($pg) ? (object) $pg : $pg;
+            if (($pg->status ?? '') === 'processed' || ($pg->status ?? '') === 'approved') { $pagoId = (string) $pg->id; $pagoEstado = 'approved'; break; }
+            $pagoId = $pagoId ?: (string) ($pg->id ?? ''); $pagoEstado = $pagoEstado ?: ($pg->status ?? null);
+        }
+        $estado = match ((string) $o->status) {
+            'processed' => 'approved',
+            'failed', 'canceled', 'cancelled', 'expired', 'refunded' => 'rejected',
+            default => 'pending',
+        };
+        return ['status' => $estado, 'estado_mp' => (string) $o->status, 'external_reference' => $o->external_reference, 'amount' => (float) ($o->total_paid_amount ?: $o->total_amount), 'pago_id' => $pagoId ?: null, 'pago_estado' => $pagoEstado];
     }
 
     // Consulta un pago en MercadoPago y devuelve [estado, external_reference].
