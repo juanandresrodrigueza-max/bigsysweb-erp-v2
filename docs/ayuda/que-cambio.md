@@ -75,6 +75,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 
 En Configuración → Suscripción: «Débito automático con Mercado Pago». Dejás la tarjeta una vez y el plan se cobra solo cada período; se cancela desde la misma pantalla.
 
+- **El guardado no se pierde si la pestaña quedó abierta mucho tiempo (117.2).** Antes, al tocar Guardar después de un rato largo aparecía «La página estuvo abierta mucho tiempo» y había que volver a cargar y escribir todo de nuevo. Ahora el ERP renueva el permiso solo y reenvía lo que escribiste. Si la sesión venció de verdad, te manda a iniciar sesión.
 ## CRM y ERP conviven del todo (fase 116)
 
 Con el CRM conectado: se factura sólo en el ERP, el stock manda el ERP, los pedidos de las tiendas entran como venta interna lista para facturar, la deuda se ve y se cobra desde el CRM pero vive acá, y lo viejo del CRM se pasa con un botón. Detalle en Configuración → CRM de la ayuda.

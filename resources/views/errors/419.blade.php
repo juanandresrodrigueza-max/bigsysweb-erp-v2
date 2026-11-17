@@ -15,6 +15,7 @@ small{color:#7a766f}
 <div class="c">
   <h1>La página estuvo abierta mucho tiempo</h1>
   <p>Por seguridad hay que volver a cargarla. Lo que estabas escribiendo puede haberse perdido.</p>
+  <p><small>Suele pasar cuando entraste de nuevo en otra pestaña o la sesión venció. Al volver a cargar, si seguís adentro, pegá de nuevo lo que habías escrito y guardá.</small></p>
   
   <p><a class="b" href="javascript:location.reload()">Volver a cargar</a> <a class="s" href="javascript:history.back()">Volver atrás</a></p>
   <p><small>BigSysWeb · {{ now()->format('d/m/Y H:i') }}</small></p>
