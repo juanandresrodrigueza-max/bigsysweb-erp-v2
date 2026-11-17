@@ -51,6 +51,12 @@ En la ficha de la empresa hay dos cosas distintas:
 
 Desde la ficha de la empresa, **Entrar como dueño** para dar soporte. Todo lo que se haga queda auditado y marcado como hecho por el superadmin.
 
+## Cómo entra el superadmin (fase 115)
+
+El superadmin entra por el **mismo login que todos** (`/login`). Si ya existe la empresa de BigSys en el ERP, cae **dentro de esa empresa**, con todo el sistema como cualquier dueño: ahí se factura la suscripción a los clientes, se cargan los gastos de BigSys y se usa el ERP de verdad. Arriba a la derecha tiene el botón **Panel BigSys**, que lo lleva al panel de todas las empresas; desde el panel, el botón **Ir a Bigsys Web ERP** lo trae de vuelta. Se puede ir y venir las veces que haga falta sin volver a entrar. Si todavía no hay empresa de BigSys, cae directo en el panel.
+
+Adentro de su empresa, el superadmin **ve sólo esa empresa** (sus ventas, clientes, alertas), como cualquier dueño; los datos de los clientes de BigSys se ven desde el panel, no mezclados en el tablero propio.
+
 ## La empresa de BigSys en el ERP (Fase 87)
 
 Como en el CRM, los superadmins tienen **su propia empresa** dentro del ERP para la gestión de BigSys: facturar a los clientes, cobrar, la plata, la contabilidad. Se define una vez en **Sistema → La empresa de BigSys en el ERP**: se crea nueva ("BigSysWeb", con todo activado y suscripción de cortesía) o se usa una que ya existe. Desde ese momento todos los superadmins, los de ahora y los que se creen después, entran a esa empresa como dueños.

@@ -82,7 +82,7 @@
         <button type="button" @click="paleta?.abrir()" class="sm:hidden p-2 rounded-lg hover:bg-marca-fondo" title="Buscar"><Icono nombre="search" clase="w-5 h-5" /></button>
 
         <!-- Fase 87: el superadmin salta al panel de control desde su propia empresa -->
-        <Link v-if="user?.is_superadmin && !impersonando" href="/admin" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-violeta/40 bg-lavanda-light text-violeta hover:border-violeta text-sm font-semibold" data-e2e="ir-panel" title="Panel de control de BigSysWeb"><Icono nombre="shield" clase="w-4 h-4" /> Panel</Link>
+        <Link v-if="user?.is_superadmin && !impersonando" href="/admin" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border border-violeta/40 bg-lavanda-light text-violeta hover:border-violeta text-sm font-semibold" data-e2e="ir-panel" title="Panel de control de BigSysWeb (todas las empresas)"><Icono nombre="shield" clase="w-4 h-4" /><span class="hidden sm:inline">Panel BigSys</span></Link>
         <Link v-if="empresa?.plan && !user?.is_superadmin" href="/suscripcion" class="hidden sm:inline badge bg-lavanda-light text-violeta hover:bg-lavanda">Plan {{ empresa.plan }}</Link>
         <button type="button" @click="ayuda?.abrir()" data-tour="ayuda" class="w-9 h-9 shrink-0 rounded-full border border-marca-borde grid place-items-center text-marca-muted hover:border-magenta/50 hover:text-magenta font-black transition" title="Ayuda de esta pantalla" aria-label="Ayuda">?</button>
         <CampanaNovedades :cantidad="$page.props.novedades ?? 0" />

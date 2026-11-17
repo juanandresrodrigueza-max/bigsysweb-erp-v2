@@ -33,7 +33,7 @@ class EmpresaBigSysFase87Test extends ErpTestCase
         $this->assertContains('vender', collect($props['nav'])->flatMap(fn($g) => array_column($g['items'], 'key'))->all());
         $this->assertNull($props['impersonando'], 'Es su empresa: no hay cartel de soporte');
         $this->get('/admin')->assertOk();
-        $this->get('/')->assertRedirect('/admin');
+        $this->get('/')->assertRedirect('/dashboard'); // Fase 115: con empresa propia cae en ella; al panel va con el botón
         // La página Sistema la muestra como definida.
         $this->assertSame($b->id, $this->get('/admin/sistema')->viewData('page')['props']['bigsys']['id']);
     }
@@ -46,7 +46,7 @@ class EmpresaBigSysFase87Test extends ErpTestCase
         $this->assertNull($otro->business_id);
         // Al iniciar sesión se lo suma y va al panel (primero se cierra la sesión del dueño que abre el caso base).
         auth()->logout(); $this->flushSession();
-        $this->post('/login', ['email' => 'otro@test.com', 'password' => 'password'])->assertRedirect('/admin');
+        $this->post('/login', ['email' => 'otro@test.com', 'password' => 'password'])->assertRedirect('/dashboard'); // Fase 115: se lo suma a la empresa de BigSys y entra ahí
         $this->assertSame($super->fresh()->business_id, $otro->fresh()->business_id);
         // Un superadmin que ya es de otra empresa no se mueve.
         $this->dueno->forceFill(['is_superadmin' => true])->save();

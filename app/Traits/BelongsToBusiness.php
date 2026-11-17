@@ -28,10 +28,17 @@ trait BelongsToBusiness
 
         static::addGlobalScope('business', function (Builder $builder) {
             $user = Auth::user();
-            if ($user && $user->business_id && ! $user->is_superadmin) {
-                $builder->where($builder->getModel()->getTable() . '.business_id', $user->business_id);
-            }
+            if (! $user || ! $user->business_id) return;
+            // Fase 115: el superadmin, adentro de su empresa (la de BigSys), ve sólo esa empresa como cualquier dueño. En el panel
+            // (/admin) sigue viendo todo, que es para lo que está el panel.
+            if ($user->is_superadmin && static::enElPanel()) return;
+            $builder->where($builder->getModel()->getTable() . '.business_id', $user->business_id);
         });
+    }
+
+    protected static function enElPanel(): bool
+    {
+        try { return app()->bound('request') && request()->is('admin', 'admin/*'); } catch (\Throwable) { return false; }
     }
 
     public function business(): BelongsTo

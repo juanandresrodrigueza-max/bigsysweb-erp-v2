@@ -61,7 +61,8 @@ class LoginController extends Controller
         AuditLog::registrar('login', $user, 'Inicio de sesión');
 
         if ($user->is_superadmin) app(\App\Services\Suscripciones\EmpresaBigSysService::class)->sumar($user); // Fase 87
-        return redirect()->intended($user->is_superadmin ? '/admin' : ($user->empresas()->count() > 0 ? '/contador/empresas' : '/dashboard'));
+        // Fase 115: el superadmin entra por el login común a la empresa de BigSys (la que administra) y salta al panel con el botón «Panel».
+        return redirect()->intended($user->is_superadmin ? ($user->fresh()->business_id ? '/dashboard' : '/admin') : ($user->empresas()->count() > 0 ? '/contador/empresas' : '/dashboard'));
     }
 
     public function verificar(Request $request)
@@ -86,7 +87,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->save();
         AuditLog::registrar('login', $user, 'Inicio de sesión (dos pasos)');
-        return redirect()->intended($user->is_superadmin ? '/admin' : '/dashboard');
+        return redirect()->intended($user->is_superadmin && ! $user->business_id ? '/admin' : '/dashboard'); // Fase 115
     }
 
     public function destroy(Request $request)
