@@ -97,4 +97,35 @@ class Fase117Test extends ErpTestCase
         $this->post('/suscripcion/pagar', ['plan_id' => $this->plan->id, 'ciclo' => 'monthly', 'medio' => 'debito'])->assertStatus(403);
         $this->post('/suscripcion/debito/cancelar')->assertStatus(403);
     }
+    // Fase 117.1: el pago único sale por la API de Orders. La vuelta consulta la orden y el webhook "order" aprueba el pago.
+    public function test_el_pago_unico_por_orders_se_aprueba_desde_la_vuelta_y_desde_el_webhook_order(): void
+    {
+        $this->mpFalso(['linkDePago' => function (PagoSuscripcion $pago) { $pago->update(['preference_id' => 'ORD01TEST' . $pago->id]); return 'https://www.mercadopago.com.ar/checkout/v1/order/ORD01TEST' . $pago->id; }]);
+        $r = $this->post('/suscripcion/pagar', ['plan_id' => $this->plan->id, 'ciclo' => 'monthly', 'medio' => 'mercadopago']);
+        $r->assertStatus(302); $this->assertStringContainsString('/checkout/v1/order/ORD01TEST', $r->headers->get('Location'));
+        $pago = PagoSuscripcion::where('business_id', $this->empresa->id)->where('estado', 'pendiente')->latest('id')->first();
+        $this->assertTrue(MercadoPagoSuscripcionService::esOrden($pago->preference_id));
+
+        // Vuelve con la orden todavía sin pagar: nada cambia.
+        $this->mpFalso(['consultarOrden' => ['status' => 'pending', 'estado_mp' => 'created', 'external_reference' => (string) $pago->id, 'amount' => 0.0, 'pago_id' => null, 'pago_estado' => null]]);
+        $this->get('/suscripcion/retorno?pago=' . $pago->id)->assertRedirect('/suscripcion');
+        $this->assertSame('pendiente', $pago->fresh()->estado);
+
+        // Llega el webhook de Orders: type=order, action=order.processed, data.id = la orden.
+        $this->mpFalso(['consultarOrden' => ['status' => 'approved', 'estado_mp' => 'processed', 'external_reference' => (string) $pago->id, 'amount' => (float) $pago->monto, 'pago_id' => 'PAY123', 'pago_estado' => 'approved']]);
+        $this->postJson('/api/webhooks/mercadopago/suscripcion', ['type' => 'order', 'action' => 'order.processed', 'data' => ['id' => $pago->preference_id]])->assertOk();
+        $pago = $pago->fresh(); $this->assertSame('aprobado', $pago->estado); $this->assertSame('PAY123', $pago->external_id);
+        $this->assertSame('active', $this->empresa->fresh()->subscription->status);
+        // Repetido: idempotente.
+        $this->postJson('/api/webhooks/mercadopago/suscripcion', ['type' => 'order', 'action' => 'order.processed', 'data' => ['id' => $pago->preference_id]])->assertOk();
+        $this->assertSame(1, PagoSuscripcion::where('business_id', $this->empresa->id)->where('estado', 'aprobado')->count());
+
+        // Otra orden que falla: la vuelta la marca rechazada.
+        $this->mpFalso(['linkDePago' => function (PagoSuscripcion $pago) { $pago->update(['preference_id' => 'ORD02TEST' . $pago->id]); return 'https://mp/ORD02'; }]);
+        $this->post('/suscripcion/pagar', ['plan_id' => $this->plan->id, 'ciclo' => 'monthly', 'medio' => 'mercadopago'])->assertStatus(302);
+        $pago2 = PagoSuscripcion::where('business_id', $this->empresa->id)->where('estado', 'pendiente')->latest('id')->first();
+        $this->mpFalso(['consultarOrden' => ['status' => 'rejected', 'estado_mp' => 'failed', 'external_reference' => (string) $pago2->id, 'amount' => 0.0, 'pago_id' => null, 'pago_estado' => 'failed']]);
+        $this->get('/suscripcion/retorno?pago=' . $pago2->id)->assertRedirect('/suscripcion');
+        $this->assertSame('rechazado', $pago2->fresh()->estado);
+    }
 }

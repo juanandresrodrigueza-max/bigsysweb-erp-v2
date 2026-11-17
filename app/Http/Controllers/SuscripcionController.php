@@ -110,6 +110,23 @@ class SuscripcionController extends Controller
             return redirect('/suscripcion')->with('success', 'Pago simulado aprobado (sin credenciales de MercadoPago). Plan activado.');
         }
 
+        // Fase 117.1: si el link salió por la API de Orders, consultamos la orden directamente (no dependemos de lo que venga en la URL).
+        if ($mp->configurado() && MercadoPagoSuscripcionService::esOrden($pago->preference_id)) {
+            try {
+                $info = $mp->consultarOrden($pago->preference_id);
+                if ($info['status'] === 'approved') {
+                    $service->aprobarPago($pago, (string) ($info['pago_id'] ?: $pago->preference_id), $request->user());
+                    return redirect('/suscripcion')->with('success', 'Pago aprobado. ¡Gracias! Tu plan ya está activo.');
+                }
+                if ($info['status'] === 'rejected' && $pago->estado === 'pendiente') {
+                    $service->rechazarPago($pago, 'rechazado', 'MercadoPago: ' . $info['estado_mp']);
+                    return redirect('/suscripcion')->with('error', 'El pago fue rechazado. Probá con otro medio.');
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $paymentId = $request->input('payment_id') ?? $request->input('collection_id');
         if ($paymentId && $mp->configurado()) {
             try {
@@ -182,6 +199,19 @@ class SuscripcionController extends Controller
                 $sub = \App\Models\Subscription::where('mp_preapproval_id', (string) $id)->first();
                 if (! $sub && ($info['external_reference'] ?? null) && preg_match('/^debito-(\d+)$/', $info['external_reference'], $m) && $info['status'] === 'authorized') { $emp = \App\Models\Business::withoutGlobalScopes()->find((int) $m[1]); if ($emp) $sub = $service->activarDebito($emp, (string) $id); }
                 if ($sub) $service->estadoDebito($sub, (string) $info['status']);
+            } catch (\Throwable $e) { report($e); }
+            return response()->json(['ok' => true]);
+        }
+        // Fase 117.1: aviso de la API de Orders (type "order", action order.processed / order.failed / …).
+        if ($id && $mp->configurado() && ((string) $tipo === 'order' || str_starts_with((string) $tipo, 'order.'))) {
+            try {
+                $info = $mp->consultarOrden((string) $id);
+                $pago = ctype_digit((string) $info['external_reference']) ? PagoSuscripcion::find((int) $info['external_reference']) : null;
+                if ($pago && $info['status'] === 'approved') {
+                    $service->aprobarPago($pago, (string) ($info['pago_id'] ?: $id));
+                } elseif ($pago && $info['status'] === 'rejected' && $pago->estado === 'pendiente') {
+                    $service->rechazarPago($pago, 'rechazado', 'MercadoPago: ' . $info['estado_mp']);
+                }
             } catch (\Throwable $e) { report($e); }
             return response()->json(['ok' => true]);
         }

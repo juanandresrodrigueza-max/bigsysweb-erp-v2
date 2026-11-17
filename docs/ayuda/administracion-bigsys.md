@@ -47,6 +47,8 @@ En la ficha de la empresa hay dos cosas distintas:
 
 **Débito automático (fase 117).** Con las credenciales de producción de Mercado Pago cargadas en Sistema → Cobros de BigSys (la misma aplicación sirve para el link y para el débito), las empresas pueden dejar la tarjeta y el ERP cobra solo cada período. Los cobros llegan por el webhook de Mercado Pago (`/api/webhooks/mercadopago/suscripcion`, avisos de pagos, de cobros de suscripción y de estado del débito) y, por si un aviso se pierde, la revisión diaria de las 06:00 consulta a Mercado Pago antes de dar por vencida una suscripción con débito. En la ficha de la empresa, el badge «Débito automático» dice si lo tiene.
 
+**Cómo crear la aplicación en Mercado Pago (fase 117.1).** En Mercado Pago → Tus integraciones → Crear aplicación, con la cuenta de BigSys: solución **Checkout Pro**, tipo de API **API de Orders** (la de Preferences está en retirada; el ERP usa Orders y, si fallara, cae solo a Preferences). Después, en la misma aplicación: **Credenciales de producción** → Public key y Access token van a Sistema → Cobros de BigSys. En **Webhooks** → modo productivo: URL `https://erp.bigsysweb.com/api/webhooks/mercadopago/suscripcion` y tildar los eventos **Órdenes**, **Pagos** y **Planes y suscripciones** (así llegan el pago único, los cobros del débito y los cortes). No hace falta otra aplicación para el débito automático.
+
 
 **Planes**: nombre, precio mensual y anual, usuarios, sucursales, artículos y **facturas por mes** incluidos (-1 = sin límite), módulos. **Cobros**: pagos por Mercado Pago (automáticos) o transferencia (se aprueban a mano). La revisión diaria avisa vencimientos, aplica gracia y suspende; se puede correr a mano desde Sistema.
 
