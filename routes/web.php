@@ -48,7 +48,7 @@ Route::get('/p/{token}/pagar-simulado',  [\App\Http\Controllers\PublicoControlle
 
 // Fase 108: la página de ventas pública. La raíz, sin sesión, la muestra; con sesión sigue yendo al panel o al tablero.
 Route::get('/conocer', [\App\Http\Controllers\ConocerController::class, 'index'])->name('conocer');
-Route::get('/', fn() => auth()->check() ? redirect(auth()->user()->is_superadmin ? '/admin' : '/dashboard') : app(\App\Http\Controllers\ConocerController::class)->index());
+Route::get('/', fn() => auth()->check() ? redirect(auth()->user()->is_superadmin && ! auth()->user()->business_id ? '/admin' : '/dashboard') : app(\App\Http\Controllers\ConocerController::class)->index()); // Fase 115: el superadmin cae en su empresa
 
 // Fase 93.1: privacidad y términos (públicos; las tiendas de apps los exigen) y los archivos de deep links de la app.
 Route::view('/privacidad', 'legal.privacidad', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
