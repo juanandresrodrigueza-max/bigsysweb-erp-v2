@@ -119,6 +119,68 @@ class SuscripcionService
         });
     }
 
+    // ── Fase 117 · Débito automático ──────────────────────────────────────────────────────────────────────────────────────────
+    // El dueño autorizó la tarjeta en Mercado Pago: la suscripción queda con auto_renew y el id del débito. El plan se activa (o renueva)
+    // cuando llega cada cobro (registrarCobroDebito); el primer cobro llega a los pocos minutos de autorizar.
+    public function activarDebito(Business $empresa, string $preapprovalId, ?User $por = null): Subscription
+    {
+        $sub = $empresa->subscription ?? $this->iniciarPrueba($empresa, Plan::where('is_free', true)->first() ?? Plan::first(), 0);
+        if ($sub->mp_preapproval_id && $sub->mp_preapproval_id !== $preapprovalId) { try { app(MercadoPagoSuscripcionService::class)->cancelarDebito($sub->mp_preapproval_id); } catch (\Throwable $e) { report($e); } }
+        $sub->update(['auto_renew' => true, 'mp_preapproval_id' => $preapprovalId, 'payment_method' => 'debito']);
+        AuditLog::registrar('suscripcion', $sub, 'Débito automático autorizado en Mercado Pago (' . $preapprovalId . ')');
+        return $sub->fresh();
+    }
+
+    // Un cobro del débito (webhook o reconciliación). Idempotente por el id del pago de Mercado Pago. El primero cierra el pago pendiente
+    // que se creó al activar (plan y ciclo elegidos); los siguientes renuevan el plan de la suscripción.
+    public function registrarCobroDebito(Subscription $sub, string $pagoMpId, float $monto, ?string $fecha = null): ?PagoSuscripcion
+    {
+        if ($pagoMpId === '' || ! $sub->business) return null;
+        if ($ya = PagoSuscripcion::where('business_id', $sub->business_id)->where('external_id', $pagoMpId)->first()) return $ya;
+        $pend = PagoSuscripcion::where('business_id', $sub->business_id)->where('medio', 'debito')->where('estado', 'pendiente')->where(fn($q) => $q->where('preference_id', $sub->mp_preapproval_id)->orWhereNull('preference_id'))->latest('id')->first();
+        $pago = $pend ?? $this->crearPago($sub->business, $sub->plan, $sub->billing_cycle, 'debito', null, $monto ?: null, $sub->mp_preapproval_id, 'Cobro automático de Mercado Pago');
+        if ($fecha) $pago->update(['fecha' => \Carbon\Carbon::parse($fecha)->toDateString()]);
+        if ($monto > 0) $pago->update(['monto' => $monto]);
+        return $this->aprobarPago($pago, $pagoMpId);
+    }
+
+    public function cancelarDebito(Business $empresa, string $motivo = 'Cancelado por el dueño', ?User $por = null): void
+    {
+        $sub = $empresa->subscription;
+        if (! $sub || ! $sub->mp_preapproval_id) return;
+        try { app(MercadoPagoSuscripcionService::class)->cancelarDebito($sub->mp_preapproval_id); } catch (\Throwable $e) { report($e); }
+        $sub->update(['auto_renew' => false, 'mp_preapproval_id' => null, 'payment_method' => 'mercadopago', 'notas' => trim(($sub->notas ? $sub->notas . "\n" : '') . "Débito automático cancelado: {$motivo}")]);
+        PagoSuscripcion::where('business_id', $empresa->id)->where('medio', 'debito')->where('estado', 'pendiente')->update(['estado' => 'anulado']);
+        AuditLog::registrar('suscripcion', $sub, "Débito automático cancelado: {$motivo}");
+    }
+
+    // Mercado Pago avisó que el débito cambió de estado (pausado, cancelado por el pagador, autorizado).
+    public function estadoDebito(Subscription $sub, string $estado): void
+    {
+        if (in_array($estado, ['cancelled', 'paused'], true) && $sub->auto_renew) {
+            $sub->update(['auto_renew' => false, 'notas' => trim(($sub->notas ? $sub->notas . "\n" : '') . 'Débito automático ' . ($estado === 'paused' ? 'pausado' : 'cancelado') . ' en Mercado Pago el ' . now()->format('d/m/Y'))]);
+            $this->alertar($sub, 'aviso', 'Se cortó el débito automático', 'Mercado Pago lo informa ' . ($estado === 'paused' ? 'pausado' : 'cancelado') . '. Para seguir sin cortes, volvé a activarlo o pagá con el link en Configuración → Suscripción.');
+        } elseif ($estado === 'authorized' && ! $sub->auto_renew) {
+            $sub->update(['auto_renew' => true, 'payment_method' => 'debito']);
+        }
+    }
+
+    // Si se perdió un webhook, los cobros del débito se traen de Mercado Pago antes de dar por vencida la suscripción.
+    public function reconciliarDebito(Subscription $sub): int
+    {
+        if (! $sub->auto_renew || ! $sub->mp_preapproval_id) return 0;
+        $n = 0;
+        try {
+            foreach (app(MercadoPagoSuscripcionService::class)->pagosDelDebito($sub->mp_preapproval_id) as $c) {
+                if (($c['estado'] ?? '') !== 'processed' && ($c['pago_estado'] ?? '') !== 'approved') continue;
+                $id = $c['pago_id'] ?: $c['id']; if (! $id) continue;
+                if (PagoSuscripcion::where('business_id', $sub->business_id)->where('external_id', $id)->exists()) continue;
+                $this->registrarCobroDebito($sub, $id, (float) $c['monto'], $c['fecha'] ?? null); $n++;
+            }
+        } catch (\Throwable $e) { report($e); }
+        return $n;
+    }
+
     public function rechazarPago(PagoSuscripcion $pago, string $estado = 'rechazado', ?string $motivo = null): void
     {
         $pago->update(['estado' => $estado, 'notas' => trim(($pago->notas ? $pago->notas . "\n" : '') . ($motivo ?? ''))]);
@@ -190,9 +252,11 @@ class SuscripcionService
                 continue;
             }
             if (in_array($sub->status, ['trial', 'active'], true) && $limite && $limite->isPast()) {
+                // Fase 117: con débito automático, primero se busca el cobro en Mercado Pago (por si el aviso no llegó).
+                if ($sub->auto_renew && $sub->mp_preapproval_id && $this->reconciliarDebito($sub) > 0 && $sub->fresh()->fechaLimite()?->isFuture()) { $r['debito_reconciliado'] = ($r['debito_reconciliado'] ?? 0) + 1; continue; }
                 $sub->update(['status' => 'grace', 'grace_ends_at' => now()->addDays($gracia)->endOfDay()]);
                 $r['a_gracia']++;
-                $this->alertar($sub, 'critica', 'Suscripción vencida', "Tenés {$gracia} días para renovar antes de que se suspenda el acceso.");
+                $this->alertar($sub, 'critica', 'Suscripción vencida', $sub->auto_renew ? "El débito automático no pudo cobrarse. Revisá la tarjeta en Mercado Pago o pagá con el link: tenés {$gracia} días antes de que se suspenda el acceso." : "Tenés {$gracia} días para renovar antes de que se suspenda el acceso.");
                 \App\Services\Integraciones\CrmService::avisarPlan($sub->business);
                 continue;
             }

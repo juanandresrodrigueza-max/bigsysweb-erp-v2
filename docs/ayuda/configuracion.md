@@ -167,6 +167,16 @@ Cada copia, apenas se genera, **se abre y se comprueba**: que sea de tu empresa,
 
 ## Suscripción
 
+### Débito automático (fase 117)
+
+En Configuración → Suscripción, la opción recomendada es **Débito automático con Mercado Pago**: dejás una tarjeta una sola vez y el plan se cobra solo cada mes (o cada año), sin vencimientos ni cortes. Al tocar «Activar débito automático» vas a Mercado Pago, autorizás la tarjeta y volvés; el primer cobro llega en minutos y ahí se activa el plan. De ahí en más cada período se renueva solo y queda en el historial de pagos como «Débito automático».
+
+- **Cancelar**: en la misma pantalla, «Cancelar débito». El plan sigue hasta el vencimiento; después renovás con el link o transferencia cuando quieras.
+- **Cambiar de plan** con el débito activo: elegís el plan nuevo y «Activar débito automático»: se reemplaza el débito anterior por el nuevo.
+- **Si la tarjeta falla** o cancelás el débito desde Mercado Pago, te avisa la campana y tenés los días de gracia de siempre para pagar con el link.
+- Las otras dos formas siguen: **pago único con Mercado Pago** (un link por período) y **transferencia**.
+
+
 Plan actual, usuarios y sucursales incluidos, renovación por Mercado Pago o transferencia. También muestra las **facturas emitidas en el mes** y los **artículos cargados** contra lo que incluye el plan (en rojo desde el 80 %). Al llegar al máximo, la factura siguiente del mes o el artículo nuevo no se pueden cargar hasta pasar a un plan mayor; presupuestos, remitos y notas de crédito no cuentan.
 
 **Dar de baja la empresa** (abajo de todo, sólo el dueño): cierra el acceso de todos los usuarios al instante. Pide el nombre de la empresa escrito a mano y un motivo. Los datos se conservan 90 días por si volvés (soporte la restaura al instante); después se eliminan, salvo los comprobantes fiscales que la ley obliga a guardar. Antes de irte, exportá todo desde Configuración → Datos. Es lo que promete la política de privacidad (/privacidad).

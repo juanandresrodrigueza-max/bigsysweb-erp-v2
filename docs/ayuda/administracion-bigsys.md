@@ -45,6 +45,9 @@ En la ficha de la empresa hay dos cosas distintas:
 
 ## Planes y cobros
 
+**Débito automático (fase 117).** Con las credenciales de producción de Mercado Pago cargadas en Sistema → Cobros de BigSys (la misma aplicación sirve para el link y para el débito), las empresas pueden dejar la tarjeta y el ERP cobra solo cada período. Los cobros llegan por el webhook de Mercado Pago (`/api/webhooks/mercadopago/suscripcion`, avisos de pagos, de cobros de suscripción y de estado del débito) y, por si un aviso se pierde, la revisión diaria de las 06:00 consulta a Mercado Pago antes de dar por vencida una suscripción con débito. En la ficha de la empresa, el badge «Débito automático» dice si lo tiene.
+
+
 **Planes**: nombre, precio mensual y anual, usuarios, sucursales, artículos y **facturas por mes** incluidos (-1 = sin límite), módulos. **Cobros**: pagos por Mercado Pago (automáticos) o transferencia (se aprueban a mano). La revisión diaria avisa vencimientos, aplica gracia y suspende; se puede correr a mano desde Sistema.
 
 ## Entrar a una empresa

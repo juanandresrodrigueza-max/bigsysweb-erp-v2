@@ -65,13 +65,24 @@
           </button>
         </div>
 
+        <div v-if="debito?.activo" class="card mb-4 flex flex-wrap items-center gap-3 border-emerald-200 bg-emerald-50/60" data-e2e="debito-activo">
+          <Icono nombre="check" clase="w-5 h-5 text-emerald-700 shrink-0" />
+          <div class="flex-1 min-w-0"><p class="font-semibold">Débito automático activo</p><p class="text-xs text-marca-muted">Tu plan <b>{{ actual?.plan }}</b> se cobra solo cada {{ actual?.ciclo === 'yearly' ? 'año' : 'mes' }} con Mercado Pago. Si cambiás de plan acá abajo, el débito se actualiza al nuevo.</p></div>
+          <button type="button" class="btn-secondary text-carmin text-xs" :disabled="cancelando" @click="cancelarDebito" data-e2e="cancelar-debito">{{ cancelando ? 'Cancelando…' : 'Cancelar débito' }}</button>
+        </div>
+        <div v-else-if="debito?.pendiente" class="card mb-4 text-sm bg-amber-50 border-amber-200" data-e2e="debito-pendiente">Débito automático iniciado: falta que Mercado Pago confirme la autorización de la tarjeta. En minutos se activa solo; si cerraste la ventana sin terminar, elegí «Débito automático» y volvé a intentarlo.</div>
         <div class="card">
           <div class="grid lg:grid-cols-2 gap-5">
             <div>
               <p class="label">Cómo querés pagar</p>
+              <!-- Fase 117: débito automático con tarjeta (preapproval de Mercado Pago) -->
+              <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer mb-2" :class="pago.medio === 'debito' ? 'border-carmin bg-carmin-light/40' : 'border-marca-borde'" data-e2e="medio-debito">
+                <input v-model="pago.medio" type="radio" value="debito" class="accent-carmin mt-1" />
+                <span><b>Débito automático con Mercado Pago</b> <span class="badge bg-emerald-50 text-emerald-700 ml-1">Recomendado</span><span class="block text-xs text-marca-muted">Dejás una tarjeta una sola vez y se cobra solo cada {{ pago.ciclo === 'yearly' ? 'año' : 'mes' }}. Sin cortes ni vencimientos. Lo cancelás cuando quieras desde acá.<span v-if="!mercadopago"> Modo de prueba: se aprueba solo.</span></span></span>
+              </label>
               <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer mb-2" :class="pago.medio === 'mercadopago' ? 'border-carmin bg-carmin-light/40' : 'border-marca-borde'">
                 <input v-model="pago.medio" type="radio" value="mercadopago" class="accent-carmin mt-1" />
-                <span><b>MercadoPago</b><span class="block text-xs text-marca-muted">Tarjeta, débito o dinero en cuenta. Se activa al instante.<span v-if="!mercadopago"> Modo de prueba: se aprueba solo.</span></span></span>
+                <span><b>Pago único con Mercado Pago</b><span class="block text-xs text-marca-muted">Un link por período: tarjeta, débito o dinero en cuenta. Se activa al instante; cada vencimiento volvés a pagar.<span v-if="!mercadopago"> Modo de prueba: se aprueba solo.</span></span></span>
               </label>
               <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer" :class="pago.medio === 'transferencia' ? 'border-carmin bg-carmin-light/40' : 'border-marca-borde'">
                 <input v-model="pago.medio" type="radio" value="transferencia" class="accent-carmin mt-1" />
@@ -90,7 +101,7 @@
                 <div class="flex justify-between text-lg font-extrabold pt-1 border-t border-marca-borde"><span>Total</span><span class="tabular-nums">{{ moneda(total) }}</span></div>
                 <p class="text-xs text-marca-muted">{{ actual?.estado === 'active' && actual.dias > 0 ? 'Se suma a partir de tu vencimiento actual.' : 'Arranca hoy.' }}</p>
               </div>
-              <button class="btn-primary w-full mt-4 !py-3 text-base" :disabled="pago.processing || !pago.plan_id" @click="pago.post('/suscripcion/pagar')">{{ pago.processing ? 'Un momento…' : (pago.medio === 'mercadopago' ? 'Pagar con MercadoPago' : 'Avisar transferencia') }}</button>
+              <button class="btn-primary w-full mt-4 !py-3 text-base" :disabled="pago.processing || !pago.plan_id" @click="pago.post('/suscripcion/pagar')">{{ pago.processing ? 'Un momento…' : (pago.medio === 'debito' ? 'Activar débito automático' : pago.medio === 'mercadopago' ? 'Pagar con MercadoPago' : 'Avisar transferencia') }}</button>
             </div>
           </div>
         </div>
@@ -122,17 +133,23 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Logo from '@/Components/Logo.vue'
 import Icono from '@/Components/Icono.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { estadoClase, pagoClase, pagoLabel, cicloLabel } from '@/util/suscripcion'
-const props = defineProps({ bloqueada: Boolean, motivo: String, administrativa: Boolean, esDueno: Boolean, soloDueno: Boolean, empresa: String, actual: Object, uso: Object, planes: Array, pagos: Array, mercadopago: Boolean, transferencia: Object, soporte: Object })
+const props = defineProps({ debito: Object, bloqueada: Boolean, motivo: String, administrativa: Boolean, esDueno: Boolean, soloDueno: Boolean, empresa: String, actual: Object, uso: Object, planes: Array, pagos: Array, mercadopago: Boolean, transferencia: Object, soporte: Object })
 const bajaAbierta = ref(false)
 const baja = useForm({ motivo: '', confirmacion: '' })
-const pago = useForm({ plan_id: props.actual?.plan_id ?? props.planes.find(p => !p.gratis)?.id, ciclo: props.actual?.ciclo ?? 'monthly', medio: 'mercadopago', referencia: '' })
+const pago = useForm({ plan_id: props.actual?.plan_id ?? props.planes.find(p => !p.gratis)?.id, ciclo: props.actual?.ciclo ?? 'monthly', medio: props.debito?.activo ? 'debito' : 'debito', referencia: '' })
+// Fase 117: cancelar el débito automático (el plan sigue hasta el vencimiento).
+const cancelando = ref(false)
+function cancelarDebito() {
+  if (!confirm('¿Cancelar el débito automático? Tu plan sigue hasta el vencimiento; después renovás con el link o transferencia cuando quieras.')) return
+  cancelando.value = true; router.post('/suscripcion/debito/cancelar', {}, { preserveScroll: true, onFinish: () => (cancelando.value = false) })
+}
 const planElegido = computed(() => props.planes.find(p => p.id === pago.plan_id))
 const total = computed(() => planElegido.value ? (pago.ciclo === 'yearly' ? planElegido.value.anual : planElegido.value.mensual) : 0)
 // Uso al 80 % o más del límite del plan.

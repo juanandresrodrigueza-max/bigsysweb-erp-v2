@@ -10,6 +10,7 @@
           <div class="flex flex-wrap gap-1.5 mt-1.5">
             <span class="badge" :class="estadoClase[empresa.estado]">{{ empresa.estado_label }}</span>
             <span v-if="suscripcion" class="badge bg-lavanda-light text-violeta">{{ suscripcion.plan }} · {{ cicloLabel[suscripcion.ciclo] }}</span>
+            <span v-if="suscripcion?.debito" class="badge bg-emerald-50 text-emerald-700" title="Mercado Pago le cobra solo cada período">Débito automático</span>
             <span v-if="empresa.suspension_motivo" class="badge bg-carmin-light text-carmin">{{ empresa.suspension_motivo }}</span>
           </div>
         </div>
