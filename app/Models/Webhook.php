@@ -18,6 +18,7 @@ class Webhook extends Model
         'comprobante.emitido' => 'Comprobante emitido (factura, remito, NC…)',
         'comprobante.anulado' => 'Comprobante anulado',
         'cobro.registrado' => 'Cobro registrado',
+        'cobro.anulado' => 'Cobro anulado',
         'pago.registrado' => 'Pago a proveedor registrado',
         'compra.registrada' => 'Compra registrada',
         'stock.bajo_minimo' => 'Artículo bajo mínimo',

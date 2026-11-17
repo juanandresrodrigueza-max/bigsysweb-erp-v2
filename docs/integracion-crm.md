@@ -176,3 +176,134 @@ url_suscripcion}`; y el aviso **`plan.cambiado`** (mismo cuerpo) en cada cambio 
   acepta; `GET /api/crm/salud?ping=1` y el botón Probar refrescan en el acto el ping y "Lo que ve el CRM"; **Reintentar** también adelanta los
   envíos que esperan su próximo intento (backoff) y, de paso, se corrigió el filtro con que el ERP busca sus envíos en la cola (no coincidía con
   el payload real, así que la cola contaba cero desde la Fase 68).
+
+## Fase 116 · Todo convive: facturación, stock, cobranzas y pedidos (decisiones del 17/11/2026)
+
+Decisiones de Juan: con el ERP conectado **se factura sólo en el ERP**; el **stock manda el ERP** (el CRM lo muestra y lo empuja a las
+tiendas, no lo edita); la **deuda vive en el ERP** y la **gestión del cobro en el CRM** (todo pago anotado en el CRM termina como recibo
+en el ERP); los **pedidos de tiendas** pasan al ERP como venta; lo que la empresa ya tenía en el CRM pasa al ERP (carga inicial).
+
+### A · Pedidos de tiendas → ERP
+
+`POST /api/crm/pedidos` (Bearer: token de API de la empresa). Idempotente por `crm_order_id`.
+
+```json
+{"crm_order_id": "woo-1001", "origen": "woo", "numero": "1001", "fecha": "2026-11-17", "pagado": true, "medio_pago": "Mercado Pago",
+ "total": 23500, "envio": 1500, "entrega": "envio",
+ "cliente": {"crm_contact_id": 55, "nombre": "Marta Pérez", "cuit": null, "email": "marta@mail.com", "telefono": "351 555 0000", "direccion": "Av. Colón 100"},
+ "items": [{"sku": "CEM50", "external_id": 812, "descripcion": "Cemento x 50 kg", "cantidad": 2, "precio_unitario": 10000},
+           {"sku": "ZZZ-NO", "descripcion": "Pala ancha", "cantidad": 1, "precio_unitario": 2000}]}
+```
+
+`origen`: `woo` | `woocommerce` | `tiendanube` | `shopify` | `mercadolibre` | `empretienda` | `tienda` | `otro`. El cliente se empareja igual que
+`recibirContacto` (id del CRM → CUIT → mail → teléfono) y si no existe se crea. Los ítems se emparejan por `external_id` (id del artículo en el
+ERP), después por `sku`/`code` (SKU o barras); **sin artículo entran como renglón libre** (no mueven stock) y sale una alerta en el ERP
+(`crm_pedido_sin_articulo`); el pedido no se rechaza. Los precios son los que cobró la tienda; si `total` difiere, la diferencia queda como descuento.
+
+Qué hace: crea el **pedido web del canal** y lo **confirma al toque como comprobante interno** (`sin_arca`, numera aparte): **descuenta el
+stock** y queda **para facturar** con «Facturar» (fase 104), que lo pasa a fiscal con CAE sin tocar nada más. Si la confirmación falla (por
+ejemplo, falta el punto de venta), el pedido queda en Vender → Pedidos web para confirmarlo a mano y la respuesta lo dice en `aviso`.
+`confirmar: false` lo deja sólo como pedido.
+
+Respuesta `201` (y `200` con `duplicado: true` si ya había entrado):
+
+```json
+{"data": {"id": 41, "numero": "PW-00041", "crm_order_id": "woo-1001", "canal": "woocommerce", "estado": "confirmado", "total": 23500,
+  "cliente": {"id": 120, "nombre": "Marta Pérez"},
+  "comprobante": {"id": 905, "tipo": "FB", "numero": "X 0001-00000012", "interno": true, "estado": "emitido", "total": 23500, "url": "https://erp.bigsysweb.com/comprobantes/905"},
+  "duplicado": false, "items_sin_articulo": ["Pala ancha (ZZZ-NO)"], "aviso": null}}
+```
+
+`comprobante.emitido` ahora trae `crm_order_id` (además de `crm_quote_id`) e `interno: true|false`. Al facturar el interno, el ERP manda
+**otro** `comprobante.emitido` por el **mismo id** de comprobante, con `interno: false` y `fiscal_desde_interno: "X 0001-00000012"`:
+el CRM actualiza el documento en vez de duplicarlo.
+
+### B · Deudas para gestionar en el CRM
+
+`GET /api/crm/deudores?por_pagina=100&page=1&solo_vencidos=1` (paginado, hasta 200 por página; `solo_vencidos` opcional):
+
+```json
+{"data": [{"contact_id": 120, "crm_external_id": "55", "nombre": "Atrasado SA", "cuit": "30-70012345-6", "email": "…", "telefono": "…",
+   "saldo": 13310, "vencido": 12100, "dias_mayor_atraso": 10,
+   "comprobantes_vencidos": [{"id": 900, "tipo": "FA", "numero": "A 0001-00000007", "fecha": "2026-10-08", "vence": "2026-11-07", "saldo": 12100, "dias": 10}],
+   "ultimo_cobro": {"id": 31, "numero": "REC-00031", "fecha": "2026-11-02", "total": 5000}, "dias_pago": 30, "limite_credito": null,
+   "url": "https://erp.bigsysweb.com/clientes/120"}],
+ "meta": {"total": 2, "pagina": 1, "por_pagina": 100, "paginas": 1, "saldo_total": 15730, "actualizado": "2026-11-17T10:00:00-03:00"}}
+```
+
+`POST /api/contacts/{id}/cobros` acepta **varios medios** en `medios[]` (`efectivo`, `transferencia` con `cuenta_fondos_id`, `cheque`,
+`mercadopago`, `tarjeta`, …) y ahora **`crm_payment_id`**: si el CRM reintenta el mismo pago, responde `200` con el recibo que ya existía y
+`duplicado: true` (no se registra dos veces). Un pago anulado libera el id. `cobro.registrado` trae `crm_payment_id`.
+
+Evento nuevo ERP → CRM: **`cobro.anulado`** (mismo `datos` que `cobro.registrado`, con `estado: "anulado"`, `motivo` y `crm_payment_id`).
+`payment.received` del CRM no hace falta: el CRM manda todo cobro por `POST /api/contacts/{id}/cobros`.
+
+### C · Stock y productos siempre al día
+
+- Los cambios masivos ahora avisan al CRM: aplicar datos del rubro a sus artículos (Stock → Rubros → Aplicar), publicar/ocultar artículos
+  en la tienda, y las ventas y compras por la API común (`/api/sales`, `/api/purchases`).
+- `sincronizarTodo` (botón Sincronizar todo) manda clientes **y proveedores**, artículos **y usuarios**. El hook de contactos y la
+  reconciliación de 48 h también mandan proveedores (etiqueta `Proveedor`, sin `lifecycle_stage`) y usuarios.
+
+### D · Carga inicial CRM → ERP (botón «Pasar todo al ERP»)
+
+Cuatro endpoints en lote (hasta **500 ítems por llamada**), idempotentes, con el mismo token de API. Todos responden
+`{"data": {"summary": {"total", "creados", "actualizados", "existentes", "errores"}, "results": [{"ok", "accion", "id", "numero", "motivo", "indice"}]}}`;
+un ítem con error no frena a los demás.
+
+- **`POST /api/crm/importar/contactos`** `{items: [contacto como en contact.created]}`. Empareja por `crm_external_id` → `external_id` (id del
+  ERP) → CUIT → mail; crea si no existe. `tipo: "proveedor"` lo da de alta como proveedor (o «ambos» si ya era cliente).
+- **`POST /api/crm/importar/presupuestos`** `{items: [{quote, contact?}]}` (mismo payload que `quote.accepted`). Idempotente por `crm_quote_id`.
+- **`POST /api/crm/importar/comprobantes-historicos`**: facturas y notas que el CRM **ya emitió con CAE** antes de conectar. Sólo historial:
+  **no se re-emiten, no piden CAE, no tocan la numeración del ERP, no mueven stock ni contabilidad**. Quedan `afip_estado: "crm"`,
+  `origen_carga: "crm"`, nota «Emitida en el CRM». Se ven en la ficha del cliente y en `/api/contacts/{id}/cuenta` como cualquier comprobante.
+
+  ```json
+  {"items": [{"crm_document_id": "d1", "tipo": "FA", "punto_venta": 6, "numero": 120, "fecha": "2026-09-10", "vencimiento": "2026-10-10",
+    "cae": "76123456789012", "cae_vto": "2026-09-20", "cliente": {"crm_contact_id": 1, "nombre": "López SRL", "cuit": "30-70012345-6"},
+    "items": [{"sku": "CEM50", "descripcion": "Cemento", "cantidad": 10, "precio_unitario": 1000, "alicuota_iva": 21}],
+    "total": 12100, "saldo": 4100},
+   {"crm_document_id": "d2", "tipo": "NCA", "punto_venta": 6, "numero": 3, "fecha": "2026-09-15", "origen_crm_document_id": "d1",
+    "cliente": {"crm_contact_id": 1}, "items": [...], "total": 1210}]}
+  ```
+
+  `tipo`: FA, FB, FC, FE, NCA, NCB, NCC, NDA, NDB, NDC (remitos y presupuestos no). Idempotente por `crm_document_id` y también por
+  tipo + punto de venta + número. **Sí se imputa a la cuenta corriente sin pedir CAE**: `saldo` es lo que todavía incide (factura: lo
+  pendiente de cobro; nota de crédito: el crédito sin aplicar). Con `saldo` la cuenta corriente recibe el debe por el total y un haber
+  «Cobrado en el CRM antes de conectar» por la diferencia, así el cliente arranca debiendo exactamente eso. Sin `saldo` (o 0) es sólo historial.
+  `origen_crm_document_id` ata la nota a su factura. Precios sin IVA (`alicuota_iva` por renglón, 21 por defecto).
+- **`POST /api/crm/importar/saldos-iniciales`**: la alternativa cuando el CRM no tiene el detalle por comprobante. Un comprobante **interno**
+  por cliente, «Saldo inicial desde el CRM»: positivo = nos debe (nota de débito interna), negativo = a favor (nota de crédito interna).
+  Sin ARCA, sin stock, sin contabilidad; sí cuenta corriente. Idempotente por cliente.
+
+  ```json
+  {"items": [{"crm_contact_id": 10, "saldo": 15000, "fecha": "2026-11-01", "detalle": "deuda al 31/10"},
+             {"cliente": {"nombre": "A Favor SA", "cuit": "27-12345678-0"}, "saldo": -2000}]}
+  ```
+
+  **Elegir una de las dos** para la deuda abierta: o los comprobantes históricos con `saldo`, o los saldos iniciales. Las dos juntas la
+  duplican. Recomendación: históricos con `saldo` si el CRM tiene el detalle (la cobranza del CRM ve después qué factura está vencida);
+  saldos iniciales si no.
+
+### E · Eventos CRM → ERP que antes se ignoraban
+
+- **`contact.deleted`** `{contact: {id}}`: el ERP **no borra** (lo fiscal queda): lo desactiva y anota «Borrado en el CRM». Responde
+  `{ok, accion: "desactivado"|"no_estaba", id, con_movimientos}`.
+- **`contact.merged`** `{contact: {id: <el que sobrevive>, ...datos}, merged_ids: [..]}` (también acepta `survivor_id`/`keep_id` y
+  `merged`/`duplicates`): el que sobrevive se queda con el id del CRM; los fusionados quedan inactivos sin id del CRM y con la nota. Los
+  comprobantes **no se mueven** (lo fiscal queda con quien se emitió); si el fusionado tenía saldo, alerta `crm_fusion_saldo` para revisar la
+  cuenta corriente. Responde `{ok, sobrevive, desactivados: [...], con_saldo: [...]}`.
+- **`quote.rejected`** `{quote: {id}}`: anula el presupuesto (o descarta el borrador) si todavía no se facturó; si ya se facturó responde
+  `ok: false` con el motivo. `{ok, accion: "anulado"|"no_estaba", id, numero}`.
+- **`quote.updated`** `{quote, contact?}`: si el del ERP no se facturó, lo anula y entra el nuevo con los ítems de ahora
+  (`{ok, accion: "creado", id, numero, reemplazo: "<número anulado>"}`); si no estaba y el status no es `accepted`, `accion: "ignorado"`.
+- **`deal.lost`** `{deal: {id, contact_id?, title?, value?, lost_reason?}}`: cierra el aviso de «venta ganada» del mismo deal y deja uno
+  informativo (`crm_venta_perdida`). `{ok, accion: "avisado"}`.
+
+El webhook descarta un cuerpo idéntico repetido dentro de 10 minutos (`{ok: true, duplicado: true}`): para reintentar a propósito,
+cambiar algo del cuerpo (por ejemplo `data.reintento`).
+
+### Al conectar la empresa BigSys
+
+La empresa #3 del CRM factura sola las suscripciones (punto de venta 6): eso es facturación de la plataforma y **no** pasa al ERP. En el ERP
+la empresa propia es «Bigsys Web ERP» (Panel → Sistema); los superadmins entran ahí por el login común (fase 115).

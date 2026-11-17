@@ -17,7 +17,7 @@ class Cobro extends Model
         'billetera' => 'Billetera virtual', 'tarjeta' => 'Tarjeta', 'retencion' => 'Retención',
     ];
 
-    protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'numero', 'fecha', 'total', 'descuento', 'interes', 'a_cuenta', 'estado', 'notas', 'cotizacion', 'cobrador_id', 'firma', 'firma_nombre', 'lat', 'lng', 'modo', 'rendicion_id'];
+    protected $fillable = ['business_id', 'business_location_id', 'contact_id', 'user_id', 'vendedor_id', 'numero', 'fecha', 'total', 'descuento', 'interes', 'a_cuenta', 'estado', 'notas', 'cotizacion', 'cobrador_id', 'firma', 'firma_nombre', 'lat', 'lng', 'modo', 'rendicion_id', 'crm_payment_id'];
     protected $casts = ['fecha' => 'date', 'total' => 'decimal:2', 'a_cuenta' => 'decimal:2', 'descuento' => 'decimal:2', 'interes' => 'decimal:2'];
 
     public function vendedor(): BelongsTo { return $this->belongsTo(Vendedor::class); }

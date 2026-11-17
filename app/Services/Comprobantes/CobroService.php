@@ -67,6 +67,7 @@ class CobroService
                 'vendedor_id' => $data['vendedor_id'] ?? $contact->vendedor_id ?? \App\Models\Vendedor::deUsuario($user->id)?->id,
                 // Quién cobró: el elegido, el cobrador asignado al cliente o nadie (entonces la comisión por cobranza es del vendedor).
                 'cobrador_id' => $data['cobrador_id'] ?? $contact->cobrador_id,
+                'modo' => $data['modo'] ?? null, 'crm_payment_id' => $data['crm_payment_id'] ?? null, // Fase 116: de dónde vino, desde el nacimiento (el aviso al CRM sale con el id del pago)
                 'numero' => $ultimo + 1, 'fecha' => $data['fecha'] ?? today(), 'total' => $total, 'descuento' => $descuento, 'interes' => $interes, 'a_cuenta' => round($cancela - $totalImputado, 2), 'notas' => $data['notas'] ?? null, 'cotizacion' => $cotHoy ?: null,
             ]);
 
@@ -181,6 +182,10 @@ class CobroService
             CuentaCorriente::recalcularSaldo($cobro->contact_id);
             AuditLog::registrar('anular', $cobro, "Anuló cobro {$cobro->numeroFormateado()}: {$motivo}");
             app(\App\Services\Contabilidad\ContabilidadService::class)->anular('cobro', $cobro->id, $motivo);
+            // Fase 116: la anulación viaja al CRM (y a los webhooks de la empresa) igual que el cobro.
+            $datos = ['estado' => 'anulado', 'motivo' => $motivo] + \App\Jobs\NotificarCrmJob::datosCobro($cobro->fresh());
+            app(\App\Services\Integraciones\WebhookService::class)->disparar($cobro->business_id, 'cobro.anulado', $datos);
+            \App\Jobs\NotificarCrmJob::avisar($cobro->business_id, 'cobro.anulado', $datos);
         });
     }
 }

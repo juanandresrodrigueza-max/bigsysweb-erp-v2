@@ -88,11 +88,14 @@ class CrmSyncService
     // Carga inicial o re-sincronización completa: todos los clientes y artículos, en lotes de 500 (en cola).
     public static function sincronizarTodo(Business $b): array
     {
+        // Fase 116: clientes y proveedores (el CRM los distingue por la etiqueta), artículos y usuarios.
         $cont = Contact::withoutGlobalScopes()->where('business_id', $b->id)->where('is_active', true)->pluck('id')->all();
         $prod = Product::withoutGlobalScopes()->where('business_id', $b->id)->where('active', true)->pluck('id')->all();
+        $usu = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->where('is_superadmin', false)->where('email', 'not like', '%@borrado.local')->pluck('id')->all();
         foreach (array_chunk($cont, self::LOTE) as $ch) \App\Jobs\SincronizarCrmJob::dispatch($b->id, 'contactos', $ch);
         foreach (array_chunk($prod, self::LOTE) as $ch) \App\Jobs\SincronizarCrmJob::dispatch($b->id, 'productos', $ch);
-        return ['contactos' => count($cont), 'productos' => count($prod)];
+        foreach (array_chunk($usu, self::LOTE) as $ch) \App\Jobs\SincronizarCrmJob::dispatch($b->id, 'usuarios', $ch);
+        return ['contactos' => count($cont), 'productos' => count($prod), 'usuarios' => count($usu)];
     }
 
     // Tareas y turnos del CRM para la agenda del ERP (en lectura, caché de 5 minutos). Cada ítem lleva el link que entra al CRM ya logueado.
@@ -302,6 +305,12 @@ class CrmSyncService
             'deal.won' => self::avisarVentaGanada($b, (array) ($data['deal'] ?? [])),
             'task.overdue', 'task.completed' => CrmAvisosService::webhookTarea($b, $evento, (array) ($data['task'] ?? $data)), // Fase 73
             'user.created', 'user.updated', 'user.deactivated', 'user.deleted' => self::recibirUsuario($b, $evento, (array) ($data['user'] ?? $data)), // Fase 75
+            // Fase 116: lo que antes se ignoraba.
+            'contact.deleted' => self::contactoBorrado($b, (array) ($data['contact'] ?? $data)),
+            'contact.merged' => self::contactosFusionados($b, $data),
+            'quote.rejected' => self::presupuestoRechazado($b, (array) ($data['quote'] ?? $data), 'Rechazado en el CRM'),
+            'quote.updated' => self::presupuestoActualizado($b, (array) ($data['quote'] ?? []), is_array($data['contact'] ?? null) ? $data['contact'] : null),
+            'deal.lost' => self::avisarVentaPerdida($b, (array) ($data['deal'] ?? [])),
             default => ['ok' => true, 'ignorado' => $evento],
         };
     }
@@ -353,6 +362,109 @@ class CrmSyncService
         \App\Models\Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $b->id, 'tipo' => 'crm_venta', 'modelo' => 'CrmDeal', 'modelo_id' => (int) $d['id']],
             ['modulo' => 'comprobantes', 'severidad' => 'aviso', 'titulo' => 'Venta ganada en el CRM' . ($cli ? ' · ' . $cli->name : '') . (! empty($d['title']) ? ' · ' . $d['title'] : ''), 'detalle' => (isset($d['value']) ? 'Valor $ ' . number_format((float) $d['value'], 0, ',', '.') . '. ' : '') . 'Si no salió de un presupuesto, armá la venta en el ERP.', 'url' => $cli ? "/clientes/{$cli->id}" : '/comprobantes', 'resuelta_en' => null]);
         return ['ok' => true, 'accion' => 'avisado'];
+    }
+
+    // Fase 116: borrado en el CRM. El ERP no borra (lo fiscal queda): lo desactiva y anota de dónde vino la baja.
+    public static function contactoBorrado(Business $b, array $k): array
+    {
+        if (empty($k['id'])) return ['ok' => false, 'motivo' => 'Contacto sin id.'];
+        $c = Contact::withoutGlobalScopes()->where('business_id', $b->id)->where('crm_external_id', (string) $k['id'])->first();
+        if (! $c) return ['ok' => true, 'accion' => 'no_estaba'];
+        self::$silencio = true;
+        try { $c->forceFill(['is_active' => false, 'notes' => trim(($c->notes ? $c->notes . "\n" : '') . 'Borrado en el CRM el ' . now()->format('d/m/Y') . '.')])->save(); } finally { self::$silencio = false; }
+        AuditLog::registrar('editar', $c, "Cliente {$c->name} desactivado: lo borraron en el CRM");
+        return ['ok' => true, 'accion' => 'desactivado', 'id' => $c->id, 'con_movimientos' => (float) $c->balance != 0.0 || \App\Models\Comprobante::withoutGlobalScopes()->where('contact_id', $c->id)->exists()];
+    }
+
+    // Fase 116: fusión en el CRM. El que sobrevive se queda con el id del CRM; los otros quedan inactivos con la nota. Los comprobantes
+    // no se mueven (lo fiscal queda con quien se emitió); si el fusionado tenía saldo, sale una alerta para revisar la cuenta corriente.
+    public static function contactosFusionados(Business $b, array $data): array
+    {
+        $sobrevive = (string) ($data['contact']['id'] ?? $data['survivor_id'] ?? $data['keep_id'] ?? $data['id'] ?? '');
+        $fusionados = array_map('strval', (array) ($data['merged_ids'] ?? $data['merged'] ?? $data['duplicates'] ?? []));
+        if ($sobrevive === '' || ! $fusionados) return ['ok' => false, 'motivo' => 'Falta el id que sobrevive o los ids fusionados.'];
+        $q = Contact::withoutGlobalScopes()->where('business_id', $b->id);
+        $s = (clone $q)->where('crm_external_id', $sobrevive)->first();
+        if (! $s && is_array($data['contact'] ?? null) && ! empty($data['contact']['name'])) { $r = self::recibirContacto($b, $data['contact']); $s = ! empty($r['id']) ? Contact::withoutGlobalScopes()->find($r['id']) : null; }
+        $out = ['ok' => true, 'sobrevive' => $s?->id, 'desactivados' => [], 'con_saldo' => []];
+        self::$silencio = true;
+        try {
+            foreach ($fusionados as $fid) {
+                $m = (clone $q)->where('crm_external_id', $fid)->first();
+                if (! $m) continue;
+                if (! $s) { $m->forceFill(['crm_external_id' => $sobrevive])->save(); $s = $m; $out['sobrevive'] = $m->id; continue; } // el único que teníamos pasa a ser el que sobrevive
+                if ($m->id === $s->id) continue;
+                $m->forceFill(['is_active' => false, 'crm_external_id' => null, 'notes' => trim(($m->notes ? $m->notes . "\n" : '') . "Fusionado en el CRM con {$s->name} (#{$s->id}) el " . now()->format('d/m/Y') . '.')])->save();
+                $out['desactivados'][] = $m->id;
+                if (abs((float) $m->balance) >= 0.01) {
+                    $out['con_saldo'][] = $m->id;
+                    \App\Models\Alerta::emitir(['business_id' => $b->id, 'modulo' => 'clientes', 'tipo' => 'crm_fusion_saldo', 'modelo' => 'Contact', 'modelo_id' => $m->id, 'severidad' => 'aviso', 'titulo' => "Fusión en el CRM: {$m->name} tenía saldo", 'detalle' => 'El CRM lo fusionó con ' . $s->name . '. Quedó inactivo con saldo $ ' . number_format((float) $m->balance, 2, ',', '.') . ': los comprobantes siguen a su nombre; revisá la cuenta corriente.', 'url' => "/clientes/{$m->id}"]);
+                }
+                AuditLog::registrar('editar', $m, "Cliente {$m->name} desactivado: fusionado en el CRM con {$s->name}");
+            }
+        } finally { self::$silencio = false; }
+        return $out;
+    }
+
+    // Fase 116: presupuesto rechazado en el CRM: se anula el PRE (o se descarta el borrador) si todavía no se facturó.
+    public static function presupuestoRechazado(Business $b, array $q, string $motivo): array
+    {
+        if (empty($q['id'])) return ['ok' => false, 'motivo' => 'Presupuesto sin id.'];
+        $c = \App\Models\Comprobante::withoutGlobalScopes()->where('business_id', $b->id)->where('crm_quote_id', (int) $q['id'])->where('estado', '!=', 'anulado')->first();
+        if (! $c) return ['ok' => true, 'accion' => 'no_estaba'];
+        if ($c->derivados()->where('estado', '!=', 'anulado')->exists()) return ['ok' => false, 'motivo' => "El {$c->nombreTipo()} {$c->numeroFormateado()} ya se facturó en el ERP: no se anula desde el CRM."];
+        $user = \App\Models\User::withoutGlobalScopes()->where('business_id', $b->id)->whereNotNull('role_id')->orderBy('id')->first();
+        $prev = \Illuminate\Support\Facades\Auth::user(); if ($user) \Illuminate\Support\Facades\Auth::setUser($user);
+        self::$silencio = true;
+        try { app(\App\Services\Comprobantes\ComprobanteService::class)->anular($c, $motivo); }
+        finally { self::$silencio = false; if ($prev) \Illuminate\Support\Facades\Auth::setUser($prev); elseif ($user) \Illuminate\Support\Facades\Auth::logout(); }
+        \App\Models\Alerta::withoutGlobalScopes()->where('business_id', $b->id)->where('tipo', 'crm_presupuesto')->where('modelo_id', $c->id)->update(['resuelta_en' => now()]);
+        return ['ok' => true, 'accion' => 'anulado', 'id' => $c->id, 'numero' => $c->numeroFormateado()];
+    }
+
+    // Fase 116: presupuesto cambiado en el CRM: si el del ERP no se facturó, se anula y entra el nuevo con los ítems de ahora.
+    public static function presupuestoActualizado(Business $b, array $q, ?array $contacto = null): array
+    {
+        if (empty($q['id'])) return ['ok' => false, 'motivo' => 'Presupuesto sin id.'];
+        $r = self::presupuestoRechazado($b, $q, 'Actualizado en el CRM: lo reemplaza la versión nueva');
+        if (! ($r['ok'] ?? false)) return $r;
+        if (($q['status'] ?? 'accepted') !== 'accepted' && ($r['accion'] ?? '') === 'no_estaba') return ['ok' => true, 'accion' => 'ignorado', 'motivo' => 'Todavía no está aceptado: entra cuando lo acepten.'];
+        $n = self::recibirPresupuesto($b, $q, $contacto);
+        return $n + ['reemplazo' => $r['accion'] === 'anulado' ? $r['numero'] : null];
+    }
+
+    // Fase 116: venta perdida en el CRM: cierra el aviso de «venta ganada» si lo había y deja uno informativo.
+    public static function avisarVentaPerdida(Business $b, array $d): array
+    {
+        if (empty($d['id'])) return ['ok' => false, 'motivo' => 'Deal sin id.'];
+        \App\Models\Alerta::withoutGlobalScopes()->where('business_id', $b->id)->where('tipo', 'crm_venta')->where('modelo', 'CrmDeal')->where('modelo_id', (int) $d['id'])->update(['resuelta_en' => now()]);
+        $cli = ! empty($d['contact_id']) ? Contact::withoutGlobalScopes()->where('business_id', $b->id)->where('crm_external_id', (string) $d['contact_id'])->first() : null;
+        \App\Models\Alerta::withoutGlobalScopes()->updateOrCreate(['business_id' => $b->id, 'tipo' => 'crm_venta_perdida', 'modelo' => 'CrmDeal', 'modelo_id' => (int) $d['id']],
+            ['modulo' => 'clientes', 'severidad' => 'info', 'titulo' => 'Venta perdida en el CRM' . ($cli ? ' · ' . $cli->name : '') . (! empty($d['title']) ? ' · ' . $d['title'] : ''), 'detalle' => trim((isset($d['value']) ? 'Valor $ ' . number_format((float) $d['value'], 0, ',', '.') . '. ' : '') . (! empty($d['lost_reason']) ? "Motivo: {$d['lost_reason']}." : '')), 'url' => $cli ? "/clientes/{$cli->id}" : '/clientes', 'resuelta_en' => null]);
+        return ['ok' => true, 'accion' => 'avisado'];
+    }
+
+    // Fase 116: el cliente de un pedido o de una carga: por id del CRM (lo crea si no está), si no por CUIT, mail o teléfono; si no, lo crea sin id del CRM.
+    public static function contactoPara(Business $b, array $cli): Contact
+    {
+        $nombre = trim((string) ($cli['nombre'] ?? $cli['name'] ?? '')) ?: 'Cliente del CRM';
+        if (! empty($cli['crm_contact_id'])) {
+            $r = self::recibirContacto($b, ['id' => $cli['crm_contact_id'], 'name' => $nombre, 'email' => $cli['email'] ?? null, 'phone' => $cli['telefono'] ?? ($cli['phone'] ?? null), 'cuit' => $cli['cuit'] ?? null, 'domicilio_fiscal' => $cli['direccion'] ?? ($cli['domicilio_fiscal'] ?? null), 'condicion_iva' => $cli['condicion_iva'] ?? null]);
+            if (! empty($r['id'])) return Contact::withoutGlobalScopes()->find($r['id']);
+        }
+        $q = Contact::withoutGlobalScopes()->where('business_id', $b->id);
+        $c = (! empty($cli['cuit']) && strlen(Cuit::limpiar($cli['cuit'])) === 11 ? (clone $q)->get()->first(fn($x) => Cuit::limpiar($x->cuit) === Cuit::limpiar($cli['cuit'])) : null)
+            ?? (! empty($cli['email']) ? (clone $q)->whereRaw('lower(email) = ?', [strtolower((string) $cli['email'])])->first() : null);
+        if (! $c && ! empty($cli['telefono'])) { $tel = preg_replace('/\D/', '', (string) $cli['telefono']); if (strlen($tel) >= 8) $c = (clone $q)->get()->first(fn($x) => str_ends_with(preg_replace('/\D/', '', (string) ($x->mobile ?: $x->phone)), substr($tel, -8))); }
+        if ($c) return $c;
+        self::$silencio = true;
+        try {
+            $cond = in_array($cli['condicion_iva'] ?? '', Contact::CONDICIONES_IVA, true) ? $cli['condicion_iva'] : 'Consumidor Final';
+            $c = Contact::create(['business_id' => $b->id, 'type' => 'customer', 'name' => $nombre, 'email' => $cli['email'] ?? null, 'mobile' => $cli['telefono'] ?? null, 'cuit' => ! empty($cli['cuit']) && Cuit::valido($cli['cuit']) ? Cuit::formatear($cli['cuit']) : null,
+                'condicion_iva' => $cond, 'address' => isset($cli['direccion']) ? mb_substr((string) $cli['direccion'], 0, 255) : null, 'is_active' => true, 'lista_precios' => 1]);
+            AuditLog::registrar('crear', $c, "Cliente {$c->name} creado desde un pedido del CRM");
+            return $c;
+        } finally { self::$silencio = false; }
     }
 
     // Alta o actualización de un cliente que nació o cambió en el CRM. Lo fiscal (CUIT, condición IVA, domicilio) es del ERP:
