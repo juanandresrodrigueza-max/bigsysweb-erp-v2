@@ -3,7 +3,7 @@
   <div class="min-h-screen flex bg-marca-fondo">
 
     <!-- Sidebar -->
-    <aside :class="abierto ? 'w-64' : 'w-[72px]'" class="hidden md:flex flex-col shrink-0 transition-all duration-200 text-white bg-sidebar-grad relative">
+    <aside :class="abierto ? 'w-64' : 'w-[72px]'" class="hidden md:flex flex-col shrink-0 transition-all duration-200 text-white bg-sidebar-grad relative md:sticky md:top-0 md:h-screen">
       <div class="h-16 flex items-center px-4 gap-3 border-b border-white/10">
         <Logo v-if="abierto" negativo clase="h-7" />
         <Logo v-else variante="iso" negativo clase="h-8" />
