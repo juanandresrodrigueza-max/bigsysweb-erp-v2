@@ -307,3 +307,21 @@ cambiar algo del cuerpo (por ejemplo `data.reintento`).
 
 La empresa #3 del CRM factura sola las suscripciones (punto de venta 6): eso es facturación de la plataforma y **no** pasa al ERP. En el ERP
 la empresa propia es «Bigsys Web ERP» (Panel → Sistema); los superadmins entran ahí por el login común (fase 115).
+
+## Fase 118 · WhatsApp con el QR de Meta: el ERP pregunta si el número ya está en el CRM (18/11/2026)
+
+Las dos plataformas usan la **misma aplicación de Meta**. Para que un número no quede conectado en los dos lados (responderían ambos), antes de guardar una conexión hecha desde el ERP, el ERP consulta al CRM:
+
+```
+POST {crm}/api/erp/numero-en-uso
+Content-Type: application/json
+X-BigSys-Firma: hmac_sha256_hex(cuerpo crudo, secreto del puente CRM↔ERP de la empresa)
+
+{ "emisor_cuit": "30712345678", "numero": "+54 9 261 610-9246", "phone_number_id": "…" }   // numero o phone_number_id, al menos uno
+
+→ 200 { "en_uso": true, "lineas": [ { "misma_empresa": true, "linea": "Central", "id": 55, "tipo": "qr" | "oficial" | "oficial_coexistence", "conectada": true, "en_uso": true } ] }
+→ 401 firma inválida · 404 CUIT sin ERP activo · 422 falta numero/phone_number_id
+```
+
+Si `en_uso` es `true`, el ERP no conecta y le dice al dueño en qué línea del CRM está. Si el CRM no responde, el ERP no frena (prioriza que la empresa pueda conectar). Del lado Meta, el ERP suscribe cada WABA con `override_callback_uri` a su propia URL y **nunca** llama a `/{app-id}/subscriptions` (ese es el webhook general de la app y apunta al CRM).
+
