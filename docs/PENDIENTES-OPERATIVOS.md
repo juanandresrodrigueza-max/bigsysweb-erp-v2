@@ -27,7 +27,7 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 | Bloque del formulario | Qué cargar | De dónde sale | Sin esto, qué no anda |
 |---|---|---|---|
 | Inteligencia artificial (Claude) | API key y modelo | console.anthropic.com | Bigcito y la IA de cada empresa (las empresas pueden poner la suya en Configuración → IA) |
-| Correo saliente (SMTP) | servidor, puerto, usuario, contraseña, cifrado, remitente | el proveedor de mail (Hostinger / Google Workspace) | Invitaciones, recibos por mail, avisos, recuperar contraseña. Botón **Enviar prueba** |
+| Correo saliente (SMTP) ✅ cargado el 18/11 (Hostinger, SSL 465, soporte@bigsysweb.com; la prueba llegó, pero a Spam: ver SPF/DKIM/DMARC abajo) | servidor, puerto, usuario, contraseña, cifrado, remitente | el proveedor de mail (Hostinger / Google Workspace) | Invitaciones, recibos por mail, avisos, recuperar contraseña. Botón **Enviar prueba** |
 | Cobros de BigSys (Mercado Pago) ✅ cargado el 17/11 (app «Bigsys Web ERP» de BIGSYS S.R.L., Checkout Pro + API de Orders, webhook configurado) | Public key y Access token de la cuenta de BigSys | Mercado Pago → Tus integraciones → Crear aplicación (Checkout Pro, **API de Orders**) → credenciales de producción. Webhook: `/api/webhooks/mercadopago/suscripcion` con eventos Órdenes, Pagos y Planes y suscripciones | Cobro de la suscripción de los clientes (pago único y débito automático) |
 | Transferencia bancaria | titular, CBU, alias | banco de BigSys | Alternativa de pago de la suscripción |
 | Ciclo de suscripción | días de prueba (15), gracia, avisos | decisión comercial | Ya tiene valores por defecto |
@@ -41,6 +41,7 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 Y en el servidor (sesión «CRM Producción», archivo `.env` de `/opt/bigsysweb`):
 
 - [ ] **Copias fuera del servidor**: `OFFSITE_S3_ENDPOINT`, `OFFSITE_S3_BUCKET`, `OFFSITE_S3_REGION`, `OFFSITE_S3_ACCESS_KEY_ID`, `OFFSITE_S3_SECRET_ACCESS_KEY`. Si el CRM ya sube a Backblaze, se copia el bloque tal cual (mismo bucket, el ERP usa el prefijo `bigsysweb/erp/`). Después `php artisan config:cache && php artisan backups:probar`. Hasta que esté, la salud queda en aviso. Detalle en `docs/produccion.md`.
+- [ ] **Que los mails no caigan en Spam (SPF, DKIM, DMARC de bigsysweb.com)**: la prueba del 18/11 llegó a Spam de Gmail, igual que el resumen semanal y los avisos de error. En el DNS del dominio (Hostinger → Dominios → DNS) tiene que haber: TXT `@` → `v=spf1 include:_spf.mail.hostinger.com ~all`; los dos CNAME de DKIM que da Hostinger en Emails → la casilla → «DKIM» (`hostingermail1._domainkey` y `hostingermail2._domainkey`, o el botón «Activar DKIM»); TXT `_dmarc` → `v=DMARC1; p=quarantine; rua=mailto:soporte@bigsysweb.com; adkim=r; aspf=r`. Después mandar otra prueba y marcar «No es spam» en Gmail. Verificar con `dig TXT bigsysweb.com` desde el servidor (la sesión del CRM puede).
 - [ ] **Mails de monitoreo**: `MONITOREO_EMAIL` en el `.env` o en Superadmin → Salud (manda lo del panel). Recibe error nuevo, salud crítica y resumen semanal.
 - [ ] **Sentry** (opcional): DSN en Superadmin → Salud.
 
