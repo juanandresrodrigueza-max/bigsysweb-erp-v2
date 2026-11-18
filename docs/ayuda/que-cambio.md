@@ -71,6 +71,13 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Conectar WhatsApp escaneando un QR (fase 118)
+
+- **Un botón en vez de claves.** En Configuración → Tienda y canales → Pedidos por WhatsApp, **Conectar WhatsApp (escaneás un QR)** abre la ventana de Meta: entrás con Facebook, escaneás el QR desde la app WhatsApp Business y listo. Igual que en el CRM.
+- **El número sigue en tu celular.** Vos chateás como siempre y el ERP recibe y responde los mensajes (pedidos, consultas de clientes, órdenes del equipo a Bigcito).
+- **Mandarme una prueba** y **Desconectar** desde la misma tarjeta. El modo manual con Phone ID y token quedó en «Avanzado».
+- Para BigSys: la aplicación de Meta se carga una sola vez en Panel → Sistema → «WhatsApp con un botón».
+
 ## Débito automático para la suscripción (fase 117)
 
 En Configuración → Suscripción: «Débito automático con Mercado Pago». Dejás la tarjeta una vez y el plan se cobra solo cada período; se cancela desde la misma pantalla.

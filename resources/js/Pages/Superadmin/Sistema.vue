@@ -130,6 +130,21 @@
       <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
     </form>
 
+    <!-- Fase 118: WhatsApp con el QR de Meta -->
+    <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="app-meta">
+      <h2 class="font-bold">WhatsApp con un botón (aplicación de Meta)</h2>
+      <p class="text-sm text-marca-muted">La misma aplicación de Meta que usa el CRM. Con esto cada empresa conecta su WhatsApp escaneando el QR desde la app WhatsApp Business (coexistencia: el número sigue andando en el celular), sin copiar Phone ID ni tokens. En la app de Meta, <code>{{ host }}</code> tiene que estar en «Dominios de la app» y en «Dominios permitidos para el SDK de JavaScript». Cada número conectado desde acá suscribe su propia URL de avisos <code>{{ base }}/api/whatsapp/entrante/&lt;empresa&gt;</code>, así no se pisa con el CRM.</p>
+      <div class="p-3 rounded-xl text-sm" :class="config.meta_app_id && config.meta_app_secret_set && config.meta_config_id ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'">
+        <b>Estado:</b> {{ config.meta_app_id && config.meta_app_secret_set && config.meta_config_id ? 'lista. Las empresas ven el botón «Conectar WhatsApp».' : 'incompleta. Las empresas sólo pueden pegar Phone ID y token a mano.' }}
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div><label class="label">App ID</label><input v-model="form.meta_app_id" class="input" /></div>
+        <div><label class="label">App Secret {{ config.meta_app_secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.meta_app_secret" type="password" class="input" autocomplete="new-password" /></div>
+        <div><label class="label">Configuration ID (Embedded Signup)</label><input v-model="form.meta_config_id" class="input" /></div>
+      </div>
+      <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+    </form>
+
     <div class="grid lg:grid-cols-2 gap-4 mt-4">
       <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3">
         <div class="flex items-center justify-between"><h2 class="font-bold">Inteligencia artificial (Claude)</h2><span class="badge" :class="ia ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ ia ? (config.ia_api_key_set ? 'clave del panel' : 'clave del .env') : 'modo básico' }}</span></div>
@@ -190,8 +205,9 @@ const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
 const base = location.origin
+const host = location.host
 const duenos = useForm({ ids: [...(props.aprobacion.duenos ?? [])] }) // Fase 106
-const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
+const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', meta_app_secret: '', meta_app_id: props.config.meta_app_id ?? '', meta_config_id: props.config.meta_config_id ?? '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
