@@ -113,10 +113,11 @@ class Fase118Test extends ErpTestCase
     {
         $this->appMeta();
         $this->empresa->update(['crm_settings' => ['activo' => true, 'url' => 'https://crm.bigsysweb.test', 'secreto' => 'secreto-compartido-de-prueba-1234567890', 'api_key' => 'bsk_prueba', 'webhook_secreto' => 'wh', 'lista_precios' => 1]]);
-        $this->metaFalsa(['https://crm.bigsysweb.test/api/erp/numero-en-uso*' => Http::response(['en_uso' => true, 'empresa' => 'Corralón Demo (CRM)', 'tipo' => 'qr'])]);
+        $this->metaFalsa(['https://crm.bigsysweb.test/api/erp/numero-en-uso*' => Http::response(['en_uso' => true, 'lineas' => [['misma_empresa' => true, 'linea' => 'Central', 'id' => 55, 'tipo' => 'qr', 'conectada' => true, 'en_uso' => true]]])]);
         $this->post('/configuracion/tienda/whatsapp/conectar', ['code' => 'c', 'phone_number_id' => 'PH1', 'waba_id' => 'WABA1'])->assertSessionHasErrors('whatsapp');
         $this->assertStringContainsString('ya está conectado en el CRM', session('errors')->first('whatsapp'));
-        Http::assertSent(fn($r) => str_contains($r->url(), '/api/erp/numero-en-uso') && $r->hasHeader('Authorization', 'Bearer bsk_prueba'));
+        Http::assertSent(fn($r) => str_contains($r->url(), '/api/erp/numero-en-uso') && $r->method() === 'POST' && $r['phone_number_id'] === 'PH1' && $r['emisor_cuit'] === \App\Support\Cuit::limpiar($this->empresa->fresh()->cuit) && $r->header('X-BigSys-Firma')[0] === hash_hmac('sha256', $r->body(), 'secreto-compartido-de-prueba-1234567890'));
+        $this->assertStringContainsString('Central', session('errors')->first('whatsapp'));
         Http::assertNotSent(fn($r) => str_contains($r->url(), '/subscribed_apps'));
         $this->assertArrayNotHasKey('token', $this->empresa->fresh()->whatsapp_settings ?? []);
     }

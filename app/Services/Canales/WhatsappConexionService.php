@@ -73,7 +73,8 @@ class WhatsappConexionService
 
         // Fase 118.1: si el número ya está conectado en el CRM (línea oficial o por QR), no lo conectamos acá: responderían los dos.
         if ($uso = $this->numeroEnUsoEnCrm($b, $num['display_phone_number'] ?? null, $phoneId)) {
-            throw new \RuntimeException('Ese número ya está conectado en el CRM' . (! empty($uso['empresa']) ? " ({$uso['empresa']})" : '') . '. Usalo desde el CRM o desconectalo allá antes de conectarlo al ERP.');
+            $donde = $uso['linea'] ? " (línea «{$uso['linea']}»" . ($uso['tipo'] === 'qr' ? ', por QR' : '') . ')' : '';
+            throw new \RuntimeException("Ese número ya está conectado en el CRM{$donde}. Los mensajes siguen entrando por el CRM; si querés que los atienda el ERP, desconectalo allá primero.");
         }
 
         // Avisos de este número → URL propia del ERP con override_callback_uri. La URL general de la app es la del CRM y NO se toca
@@ -119,14 +120,20 @@ class WhatsappConexionService
         AuditLog::registrar('editar', $b, 'WhatsApp desconectado' . ($num ? " ({$num})" : ''));
     }
 
-    // Fase 118.1: le pregunta al CRM si ese número ya está conectado allá (GET /api/erp/numero-en-uso). Sin CRM o si no responde, null.
+    // Fase 118.1: le pregunta al CRM si ese número ya está conectado allá (POST /api/erp/numero-en-uso, firmado con el secreto del
+    // puente como los eventos ERP→CRM). Devuelve la primera línea en uso o null (sin CRM, o si el CRM no responde, no frena).
     public function numeroEnUsoEnCrm(Business $b, ?string $numero, ?string $phoneId): ?array
     {
-        if (! \App\Services\Integraciones\CrmService::activo($b) || \App\Services\Integraciones\CrmService::config($b)['api_key'] === '') return null;
+        if (! \App\Services\Integraciones\CrmService::activo($b) || (! $numero && ! $phoneId)) return null;
+        $c = \App\Services\Integraciones\CrmService::config($b);
+        $json = json_encode(array_filter(['emisor_cuit' => \App\Support\Cuit::limpiar($b->cuit), 'numero' => $numero, 'phone_number_id' => $phoneId]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         try {
-            $r = Http::timeout(8)->withToken(\App\Services\Integraciones\CrmService::config($b)['api_key'])->acceptJson()
-                ->get(\App\Services\Integraciones\CrmService::url($b, '/api/erp/numero-en-uso'), array_filter(['numero' => $numero ? preg_replace('/\D/', '', $numero) : null, 'phone_number_id' => $phoneId]));
-            if ($r->ok() && $r->json('en_uso')) return ['empresa' => $r->json('empresa'), 'tipo' => $r->json('tipo')];
+            $r = Http::timeout(8)->withHeaders(['Content-Type' => 'application/json', 'X-BigSys-Firma' => hash_hmac('sha256', $json, $c['secreto'])])->acceptJson()
+                ->withBody($json, 'application/json')->post(\App\Services\Integraciones\CrmService::url($b, '/api/erp/numero-en-uso'));
+            if ($r->ok() && $r->json('en_uso')) {
+                $l = collect((array) $r->json('lineas', []))->first(fn($x) => ! empty($x['en_uso']) || ! empty($x['conectada'])) ?: (array) ($r->json('lineas.0') ?? []);
+                return ['empresa' => ! empty($l['misma_empresa']) ? null : ($l['empresa'] ?? null), 'linea' => $l['linea'] ?? null, 'tipo' => $l['tipo'] ?? null, 'misma_empresa' => (bool) ($l['misma_empresa'] ?? false)];
+            }
         } catch (\Throwable $e) { report($e); }
         return null;
     }
