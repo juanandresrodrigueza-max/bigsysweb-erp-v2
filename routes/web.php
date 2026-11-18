@@ -973,6 +973,9 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/tienda/fidelizacion',  [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarFidelizacion'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/articulos',     [\App\Http\Controllers\Configuracion\TiendaController::class, 'articulos'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/whatsapp',      [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarWhatsapp'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/whatsapp/conectar',    [\App\Http\Controllers\Configuracion\TiendaController::class, 'conectarWhatsapp'])->middleware('permiso:configuracion,editar'); // Fase 118
+        Route::post('/tienda/whatsapp/desconectar', [\App\Http\Controllers\Configuracion\TiendaController::class, 'desconectarWhatsapp'])->middleware('permiso:configuracion,editar');
+        Route::post('/tienda/whatsapp/probar',      [\App\Http\Controllers\Configuracion\TiendaController::class, 'probarWhatsapp'])->middleware(['permiso:configuracion,editar', 'throttle:5,1']);
         Route::post('/tienda/canales/{id?}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'guardarCanal'])->middleware('permiso:configuracion,editar');
         Route::delete('/tienda/canales/{id}', [\App\Http\Controllers\Configuracion\TiendaController::class, 'borrarCanal'])->middleware('permiso:configuracion,editar');
         Route::post('/tienda/datos-personales/{id}/contestado', [\App\Http\Controllers\Configuracion\TiendaController::class, 'datosContestado'])->middleware('permiso:configuracion,editar')->whereNumber('id');

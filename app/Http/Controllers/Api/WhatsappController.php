@@ -22,8 +22,12 @@ class WhatsappController extends Controller
     {
         $b = Business::find($business);
         if (! $b) return response()->json(['ok' => false], 404);
-        \App\Support\Ia::aplicar($b);
         $ws = $b->whatsapp_settings ?? [];
+        // Fase 118.1: lo conectado con el QR de Meta viene firmado con el App Secret; sin firma válida no se procesa.
+        if (($ws['modo'] ?? null) === 'qr' && ! \App\Services\Canales\WhatsappConexionService::firmaValida($request->getContent(), $request->header('X-Hub-Signature-256'))) {
+            return response()->json(['ok' => false, 'error' => 'firma inválida'], 403);
+        }
+        \App\Support\Ia::aplicar($b);
         $mensajes = [];
         foreach ($request->input('entry', []) as $e) foreach ($e['changes'] ?? [] as $ch) foreach ($ch['value']['messages'] ?? [] as $m) {
             if (($m['type'] ?? '') === 'text') $mensajes[] = ['de' => $m['from'] ?? null, 'texto' => $m['text']['body'] ?? ''];

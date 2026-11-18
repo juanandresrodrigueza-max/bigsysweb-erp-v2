@@ -100,18 +100,48 @@
           <button class="btn-secondary !py-1 text-xs mt-2" @click="abrirCanal()">Conectar delivery</button>
         </details>
       </div>
-      <div class="card">
+      <div class="card" data-e2e="whatsapp-card">
         <h2 class="font-bold mb-1">Pedidos por WhatsApp</h2>
-        <p class="text-sm text-marca-muted mb-3">Con la API de WhatsApp Cloud (Meta) los mensajes se convierten en pedidos solos y el cliente recibe la confirmación. Sin API, pegás el mensaje en Pedidos → "Pedido por WhatsApp".</p>
-        <p class="text-xs mb-2"><span class="badge" :class="whatsapp.configurado ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ whatsapp.configurado ? 'API conectada' : 'Sin API (modo manual)' }}</span> <span class="badge ml-1" :class="whatsapp.ia ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">{{ whatsapp.ia ? 'interpreta con IA' : 'interpretación básica' }}</span></p>
-        <form @submit.prevent="fw.post('/configuracion/tienda/whatsapp', { preserveScroll: true })" class="space-y-2">
-          <input v-model="fw.phone_id" class="input" placeholder="Phone number ID" />
-          <input v-model="fw.token" class="input" placeholder="Token permanente (vacío = no cambiar)" />
-          <div class="text-[11px] text-marca-muted">Webhook: <code class="select-all break-all">{{ whatsapp.url_entrada }}</code><br>Verify token: <code class="select-all">{{ whatsapp.verify_token ?? '(se genera al guardar)' }}</code></div>
+        <p class="text-sm text-marca-muted mb-3">Conectás tu WhatsApp una vez y los mensajes de tus clientes entran solos como pedidos y consultas, con respuesta automática. El número sigue andando en tu celular.</p>
+
+        <!-- Fase 118: conectado -->
+        <div v-if="wa.conectado" class="p-3 rounded-xl bg-emerald-50 text-emerald-900 text-sm space-y-1" data-e2e="wa-conectado">
+          <p class="font-bold">✅ WhatsApp conectado{{ wa.numero ? ': ' + wa.numero : '' }}</p>
+          <p class="text-xs">{{ wa.nombre ? wa.nombre + ' · ' : '' }}{{ wa.modo === 'qr' ? 'Conectado con el QR de Meta' : 'Conectado a mano (Phone ID y token)' }}{{ wa.conectado_en ? ' · ' + wa.conectado_en.slice(0, 10).split('-').reverse().join('/') : '' }}<span v-if="whatsapp.ia"> · interpreta con IA</span></p>
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <input v-model="pruebaWa" class="input !w-44 !py-1 text-xs" placeholder="Tu celular (549…)" />
+            <button type="button" class="btn-secondary !py-1 text-xs" :disabled="!pruebaWa" @click="router.post('/configuracion/tienda/whatsapp/probar', { telefono: pruebaWa }, { preserveScroll: true })">Mandarme una prueba</button>
+            <button type="button" class="btn-ghost !py-1 text-xs text-carmin" @click="desconectarWa" data-e2e="wa-desconectar">Desconectar</button>
+          </div>
+        </div>
+
+        <!-- Fase 118: sin conectar → botón con el QR de Meta -->
+        <div v-else class="space-y-2" data-e2e="wa-sin-conectar">
+          <template v-if="wa.app_lista">
+            <button type="button" class="btn-primary w-full" :disabled="conectando" @click="conectarWa" data-e2e="wa-conectar">{{ conectando ? 'Esperando a Meta…' : 'Conectar WhatsApp (escaneás un QR)' }}</button>
+            <ol class="text-xs text-marca-muted list-decimal pl-4 space-y-0.5">
+              <li>Se abre una ventana de Meta: entrás con tu Facebook o creás la cuenta de WhatsApp Business.</li>
+              <li>Elegís «Usar el número de la app WhatsApp Business» y escaneás el QR desde <b>Configuración → Herramientas para la empresa</b> de tu app.</li>
+              <li>Listo: seguís usando WhatsApp en el celular y el ERP recibe y responde los mensajes.</li>
+            </ol>
+            <p v-if="errorWa" class="text-xs text-carmin" data-e2e="wa-error">{{ errorWa }}</p>
+          </template>
+          <p v-else class="text-sm p-3 rounded-xl bg-amber-50 text-amber-800">Todavía no está habilitado el botón de conexión. {{ $page.props.auth?.user?.is_superadmin ? 'Cargá la aplicación de Meta en Panel → Sistema → «WhatsApp con un botón».' : 'Pedile a BigSys que lo habilite, o conectalo a mano más abajo.' }}</p>
+        </div>
+
+        <form @submit.prevent="fw.post('/configuracion/tienda/whatsapp', { preserveScroll: true })" class="space-y-2 mt-3">
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_pedidos" type="checkbox" class="accent-carmin" /> Crear el pedido automáticamente</label>
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_responder" type="checkbox" class="accent-carmin" /> Responder automáticamente</label>
           <label class="flex items-center gap-2 text-sm" title="Saldo, estado del pedido, si hay un artículo y a cuánto; los reclamos quedan en la ficha del cliente con aviso."><input v-model="fw.atencion_clientes" type="checkbox" class="accent-carmin" data-e2e="wa-atencion" /> Bigcito atiende consultas de clientes (saldo, pedido, stock, reclamos)</label>
           <label class="flex items-center gap-2 text-sm" title="Quien tenga su celular cargado en Configuración → Usuarios puede pedirle cosas a Bigcito por este WhatsApp, por texto o audio. Propone y ejecuta con «sí», con los permisos de esa persona."><input v-model="fw.bigcito_equipo" type="checkbox" class="accent-carmin" data-e2e="wa-equipo" /> Bigcito atiende al equipo (órdenes por texto o audio desde el celular de cada usuario)</label>
+          <details class="text-xs text-marca-muted">
+            <summary class="cursor-pointer">Avanzado: conectar a mano con Phone ID y token (Meta for Developers)</summary>
+            <div class="space-y-2 mt-2">
+              <input v-model="fw.phone_id" class="input" placeholder="Phone number ID" />
+              <input v-model="fw.token" class="input" placeholder="Token permanente (vacío = no cambiar)" />
+              <div class="text-[11px]">Webhook: <code class="select-all break-all">{{ whatsapp.url_entrada }}</code><br>Verify token: <code class="select-all">{{ whatsapp.verify_token ?? '(se genera al guardar)' }}</code></div>
+            </div>
+          </details>
           <button class="btn-primary w-full" :disabled="fw.processing">Guardar</button>
         </form>
       </div>
@@ -185,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import QRCode from 'qrcode'
 import AppLayout from '@/Layouts/AppLayout.vue'
@@ -206,7 +236,38 @@ const tab = ref(location.hash === '#canales' ? 'canales' : location.hash === '#p
 const base = location.origin
 const ft = useForm({ tienda: JSON.parse(JSON.stringify({ ...props.config, rubros: props.config.rubros ?? [] })) })
 const ff = useForm({ ...props.fidelizacion })
-const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: true, auto_responder: true, atencion_clientes: props.whatsapp.atencion_clientes ?? true, bigcito_equipo: props.whatsapp.bigcito_equipo ?? true })
+const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: props.whatsapp.auto_pedidos ?? true, auto_responder: props.whatsapp.auto_responder ?? true, atencion_clientes: props.whatsapp.atencion_clientes ?? true, bigcito_equipo: props.whatsapp.bigcito_equipo ?? true })
+// Fase 118: «Conectar WhatsApp» con el QR de Meta (Embedded Signup con coexistencia), con la app de Meta de BigSys.
+const wa = computed(() => props.whatsapp.conexion ?? { conectado: props.whatsapp.configurado, app_lista: false })
+const conectando = ref(false), errorWa = ref(null), pruebaWa = ref('')
+let sesionWa = null
+function sdkMeta() {
+  return new Promise((ok, fail) => {
+    if (window.FB) return ok(window.FB)
+    window.fbAsyncInit = () => { window.FB.init({ appId: wa.value.app_id, autoLogAppEvents: true, xfbml: false, version: 'v21.0' }); ok(window.FB) }
+    const s = document.createElement('script'); s.src = 'https://connect.facebook.net/es_LA/sdk.js'; s.async = true; s.defer = true; s.crossOrigin = 'anonymous'
+    s.onerror = () => fail(new Error('No se pudo cargar el SDK de Meta. Revisá que el navegador no bloquee connect.facebook.net.'))
+    document.body.appendChild(s)
+  })
+}
+function escucharMeta(e) {
+  if (!String(e.origin).endsWith('facebook.com')) return
+  try { const d = JSON.parse(e.data); if (d.type === 'WA_EMBEDDED_SIGNUP') { if (d.event === 'FINISH' || d.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') sesionWa = d.data; else if (d.event === 'CANCEL') { conectando.value = false; errorWa.value = 'Cerraste la ventana de Meta antes de terminar.' } } } catch {}
+}
+onMounted(() => window.addEventListener('message', escucharMeta))
+onUnmounted(() => window.removeEventListener('message', escucharMeta))
+async function conectarWa() {
+  errorWa.value = null; conectando.value = true; sesionWa = null
+  try {
+    const FB = await sdkMeta()
+    FB.login(resp => {
+      const code = resp?.authResponse?.code
+      if (!code) { conectando.value = false; errorWa.value = 'Meta no devolvió la autorización. Probá de nuevo.'; return }
+      router.post('/configuracion/tienda/whatsapp/conectar', { code, phone_number_id: sesionWa?.phone_number_id ?? null, waba_id: sesionWa?.waba_id ?? null }, { preserveScroll: true, onError: e => { errorWa.value = e.whatsapp ?? Object.values(e)[0] }, onFinish: () => (conectando.value = false) })
+    }, { config_id: wa.value.config_id, response_type: 'code', override_default_response_type: true, extras: { setup: {}, featureType: 'whatsapp_business_app_onboarding', sessionInfoVersion: '3' } })
+  } catch (e) { conectando.value = false; errorWa.value = e.message }
+}
+function desconectarWa() { if (confirm('¿Desconectar WhatsApp del ERP? Tu número sigue andando en el celular; sólo dejan de entrar los mensajes acá.')) router.post('/configuracion/tienda/whatsapp/desconectar', {}, { preserveScroll: true }) }
 const qr = ref(null)
 onMounted(() => { if (qr.value) QRCode.toCanvas(qr.value, props.urlTienda, { width: 140, margin: 1 }).catch(() => {}) })
 const canalAbierto = ref(false)

@@ -28,7 +28,7 @@ class TiendaController extends Controller
             'oauth' => ['mercadolibre' => (bool) \App\Models\SistemaConfig::get('ml_app_id'), 'tiendanube' => (bool) \App\Models\SistemaConfig::get('tn_app_id'), 'woocommerce' => true],
             'clientes' => \App\Models\Contact::customers()->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'name', 'condicion_iva']),
             'tiposCanal' => Canal::TIPOS,
-            'whatsapp' => ['configurado' => ! empty($b->whatsapp_settings['token']) && ! empty($b->whatsapp_settings['phone_id']), 'phone_id' => $b->whatsapp_settings['phone_id'] ?? null, 'url_entrada' => url('/api/whatsapp/entrante/' . $b->id), 'verify_token' => $b->whatsapp_settings['verify_token'] ?? null, 'ia' => (bool) config('services.anthropic.api_key'), 'bigcito_equipo' => (bool) ($b->whatsapp_settings['bigcito_equipo'] ?? true), 'atencion_clientes' => (bool) ($b->whatsapp_settings['atencion_clientes'] ?? true)],
+            'whatsapp' => ['configurado' => ! empty($b->whatsapp_settings['token']) && ! empty($b->whatsapp_settings['phone_id']), 'phone_id' => $b->whatsapp_settings['phone_id'] ?? null, 'url_entrada' => url('/api/whatsapp/entrante/' . $b->id), 'verify_token' => $b->whatsapp_settings['verify_token'] ?? null, 'ia' => (bool) config('services.anthropic.api_key'), 'bigcito_equipo' => (bool) ($b->whatsapp_settings['bigcito_equipo'] ?? true), 'atencion_clientes' => (bool) ($b->whatsapp_settings['atencion_clientes'] ?? true), 'auto_pedidos' => (bool) ($b->whatsapp_settings['auto_pedidos'] ?? true), 'auto_responder' => (bool) ($b->whatsapp_settings['auto_responder'] ?? true), 'conexion' => \App\Services\Canales\WhatsappConexionService::estado($b)],
         ]);
     }
 
@@ -67,8 +67,36 @@ class TiendaController extends Controller
         $b = $request->user()->business;
         $ws = $b->whatsapp_settings ?? [];
         if (empty($d['token'])) unset($d['token']);
-        $b->update(['whatsapp_settings' => array_merge($ws, $d, ['verify_token' => $d['verify_token'] ?: ($ws['verify_token'] ?? \Illuminate\Support\Str::random(16))])]);
+        if (empty($d['phone_id'])) unset($d['phone_id']); // Fase 118: guardar las preferencias no pisa una conexión hecha con el QR
+        if (! empty($d['token']) || ! empty($d['phone_id'])) $d['modo'] = 'manual';
+        $b->update(['whatsapp_settings' => array_merge($ws, $d, ['verify_token' => ($d['verify_token'] ?? null) ?: ($ws['verify_token'] ?? \Illuminate\Support\Str::random(16))])]);
         return back()->with('success', 'WhatsApp configurado.');
+    }
+
+    // Fase 118: termina el «Conectar WhatsApp» con el QR de Meta (el popup devuelve un code y, si puede, el número y la WABA).
+    public function conectarWhatsapp(Request $request, \App\Services\Canales\WhatsappConexionService $wa)
+    {
+        $d = $request->validate(['code' => 'required|string|max:600', 'phone_number_id' => 'nullable|string|max:60', 'waba_id' => 'nullable|string|max:60']);
+        try {
+            $e = $wa->conectar($request->user()->business, $d['code'], $d['phone_number_id'] ?? null, $d['waba_id'] ?? null, $request->user());
+        } catch (\Throwable $ex) {
+            report($ex);
+            return back()->withErrors(['whatsapp' => $ex->getMessage()]);
+        }
+        return back()->with('success', 'WhatsApp conectado' . ($e['numero'] ? ": {$e['numero']}" : '') . '. Los mensajes ya entran al ERP.');
+    }
+
+    public function desconectarWhatsapp(Request $request, \App\Services\Canales\WhatsappConexionService $wa)
+    {
+        $wa->desconectar($request->user()->business, $request->user());
+        return back()->with('success', 'WhatsApp desconectado. Podés volver a conectarlo cuando quieras.');
+    }
+
+    public function probarWhatsapp(Request $request, \App\Services\Canales\WhatsappConexionService $wa)
+    {
+        $d = $request->validate(['telefono' => 'required|string|max:30']);
+        $r = $wa->probar($request->user()->business, $d['telefono']);
+        return ! empty($r['error']) ? back()->withErrors(['whatsapp' => 'No salió: ' . $r['error']]) : back()->with('success', 'Mensaje de prueba enviado a ' . $d['telefono'] . '. Fijate en el celular.');
     }
 
     public function guardarCanal(Request $request, ?int $id = null)

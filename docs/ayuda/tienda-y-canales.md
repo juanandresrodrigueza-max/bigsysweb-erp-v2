@@ -14,7 +14,23 @@ También salen de acá el link del **menú QR** (gastronomía) y el de **reserva
 
 ## Pedidos por WhatsApp
 
-Con la API de WhatsApp Cloud cargada, los mensajes de tus clientes llegan al sistema y se interpretan solos (con IA si está activa). Sin API, pegás el mensaje en Pedidos → "Pedido por WhatsApp".
+Con tu WhatsApp conectado, los mensajes de tus clientes llegan al sistema y se interpretan solos (con IA si está activa). Sin conectar, pegás el mensaje en Pedidos → "Pedido por WhatsApp".
+
+### Conectar WhatsApp escaneando un QR (fase 118)
+
+En **Configuración → Tienda y canales → Marketplaces, delivery y WhatsApp → Pedidos por WhatsApp** tocá **Conectar WhatsApp (escaneás un QR)**:
+
+1. Se abre una ventana de Meta. Entrás con tu Facebook (o creás la cuenta de WhatsApp Business ahí mismo).
+2. Elegís **usar el número de tu app WhatsApp Business** y escaneás el QR desde el celular: en la app, Configuración → Herramientas para la empresa.
+3. Volvés al ERP y la tarjeta dice **WhatsApp conectado: +54 9 …**. No copiás Phone ID ni tokens.
+
+Es la misma conexión que usa el CRM de BigSys. El número **sigue andando en tu celular** (es lo que Meta llama coexistencia): vos seguís chateando desde la app y, además, el ERP recibe cada mensaje, toma los pedidos, responde las consultas con Bigcito y atiende al equipo. Si querés comprobar que manda, poné tu celular en **Mandarme una prueba**. Con **Desconectar** dejan de entrar los mensajes al ERP; el número no se toca.
+
+Tenelo en cuenta:
+
+- Un número se conecta a un solo sistema. Si ya lo conectaste en el CRM, no lo conectes también acá: los mensajes seguirían entrando por el CRM y los dos responderían.
+- Si el botón no aparece y dice «todavía no está habilitado», BigSys tiene que cargar la aplicación de Meta en el panel. Mientras tanto queda el modo manual en **Avanzado** (Phone ID y token de Meta for Developers, con el webhook y el verify token que muestra la pantalla).
+- Las casillas de abajo (crear el pedido solo, responder solo, Bigcito atiende clientes y equipo) valen igual para las dos formas de conectar.
 
 ### Bigcito atiende a tus clientes por WhatsApp (Fase 60)
 
