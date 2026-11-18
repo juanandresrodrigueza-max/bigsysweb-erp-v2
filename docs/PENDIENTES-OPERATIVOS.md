@@ -26,7 +26,7 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 
 | Bloque del formulario | Qué cargar | De dónde sale | Sin esto, qué no anda |
 |---|---|---|---|
-| Inteligencia artificial (Claude) | API key y modelo | console.anthropic.com | Bigcito y la IA de cada empresa (las empresas pueden poner la suya en Configuración → IA) |
+| Inteligencia artificial (Claude) ✅ verificada el 18/11 («La clave de IA funciona», modelo claude-haiku-4-5; clave «bigsys-web-bigcito» de la consola) | API key y modelo | console.anthropic.com | Bigcito y la IA de cada empresa (las empresas pueden poner la suya en Configuración → IA) |
 | Correo saliente (SMTP) ✅ cargado el 18/11 (Hostinger, SSL 465, soporte@bigsysweb.com; la prueba llegó, pero a Spam: ver SPF/DKIM/DMARC abajo) | servidor, puerto, usuario, contraseña, cifrado, remitente | el proveedor de mail (Hostinger / Google Workspace) | Invitaciones, recibos por mail, avisos, recuperar contraseña. Botón **Enviar prueba** |
 | Cobros de BigSys (Mercado Pago) ✅ cargado el 17/11 (app «Bigsys Web ERP» de BIGSYS S.R.L., Checkout Pro + API de Orders, webhook configurado) | Public key y Access token de la cuenta de BigSys | Mercado Pago → Tus integraciones → Crear aplicación (Checkout Pro, **API de Orders**) → credenciales de producción. Webhook: `/api/webhooks/mercadopago/suscripcion` con eventos Órdenes, Pagos y Planes y suscripciones | Cobro de la suscripción de los clientes (pago único y débito automático) |
 | Transferencia bancaria | titular, CBU, alias | banco de BigSys | Alternativa de pago de la suscripción |
