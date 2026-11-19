@@ -81,6 +81,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **Rutinas (119.4).** «Todos los lunes a las 8 pasame el resumen», «avisame sólo si alguien pasa su límite». Bigcito lo hace solo y te lo manda por la campana, WhatsApp o mail; lo que sea una acción queda propuesto para que confirmes. Están en Inicio → Rutinas.
 - **Varias cosas en un pedido (119.4).** «Cobrale a López y a García»: arma la lista y las confirma todas juntas.
 - **Se acuerda de cómo trabajás (119.5).** «Acordate que Pepe es Pérez SRL», «mi caja es la Caja Central», «contestame corto». Lo ves y lo borrás con «¿qué recordás?» / «olvidate de…» o en Inicio → Rutinas.
+- **Más acciones por voz (119.6).** Pedidos web (confirmar, despachar, entregar), órdenes del taller, hotel (reserva, check-in, check-out), cerrar y cobrar una mesa, acreditar o rechazar cheques, órdenes de producción e ingresos de plata.
 
 ## Conectar WhatsApp escaneando un QR (fase 118)
 

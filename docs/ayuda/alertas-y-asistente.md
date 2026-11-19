@@ -174,6 +174,20 @@ Lo tiene presente en el panel, por WhatsApp y en las rutinas. Para revisarlo: «
 - Son anotaciones: no saltean permisos ni la confirmación antes de hacer algo.
 - No le pidas que recuerde contraseñas, claves ni datos de tarjetas.
 
+## Más cosas que Bigcito ya hace por vos (fase 119.6)
+
+Lo que faltaba para no tener que tocar el mouse en el día a día:
+
+- **Pedidos web**: «¿qué pedidos web tengo?», «confirmá el pedido de Ana Pérez», «el pedido 12 ya salió, seguimiento AB123», «marcá entregado el 12», «cancelá el pedido 15».
+- **Taller**: «pasá la orden 15 a en reparación», «la orden del Gol Trend está lista» (le avisa al cliente por WhatsApp si se puede), «la 15 se entregó».
+- **Hotel**: «¿cómo está el hotel hoy?», «reservá una habitación para la familia Ruiz del 20 al 23, tres personas», «hacé el check-in de Ruiz», «check-out de la Cabaña 1» (factura noches y consumos).
+- **Big Restó**: «cerrá la mesa 4 en efectivo», «cobrá la mesa 7 con tarjeta y 2.000 de propina». Para dividir la cuenta se sigue haciendo desde el salón.
+- **Cheques**: «se acreditó el cheque 4455», «vino rechazado el cheque 7788, sin fondos» (es una acción delicada: revisá bien antes de confirmar).
+- **Producción**: «¿qué órdenes de producción hay?», «hacé 50 kilos de pan», «terminá la orden del pan, salieron 48».
+- **Plata**: «entraron 50.000 a la caja, aporte del dueño» (lo que no es un cobro a un cliente).
+
+Como siempre: te muestra qué va a hacer y espera tu sí, usa las mismas reglas que la pantalla y respeta los permisos de tu usuario. «¿Qué podés hacer?» te lista todo lo que tenés disponible.
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:
