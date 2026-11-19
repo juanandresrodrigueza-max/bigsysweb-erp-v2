@@ -135,6 +135,29 @@ Funciona donde el navegador dicta (Chrome y Edge en la compu, Chrome en Android)
 - «Hacele un presupuesto a Gómez por 10 bolsas de cemento» … «mejor que sean 15» … «mandáselo por WhatsApp».
 - «¿Cuánto me debe López?» … «mandale el recordatorio» … «abrime su ficha».
 
+## Rutinas: lo que Bigcito hace solo, y varias cosas en un pedido (fase 119.4)
+
+**Encargale algo para que lo haga solo.** Se lo pedís hablando o escribiendo, y Bigcito lo hace cada vez que toca y te manda el resultado:
+
+- «Todos los lunes a las 8 pasame cómo cerró la semana y los cinco que más deben.»
+- «De lunes a viernes a las 19 decime cuánto se vendió y cuánto entró en caja.»
+- «Todos los días a las 9 avisame **sólo si** algún cliente pasó su límite de crédito.» (de vigilancia: si no pasa nada, no molesta)
+- «El último día del mes proponeme a quién mandarle recordatorio de deuda.»
+- «Todos los viernes fijate qué está bajo el mínimo y proponeme las órdenes de compra.»
+
+Antes de dejarla encargada te muestra cómo quedó (qué hace, cuándo y por dónde llega) y esperás tu sí. Después: «¿qué rutinas tengo?», «pausá la del lunes», «pasala a las 9 y media», «borrá la de reposición», «corré ahora la del lunes».
+
+Todas están en **Inicio → Rutinas** (`/rutinas`, o «llevame a rutinas»): ahí las creás con un formulario, las probás con **Probar ahora** (te muestra el resultado sin mandarlo), las pausás y ves qué dijo la última vez. Hay ideas listas para empezar con un toque.
+
+Cómo trabaja una rutina:
+
+- Corre con **tus permisos**: ve y hace sólo lo que vos podés.
+- El resultado llega por **la campana y el celular**, por **WhatsApp** (si la empresa tiene WhatsApp conectado y vos tu celular cargado) o por **mail**.
+- **Nunca hace nada sola.** Si corresponde cobrar, mandar un recordatorio o pedir mercadería, lo deja **propuesto**: lo confirmás desde la pantalla de Rutinas o, si te llegó por WhatsApp, **respondiendo SÍ**. Tenés un día para confirmarlo.
+- Cada usuario tiene las suyas (hasta 20). La más frecuente es cada hora.
+
+**Varias cosas en un solo pedido.** «Cobrale 5.000 a López y 3.000 a García», «mandale el recordatorio a los tres que más deben», «hacele un presupuesto a Gómez y abrime su ficha». Bigcito arma la lista, te la muestra y con un **«Confirmar las 3»** (o un «sí» hablando o por WhatsApp) hace todas. Podés sacar alguna de la lista antes. Si una falla, queda marcada en rojo y las demás se hacen igual.
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:

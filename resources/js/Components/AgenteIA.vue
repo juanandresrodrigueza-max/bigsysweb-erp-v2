@@ -28,12 +28,15 @@
           <div v-for="(m, i) in mensajes" :key="i" :class="m.rol === 'user' ? 'justify-end' : 'justify-start'" class="flex">
             <div :class="m.rol === 'user' ? 'bg-marca-grad text-white rounded-br-sm' : 'bg-white border border-marca-borde text-marca-texto rounded-bl-sm'" class="max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap leading-snug">
               <img v-if="m.foto" :src="m.foto" class="w-32 rounded-lg mb-1" alt="" />{{ m.texto }}
-              <div v-if="m.propuesta" class="mt-2 rounded-xl border p-2 text-xs" :class="m.propuesta.estado === 'hecho' ? 'border-emerald-200 bg-emerald-50' : m.propuesta.estado === 'cancelado' ? 'border-marca-borde bg-marca-fondo opacity-70' : 'border-violeta/30 bg-violeta-light/40'">
-                <p class="font-bold text-sm">{{ m.propuesta.titulo }}</p>
-                <p class="text-marca-muted mt-0.5">{{ m.propuesta.detalle }}</p>
-                <div v-if="!m.propuesta.estado" class="flex gap-2 mt-2"><button class="btn-primary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="confirmar(m)">{{ ejecutando ? 'Haciendo…' : 'Confirmar' }}</button><button class="btn-secondary !py-1 !px-3 text-xs" @click="cancelar(m)">Cancelar</button></div>
-                <p v-else-if="m.propuesta.estado === 'cancelado'" class="mt-1">Cancelado.</p>
+              <div v-for="pr in propsDe(m)" :key="pr.id" class="mt-2 rounded-xl border p-2 text-xs" :class="pr.estado === 'hecho' ? 'border-emerald-200 bg-emerald-50' : pr.estado === 'cancelado' ? 'border-marca-borde bg-marca-fondo opacity-70' : pr.estado === 'error' ? 'border-carmin/40 bg-carmin-light/40' : 'border-violeta/30 bg-violeta-light/40'" data-e2e="bigcito-propuesta">
+                <p class="font-bold text-sm">{{ pr.titulo }}</p>
+                <p class="text-marca-muted mt-0.5">{{ pr.detalle }}</p>
+                <div v-if="!pr.estado && propsDe(m).length === 1" class="flex gap-2 mt-2"><button class="btn-primary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="confirmar(m)">{{ ejecutando ? 'Haciendo…' : 'Confirmar' }}</button><button class="btn-secondary !py-1 !px-3 text-xs" @click="cancelar(m)">Cancelar</button></div>
+                <button v-else-if="!pr.estado" type="button" class="mt-1 underline text-[11px] text-marca-muted" :disabled="ejecutando" @click="cancelarUna(pr)">Sacar de la lista</button>
+                <p v-else-if="pr.estado === 'cancelado'" class="mt-1">Cancelado.</p>
+                <p v-else-if="pr.estado === 'error'" class="mt-1 text-carmin">{{ pr.error }}</p>
               </div>
+              <div v-if="propsDe(m).length > 1 && propsDe(m).some(x => !x.estado)" class="flex gap-2 mt-2"><button class="btn-primary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="confirmar(m)" data-e2e="bigcito-confirmar-todo">{{ ejecutando ? 'Haciendo…' : `Confirmar las ${propsDe(m).filter(x => !x.estado).length}` }}</button><button class="btn-secondary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="cancelar(m)">Cancelar todo</button></div>
               <a v-if="m.url" :href="m.url" :target="m.nueva ? '_blank' : null" class="block mt-1 text-xs text-violeta font-semibold underline">{{ m.nueva ? 'Abrir para imprimir →' : 'Ver →' }}</a>
               <!-- Fase 40.1: gráfico, planilla y repreguntas -->
               <div v-if="m.grafico?.valores?.length" class="mt-2" data-e2e="grafico"><p class="text-[11px] font-semibold text-marca-muted mb-1">{{ m.grafico.titulo }}</p>
@@ -152,7 +155,9 @@ const whatsappSoporte = computed(() => {
   const t = `Hola, soy ${page.props.auth?.user?.name ?? ''} de ${page.props.empresa?.nombre ?? ''}. Estoy en la pantalla ${page.component}.` + (ultima ? ` Le pregunté a Bigcito: "${ultima.slice(0, 200)}".` : '') + ' Necesito una mano con: '
   return `https://wa.me/${n}?text=${encodeURIComponent(t)}`
 })
-const pendiente = () => [...mensajes.value].reverse().find(m => m.propuesta && !m.propuesta.estado)
+// Fase 119.4: un mensaje puede traer varias acciones para confirmar juntas.
+const propsDe = m => m.props ?? (m.propuesta ? [m.propuesta] : [])
+const pendiente = () => [...mensajes.value].reverse().find(m => propsDe(m).some(p => !p.estado))
 
 const cargando = ref(false)
 const modo = ref(guardado?.modo ?? 'ia')
@@ -189,17 +194,23 @@ const sugerencias = ['¿Qué podés hacer?', '¿Cuánto vendí hoy?', '¿Quiéne
 const ejecutando = ref(false)
 async function confirmar(m) {
   ejecutando.value = true
-  try {
-    const { data } = await window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id })
-    m.propuesta.estado = 'hecho'
-    mensajes.value.push({ rol: 'assistant', texto: data.texto ?? 'Listo.', url: data.url ?? null })
-    if (porVozUltimo) decir(data.texto ?? 'Listo.')
-  } catch (e) {
-    mensajes.value.push({ rol: 'assistant', texto: e.response?.data?.message ?? 'No se pudo hacer. ' + (e.response?.status === 403 ? 'No tenés permiso para esta acción.' : 'Probá de nuevo.') })
-  } finally { ejecutando.value = false; await bajar() }
+  const lista = propsDe(m).filter(p => !p.estado), textos = []; let url = null, hechas = 0
+  for (const p of lista) {
+    try {
+      const { data } = await window.axios.post('/agente/ejecutar', { propuesta_id: p.id })
+      p.estado = 'hecho'; hechas++; textos.push(data.texto ?? 'Listo.'); url = data.url ?? url
+    } catch (e) {
+      p.estado = 'error'; p.error = e.response?.data?.message ?? (e.response?.status === 403 ? 'No tenés permiso para esta acción.' : 'No se pudo hacer. Probá de nuevo.')
+      textos.push(lista.length > 1 ? `No se pudo «${p.titulo}»: ${p.error}` : p.error)
+    }
+  }
+  mensajes.value.push({ rol: 'assistant', texto: textos.join('\n'), url: lista.length === 1 ? url : null })
+  if (porVozUltimo) decir(lista.length > 1 ? (hechas === lista.length ? `Listo, hice las ${hechas}.` : `Hice ${hechas} de ${lista.length}. Fijate las que quedaron en rojo.`) : textos[0])
+  ejecutando.value = false; await bajar()
 }
 
-function cancelar(m) { m.propuesta.estado = 'cancelado'; window.axios.post('/agente/ejecutar', { propuesta_id: m.propuesta.id, cancelar: true }).catch(() => {}) }
+function cancelarUna(p) { p.estado = 'cancelado'; window.axios.post('/agente/ejecutar', { propuesta_id: p.id, cancelar: true }).catch(() => {}) }
+function cancelar(m) { propsDe(m).filter(p => !p.estado).forEach(cancelarUna) }
 
 const abreviar = n => Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + ' M' : Math.abs(n) >= 1e3 ? Math.round(n / 1e3) + ' mil' : Math.round(n)
 // La planilla se arma acá mismo: CSV con separador ";" y BOM para que Excel lo abra con acentos.
@@ -242,7 +253,7 @@ async function enviar(pre, porVoz = false) {
   }
   texto.value = ''
   // El historial lleva qué se propuso y con qué datos, para que «lo mismo para García» o «otro igual» se entiendan.
-  const historial = mensajes.value.slice(-12).map(m => ({ rol: m.rol, texto: (m.texto + (m.propuesta ? ` [propuesta ${m.propuesta.accion ?? ''}${m.propuesta.args ? ' ' + JSON.stringify(m.propuesta.args) : ''}: ${m.propuesta.titulo} → ${m.propuesta.estado ?? 'sin confirmar'}]` : '')).slice(0, 3900) }))
+  const historial = mensajes.value.slice(-12).map(m => ({ rol: m.rol, texto: (m.texto + propsDe(m).map(p => ` [propuesta ${p.accion ?? ''}${p.args ? ' ' + JSON.stringify(p.args) : ''}: ${p.titulo} → ${p.estado ?? 'sin confirmar'}]`).join('')).slice(0, 3900) }))
   const imagen = foto.value; foto.value = null
   mensajes.value.push({ rol: 'user', texto: msg, foto: imagen })
   cargando.value = true
@@ -250,10 +261,11 @@ async function enviar(pre, porVoz = false) {
   try {
     const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component, url: location.pathname + location.search, ...(imagen ? { imagen } : {}) })
     modo.value = data.modo ?? 'ia'
-    mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', propuesta: data.propuesta ?? null, tabla: data.tabla ?? null, grafico: data.grafico ?? null, sugerencias: data.sugerencias ?? [], url: data.abrir ?? null, nueva: !!data.abrir })
+    const props = data.propuestas ?? (data.propuesta ? [data.propuesta] : [])
+    mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', props, tabla: data.tabla ?? null, grafico: data.grafico ?? null, sugerencias: data.sugerencias ?? [], url: data.abrir ?? null, nueva: !!data.abrir })
     if (data.abrir) { try { window.open(data.abrir, '_blank') } catch {} }
     if (data.navegar) irA(data.navegar)
-    if (porVoz) decir((data.respuesta ?? '') + (data.propuesta ? ` ${data.propuesta.titulo}. ¿Lo hago? Decime sí o no.` : ''))
+    if (porVoz) decir((data.respuesta ?? '') + (props.length === 1 ? ` ${props[0].titulo}. ¿Lo hago? Decime sí o no.` : props.length > 1 ? ` Son ${props.length}: ${props.map(x => x.titulo).join('; ')}. ¿Las hago todas? Decime sí o no.` : ''))
   } catch (e) {
     const st = e.response?.status
     mensajes.value.push({ rol: 'assistant', texto: st === 419 ? 'Tu sesión expiró. Recargá la página y volvé a intentar.' : `No pude conectarme${st ? ` (HTTP ${st})` : ''}. Probá de nuevo en unos segundos.` })

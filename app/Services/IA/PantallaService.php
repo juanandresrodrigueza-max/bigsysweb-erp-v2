@@ -25,6 +25,7 @@ class PantallaService
         ['label' => 'Nueva factura de compra', 'ruta' => '/proveedores/compras/nueva', 'modulo' => 'proveedores', 'accion' => 'crear', 'palabras' => 'cargar compra cargar factura de proveedor'],
         ['label' => 'Suscripción', 'ruta' => '/suscripcion', 'modulo' => 'configuracion', 'palabras' => 'plan pago del sistema débito automático'],
         ['label' => 'Ayuda', 'ruta' => '/ayuda', 'modulo' => null, 'palabras' => 'manual guías cómo se hace'],
+        ['label' => 'Rutinas de Bigcito', 'ruta' => '/rutinas', 'modulo' => 'dashboard', 'palabras' => 'rutinas programadas tareas automáticas encargos recordatorios informes automáticos'],
         ['label' => 'Propuestas de Bigcito', 'ruta' => '/propuestas', 'modulo' => 'dashboard', 'palabras' => 'propuestas agentes bandeja'],
     ];
 

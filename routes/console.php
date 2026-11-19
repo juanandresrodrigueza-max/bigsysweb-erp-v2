@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('alertas:generar')->everyFifteenMinutes();
 Schedule::command('afip:reintentar')->everyFiveMinutes()->withoutOverlapping(); // contingencia: comprobantes pendientes de CAE
 Schedule::command('agentes:correr')->dailyAt('05:45')->withoutOverlapping(); // Fase 107: Bigcito trabaja de noche y deja propuestas
+Schedule::command('bigcito:rutinas')->everyFiveMinutes()->withoutOverlapping(); // Fase 119.4: lo que cada usuario le dejó encargado a Bigcito
 Schedule::command('suscripciones:revisar')->dailyAt('06:00');
 Schedule::command('aprobaciones:avisar')->hourly(); // Fase 106: altas pendientes por bloquearse / bloqueadas
 Schedule::command('cotizaciones:actualizar')->twiceDaily(9, 15);
