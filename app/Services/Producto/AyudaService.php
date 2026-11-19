@@ -118,6 +118,7 @@ class AyudaService
     {
         // Seguir la charla: si la pregunta es corta ("¿y para anularla?"), se busca también con la anterior.
         $anterior = collect($historial)->where('rol', 'user')->last()['texto'] ?? '';
+        if (mb_strlen(trim($anterior)) < 12) $anterior = ''; // un «hola» o un «gracias» anterior no es tema: no se usa para buscar (las guías ahora nombran «Hola Bigcito»)
         $fuentes = $this->buscar($q, 6) ?: ($anterior ? $this->buscar($anterior . ' ' . $q, 6) : []);
         $key = config('services.anthropic.api_key');
         if (! $key || ! $fuentes) return ['respuesta' => null, 'fuentes' => $fuentes, 'ia' => (bool) $key];

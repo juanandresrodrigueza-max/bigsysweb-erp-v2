@@ -50,8 +50,8 @@ class BigcitoService
                 'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null, $viendo), 'messages' => $msgs, 'tools' => $tools,
             ]);
             $res = $llamar($mensajes); $adjuntos = [];
-            // Hasta 3 rondas: las consultas se resuelven y se le devuelven a la IA; una acción se propone al usuario.
-            for ($ronda = 0; $ronda < 3 && $res->successful(); $ronda++) {
+            // Hasta 5 rondas: las consultas se resuelven y se le devuelven a la IA (puede encadenar: buscar, mirar, abrir); una acción se propone al usuario.
+            for ($ronda = 0; $ronda < 5 && $res->successful(); $ronda++) {
                 $contenido = $res->json('content', []);
                 $usos = collect($contenido)->where('type', 'tool_use');
                 $texto = collect($contenido)->where('type', 'text')->pluck('text')->implode("\n");
@@ -116,7 +116,8 @@ class BigcitoService
     {
         $p = $cat->llamar($user, $accion, $args, $origen);
         if (isset($p['error'])) return $p;
-        return ['id' => $p['propuesta_id'], 'accion' => $p['accion'], 'titulo' => $p['titulo'], 'detalle' => $p['detalle'], 'delicada' => $p['delicada']];
+        // Fase 119.3: los datos con los que se armó viajan al panel para que el historial permita «lo mismo para García».
+        return ['id' => $p['propuesta_id'], 'accion' => $p['accion'], 'titulo' => $p['titulo'], 'detalle' => $p['detalle'], 'delicada' => $p['delicada'], 'args' => array_map(fn($v) => is_string($v) ? mb_substr($v, 0, 200) : $v, array_slice($args, 0, 12, true))];
     }
 
     private function contexto($user): array
@@ -176,6 +177,7 @@ Usuario: {$user->name}, rol {$c['rol']}, empresa {$c['empresa']}, sucursal {$c['
 Pantalla actual: {$pantalla}.
 Lo que está viendo ahora: {$loQueVe}
 Cuando diga «este», «esta», «el de acá», «a este cliente», «esta factura», «imprimilo», «cobrale», «mandáselo», se refiere a lo que está viendo: usá ese nombre o id en las herramientas sin volver a preguntar. Si no está viendo nada y falta el dato, preguntá.
+La charla tiene memoria: el historial trae lo que se habló y, entre corchetes, cada propuesta con su herramienta, sus datos y si se confirmó. Si dice «lo mismo para García», «otro igual», «y a Pérez también», «pero en transferencia», «el doble», repetí esa última acción cambiando sólo lo que pidió. «El de antes», «ese cliente», «esa factura» son los últimos que se nombraron.
 Podés llevarlo por el sistema: abrir_pantalla («llevame a cerrar caja», «abrí nueva factura para López»), abrir_ficha («abrime la ficha de López», «mostrame la última factura de García») e imprimir. Después de abrir algo, decilo en una frase corta («Te abrí la ficha de López.») y no repitas la dirección.
 Módulos habilitados: {$modulos}.
 Cómo trabaja esta empresa (lo que contó en la entrevista de bienvenida): {$c['induccion']}.
