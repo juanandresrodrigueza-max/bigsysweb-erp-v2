@@ -130,6 +130,21 @@
       <div class="flex justify-end"><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
     </form>
 
+    <!-- Fase 119.2: voz de Bigcito para todas las empresas -->
+    <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="voz-bigcito">
+      <h2 class="font-bold">Voz de Bigcito (para todas las empresas)</h2>
+      <p class="text-sm text-marca-muted">Con una clave de OpenAI o de Gemini, Bigcito <b>escucha</b> en cualquier navegador y celular (iPhone, Safari, Firefox, audios de WhatsApp) y <b>contesta con voz natural</b>. Vale para todas las empresas que no cargaron su propia clave en Configuración → Conexiones IA. Sin clave, sólo dicta donde el navegador lo permite (Chrome, Edge, Android) y habla con la voz del navegador.</p>
+      <div class="p-3 rounded-xl text-sm" :class="config.voz_api_key_set ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'">
+        <b>Estado:</b> {{ config.voz_api_key_set ? 'activa. Bigcito escucha y habla por servidor.' : 'sin clave. Voz sólo del navegador.' }}
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div><label class="label">Servicio</label><select v-model="form.voz_proveedor" class="input"><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option></select></div>
+        <div><label class="label">Clave {{ config.voz_api_key_set ? '(dejar vacío para no cambiarla)' : '' }}</label><input v-model="form.voz_api_key" type="password" class="input font-mono" autocomplete="new-password" placeholder="sk-… o AIza…" /></div>
+        <div><label class="label">Voz</label><select v-model="form.voz_nombre" class="input"><option :value="null">La de siempre</option><option v-for="v in (config.voces?.[form.voz_proveedor] ?? [])" :key="v" :value="v">{{ v }}</option></select></div>
+      </div>
+      <div class="flex justify-end gap-2"><button v-if="config.voz_api_key_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('voz_api_key')">Borrar clave</button><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+    </form>
+
     <!-- Fase 118: WhatsApp con el QR de Meta -->
     <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="app-meta">
       <h2 class="font-bold">WhatsApp con un botón (aplicación de Meta)</h2>
@@ -207,7 +222,7 @@ const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mante
 const base = location.origin
 const host = location.host
 const duenos = useForm({ ids: [...(props.aprobacion.duenos ?? [])] }) // Fase 106
-const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', meta_app_secret: '', meta_app_id: props.config.meta_app_id ?? '', meta_config_id: props.config.meta_config_id ?? '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
+const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', meta_app_secret: '', voz_api_key: '', voz_proveedor: props.config.voz_proveedor ?? 'openai', voz_nombre: props.config.voz_nombre ?? null, meta_app_id: props.config.meta_app_id ?? '', meta_config_id: props.config.meta_config_id ?? '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }

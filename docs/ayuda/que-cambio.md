@@ -76,6 +76,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **Te lleva por el sistema (119.1).** «Llevame a cerrar caja», «abrime la ficha de López», «nueva factura para García», «imprimí la factura 123». Hablando (Alt+B) o escribiendo.
 - **Sabe qué estás mirando.** Con la ficha de un cliente abierta alcanza con «¿cuánto me debe?» o «cobrale 50.000»; en una factura, «imprimila» o «mandásela».
 - **La charla sigue** cuando cambia de pantalla, y al buscar por nombre ya no importan los acentos.
+- **Escucha y habla en cualquier navegador y celular (119.2).** En iPhone, Safari y Firefox también: graba, corta solo cuando dejás de hablar y contesta con voz natural. Manos libres anda en todos. Viene incluido, sin cargar claves.
 
 ## Conectar WhatsApp escaneando un QR (fase 118)
 

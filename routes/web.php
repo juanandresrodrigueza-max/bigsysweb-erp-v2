@@ -235,6 +235,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
 
     Route::post('/agente/chat', [AgenteController::class, 'chat'])->name('agente.chat');
     Route::post('/agente/audio', [AgenteController::class, 'audio'])->middleware('throttle:20,1');
+    Route::post('/agente/voz', [AgenteController::class, 'voz'])->middleware('throttle:40,1'); // Fase 119.2: voz natural
     Route::post('/agente/ejecutar', [AgenteController::class, 'ejecutar'])->middleware('throttle:60,1');
     Route::get('/dueno', [\App\Http\Controllers\DuenoController::class, 'index'])->middleware('permiso:dashboard');
 

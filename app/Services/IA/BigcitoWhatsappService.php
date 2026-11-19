@@ -106,7 +106,7 @@ class BigcitoWhatsappService
     {
         $token = $b->whatsapp_settings['token'] ?? null;
         if (! $token) throw ValidationException::withMessages(['audio' => 'Falta el token de WhatsApp para bajar el audio.']);
-        if (empty($b->ia_settings['audio']['api_key'])) throw ValidationException::withMessages(['audio' => 'Para que Bigcito entienda audios hay que cargar una clave de OpenAI o de Gemini en Configuración → Conexiones IA (Claude no lee audio).']);
+        if (! $this->voz->disponible($b)) throw ValidationException::withMessages(['audio' => 'Para que Bigcito entienda audios hay que cargar una clave de OpenAI o de Gemini en Configuración → Conexiones IA (Claude no lee audio).']);
         $meta = Http::withToken($token)->timeout(15)->get("https://graph.facebook.com/v19.0/{$mediaId}");
         if (! $meta->successful() || ! $meta->json('url')) throw new \RuntimeException('No se pudo ubicar el audio en WhatsApp.');
         $bin = Http::withToken($token)->timeout(30)->get($meta->json('url'));

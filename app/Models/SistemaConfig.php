@@ -57,6 +57,9 @@ class SistemaConfig extends Model
         'tn_app_id'          => null,
         'tn_app_secret'      => null,
         'google_client_id'   => null, // Fase 96: entrar con Google (OAuth)
+        'voz_proveedor'      => 'openai', // Fase 119.2: voz de Bigcito para todas las empresas (escuchar y hablar)
+        'voz_api_key'        => null,
+        'voz_nombre'         => null,
         'meta_app_id'        => null, // Fase 118: app de Meta (la misma del CRM) para «Conectar WhatsApp» con el QR
         'meta_app_secret'    => null,
         'meta_config_id'     => null, // Configuration ID del Embedded Signup
@@ -64,7 +67,7 @@ class SistemaConfig extends Model
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key'];
 
     public static function get(string $clave, $default = null)
     {

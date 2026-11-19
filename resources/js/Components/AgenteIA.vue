@@ -11,7 +11,7 @@
             </div>
           </div>
           <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
-          <button v-if="dictado.soportado" @click="alternarManos" class="p-1 rounded hover:bg-white/15 text-xs" :class="manosLibres ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="manosLibres ? 'Manos libres activado: después de contestarte vuelve a escuchar (tocá para apagar)' : 'Manos libres: hablale, te contesta y vuelve a escuchar sin tocar nada'" data-e2e="manos-libres">🎙️</button>
+          <button v-if="puedeOir" @click="alternarManos" class="p-1 rounded hover:bg-white/15 text-xs" :class="manosLibres ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="manosLibres ? 'Manos libres activado: después de contestarte vuelve a escuchar (tocá para apagar)' : 'Manos libres: hablale, te contesta y vuelve a escuchar sin tocar nada'" data-e2e="manos-libres">🎙️</button>
           <a v-if="whatsappSoporte" :href="whatsappSoporte" target="_blank" class="p-1 rounded hover:bg-white/15 text-xs" title="Hablar con una persona de soporte por WhatsApp (con lo que venías preguntando)" data-e2e="bigcito-soporte">🙋</a>
           <button @click="abierto = false" class="p-1 rounded hover:bg-white/15" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button></div>
         </div>
@@ -19,7 +19,7 @@
         <div ref="scroll" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-marca-fondo">
           <div v-if="!mensajes.length" class="text-xs text-marca-muted space-y-2 px-1 pt-1">
             <p>Hola {{ nombre }}. Preguntame cómo hacer algo, consultame datos de {{ empresa }} o pedime que haga cosas: facturar, cobrar, cargar un cliente, cambiar un precio. Siempre te muestro qué voy a hacer y espero tu sí.</p>
-            <p v-if="dictado.soportado" class="text-[11px]">Tocá el micrófono o apretá <kbd class="px-1 rounded border border-marca-borde bg-white">Alt</kbd>+<kbd class="px-1 rounded border border-marca-borde bg-white">B</kbd> desde cualquier pantalla. Con 🎙️ (manos libres) te vuelve a escuchar después de contestarte.</p>
+            <p v-if="puedeOir" class="text-[11px]">Tocá el micrófono o apretá <kbd class="px-1 rounded border border-marca-borde bg-white">Alt</kbd>+<kbd class="px-1 rounded border border-marca-borde bg-white">B</kbd> desde cualquier pantalla. Con 🎙️ (manos libres) te vuelve a escuchar después de contestarte.</p>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="s in sugerencias" :key="s" @click="enviar(s)" class="px-2.5 py-1 rounded-full bg-white border border-marca-borde text-marca-texto hover:border-violeta text-[11px]">{{ s }}</button>
             </div>
@@ -46,11 +46,10 @@
 
         <div v-if="foto" class="px-3 pt-2 flex items-center gap-2 text-xs text-marca-muted bg-white border-t border-marca-borde"><img :src="foto" class="w-10 h-10 object-cover rounded-lg" alt="" /> Foto lista: escribí qué querés saber. <button type="button" class="text-carmin" @click="foto = null">Sacar</button></div>
         <form @submit.prevent="enviar()" class="p-2 border-t border-marca-borde flex gap-2 bg-white">
-          <input v-model="texto" class="input rounded-full" :placeholder="dictado.escuchando.value ? 'Escuchando… hablá' : 'Escribí tu consulta…'" :disabled="cargando" />
+          <input v-model="texto" class="input rounded-full" :placeholder="oyendo ? 'Escuchando… hablá' : (transcribiendo ? 'Pasando tu audio a texto…' : 'Escribí tu consulta…')" :disabled="cargando" />
           <input ref="fotoInput" type="file" accept="image/*" capture="environment" class="hidden" @change="elegirFoto" />
           <button type="button" class="btn-secondary !px-3 rounded-full" :class="foto ? '!border-violeta !text-violeta' : ''" title="Mandar una foto" @click="fotoInput.click()" data-e2e="bigcito-foto">📷</button>
-          <button v-if="!dictado.soportado && grabadorSoportado" type="button" class="btn-secondary !px-3 rounded-full" :class="grabando ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" :title="grabando ? 'Parar y mandar' : 'Mandar un audio'" @click="alternarGrabacion"><Icono nombre="mic" clase="w-4 h-4" /></button>
-          <button v-if="dictado.soportado" type="button" class="btn-secondary !px-3 rounded-full" :class="dictado.escuchando.value ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" :title="dictado.escuchando.value ? 'Parar' : 'Dictar por voz'" @click="dictado.alternar()"><Icono nombre="mic" clase="w-4 h-4" /></button>
+          <button v-if="puedeOir" type="button" class="btn-secondary !px-3 rounded-full" :class="oyendo ? '!bg-carmin !text-white !border-carmin animate-pulse' : ''" :title="oyendo ? 'Parar' : 'Hablarle a Bigcito'" @click="alternarOido" data-e2e="bigcito-mic"><Icono nombre="mic" clase="w-4 h-4" /></button>
           <button type="submit" class="btn-primary !px-3" :disabled="cargando || (!texto.trim() && !foto)" title="Enviar" aria-label="Enviar"><Icono nombre="send" clase="w-4 h-4" /></button>
         </form>
       </div>
@@ -68,6 +67,7 @@ import { ref, nextTick, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import { useDictado } from '@/util/dictado'
+import { useGrabadorVoz, useVozServidor } from '@/util/vozServidor'
 
 const page = usePage()
 // Fase 119.1: la charla sigue cuando Bigcito te lleva a otra pantalla (el panel se vuelve a montar en cada página).
@@ -81,12 +81,43 @@ const texto = ref('')
 let baseDictado = ''
 const dictado = useDictado((t, final) => { texto.value = (baseDictado ? baseDictado + ' ' : '') + t; if (final) { baseDictado = ''; enviar(undefined, true) } })
 
+// Fase 119.2: el oído. Donde el navegador dicta (Chrome, Edge, Android) se usa eso, que es instantáneo; donde no
+// (iPhone, Safari, Firefox) se graba, se corta sola al dejar de hablar y el servidor la pasa a texto.
+const vozSrv = !!page.props.vozServidor
+const transcribiendo = ref(false)
+const grab = useGrabadorVoz(async (blob, mime, motivo) => {
+  if (!blob) { if (motivo === 'permiso') mensajes.value.push({ rol: 'assistant', texto: 'No tengo permiso para usar el micrófono. Habilitalo en el navegador y probá de nuevo.' }); return }
+  const fd = new FormData(); fd.append('audio', blob, 'audio.' + (mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm')); fd.append('mime', mime)
+  transcribiendo.value = true
+  try { const { data } = await window.axios.post('/agente/audio', fd); transcribiendo.value = false; if (data.texto) enviar(data.texto, true); else mensajes.value.push({ rol: 'assistant', texto: data.error ?? 'No entendí el audio.' }) }
+  catch (e) { transcribiendo.value = false; mensajes.value.push({ rol: 'assistant', texto: e.response?.data?.errors?.audio?.[0] ?? e.response?.data?.error ?? e.response?.data?.message ?? 'No pude pasar el audio a texto.' }); bajar() }
+})
+const usaGrabador = !dictado.soportado && grab.soportado
+const puedeOir = dictado.soportado || usaGrabador
+const oyendo = computed(() => dictado.escuchando.value || grab.escuchando.value)
+const vozS = useVozServidor()
+function callar() { vozS.callar(); try { window.speechSynthesis?.cancel() } catch {} }
+function escuchar() {
+  if (oyendo.value || cargando.value || transcribiendo.value) return
+  callar(); vozS.destrabar()
+  if (dictado.soportado) dictado.iniciar(); else if (usaGrabador) grab.iniciar()
+}
+function dejarDeEscuchar() { dictado.detener(); grab.cancelar() }
+function alternarOido() { if (!oyendo.value) return escuchar(); if (dictado.soportado) dictado.detener(); else grab.detener(true) }
+
 // Bigcito habla: si le hablaste, te contesta en voz alta (y te pregunta antes de hacer algo). "Sí" o "dale" confirma, "no" cancela.
-const vozSoportada = typeof window !== 'undefined' && 'speechSynthesis' in window
+// Con voz por servidor suena natural; si no hay, usa la del navegador.
+const vozNavegador = typeof window !== 'undefined' && 'speechSynthesis' in window
+const vozSoportada = vozNavegador || vozSrv
 const habla = ref((() => { try { return localStorage.getItem('bigcito_voz') !== '0' } catch { return true } })())
-function alternarVoz() { habla.value = !habla.value; try { localStorage.setItem('bigcito_voz', habla.value ? '1' : '0') } catch {} if (!habla.value) window.speechSynthesis?.cancel() }
+function alternarVoz() { habla.value = !habla.value; try { localStorage.setItem('bigcito_voz', habla.value ? '1' : '0') } catch {} if (!habla.value) callar() }
 function decir(t) {
-  if (!vozSoportada || !habla.value || !t) return
+  if (!habla.value || !t) return volverAEscuchar()
+  if (vozSrv) { vozS.decir(t, volverAEscuchar).then(ok => { if (!ok) decirNavegador(t) }); return }
+  decirNavegador(t)
+}
+function decirNavegador(t) {
+  if (!vozNavegador) return volverAEscuchar()
   const limpio = t.replace(/https?:\/\/\S+/g, '').replace(/[*_#`]/g, '').replace(/\$\s?([\d.]+),(\d{2})/g, '$1 pesos con $2').slice(0, 600)
   const u = new SpeechSynthesisUtterance(limpio); u.lang = 'es-AR'; u.rate = 1.05
   const v = window.speechSynthesis.getVoices().find(x => x.lang?.startsWith('es')); if (v) u.voice = v
@@ -98,17 +129,17 @@ const manosLibres = ref((() => { try { return localStorage.getItem('bigcito_mano
 function alternarManos() {
   manosLibres.value = !manosLibres.value
   try { localStorage.setItem('bigcito_manos', manosLibres.value ? '1' : '0') } catch {}
-  if (manosLibres.value) { habla.value = true; if (!dictado.escuchando.value) dictado.iniciar() } else dictado.detener()
+  if (manosLibres.value) { habla.value = true; escuchar() } else dejarDeEscuchar()
 }
 function volverAEscuchar() {
   // Si en el medio Bigcito cambió de pantalla, este panel ya no es el que se ve: le pasa la posta al nuevo.
   if (window.__bigcito !== yo) { window.dispatchEvent(new Event('bigcito:escuchar')); return }
-  if (manosLibres.value && abierto.value && dictado.soportado && !dictado.escuchando.value && !cargando.value) dictado.iniciar()
+  if (manosLibres.value && abierto.value && puedeOir) escuchar()
 }
 const atajo = e => {
   if (!e.altKey || e.ctrlKey || e.metaKey || (e.key || '').toLowerCase() !== 'b') return
   e.preventDefault(); abierto.value = true
-  nextTick(() => { if (dictado.soportado && !dictado.escuchando.value) dictado.iniciar() })
+  nextTick(() => { if (puedeOir) escuchar() })
 }
 // Fase 40.4: si Bigcito no alcanza, el WhatsApp a soporte sale ya escrito: quién, de qué empresa, en qué pantalla y qué preguntó.
 const whatsappSoporte = computed(() => {
@@ -160,27 +191,10 @@ function elegirFoto(e) {
   const img = new Image(); img.onload = () => { const k = Math.min(1, 1400 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); foto.value = c.toDataURL('image/jpeg', 0.82); URL.revokeObjectURL(img.src) }
   img.src = URL.createObjectURL(f)
 }
-const grabadorSoportado = typeof window !== 'undefined' && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia
-const grabando = ref(false); let grabador = null, trozos = []
-async function alternarGrabacion() {
-  if (grabando.value) { grabador?.stop(); return }
-  try {
-    const st = await navigator.mediaDevices.getUserMedia({ audio: true }); trozos = []
-    grabador = new MediaRecorder(st); grabador.ondataavailable = ev => trozos.push(ev.data)
-    grabador.onstop = async () => {
-      grabando.value = false; st.getTracks().forEach(t => t.stop())
-      const fd = new FormData(); fd.append('audio', new Blob(trozos, { type: grabador.mimeType || 'audio/webm' }), 'audio.webm')
-      cargando.value = true
-      try { const { data } = await window.axios.post('/agente/audio', fd); cargando.value = false; if (data.texto) enviar(data.texto, true); else mensajes.value.push({ rol: 'assistant', texto: data.error ?? 'No entendí el audio.' }) }
-      catch (e) { cargando.value = false; mensajes.value.push({ rol: 'assistant', texto: e.response?.data?.error ?? e.response?.data?.message ?? 'No pude pasar el audio a texto.' }) }
-    }
-    grabador.start(); grabando.value = true
-  } catch { mensajes.value.push({ rol: 'assistant', texto: 'No tengo permiso para usar el micrófono.' }) }
-}
 // Fase 107: otra pantalla (el resumen hablado) abre a Bigcito con una pregunta ya escrita.
 const alPreguntar = (e) => { abierto.value = true; nextTick(() => enviar(e.detail?.texto ?? '')) }
 onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo); window.addEventListener('bigcito:escuchar', volverAEscuchar); if (abierto.value) bajar() })
-onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dictado.detener() })
+onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dejarDeEscuchar() })
 // Fase 119.1: Bigcito abre pantallas. La charla queda guardada y sigue en la pantalla nueva.
 function irA(ruta) {
   if (!ruta || ruta === location.pathname + location.search) return

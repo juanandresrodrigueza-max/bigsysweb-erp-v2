@@ -58,6 +58,8 @@ class HandleInertiaRequests extends Middleware
             'mensajeGlobal' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('mensaje_global') : null,
             'onboarding' => fn() => $user?->business && ! $user->business->onboarding_completado_en && $user->esDueno() ? \Illuminate\Support\Facades\Cache::remember('onboarding_resumen_' . $user->business_id, 300, function () use ($user) { $p = \App\Http\Controllers\OnboardingController::pasos($user->business); return ['hechos' => count(array_filter($p, fn($x) => $x['hecho'])), 'total' => count($p)]; }) : null,
             'soporteWhatsapp' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('soporte_whatsapp') : null,
+            // Fase 119.2: ¿hay voz por servidor (escuchar y hablar) para esta empresa? El panel de Bigcito elige cómo oír y cómo contestar.
+            'vozServidor' => fn() => $user?->business_id ? app(\App\Services\IA\VozFotoService::class)->disponible($user->business) : false,
             'novedades' => fn() => $user?->business_id ? app(\App\Services\Avisos\CelularService::class)->sinLeer($user) : 0,
             'tiendas' => fn() => $user ? \App\Http\Controllers\MovilController::tiendas() : null, // Fase 93.1: links a la app en las tiendas
             'alertas' => fn() => $user?->business_id ? [
