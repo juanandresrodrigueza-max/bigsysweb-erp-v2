@@ -345,6 +345,7 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::get('/{id}/puntos',             [\App\Http\Controllers\Clientes\FidelizacionController::class, 'consultar'])->whereNumber('id');
         Route::get('/padron/{cuit}',           [ClientesController::class, 'padron']);
         Route::get('/{id}',                    [ClientesController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/bcra',              [ClientesController::class, 'bcra'])->whereNumber('id')->middleware('throttle:20,1'); // Fase 120.2: Central de Deudores del BCRA
         Route::get('/{id}/crm', [ClientesController::class, 'crm'])->whereNumber('id'); // Fase 71: conversaciones del CRM con el cliente
         Route::get('/{id}/pendientes',         [ClientesController::class, 'pendientesJson'])->whereNumber('id');
         Route::get('/{id}/condiciones',        [\App\Http\Controllers\Clientes\CondicionesController::class, 'index']);

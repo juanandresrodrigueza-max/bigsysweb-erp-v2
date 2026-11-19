@@ -68,7 +68,7 @@ class CampanasService
         return Campana::withoutGlobalScopes()->where('business_id', $b->id)->with('user:id,name')->latest()->limit(30)->get()->map(fn($c) => [
             'id' => $c->id, 'fecha' => $c->created_at->format('d/m/Y H:i'), 'canal' => Campana::CANALES[$c->canal] ?? $c->canal, 'canal_key' => $c->canal, 'asunto' => $c->asunto, 'texto' => $c->texto, 'usuario' => $c->user?->name,
             'destinatarios' => $c->destinatarios, 'enviados' => $c->enviados, 'pendientes' => $c->pendientes, 'errores' => $c->errores, 'terminada' => (bool) $c->terminada_en,
-            'para_mandar' => $c->canal === 'whatsapp' ? $c->envios()->where('estado', 'pendiente')->with('contact:id,name')->get()->map(fn($e) => ['id' => $e->id, 'cliente' => $e->contact?->name, 'link' => $e->link])->values()->all() : [],
+            'para_mandar' => $c->canal === 'whatsapp' ? $c->envios()->where('estado', 'pendiente')->orderBy('id')->with('contact:id,name')->get()->map(fn($e) => ['id' => $e->id, 'cliente' => $e->contact?->name, 'link' => $e->link])->values()->all() : [],
             'fallidos' => $c->envios()->where('estado', 'error')->with('contact:id,name')->limit(20)->get()->map(fn($e) => ['cliente' => $e->contact?->name, 'error' => $e->error])->values()->all(),
         ])->all();
     }

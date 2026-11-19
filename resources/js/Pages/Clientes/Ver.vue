@@ -30,6 +30,32 @@
       </div>
     </div>
 
+    <!-- Fase 120.2: situación en el Banco Central -->
+    <div class="card mb-5" :class="bcra ? { rojo: 'border-carmin/50', amarillo: 'border-amber-300', verde: 'border-emerald-200' }[bcra.semaforo] : ''" data-e2e="bcra">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-bold flex items-center gap-2">Situación en el Banco Central
+            <span v-if="bcra" class="badge" :class="{ rojo: 'bg-carmin-light text-carmin', amarillo: 'bg-amber-50 text-amber-700', verde: 'bg-emerald-50 text-emerald-700' }[bcra.semaforo]" data-e2e="bcra-semaforo">{{ { rojo: 'Riesgo alto', amarillo: 'Con antecedentes', verde: 'Sin antecedentes' }[bcra.semaforo] }}</span></p>
+          <p v-if="bcra" class="text-sm mt-1">{{ bcra.resumen }}</p>
+          <p v-if="bcra" class="text-xs text-marca-muted mt-0.5">{{ bcra.consejo }} · {{ bcra.denominacion ? bcra.denominacion + ' · ' : '' }}consultado el {{ bcra.fecha }}<span v-if="bcra.viejo" class="text-amber-700"> · tiene más de 30 días, conviene actualizar</span></p>
+          <p v-else class="text-sm text-marca-muted mt-1">Antes de darle cuenta corriente o aceptarle un cheque, mirá cómo está con los bancos: situación crediticia, cuánto debe y si tiene cheques rechazados. Es información pública del BCRA y el cliente no se entera.</p>
+          <p v-if="$page.props.errors?.bcra" class="text-xs text-carmin mt-1">{{ $page.props.errors.bcra }}</p>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          <button v-if="bcra && (bcra.entidades?.length || bcra.cheques?.cantidad)" type="button" class="btn-secondary !py-1.5 text-xs" @click="bcraAbierto = !bcraAbierto">{{ bcraAbierto ? 'Ocultar' : 'Ver detalle' }}</button>
+          <button type="button" class="btn-secondary !py-1.5 text-xs" :disabled="!cliente.cuit || bcraCargando" :title="cliente.cuit ? '' : 'Hace falta el CUIT del cliente'" @click="consultarBcra" data-e2e="bcra-consultar">{{ bcraCargando ? 'Consultando…' : bcra ? 'Actualizar' : 'Consultar ahora' }}</button>
+        </div>
+      </div>
+      <div v-if="bcra && bcraAbierto" class="mt-3 overflow-x-auto">
+        <table v-if="bcra.entidades?.length" class="table text-xs">
+          <thead><tr><th>Entidad</th><th>Situación</th><th class="text-right">Debe</th><th class="text-right">Días de atraso</th><th></th></tr></thead>
+          <tbody><tr v-for="(e, i) in bcra.entidades" :key="i"><td>{{ e.entidad }}</td><td :class="e.situacion >= 3 ? 'text-carmin font-semibold' : e.situacion === 2 ? 'text-amber-700' : ''">{{ e.situacion }} · {{ e.situacion_texto }}</td><td class="text-right tabular-nums">{{ moneda(e.monto, 0) }}</td><td class="text-right">{{ e.dias_atraso || '' }}</td><td class="text-marca-muted">{{ [e.refinanciado ? 'refinanciado' : '', e.juicio ? 'en juicio' : '', e.en_revision ? 'en revisión' : ''].filter(Boolean).join(' · ') }}</td></tr></tbody>
+        </table>
+        <p v-if="bcra.cheques?.cantidad" class="text-xs mt-2"><b>Cheques rechazados:</b> {{ bcra.cheques.cantidad }} por {{ moneda(bcra.cheques.monto, 0) }}<span v-if="bcra.cheques.sin_pagar" class="text-carmin"> · {{ bcra.cheques.sin_pagar }} sin pagar ({{ moneda(bcra.cheques.monto_sin_pagar, 0) }})</span><span v-if="bcra.cheques.causales?.length"> · {{ bcra.cheques.causales.join(', ').toLowerCase() }}</span></p>
+        <p v-if="bcra.peor_24m > bcra.peor" class="text-xs mt-1 text-amber-700">En los últimos 24 meses llegó a situación {{ bcra.peor_24m }}.</p>
+      </div>
+    </div>
+
     <div class="flex gap-1 overflow-x-auto mb-4 bg-white border border-marca-borde rounded-full p-1 w-fit max-w-full">
       <button v-for="t in tabs" :key="t.key" @click="tab = t.key" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap" :class="tab === t.key ? 'bg-carmin text-white' : 'text-marca-muted hover:text-marca-texto'">{{ t.label }}<span v-if="t.n" class="ml-1 opacity-70">({{ t.n }})</span></button>
     </div>
@@ -281,7 +307,10 @@ import { moneda, cantidad, hoyISO, estadoCobro, estadoComprobante } from '@/util
 
 const dias = [{ k: 'lun', t: 'Lun' }, { k: 'mar', t: 'Mar' }, { k: 'mie', t: 'Mié' }, { k: 'jue', t: 'Jue' }, { k: 'vie', t: 'Vie' }, { k: 'sab', t: 'Sáb' }, { k: 'dom', t: 'Dom' }]
 const agendaOpciones = { dia: 'Todo el día', man: 'A la mañana', tar: 'A la tarde', '1er': '1ª semana', '2do': '2ª semana', '3er': '3ª semana', ult: 'Última semana' }
-const props = defineProps({ usaAcopios: Boolean, usaPactados: Boolean, crm: { type: Object, default: () => ({ activo: false }) }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
+const props = defineProps({ bcra: { type: Object, default: null }, usaAcopios: Boolean, usaPactados: Boolean, crm: { type: Object, default: () => ({ activo: false }) }, paises: { type: Object, default: () => ({}) }, cuitPais: { type: Object, default: () => ({}) },  cliente: Object, cc: Array, pendientes: Array, antiguedad: Object, comprobantes: Array, cobros: Array, acopios: Array, medios: Object, tipos: Array, condicionesIva: Array, cuentas: { type: Array, default: () => [] }, vendedores: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] }, cotizacionUsd: { type: Number, default: 0 }, notasCalle: { type: Array, default: () => [] }, relevamientos: { type: Array, default: () => [] } })
+// Fase 120.2: consulta al Banco Central.
+const bcraAbierto = ref(false), bcraCargando = ref(false)
+function consultarBcra() { bcraCargando.value = true; router.post(`/clientes/${props.cliente.id}/bcra`, {}, { preserveScroll: true, onFinish: () => (bcraCargando.value = false) }) }
 const cuentasPara = medio => props.cuentas.filter(c => ({ efectivo: ['caja'], transferencia: ['banco'], billetera: ['billetera', 'banco'], tarjeta: ['tarjeta', 'banco'] }[medio] ?? ['banco', 'caja']).includes(c.tipo))
 function cambiarMedio(m) { m.cuenta_fondos_id = null; m.datos = m.medio === 'cheque' ? { numero: '', banco: '', fecha_pago: hoyISO(), emisor: '', echeq: false } : (m.medio === 'tarjeta' ? { tarjeta: 'Visa', numero: '', cuotas: 1 } : (m.medio === 'retencion' ? { impuesto: 'iibb', jurisdiccion: '', certificado: '' } : {})) }
 const envio = ref(null)

@@ -47,7 +47,7 @@ class PantallaService
             if (preg_match('#^/clientes/(\d+)$#', $path, $m) && $ver('clientes') && ($c = Contact::customers()->find((int) $m[1]))) {
                 $vencido = (float) Comprobante::ventas()->pendientesCobro()->where('contact_id', $c->id)->where('fecha_vto', '<', today()->toDateString())->sum('saldo');
                 return ['tipo' => 'cliente', 'id' => $c->id, 'nombre' => $c->name, 'url' => $path,
-                    'texto' => "Ficha del cliente «{$c->name}» (id {$c->id}" . ($c->cuit ? ", CUIT {$c->cuit}" : '') . '). Saldo en cuenta corriente: ' . Busca::pesos($c->balance) . ($vencido > 0 ? ', vencido ' . Busca::pesos($vencido) : '') . ($c->phone ? ". Teléfono {$c->phone}" : '') . '.'];
+                    'texto' => "Ficha del cliente «{$c->name}» (id {$c->id}" . ($c->cuit ? ", CUIT {$c->cuit}" : '') . '). Saldo en cuenta corriente: ' . Busca::pesos($c->balance) . ($vencido > 0 ? ', vencido ' . Busca::pesos($vencido) : '') . ($c->phone ? ". Teléfono {$c->phone}" : '') . '.' . (($l = \App\Services\Fiscal\BcraService::linea($c)) ? " {$l}" : '')];
             }
             if (preg_match('#^/proveedores/(\d+)$#', $path, $m) && $ver('proveedores') && ($c = Contact::suppliers()->find((int) $m[1]))) {
                 return ['tipo' => 'proveedor', 'id' => $c->id, 'nombre' => $c->name, 'url' => $path,

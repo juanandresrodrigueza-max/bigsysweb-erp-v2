@@ -24,7 +24,8 @@ class Contact extends Model
         'descuento', 'percepcion_iibb', 'jurisdiccion_iibb', 'alicuota_percepcion_iibb', 'alicuota_retencion_iibb', 'exento_iibb', 'percepcion_iva', 'percepcion_ganancias', 'retiene_ganancias', 'balance', 'is_active', 'notes', 'crm_external_id', 'portal_token', 'puntos', 'pais_codigo', 'cuit_pais', 'id_impositivo', 'recordar_precio', 'comprobante_interno', 'codigo', 'cobrador_id', 'visitas', 'lat', 'lng', 'compras_config',
     ];
 
-    protected $casts = ['comprobante_interno' => 'boolean', 'compras_config' => 'array', 
+    protected $casts = ['comprobante_interno' => 'boolean', 'compras_config' => 'array',
+        'bcra' => 'array', 'bcra_en' => 'datetime', // Fase 120.2
         'credit_limit' => 'decimal:2', 'balance' => 'decimal:2', 'descuento' => 'decimal:2',
         'is_active' => 'boolean', 'percepcion_iibb' => 'boolean', 'exento_iibb' => 'boolean', 'percepcion_iva' => 'boolean', 'percepcion_ganancias' => 'boolean', 'retiene_ganancias' => 'boolean', 'recordar_precio' => 'boolean', 'visitas' => 'array', 'lat' => 'float', 'lng' => 'float',
     ];
