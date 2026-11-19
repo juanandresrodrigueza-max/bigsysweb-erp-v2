@@ -17,8 +17,25 @@ class AgenteController extends Controller
             'pantalla'  => 'nullable|string|max:200',
             'url'       => 'nullable|string|max:500', // Fase 119.1: la dirección que tiene abierta, para saber qué está viendo
             'imagen'    => 'nullable|string|max:7500000', // Fase 40.3: una foto con la pregunta (data URL)
+            'vivo'      => 'nullable|boolean', // Fase 120.4: viene de una conversación en vivo (se contesta corto, para decirlo)
         ]);
+        if (! empty($data['vivo'])) $data['extra_sistema'] = trim(($data['extra_sistema'] ?? '') . "\nLa persona está hablando con vos por voz, en vivo: contestá en una o dos frases cortas, sin listas, tablas ni símbolos; los números como se dicen hablando. El detalle queda en la pantalla.");
+        unset($data['vivo']);
         return response()->json(app(\App\Services\IA\BigcitoService::class)->responder($request->user(), $data));
+    }
+
+    // Fase 120.4: abre una conversación en vivo (devuelve la llave de un solo uso) y anota cuánto duró al cortar.
+    public function vivo(Request $request, \App\Services\IA\VozVivoService $svc)
+    {
+        $r = $svc->abrir($request->user());
+        return response()->json($r, $r['ok'] ? 200 : 422);
+    }
+
+    public function vivoFin(Request $request, \App\Services\IA\VozVivoService $svc)
+    {
+        $d = $request->validate(['segundos' => 'required|integer|min:0|max:3600']);
+        $svc->anotar($request->user(), (int) $d['segundos']);
+        return response()->json(['ok' => true]);
     }
 
     // Fase 40.3: un audio grabado se transcribe (OpenAI o Gemini) y vuelve como texto; el panel lo manda como pregunta por voz.

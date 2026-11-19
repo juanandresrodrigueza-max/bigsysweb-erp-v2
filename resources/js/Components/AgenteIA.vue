@@ -12,6 +12,7 @@
           </div>
           <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
           <button v-if="puedeOir" @click="alternarManos" class="p-1 rounded hover:bg-white/15 text-xs" :class="manosLibres ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="manosLibres ? 'Manos libres activado: después de contestarte vuelve a escuchar (tocá para apagar)' : 'Manos libres: hablale, te contesta y vuelve a escuchar sin tocar nada'" data-e2e="manos-libres">🎙️</button>
+          <button v-if="puedeVivo" @click="alternarVivo" class="p-1 rounded hover:bg-white/15 text-xs" :class="vivo.estado !== 'libre' ? 'bg-white/25 ring-1 ring-white/60 animate-pulse' : ''" :title="vivo.estado !== 'libre' ? 'Cortar la conversación en vivo' : 'Conversación en vivo: hablá con Bigcito como por teléfono, sin tocar nada'" data-e2e="vivo">📞</button>
           <button v-if="desp.soportado" @click="alternarDespertar" class="p-1 rounded hover:bg-white/15 text-xs" :class="despertar ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="despertar ? 'Te escucho de fondo: decí «Hola Bigcito» y te atiendo (tocá para apagar)' : 'Llamarlo con la voz: decí «Hola Bigcito» desde cualquier pantalla, sin tocar nada'" data-e2e="despertar">👂</button>
           <a v-if="whatsappSoporte" :href="whatsappSoporte" target="_blank" class="p-1 rounded hover:bg-white/15 text-xs" title="Hablar con una persona de soporte por WhatsApp (con lo que venías preguntando)" data-e2e="bigcito-soporte">🙋</a>
           <button @click="abierto = false" class="p-1 rounded hover:bg-white/15" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button></div>
@@ -48,6 +49,10 @@
           <div v-if="cargando" class="flex"><div class="bg-white border border-marca-borde rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-marca-muted">Pensando…</div></div>
         </div>
 
+        <div v-if="vivo.estado !== 'libre'" class="px-3 py-2 flex items-center justify-between gap-2 text-xs bg-carmin-light/60 border-t border-carmin/20 text-carmin-dark" data-e2e="vivo-franja">
+          <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-carmin animate-pulse"></span><b>{{ vivo.estado === 'conectando' ? 'Conectando…' : (vivo.pensando ? 'Consultando el sistema…' : 'En vivo: hablá cuando quieras') }}</b><span v-if="vivo.estado === 'hablando'" class="tabular-nums">{{ relojVivo }}</span></span>
+          <button type="button" class="btn-secondary !py-1 !px-3 text-xs !border-carmin !text-carmin" @click="colgarVivo">Cortar</button>
+        </div>
         <div v-if="foto" class="px-3 pt-2 flex items-center gap-2 text-xs text-marca-muted bg-white border-t border-marca-borde"><img :src="foto" class="w-10 h-10 object-cover rounded-lg" alt="" /> Foto lista: escribí qué querés saber. <button type="button" class="text-carmin" @click="foto = null">Sacar</button></div>
         <form @submit.prevent="enviar()" class="p-2 border-t border-marca-borde flex gap-2 bg-white">
           <input v-model="texto" class="input rounded-full" :placeholder="oyendo ? 'Escuchando… hablá' : (transcribiendo ? 'Pasando tu audio a texto…' : 'Escribí tu consulta…')" :disabled="cargando" />
@@ -73,6 +78,7 @@ import { usePage, router } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import { useDictado, useDespertador } from '@/util/dictado'
 import { useGrabadorVoz, useVozServidor } from '@/util/vozServidor'
+import { vivo, vivoSoportado, alAtender, llamar, colgar } from '@/util/vozVivo'
 
 const page = usePage()
 // Fase 119.1: la charla sigue cuando Bigcito te lleva a otra pantalla (el panel se vuelve a montar en cada página).
@@ -183,9 +189,9 @@ function alternarDespertar() {
 }
 // Mientras escucha una orden, piensa o habla, el despertador descansa; cuando queda libre, vuelve a estar atento.
 watch([oyendo, cargando, transcribiendo, () => vozS.hablando.value], ([o, c, t, h]) => {
-  if (!despertar.value) return
+  if (!despertar.value || vivo.estado !== 'libre') return // en una conversación en vivo el micrófono es de la llamada
   if (o || c || t || h) desp.pausar()
-  else setTimeout(() => { if (despertar.value && !oyendo.value && !cargando.value && !transcribiendo.value && !vozS.hablando.value) desp.reanudar() }, 1200)
+  else setTimeout(() => { if (despertar.value && vivo.estado === 'libre' && !oyendo.value && !cargando.value && !transcribiendo.value && !vozS.hablando.value) desp.reanudar() }, 1200)
 })
 
 const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0] ?? '')
@@ -205,8 +211,9 @@ async function confirmar(m) {
     }
   }
   mensajes.value.push({ rol: 'assistant', texto: textos.join('\n'), url: lista.length === 1 ? url : null })
-  if (porVozUltimo) decir(lista.length > 1 ? (hechas === lista.length ? `Listo, hice las ${hechas}.` : `Hice ${hechas} de ${lista.length}. Fijate las que quedaron en rojo.`) : textos[0])
+  if (porVozUltimo && vivo.estado === 'libre') decir(lista.length > 1 ? (hechas === lista.length ? `Listo, hice las ${hechas}.` : `Hice ${hechas} de ${lista.length}. Fijate las que quedaron en rojo.`) : textos[0])
   ejecutando.value = false; await bajar()
+  return { hechas, total: lista.length, textos }
 }
 
 function cancelarUna(p) { p.estado = 'cancelado'; window.axios.post('/agente/ejecutar', { propuesta_id: p.id, cancelar: true }).catch(() => {}) }
@@ -229,8 +236,8 @@ function elegirFoto(e) {
 }
 // Fase 107: otra pantalla (el resumen hablado) abre a Bigcito con una pregunta ya escrita.
 const alPreguntar = (e) => { abierto.value = true; nextTick(() => enviar(e.detail?.texto ?? '')) }
-onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo); window.addEventListener('bigcito:escuchar', volverAEscuchar); if (abierto.value) bajar(); if (despertar.value && desp.soportado) desp.encender() })
-onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dejarDeEscuchar(); desp.apagar() })
+onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo); window.addEventListener('bigcito:escuchar', volverAEscuchar); if (abierto.value) bajar(); if (despertar.value && desp.soportado && vivo.estado === 'libre') desp.encender() })
+onBeforeUnmount(() => { clearInterval(relojT); window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dejarDeEscuchar(); desp.apagar() })
 // Fase 119.1: Bigcito abre pantallas. La charla queda guardada y sigue en la pantalla nueva.
 function irA(ruta) {
   if (!ruta || ruta === location.pathname + location.search) return
@@ -252,28 +259,84 @@ async function enviar(pre, porVoz = false) {
     setTimeout(() => { abierto.value = false }, 2600); await bajar(); return
   }
   texto.value = ''
-  // El historial lleva qué se propuso y con qué datos, para que «lo mismo para García» o «otro igual» se entiendan.
-  const historial = mensajes.value.slice(-12).map(m => ({ rol: m.rol, texto: (m.texto + propsDe(m).map(p => ` [propuesta ${p.accion ?? ''}${p.args ? ' ' + JSON.stringify(p.args) : ''}: ${p.titulo} → ${p.estado ?? 'sin confirmar'}]`).join('')).slice(0, 3900) }))
   const imagen = foto.value; foto.value = null
   mensajes.value.push({ rol: 'user', texto: msg, foto: imagen })
+  const r = await consultar(msg, { imagen, yaEscrito: true })
+  if (r && porVoz && vivo.estado === 'libre') decir((r.data.respuesta ?? '') + (r.props.length === 1 ? ` ${r.props[0].titulo}. ¿Lo hago? Decime sí o no.` : r.props.length > 1 ? ` Son ${r.props.length}: ${r.props.map(x => x.titulo).join('; ')}. ¿Las hago todas? Decime sí o no.` : ''))
+}
+// Le pregunta a Bigcito y deja la respuesta en la charla (con sus propuestas, tabla y gráfico). Devuelve { data, props } o null si falló.
+async function consultar(msg, { imagen = null, yaEscrito = false, enVivo = false } = {}) {
+  // El historial lleva qué se propuso y con qué datos, para que «lo mismo para García» o «otro igual» se entiendan.
+  const previos = yaEscrito ? mensajes.value.slice(0, -1) : mensajes.value
+  const historial = previos.slice(-12).map(m => ({ rol: m.rol, texto: (m.texto + propsDe(m).map(p => ` [propuesta ${p.accion ?? ''}${p.args ? ' ' + JSON.stringify(p.args) : ''}: ${p.titulo} → ${p.estado ?? 'sin confirmar'}]`).join('')).slice(0, 3900) }))
   cargando.value = true
   await bajar()
   try {
-    const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component, url: location.pathname + location.search, ...(imagen ? { imagen } : {}) })
+    const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component, url: location.pathname + location.search, ...(imagen ? { imagen } : {}), ...(enVivo ? { vivo: true } : {}) })
     modo.value = data.modo ?? 'ia'
     const props = data.propuestas ?? (data.propuesta ? [data.propuesta] : [])
     mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', props, tabla: data.tabla ?? null, grafico: data.grafico ?? null, sugerencias: data.sugerencias ?? [], url: data.abrir ?? null, nueva: !!data.abrir })
     if (data.abrir) { try { window.open(data.abrir, '_blank') } catch {} }
     if (data.navegar) irA(data.navegar)
-    if (porVoz) decir((data.respuesta ?? '') + (props.length === 1 ? ` ${props[0].titulo}. ¿Lo hago? Decime sí o no.` : props.length > 1 ? ` Son ${props.length}: ${props.map(x => x.titulo).join('; ')}. ¿Las hago todas? Decime sí o no.` : ''))
+    return { data, props }
   } catch (e) {
     const st = e.response?.status
     mensajes.value.push({ rol: 'assistant', texto: st === 419 ? 'Tu sesión expiró. Recargá la página y volvé a intentar.' : `No pude conectarme${st ? ` (HTTP ${st})` : ''}. Probá de nuevo en unos segundos.` })
+    return null
   } finally {
     cargando.value = false
     await bajar()
   }
 }
+
+// Fase 120.4: conversación en vivo. Se habla como por teléfono; cada pedido pasa por el Bigcito de siempre (consultar),
+// así que valen los mismos permisos y las acciones siguen esperando un sí. La llamada sobrevive al cambio de pantalla.
+const puedeVivo = !!page.props.vozVivo && vivoSoportado
+const ahora = ref(Date.now()); let relojT = null
+const relojVivo = computed(() => { const s = Math.max(0, Math.round((ahora.value - (vivo.desde || ahora.value)) / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') })
+let escritoPorPedido = null // si la transcripción de lo que dijiste no llegó, se escribe el pedido; si llega tarde, lo reemplaza
+let ultimoDicho = 0
+function atenderVivo() {
+  alAtender({
+    dijo: (rol, t) => {
+      if (rol === 'user') {
+        if (escritoPorPedido && Date.now() - escritoPorPedido.t < 8000) { escritoPorPedido.m.texto = t; escritoPorPedido = null }
+        else { mensajes.value.push({ rol: 'user', texto: t }); ultimoDicho = Date.now() }
+      } else mensajes.value.push({ rol: 'assistant', texto: t })
+      bajar()
+    },
+    pedir: async (pedido) => {
+      if (Date.now() - ultimoDicho > 15000) { const m = { rol: 'user', texto: pedido }; mensajes.value.push(m); escritoPorPedido = { m: mensajes.value[mensajes.value.length - 1], t: Date.now() } }
+      ultimoDicho = 0
+      const r = await consultar(pedido, { enVivo: true, yaEscrito: mensajes.value[mensajes.value.length - 1]?.rol === 'user' })
+      if (!r) return { respuesta: 'No pude conectarme con el sistema. Pedile que lo repita en un momento.' }
+      return { respuesta: (r.data.respuesta ?? '').slice(0, 1800), espera_confirmacion: r.props.length > 0,
+        ...(r.props.length ? { se_va_a_hacer: r.props.map(p => `${p.titulo}${p.detalle ? ': ' + p.detalle : ''}`.slice(0, 300)) } : {}),
+        ...(r.data.navegar ? { abri_la_pantalla: true } : {}), ...(r.data.tabla?.filas?.length ? { lista_en_pantalla: `${r.data.tabla.filas.length} filas` } : {}) }
+    },
+    confirmar: async () => {
+      const p = pendiente(); if (!p) return { ok: false, resultado: 'No había nada esperando confirmación.' }
+      const r = await confirmar(p)
+      return { ok: r.hechas === r.total, resultado: r.textos.join(' ').slice(0, 1200) }
+    },
+    cancelar: () => { const p = pendiente(); if (p) { cancelar(p); mensajes.value.push({ rol: 'assistant', texto: 'Listo, no lo hago.' }); bajar() } return { ok: true } },
+    fin: (motivo, msg) => {
+      clearInterval(relojT); relojT = null
+      const t = motivo === 'error' ? msg : motivo === 'tiempo' ? 'Se cumplió el tiempo de la conversación en vivo. Tocá 📞 para seguir hablando.' : motivo === 'corte' ? 'Se cortó la conversación en vivo.' : null
+      if (t) { mensajes.value.push({ rol: 'assistant', texto: t }); bajar() }
+      if (despertar.value && desp.soportado) setTimeout(() => desp.reanudar(), 1200)
+    },
+  })
+  if (vivo.estado !== 'libre' && !relojT) relojT = setInterval(() => (ahora.value = Date.now()), 1000)
+}
+function alternarVivo() { if (vivo.estado === 'libre') llamarVivo(); else colgarVivo() }
+function llamarVivo() {
+  callar(); dejarDeEscuchar(); desp.pausar(); noReescuchar = true; abierto.value = true
+  atenderVivo(); ahora.value = Date.now(); clearInterval(relojT); relojT = setInterval(() => (ahora.value = Date.now()), 1000)
+  llamar()
+}
+function colgarVivo() { colgar('usuario') }
+if (puedeVivo) atenderVivo()
 
 async function bajar() {
   await nextTick()

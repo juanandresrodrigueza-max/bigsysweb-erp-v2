@@ -60,6 +60,10 @@ class SistemaConfig extends Model
         'voz_proveedor'      => 'openai', // Fase 119.2: voz de Bigcito para todas las empresas (escuchar y hablar)
         'voz_api_key'        => null,
         'voz_nombre'         => null,
+        'voz_vivo'           => false, // Fase 120.4: conversación en vivo con Bigcito (OpenAI Realtime)
+        'voz_vivo_modelo'    => 'gpt-realtime',
+        'voz_vivo_minutos'   => 5,     // tope por llamada
+        'voz_vivo_diarias'   => 30,    // llamadas por usuario por día
         'meta_app_id'        => null, // Fase 118: app de Meta (la misma del CRM) para «Conectar WhatsApp» con el QR
         'meta_app_secret'    => null,
         'meta_config_id'     => null, // Configuration ID del Embedded Signup
