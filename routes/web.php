@@ -159,6 +159,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
     Route::post('/sistema/clave-duenos',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'claveDuenos']); // Fase 106
     Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
+    Route::post('/sistema/probar-casilla',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCasilla']); // Fase 120.3
     Route::post('/sistema/probar-aviso',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarAviso'])->middleware('throttle:10,1'); // Fase 113.2
     Route::post('/sistema/probar-push',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarPush']); // Fase 93
     Route::post('/sistema/probar-ia',                 [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarIa']);
@@ -401,6 +402,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/compras/borradores/{id?}', [ComprasController::class, 'guardarBorradorLectura'])->middleware('permiso:proveedores,crear')->whereNumber('id');
         Route::get('/compras/borradores/{id}',  [ComprasController::class, 'borrador'])->whereNumber('id');
         Route::delete('/compras/borradores/{id}', [ComprasController::class, 'borrarBorrador'])->middleware('permiso:proveedores,crear')->whereNumber('id');
+        // Fase 120.3: la casilla de facturas
+        Route::get('/compras/bandeja',          [ComprasController::class, 'bandeja']);
+        Route::post('/compras/bandeja',         [ComprasController::class, 'subirABandeja'])->middleware(['permiso:proveedores,crear', 'throttle:40,1']);
+        Route::delete('/compras/bandeja/{id}',  [ComprasController::class, 'descartarEntrante'])->middleware('permiso:proveedores,crear')->whereNumber('id');
+        Route::get('/compras/bandeja/{id}/archivo', [ComprasController::class, 'archivoEntrante'])->whereNumber('id');
         // Fase 31.5: recepción con pistola y reclamos
         Route::get('/compras/reclamos',         [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'reclamos']);
         Route::post('/compras/reclamos/{id}/resolver', [\App\Http\Controllers\Proveedores\RecepcionesController::class, 'resolverReclamo'])->middleware('permiso:proveedores,editar')->whereNumber('id');

@@ -45,6 +45,28 @@ Para la mercadería que viene del exterior. Un **despacho** tiene los artículos
 
 Al registrar: entra el stock, se actualiza el costo del artículo (y el precio si tiene margen), queda la deuda en la cuenta corriente del proveedor y se hace el asiento con el IVA crédito.
 
+## Casilla de facturas: que lleguen solas (fase 120.3)
+
+En **Comprar → Facturas de compra**, arriba de todo, está la **Casilla de facturas**. Sirve para no tipear ni subir de a una:
+
+- **Por mail.** Tu empresa tiene una dirección propia, del estilo `facturas+tucodigo@…` (tocala para copiarla). Reenviá ahí las facturas que te llegan por mail, o pasale la dirección a tus proveedores para que te las manden directo. En unos minutos aparecen en la casilla **ya leídas**: proveedor, número, renglones e importes.
+- **Subiendo varias juntas.** Botón **Subir varias facturas**: elegís hasta 20 PDF o fotos de una vez y se leen una atrás de la otra.
+
+Cada factura queda **«Para revisar»**. Tocás **Revisar y registrar**, se abre la pantalla de siempre con todo cargado, controlás y registrás. **Nada se registra solo**: la casilla ahorra el tipeo, la decisión es tuya. También te avisa la campana cuando llega una.
+
+Lo que puede decir cada renglón:
+- **Para revisar**: leída, esperando que la registres. Si dice que el proveedor «todavía no está cargado», crealo desde la misma pantalla y elegilo.
+- **Repetida**: es el mismo archivo que ya había llegado, o esa factura ya está cargada o a medio cargar. No se duplica.
+- **No se pudo leer**: la foto estaba borrosa o la empresa no tiene la IA conectada (Configuración → Conexiones IA). Queda el archivo en **Ver archivo** para cargarla a mano.
+- **Sin factura adjunta**: llegó un mail sin PDF ni foto.
+- **Cargada**: ya la registraste; queda el link a la compra.
+
+Si tu correo no deja usar el «+código» en la dirección, igual anda: el sistema reconoce el mail si lo **reenvía un usuario de la empresa** desde el correo con el que entra, si lo manda **un proveedor que tenés cargado con ese mail**, o si ponés `#tucodigo` en el asunto.
+
+A Bigcito le podés preguntar **«¿llegó alguna factura?»** o **«¿qué facturas tengo para cargar?»**.
+
+Si no ves la dirección de mail, es que BigSys todavía no activó la casilla; subir varias juntas anda igual.
+
 ## Compras en dólares
 
 En el formulario de compra elegí **Moneda: Dólares** y cargá la cotización del día. Los precios se cargan en USD; el sistema los guarda en pesos a esa cotización (costo del artículo incluido) y la deuda con el proveedor queda expresada en USD. Al pagar, si la cotización cambió, se registra la diferencia de cambio automáticamente.

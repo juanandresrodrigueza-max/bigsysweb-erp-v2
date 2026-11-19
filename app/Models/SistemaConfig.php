@@ -64,10 +64,16 @@ class SistemaConfig extends Model
         'meta_app_secret'    => null,
         'meta_config_id'     => null, // Configuration ID del Embedded Signup
         'google_client_secret' => null,
+        // Fase 120.3: la casilla adonde llegan las facturas de compra por mail (IMAP).
+        'casilla_host'       => null,
+        'casilla_puerto'     => 993,
+        'casilla_usuario'    => null,
+        'casilla_clave'      => null,
+        'casilla_direccion'  => null, // la dirección pública si no es igual al usuario
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key', 'casilla_clave'];
 
     public static function get(string $clave, $default = null)
     {

@@ -145,6 +145,25 @@
       <div class="flex justify-end gap-2"><button v-if="config.voz_api_key_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('voz_api_key')">Borrar clave</button><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
     </form>
 
+    <!-- Fase 120.3: la casilla adonde llegan las facturas de compra por mail -->
+    <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="casilla-facturas">
+      <h2 class="font-bold">Casilla de facturas (para todas las empresas)</h2>
+      <p class="text-sm text-marca-muted">Una casilla de correo común (por ejemplo <b>facturas@bigsysweb.com</b>). Cada empresa recibe su dirección propia, <b>facturas+código@…</b>, y lo que le manden ahí —el PDF o la foto de una factura de compra— aparece leído en <b>Compras</b>, listo para revisar. Se revisa cada 5 minutos. Creá la casilla en tu proveedor de correo y cargá acá los datos de <b>IMAP</b> (en Hostinger: <span class="font-mono">imap.hostinger.com</span>, puerto 993).</p>
+      <div class="p-3 rounded-xl text-sm" :class="config.casilla_host && config.casilla_usuario && config.casilla_clave_set ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'">
+        <b>Estado:</b> {{ config.casilla_host && config.casilla_usuario && config.casilla_clave_set ? 'configurada. Las empresas ya ven su dirección en Compras.' : 'sin configurar. Las empresas igual pueden subir varias facturas juntas desde Compras.' }}
+      </div>
+      <div class="grid sm:grid-cols-4 gap-3">
+        <div class="sm:col-span-2"><label class="label">Servidor IMAP</label><input v-model="form.casilla_host" class="input font-mono" placeholder="imap.hostinger.com" /></div>
+        <div><label class="label">Puerto</label><select v-model.number="form.casilla_puerto" class="input"><option :value="993">993 (cifrado)</option><option :value="143">143 (STARTTLS)</option></select></div>
+        <div></div>
+        <div class="sm:col-span-2"><label class="label">Usuario (la casilla)</label><input v-model="form.casilla_usuario" class="input" placeholder="facturas@bigsysweb.com" autocomplete="off" /></div>
+        <div class="sm:col-span-2"><label class="label">Clave {{ config.casilla_clave_set ? '(dejar vacío para no cambiarla)' : '' }}</label><input v-model="form.casilla_clave" type="password" class="input font-mono" autocomplete="new-password" /></div>
+        <div class="sm:col-span-2"><label class="label">Dirección pública <span class="font-normal text-marca-muted">(sólo si no es igual al usuario)</span></label><input v-model="form.casilla_direccion" type="email" class="input" placeholder="facturas@bigsysweb.com" /></div>
+      </div>
+      <p v-if="prueba?.que === 'casilla'" class="text-sm px-3 py-2 rounded-lg" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="prueba-casilla">{{ prueba.ok ? '✓' : '✗' }} {{ prueba.texto }}</p>
+      <div class="flex flex-wrap justify-end gap-2"><button v-if="config.casilla_clave_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('casilla_clave')">Borrar clave</button><Link v-if="config.casilla_clave_set" href="/admin/sistema/probar-casilla" method="post" as="button" preserve-scroll class="btn-secondary" data-e2e="probar-casilla">Probar la casilla</Link><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+    </form>
+
     <!-- Fase 118: WhatsApp con el QR de Meta -->
     <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="app-meta">
       <h2 class="font-bold">WhatsApp con un botón (aplicación de Meta)</h2>
@@ -222,7 +241,7 @@ const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mante
 const base = location.origin
 const host = location.host
 const duenos = useForm({ ids: [...(props.aprobacion.duenos ?? [])] }) // Fase 106
-const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', meta_app_secret: '', voz_api_key: '', voz_proveedor: props.config.voz_proveedor ?? 'openai', voz_nombre: props.config.voz_nombre ?? null, meta_app_id: props.config.meta_app_id ?? '', meta_config_id: props.config.meta_config_id ?? '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
+const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', meta_app_secret: '', voz_api_key: '', casilla_clave: '', casilla_puerto: props.config.casilla_puerto ?? 993, voz_proveedor: props.config.voz_proveedor ?? 'openai', voz_nombre: props.config.voz_nombre ?? null, meta_app_id: props.config.meta_app_id ?? '', meta_config_id: props.config.meta_config_id ?? '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
