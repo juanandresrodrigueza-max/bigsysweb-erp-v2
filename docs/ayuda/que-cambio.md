@@ -75,6 +75,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 
 - **WhatsApp fuera de las 24 horas (120.1).** Los recordatorios, informes y avisos que el sistema manda «en frío» ahora salen con una plantilla aprobada por Meta, y el mensaje completo llega cuando la persona contesta. Se piden en Configuración → Tienda y canales → Pedidos por WhatsApp.
 - **Banco Central antes de fiar (120.2).** En la ficha del cliente, «Situación en el Banco Central»: semáforo, peor situación con los bancos, cuánto debe y cheques rechazados. También por Bigcito: «¿cómo está López en el Banco Central?».
+- **Casilla de facturas (120.3).** Cada empresa tiene una dirección de mail propia: reenviás ahí las facturas de compra (o te las mandan tus proveedores) y aparecen leídas en Comprar → Facturas de compra, listas para revisar y registrar. También se pueden subir hasta 20 juntas. Nada se registra solo.
 
 ## Bigcito maneja el sistema con vos (fase 119)
 

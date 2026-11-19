@@ -20,6 +20,38 @@
       <input v-model="f.desde" @change="filtrar" type="date" class="input" /><input v-model="f.hasta" @change="filtrar" type="date" class="input" />
     </div>
 
+    <!-- Fase 120.3: la casilla de facturas -->
+    <div v-if="puede('proveedores','crear')" class="card mb-4 text-sm" data-e2e="casilla">
+      <div class="flex flex-wrap sm:flex-nowrap items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <h2 class="font-bold">Casilla de facturas <span v-if="bandeja.por_revisar" class="ml-1 rounded-full bg-carmin text-white text-[11px] px-1.5 py-0.5">{{ bandeja.por_revisar }} para revisar</span></h2>
+          <p v-if="bandeja.direccion" class="text-xs text-marca-muted mt-0.5">Mandá o reenviá las facturas de tus proveedores a <button type="button" class="font-mono font-bold text-marca-texto underline decoration-dotted" data-e2e="casilla-direccion" @click="copiarDireccion">{{ bandeja.direccion }}</button> <span v-if="copiada" class="text-emerald-700">· copiada</span>. En unos minutos aparecen acá leídas; vos sólo las revisás y registrás.</p>
+          <p v-else class="text-xs text-marca-muted mt-0.5">Subí varias facturas juntas (PDF o fotos): se leen solas y quedan acá para revisar y registrar una por una.</p>
+        </div>
+        <label class="btn-secondary cursor-pointer shrink-0" :class="subiendo.total ? 'opacity-60 pointer-events-none' : ''" data-e2e="casilla-subir">
+          {{ subiendo.total ? `Leyendo ${subiendo.hechas + 1} de ${subiendo.total}…` : 'Subir varias facturas' }}
+          <input type="file" class="hidden" multiple accept="application/pdf,image/jpeg,image/png,image/webp" @change="subirVarias($event)" />
+        </label>
+      </div>
+      <p v-if="subiendo.aviso" class="mt-2 text-xs px-3 py-2 rounded-lg bg-amber-50 text-amber-800 whitespace-pre-line">{{ subiendo.aviso }}</p>
+      <div v-if="bandeja.lista.length" class="mt-2">
+        <div v-for="e in bandeja.lista" :key="e.id" class="flex flex-wrap items-center justify-between gap-2 py-1.5 border-t border-marca-borde text-xs" data-e2e="casilla-fila">
+          <span class="min-w-0">
+            <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-bold mr-1" :class="{ lista: 'bg-emerald-100 text-emerald-800', cargada: 'bg-slate-100 text-slate-600', duplicada: 'bg-amber-100 text-amber-800', sin_leer: 'bg-carmin-light text-carmin-dark', sin_adjunto: 'bg-slate-100 text-slate-600' }[e.estado]">{{ e.estado_txt }}</span>
+            <b>{{ e.proveedor ?? e.archivo ?? 'Correo' }}</b><span v-if="e.numero"> · {{ e.numero }}</span><span v-if="e.total"> · {{ moneda(e.total) }}</span>
+            <span class="text-marca-muted"> · {{ e.origen === 'mail' ? `por mail${e.remitente ? ' de ' + e.remitente : ''}` : 'subida' }} · {{ e.cuando }}</span>
+            <span v-if="e.detalle" class="block text-marca-muted">{{ e.detalle }}</span>
+          </span>
+          <span class="flex gap-1 shrink-0">
+            <Link v-if="e.borrador_id" :href="`/proveedores/compras/nueva?borrador=${e.borrador_id}`" class="btn-primary !py-1 text-xs">Revisar y registrar</Link>
+            <Link v-else-if="e.compra_id" :href="`/proveedores/compras/${e.compra_id}`" class="btn-ghost !py-1 text-xs">Ver la compra</Link>
+            <a v-if="e.tiene_archivo" :href="`/proveedores/compras/bandeja/${e.id}/archivo`" target="_blank" class="btn-ghost !py-1 text-xs">Ver archivo</a>
+            <button v-if="e.estado !== 'cargada'" class="btn-ghost !py-1 text-xs text-carmin" @click="descartarEntrante(e)">Quitar</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
     <div v-if="borradores.length" class="card mb-4 text-sm" data-e2e="a-medio-cargar">
       <h2 class="font-bold mb-1">Facturas a medio cargar</h2>
       <div v-for="b in borradores" :key="b.id" class="flex flex-wrap items-center justify-between gap-2 py-1 border-t border-marca-borde first:border-0 text-xs"><span><b>{{ b.proveedor ?? 'Sin proveedor' }}</b><span v-if="b.numero"> · {{ b.numero }}</span><span v-if="b.total"> · {{ moneda(b.total) }}</span> · {{ b.cuando }}</span><span class="flex gap-1"><Link :href="`/proveedores/compras/nueva?borrador=${b.id}`" class="btn-primary !py-1 text-xs">Retomar</Link><button class="btn-ghost !py-1 text-xs text-carmin" @click="borrarBorrador(b)">Descartar</button></span></div>
@@ -128,6 +160,23 @@ const borradores = ref([])
 async function cargarBorradores() { try { const { data } = await window.axios.get('/proveedores/compras/borradores'); borradores.value = data } catch (e) {} }
 async function borrarBorrador(b) { if (!confirm('¿Descartar esta factura a medio cargar?')) return; await window.axios.delete(`/proveedores/compras/borradores/${b.id}`); cargarBorradores() }
 onMounted(cargarBorradores)
+// Fase 120.3: lo que llegó a la casilla (por mail o subido de a varias).
+const bandeja = reactive({ direccion: null, por_revisar: 0, lista: [] }), subiendo = reactive({ total: 0, hechas: 0, aviso: null }), copiada = ref(false)
+async function cargarBandeja() { try { const { data } = await window.axios.get('/proveedores/compras/bandeja'); Object.assign(bandeja, data) } catch (e) {} }
+async function copiarDireccion() { try { await navigator.clipboard.writeText(bandeja.direccion); copiada.value = true; setTimeout(() => (copiada.value = false), 2500) } catch (e) { window.prompt('Copiá la dirección', bandeja.direccion) } }
+async function subirVarias(ev) {
+  const archivos = [...(ev.target.files ?? [])].slice(0, 20); ev.target.value = ''
+  if (!archivos.length) return
+  subiendo.total = archivos.length; subiendo.hechas = 0; subiendo.aviso = null; const avisos = []
+  for (const a of archivos) {
+    try { const fd = new FormData(); fd.append('archivo', a); const { data } = await window.axios.post('/proveedores/compras/bandeja', fd); if (!data.ok) avisos.push(`${a.name}: ${data.detalle ?? data.estado_txt}`) }
+    catch (e) { avisos.push(`${a.name}: ${e.response?.data?.message ?? 'no se pudo subir.'}`) }
+    subiendo.hechas++; await cargarBandeja()
+  }
+  subiendo.total = 0; subiendo.aviso = avisos.length ? avisos.join('\n') : null; cargarBorradores()
+}
+async function descartarEntrante(e) { if (!confirm('¿Quitar esta factura de la casilla?')) return; await window.axios.delete(`/proveedores/compras/bandeja/${e.id}`); cargarBandeja(); cargarBorradores() }
+onMounted(cargarBandeja)
 const imp = useForm({ archivo: null, registrar: false, token: null, solo: [] })
 // Fase 31.6: el CSV de Mis Comprobantes se cruza contra lo cargado antes de crear nada.
 const cruce = ref(null), cruzando = ref(false), cruceError = ref(null), solapa = ref('faltan'), sel = ref([])

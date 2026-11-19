@@ -50,6 +50,17 @@ class Compras
                     $lista = \App\Models\DespachoImportacion::with('contact:id,name')->whereIn('estado', ['borrador', 'nacionalizado'])->orderByDesc('fecha')->limit(20)->get()->map(fn($d) => ['numero' => $d->numeroFormateado(), 'despacho' => $d->despacho, 'proveedor' => $d->contact?->name, 'estado' => \App\Models\DespachoImportacion::ESTADOS[$d->estado], 'fob' => (float) $d->fob_total, 'gastos' => (float) $d->gastos_total, 'costo' => (float) $d->costo_total, 'coeficiente' => (float) $d->fob_total > 0 ? round((float) $d->costo_total / (float) $d->fob_total, 3) : null])->all();
                     return $svc->resumen($u->business) + ['despachos' => $lista, 'url' => Busca::url('/proveedores/importaciones')];
                 }],
+            // Fase 120.3: "¿llegó alguna factura?", "¿qué facturas tengo para cargar?"
+            ['nombre' => 'facturas_por_revisar', 'titulo' => 'Facturas que llegaron a la casilla', 'modulo' => 'proveedores', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Las facturas de compra que llegaron por mail a la casilla de la empresa (o se subieron de a varias) y ya están leídas, esperando que alguien las revise y registre: proveedor, número, total y el link para revisarla. También dice a qué dirección de mail hay que mandarlas. Nunca se registran solas.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $r = app(\App\Services\Compras\BandejaFacturasService::class)->resumen($u->business, 20);
+                    $p = array_values(array_map(fn($e) => ['proveedor' => $e['proveedor'], 'numero' => $e['numero'], 'total' => $e['total'], 'llego' => $e['cuando'], 'por' => $e['origen'] === 'mail' ? 'mail' : 'subida', 'nota' => $e['detalle'], 'url' => Busca::url("/proveedores/compras/nueva?borrador={$e['borrador_id']}")], array_filter($r['lista'], fn($e) => $e['estado'] === 'lista')));
+                    $otros = array_values(array_map(fn($e) => ['archivo' => $e['archivo'], 'estado' => $e['estado_txt'], 'nota' => $e['detalle'], 'llego' => $e['cuando']], array_filter($r['lista'], fn($e) => in_array($e['estado'], ['sin_leer', 'duplicada'], true))));
+                    return ['direccion_para_mandar_facturas' => $r['direccion'], 'para_revisar' => $p, 'con_problema' => $otros, 'url' => Busca::url('/proveedores/compras'),
+                        'resumen' => count($p) ? count($p) . ' factura(s) esperan revisión en Compras.' : 'No hay facturas esperando revisión.' . ($r['direccion'] ? " Se mandan a {$r['direccion']}." : ' La casilla por mail todavía no está activada; se pueden subir varias juntas desde Compras.')];
+                }],
             ['nombre' => 'buscar_proveedores', 'titulo' => 'Buscar proveedores', 'modulo' => 'proveedores', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Busca proveedores por nombre o CUIT. Devuelve saldo (lo que se les debe) y contacto.',
                 'parametros' => ['texto' => ['type' => 'string']], 'requeridos' => ['texto'],

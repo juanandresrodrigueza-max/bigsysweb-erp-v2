@@ -80,6 +80,7 @@ class ComprasController extends Controller
         // Lo que confirmaste queda aprendido para la próxima factura de ese proveedor; la "a medio cargar" se borra.
         app(\App\Services\Compras\LecturaCompraService::class)->aprender($c->contact, $data['items'], $data['fecha']);
         if (! empty($data['borrador_id'])) \App\Models\CompraBorrador::whereKey($data['borrador_id'])->delete();
+        if (! empty($data['borrador_id'])) \App\Services\Compras\BandejaFacturasService::cargada((int) $data['borrador_id'], $c->id); // Fase 120.3
         if ($request->boolean('registrar')) {
             $c = $this->service->registrar($c);
             return redirect("/proveedores/compras/{$c->id}")->with('success', "Compra {$c->nombreTipo()} {$c->numeroFormateado()} registrada.");
@@ -195,7 +196,35 @@ class ComprasController extends Controller
     }
 
     public function borrador(int $id) { $b = \App\Models\CompraBorrador::findOrFail($id); return response()->json(['id' => $b->id, 'datos' => $b->datos, 'adjuntos' => $b->adjuntos]); }
-    public function borrarBorrador(int $id) { \App\Models\CompraBorrador::findOrFail($id)->delete(); return response()->json(['ok' => true]); }
+    public function borrarBorrador(int $id) { \App\Models\CompraBorrador::findOrFail($id)->delete(); \App\Services\Compras\BandejaFacturasService::descartadaPorBorrador($id); return response()->json(['ok' => true]); }
+
+    // ---- Fase 120.3: la casilla de facturas (lo que llegó por mail o se subió de a varias) ----
+    public function bandeja(Request $request, \App\Services\Compras\BandejaFacturasService $svc)
+    {
+        return response()->json($svc->resumen($request->user()->business));
+    }
+
+    public function subirABandeja(Request $request, \App\Services\Compras\BandejaFacturasService $svc)
+    {
+        $request->validate(['archivo' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:12288']);
+        $f = $request->file('archivo');
+        $mime = $f->getMimeType() === 'image/jpg' ? 'image/jpeg' : $f->getMimeType();
+        $e = $svc->recibir($request->user()->business, file_get_contents($f->getRealPath()), $mime, $f->getClientOriginalName(), ['origen' => 'subida'], $request->user());
+        return response()->json(['ok' => in_array($e->estado, ['lista'], true), 'estado' => $e->estado, 'estado_txt' => \App\Models\FacturaEntrante::ESTADOS[$e->estado] ?? $e->estado, 'detalle' => $e->detalle, 'proveedor' => $e->proveedor, 'numero' => $e->numero, 'total' => $e->total, 'borrador_id' => $e->borrador_id]);
+    }
+
+    public function descartarEntrante(int $id, \App\Services\Compras\BandejaFacturasService $svc)
+    {
+        $svc->descartar(\App\Models\FacturaEntrante::findOrFail($id));
+        return response()->json(['ok' => true]);
+    }
+
+    public function archivoEntrante(int $id)
+    {
+        $e = \App\Models\FacturaEntrante::findOrFail($id);
+        abort_unless($e->ruta && \Illuminate\Support\Facades\Storage::disk('local')->exists($e->ruta), 404);
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($e->ruta, $e->archivo ?: 'factura', ['Content-Type' => $e->mime ?: 'application/octet-stream']);
+    }
 
     public function importarAfip(Request $request, AfipCsvImportService $import)
     {

@@ -7,6 +7,7 @@ Schedule::command('afip:reintentar')->everyFiveMinutes()->withoutOverlapping(); 
 Schedule::command('agentes:correr')->dailyAt('05:45')->withoutOverlapping(); // Fase 107: Bigcito trabaja de noche y deja propuestas
 Schedule::command('whatsapp:plantillas')->twiceDaily(8, 14); // Fase 120.1: ¿Meta ya aprobó las plantillas de cada empresa?
 Schedule::command('bigcito:rutinas')->everyFiveMinutes()->withoutOverlapping(); // Fase 119.4: lo que cada usuario le dejó encargado a Bigcito
+Schedule::command('casilla:revisar')->everyFiveMinutes()->withoutOverlapping(); // Fase 120.3: las facturas que llegaron por mail
 Schedule::command('suscripciones:revisar')->dailyAt('06:00');
 Schedule::command('aprobaciones:avisar')->hourly(); // Fase 106: altas pendientes por bloquearse / bloqueadas
 Schedule::command('cotizaciones:actualizar')->twiceDaily(9, 15);
