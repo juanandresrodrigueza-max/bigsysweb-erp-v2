@@ -53,6 +53,8 @@ class MedicionService
         $calentada = false;
         foreach ($grandes as $b) {
             $u = User::withoutGlobalScopes()->where('business_id', $b->id)->where('status', 'active')->where('is_superadmin', false)->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$b->owner_id])->orderBy('id')->first();
+            // Fase 118.2: si la empresa sólo tiene superadmins (la de BigSys), se mide igual con uno de ellos; si no, la salud queda en «todavía no corrió» para siempre.
+            $u ??= User::withoutGlobalScopes()->where('business_id', $b->id)->where('status', 'active')->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$b->owner_id])->orderBy('id')->first();
             if (! $u) continue;
             // La primera página del proceso paga el arranque en frío (rutas, vistas, conexión): la 1.ª empresa daba /dashboard
             // en 330-380 ms tres noches seguidas y repetido al rato tardaba 30-110 ms. Una vuelta que no se guarda, y después se mide.

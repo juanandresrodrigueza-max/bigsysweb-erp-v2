@@ -40,10 +40,10 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 
 Y en el servidor (sesión «CRM Producción», archivo `.env` de `/opt/bigsysweb`):
 
-- [ ] **Copias fuera del servidor**: `OFFSITE_S3_ENDPOINT`, `OFFSITE_S3_BUCKET`, `OFFSITE_S3_REGION`, `OFFSITE_S3_ACCESS_KEY_ID`, `OFFSITE_S3_SECRET_ACCESS_KEY`. Si el CRM ya sube a Backblaze, se copia el bloque tal cual (mismo bucket, el ERP usa el prefijo `bigsysweb/erp/`). Después `php artisan config:cache && php artisan backups:probar`. Hasta que esté, la salud queda en aviso. Detalle en `docs/produccion.md`.
+- [x] **Copias fuera del servidor**: hecho (Panel → Salud el 19/11: «Todas las copias están también en backblaze», ensayo de restauración ✓).
 - [x] **SPF, DKIM y DMARC de bigsysweb.com**: verificados el 18/11 en el DNS de Hostinger (TXT `v=spf1 include:_spf.mail.hostinger.com ~all`, CNAME `hostingermail-a/b/c._domainkey`, TXT `_dmarc` `v=DMARC1; p=none`). La prueba del 18/11 cayó en Spam de Gmail por reputación de dominio nuevo, no por DNS: marcar «No es spam» y agregar `soporte@bigsysweb.com` a contactos; mejora sola con el uso.
-- [ ] **Mails de monitoreo**: `MONITOREO_EMAIL` en el `.env` o en Superadmin → Salud (manda lo del panel). Recibe error nuevo, salud crítica y resumen semanal.
-- [ ] **Sentry** (opcional): DSN en Superadmin → Salud.
+- [x] **Mails de monitoreo**: cargados (Panel → Salud: juanandresrodriguez.a@gmail.com y gerencia@bigsys.com.ar reciben error nuevo, salud crítica y resumen semanal).
+- [ ] **Sentry** (opcional, se puede dejar así): sin DSN; los errores llegan por mail y quedan en Panel → Salud.
 
 ## C · App del celular (publicarla)
 
