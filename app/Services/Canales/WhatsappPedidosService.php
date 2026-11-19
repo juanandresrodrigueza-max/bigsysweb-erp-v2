@@ -81,13 +81,23 @@ class WhatsappPedidosService
     }
 
     // Responde por la API de WhatsApp Cloud si está configurada; si no, deja el texto listo para copiar.
-    public function responder(Business $b, string $telefono, string $texto): array
+    // Fase 120.1: respeta la ventana de 24 horas. Si la persona no escribió en el último día y la empresa tiene una plantilla
+    // aprobada, sale la plantilla y el texto completo queda guardado para entregárselo en cuanto conteste.
+    // $opt: 'plantilla' y 'params' (una plantilla específica), 'nombre' (cómo saludar), 'texto_libre' => true (forzar texto).
+    public function responder(Business $b, string $telefono, string $texto, array $opt = []): array
     {
         $ws = $b->whatsapp_settings ?? [];
         if (! empty($ws['token']) && ! empty($ws['phone_id'])) {
+            $pl = app(WhatsappPlantillasService::class);
+            if (empty($opt['texto_libre']) && ! empty($ws['plantillas']) && ! $pl->abierta($b, $telefono) && ($e = $pl->elegir($b, $texto, $opt))) {
+                $r = $pl->enviar($b, $telefono, $e['plantilla'], $e['params']);
+                if (! empty($r['enviado'])) { $pl->guardarPendiente($b, $telefono, $texto); return $r + ['pendiente' => true]; }
+                // Si la plantilla falla, se intenta igual con texto: peor es no mandar nada.
+            }
             try {
                 $r = Http::withToken($ws['token'])->timeout(10)->post("https://graph.facebook.com/v19.0/{$ws['phone_id']}/messages", ['messaging_product' => 'whatsapp', 'to' => preg_replace('/\D/', '', $telefono), 'type' => 'text', 'text' => ['body' => $texto]]);
-                return ['enviado' => $r->successful(), 'link' => null, 'error' => $r->successful() ? null : 'Meta respondió ' . $r->status() . ': ' . ($r->json('error.message') ?? mb_substr($r->body(), 0, 120))];
+                if ($r->successful() && ! empty($ws['plantillas'])) $pl->anotarSaliente($b, $telefono, $r->json('messages.0.id'), $texto, $opt);
+                return ['enviado' => $r->successful(), 'link' => null, 'via' => 'texto', 'error' => $r->successful() ? null : 'Meta respondió ' . $r->status() . ': ' . ($r->json('error.message') ?? mb_substr($r->body(), 0, 120))];
             } catch (\Throwable $e) { return ['enviado' => false, 'link' => null, 'error' => 'No se pudo conectar con Meta: ' . mb_substr($e->getMessage(), 0, 120)]; }
         }
         return ['enviado' => false, 'link' => 'https://wa.me/' . preg_replace('/\D/', '', $telefono) . '?text=' . rawurlencode($texto), 'error' => 'La empresa no tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp).'];

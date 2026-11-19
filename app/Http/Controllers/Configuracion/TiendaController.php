@@ -28,7 +28,7 @@ class TiendaController extends Controller
             'oauth' => ['mercadolibre' => (bool) \App\Models\SistemaConfig::get('ml_app_id'), 'tiendanube' => (bool) \App\Models\SistemaConfig::get('tn_app_id'), 'woocommerce' => true],
             'clientes' => \App\Models\Contact::customers()->where('is_active', true)->orderBy('name')->limit(500)->get(['id', 'name', 'condicion_iva']),
             'tiposCanal' => Canal::TIPOS,
-            'whatsapp' => ['configurado' => ! empty($b->whatsapp_settings['token']) && ! empty($b->whatsapp_settings['phone_id']), 'phone_id' => $b->whatsapp_settings['phone_id'] ?? null, 'url_entrada' => url('/api/whatsapp/entrante/' . $b->id), 'verify_token' => $b->whatsapp_settings['verify_token'] ?? null, 'ia' => (bool) config('services.anthropic.api_key'), 'bigcito_equipo' => (bool) ($b->whatsapp_settings['bigcito_equipo'] ?? true), 'atencion_clientes' => (bool) ($b->whatsapp_settings['atencion_clientes'] ?? true), 'auto_pedidos' => (bool) ($b->whatsapp_settings['auto_pedidos'] ?? true), 'auto_responder' => (bool) ($b->whatsapp_settings['auto_responder'] ?? true), 'conexion' => \App\Services\Canales\WhatsappConexionService::estado($b)],
+            'whatsapp' => ['configurado' => ! empty($b->whatsapp_settings['token']) && ! empty($b->whatsapp_settings['phone_id']), 'phone_id' => $b->whatsapp_settings['phone_id'] ?? null, 'url_entrada' => url('/api/whatsapp/entrante/' . $b->id), 'verify_token' => $b->whatsapp_settings['verify_token'] ?? null, 'ia' => (bool) config('services.anthropic.api_key'), 'bigcito_equipo' => (bool) ($b->whatsapp_settings['bigcito_equipo'] ?? true), 'atencion_clientes' => (bool) ($b->whatsapp_settings['atencion_clientes'] ?? true), 'auto_pedidos' => (bool) ($b->whatsapp_settings['auto_pedidos'] ?? true), 'auto_responder' => (bool) ($b->whatsapp_settings['auto_responder'] ?? true), 'conexion' => \App\Services\Canales\WhatsappConexionService::estado($b), 'waba_id' => $b->whatsapp_settings['waba_id'] ?? null, 'plantillas' => app(\App\Services\Canales\WhatsappPlantillasService::class)->estado($b)],
         ]);
     }
 
@@ -63,11 +63,12 @@ class TiendaController extends Controller
 
     public function guardarWhatsapp(Request $request)
     {
-        $d = $request->validate(['token' => 'nullable|string|max:400', 'phone_id' => 'nullable|string|max:60', 'verify_token' => 'nullable|string|max:60', 'auto_pedidos' => 'boolean', 'auto_responder' => 'boolean', 'atencion_clientes' => 'boolean', 'bigcito_equipo' => 'boolean']);
+        $d = $request->validate(['token' => 'nullable|string|max:400', 'phone_id' => 'nullable|string|max:60', 'waba_id' => 'nullable|string|max:60', 'verify_token' => 'nullable|string|max:60', 'auto_pedidos' => 'boolean', 'auto_responder' => 'boolean', 'atencion_clientes' => 'boolean', 'bigcito_equipo' => 'boolean']);
         $b = $request->user()->business;
         $ws = $b->whatsapp_settings ?? [];
         if (empty($d['token'])) unset($d['token']);
         if (empty($d['phone_id'])) unset($d['phone_id']); // Fase 118: guardar las preferencias no pisa una conexión hecha con el QR
+        if (empty($d['waba_id'])) unset($d['waba_id']); // Fase 120.1: el WABA se carga a mano sólo en la conexión manual
         if (! empty($d['token']) || ! empty($d['phone_id'])) $d['modo'] = 'manual';
         $b->update(['whatsapp_settings' => array_merge($ws, $d, ['verify_token' => ($d['verify_token'] ?? null) ?: ($ws['verify_token'] ?? \Illuminate\Support\Str::random(16))])]);
         return back()->with('success', 'WhatsApp configurado.');
@@ -84,6 +85,15 @@ class TiendaController extends Controller
             return back()->withErrors(['whatsapp' => $ex->getMessage()]);
         }
         return back()->with('success', 'WhatsApp conectado' . ($e['numero'] ? ": {$e['numero']}" : '') . '. Los mensajes ya entran al ERP.');
+    }
+
+    // Fase 120.1: crea las plantillas que falten en la cuenta de WhatsApp de la empresa y actualiza su estado de aprobación.
+    public function plantillasWhatsapp(Request $request, \App\Services\Canales\WhatsappPlantillasService $pl)
+    {
+        $r = $pl->sincronizar($request->user()->business);
+        if (isset($r['error'])) return back()->withErrors(['plantillas' => $r['error']]);
+        $msg = "Plantillas: {$r['aprobadas']} aprobadas" . ($r['en_revision'] ? ", {$r['en_revision']} en revisión de Meta" : '') . ($r['creadas'] ? " ({$r['creadas']} recién pedidas)" : '') . '.';
+        return $r['errores'] ? back()->with('success', $msg)->withErrors(['plantillas' => 'Meta no aceptó: ' . implode(' · ', $r['errores'])]) : back()->with('success', $msg);
     }
 
     public function desconectarWhatsapp(Request $request, \App\Services\Canales\WhatsappConexionService $wa)
