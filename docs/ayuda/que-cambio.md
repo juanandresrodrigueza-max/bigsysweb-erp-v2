@@ -77,6 +77,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **Sabe qué estás mirando.** Con la ficha de un cliente abierta alcanza con «¿cuánto me debe?» o «cobrale 50.000»; en una factura, «imprimila» o «mandásela».
 - **La charla sigue** cuando cambia de pantalla, y al buscar por nombre ya no importan los acentos.
 - **Escucha y habla en cualquier navegador y celular (119.2).** En iPhone, Safari y Firefox también: graba, corta solo cuando dejás de hablar y contesta con voz natural. Manos libres anda en todos. Viene incluido, sin cargar claves.
+- **«Hola Bigcito» (119.3).** Con la oreja 👂 prendida lo llamás con la voz desde cualquier pantalla: «Bigcito, ¿cuánto vendí hoy?». Y entiende la charla de corrido: «lo mismo para García», «pero por transferencia», «nada más».
 
 ## Conectar WhatsApp escaneando un QR (fase 118)
 

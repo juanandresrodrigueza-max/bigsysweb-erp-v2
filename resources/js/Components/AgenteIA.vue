@@ -12,6 +12,7 @@
           </div>
           <div class="flex items-center gap-1"><button v-if="vozSoportada" @click="alternarVoz" class="p-1 rounded hover:bg-white/15 text-xs" :title="habla ? 'Bigcito responde en voz alta (tocá para silenciar)' : 'Que Bigcito responda en voz alta'" data-e2e="voz">{{ habla ? '🔊' : '🔇' }}</button>
           <button v-if="puedeOir" @click="alternarManos" class="p-1 rounded hover:bg-white/15 text-xs" :class="manosLibres ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="manosLibres ? 'Manos libres activado: después de contestarte vuelve a escuchar (tocá para apagar)' : 'Manos libres: hablale, te contesta y vuelve a escuchar sin tocar nada'" data-e2e="manos-libres">🎙️</button>
+          <button v-if="desp.soportado" @click="alternarDespertar" class="p-1 rounded hover:bg-white/15 text-xs" :class="despertar ? 'bg-white/25 ring-1 ring-white/60' : ''" :title="despertar ? 'Te escucho de fondo: decí «Hola Bigcito» y te atiendo (tocá para apagar)' : 'Llamarlo con la voz: decí «Hola Bigcito» desde cualquier pantalla, sin tocar nada'" data-e2e="despertar">👂</button>
           <a v-if="whatsappSoporte" :href="whatsappSoporte" target="_blank" class="p-1 rounded hover:bg-white/15 text-xs" title="Hablar con una persona de soporte por WhatsApp (con lo que venías preguntando)" data-e2e="bigcito-soporte">🙋</a>
           <button @click="abierto = false" class="p-1 rounded hover:bg-white/15" title="Cerrar" aria-label="Cerrar"><Icono nombre="x" clase="w-4 h-4" /></button></div>
         </div>
@@ -19,7 +20,7 @@
         <div ref="scroll" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-marca-fondo">
           <div v-if="!mensajes.length" class="text-xs text-marca-muted space-y-2 px-1 pt-1">
             <p>Hola {{ nombre }}. Preguntame cómo hacer algo, consultame datos de {{ empresa }} o pedime que haga cosas: facturar, cobrar, cargar un cliente, cambiar un precio. Siempre te muestro qué voy a hacer y espero tu sí.</p>
-            <p v-if="puedeOir" class="text-[11px]">Tocá el micrófono o apretá <kbd class="px-1 rounded border border-marca-borde bg-white">Alt</kbd>+<kbd class="px-1 rounded border border-marca-borde bg-white">B</kbd> desde cualquier pantalla. Con 🎙️ (manos libres) te vuelve a escuchar después de contestarte.</p>
+            <p v-if="puedeOir" class="text-[11px]">Tocá el micrófono o apretá <kbd class="px-1 rounded border border-marca-borde bg-white">Alt</kbd>+<kbd class="px-1 rounded border border-marca-borde bg-white">B</kbd> desde cualquier pantalla. Con 🎙️ (manos libres) te vuelve a escuchar después de contestarte.<span v-if="desp.soportado"> Con 👂 lo llamás diciendo «Hola Bigcito».</span> Para terminar, decile «nada más».</p>
             <div class="flex flex-wrap gap-1.5">
               <button v-for="s in sugerencias" :key="s" @click="enviar(s)" class="px-2.5 py-1 rounded-full bg-white border border-marca-borde text-marca-texto hover:border-violeta text-[11px]">{{ s }}</button>
             </div>
@@ -59,6 +60,7 @@
       <Icono v-if="abierto" nombre="x" clase="w-6 h-6" />
       <img v-else src="/img/bigcito-cara.webp" alt="Bigcito" class="w-full h-full object-cover" />
     </button>
+    <span v-if="despertar && desp.activo.value && !abierto" class="absolute bottom-[50px] right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-white animate-pulse" title="Decí «Hola Bigcito» y te atiendo" data-e2e="despertar-activo"></span>
   </div>
 </template>
 
@@ -66,7 +68,7 @@
 import { ref, nextTick, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
-import { useDictado } from '@/util/dictado'
+import { useDictado, useDespertador } from '@/util/dictado'
 import { useGrabadorVoz, useVozServidor } from '@/util/vozServidor'
 
 const page = usePage()
@@ -99,7 +101,7 @@ const vozS = useVozServidor()
 function callar() { vozS.callar(); try { window.speechSynthesis?.cancel() } catch {} }
 function escuchar() {
   if (oyendo.value || cargando.value || transcribiendo.value) return
-  callar(); vozS.destrabar()
+  callar(); vozS.destrabar(); desp.pausar()
   if (dictado.soportado) dictado.iniciar(); else if (usaGrabador) grab.iniciar()
 }
 function dejarDeEscuchar() { dictado.detener(); grab.cancelar() }
@@ -134,8 +136,10 @@ function alternarManos() {
 function volverAEscuchar() {
   // Si en el medio Bigcito cambió de pantalla, este panel ya no es el que se ve: le pasa la posta al nuevo.
   if (window.__bigcito !== yo) { window.dispatchEvent(new Event('bigcito:escuchar')); return }
+  if (noReescuchar) { noReescuchar = false; return }
   if (manosLibres.value && abierto.value && puedeOir) escuchar()
 }
+let noReescuchar = false
 const atajo = e => {
   if (!e.altKey || e.ctrlKey || e.metaKey || (e.key || '').toLowerCase() !== 'b') return
   e.preventDefault(); abierto.value = true
@@ -157,6 +161,27 @@ const scroll = ref(null)
 watch([mensajes, abierto, modo], () => {
   try { sessionStorage.setItem(CLAVE, JSON.stringify({ abierto: abierto.value, modo: modo.value, mensajes: mensajes.value.slice(-30).map(m => ({ ...m, foto: undefined, tabla: m.tabla?.filas?.length > 200 ? null : m.tabla })) })) } catch {}
 }, { deep: true })
+
+// Fase 119.3: «Hola Bigcito». Con 👂 prendido escucha de fondo (donde el navegador dicta) y, cuando lo nombran, abre y atiende:
+// «Bigcito, ¿cuánto vendí hoy?» manda la pregunta directo; «Hola Bigcito» solo, pita y se queda escuchando la orden.
+const despertar = ref((() => { try { return localStorage.getItem('bigcito_despertar') === '1' } catch { return false } })())
+function pitido() { try { const AC = window.AudioContext || window.webkitAudioContext; const c = new AC(); const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; g.gain.value = 0.07; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.12); o.onended = () => c.close() } catch {} }
+const desp = useDespertador(resto => {
+  if (window.speechSynthesis?.speaking || vozS.hablando.value || cargando.value) return // no se despierta con su propia voz
+  abierto.value = true; desp.pausar(); pitido()
+  if (resto) enviar(resto, true); else nextTick(() => escuchar())
+})
+function alternarDespertar() {
+  despertar.value = !despertar.value
+  try { localStorage.setItem('bigcito_despertar', despertar.value ? '1' : '0') } catch {}
+  if (despertar.value) { habla.value = true; desp.encender() } else desp.apagar()
+}
+// Mientras escucha una orden, piensa o habla, el despertador descansa; cuando queda libre, vuelve a estar atento.
+watch([oyendo, cargando, transcribiendo, () => vozS.hablando.value], ([o, c, t, h]) => {
+  if (!despertar.value) return
+  if (o || c || t || h) desp.pausar()
+  else setTimeout(() => { if (despertar.value && !oyendo.value && !cargando.value && !transcribiendo.value && !vozS.hablando.value) desp.reanudar() }, 1200)
+})
 
 const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0] ?? '')
 const empresa = computed(() => page.props.empresa?.nombre ?? 'tu empresa')
@@ -193,8 +218,8 @@ function elegirFoto(e) {
 }
 // Fase 107: otra pantalla (el resumen hablado) abre a Bigcito con una pregunta ya escrita.
 const alPreguntar = (e) => { abierto.value = true; nextTick(() => enviar(e.detail?.texto ?? '')) }
-onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo); window.addEventListener('bigcito:escuchar', volverAEscuchar); if (abierto.value) bajar() })
-onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dejarDeEscuchar() })
+onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo); window.addEventListener('bigcito:escuchar', volverAEscuchar); if (abierto.value) bajar(); if (despertar.value && desp.soportado) desp.encender() })
+onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dejarDeEscuchar(); desp.apagar() })
 // Fase 119.1: Bigcito abre pantallas. La charla queda guardada y sigue en la pantalla nueva.
 function irA(ruta) {
   if (!ruta || ruta === location.pathname + location.search) return
@@ -209,8 +234,15 @@ async function enviar(pre, porVoz = false) {
   const p = pendiente()
   if (p && porVoz && /^(s[ií]|dale|confirm|hacelo|hacé(lo)?|de una|ok|okey|listo|adelante)\b/i.test(msg)) { texto.value = ''; mensajes.value.push({ rol: 'user', texto: msg }); return confirmar(p) }
   if (p && porVoz && /^(no|cancel|dej[aá]|par[aá])\b/i.test(msg)) { texto.value = ''; mensajes.value.push({ rol: 'user', texto: msg }); cancelar(p); mensajes.value.push({ rol: 'assistant', texto: 'Listo, no lo hago.' }); decir('Listo, no lo hago.'); return }
+  // Fase 119.3: «nada más», «listo, gracias», «chau Bigcito» cierran la charla hablada.
+  if (porVoz && /^(nada m[aá]s|eso es todo|eso era todo|listo,? gracias|gracias,? (nada m[aá]s|bigcito|eso es todo)|chau( bigcito)?|hasta luego( bigcito)?)[\s.!]*$/i.test(msg)) {
+    texto.value = ''; mensajes.value.push({ rol: 'user', texto: msg }, { rol: 'assistant', texto: 'Dale. Cuando me necesites, llamame.' })
+    noReescuchar = true; decir('Dale. Cuando me necesites, llamame.'); dejarDeEscuchar()
+    setTimeout(() => { abierto.value = false }, 2600); await bajar(); return
+  }
   texto.value = ''
-  const historial = mensajes.value.slice(-10).map(m => ({ rol: m.rol, texto: m.texto + (m.propuesta ? ` [propuesta: ${m.propuesta.titulo} → ${m.propuesta.estado ?? 'sin confirmar'}]` : '') }))
+  // El historial lleva qué se propuso y con qué datos, para que «lo mismo para García» o «otro igual» se entiendan.
+  const historial = mensajes.value.slice(-12).map(m => ({ rol: m.rol, texto: (m.texto + (m.propuesta ? ` [propuesta ${m.propuesta.accion ?? ''}${m.propuesta.args ? ' ' + JSON.stringify(m.propuesta.args) : ''}: ${m.propuesta.titulo} → ${m.propuesta.estado ?? 'sin confirmar'}]` : '')).slice(0, 3900) }))
   const imagen = foto.value; foto.value = null
   mensajes.value.push({ rol: 'user', texto: msg, foto: imagen })
   cargando.value = true

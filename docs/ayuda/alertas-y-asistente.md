@@ -119,6 +119,22 @@ Antes, hablarle a Bigcito dependía del navegador: en Chrome andaba, en iPhone, 
 
 Todo esto viene **incluido por BigSys**. Si preferís usar tu propia cuenta de OpenAI o Gemini, la cargás en Configuración → Conexiones IA → «Audios para Bigcito» y pasa a usarse la tuya. La primera vez el navegador te pide permiso para el micrófono: aceptalo.
 
+## «Hola Bigcito» y charla de corrido (fase 119.3)
+
+**Llamalo con la voz.** En el panel de Bigcito tocá la oreja 👂 una vez. Desde ahí queda atento de fondo en todas las pantallas (un puntito verde sobre su cara lo indica) y alcanza con decir:
+
+- **«Hola Bigcito»**: suena un pitido, se abre y te escucha la orden.
+- **«Bigcito, ¿cuánto vendí hoy?»** o **«Bigcito, abrime la ficha de López»**: lo hace directo, sin esperar.
+- **«Nada más»**, «listo, gracias» o «chau Bigcito»: cierra la charla.
+
+Funciona donde el navegador dicta (Chrome y Edge en la compu, Chrome en Android); en iPhone y Safari se lo llama tocando el micrófono. Se apaga tocando la oreja de nuevo. No graba ni manda nada mientras espera: sólo reacciona cuando escucha su nombre.
+
+**Habla de corrido.** Bigcito se acuerda de lo que vienen hablando y de lo que ya hizo, así que podés seguir sin repetir todo:
+
+- «Cobrale 5.000 a López en efectivo» … «lo mismo para García» … «y a Pérez, pero por transferencia».
+- «Hacele un presupuesto a Gómez por 10 bolsas de cemento» … «mejor que sean 15» … «mandáselo por WhatsApp».
+- «¿Cuánto me debe López?» … «mandale el recordatorio» … «abrime su ficha».
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:
