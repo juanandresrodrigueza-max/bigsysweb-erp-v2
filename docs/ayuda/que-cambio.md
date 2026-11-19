@@ -71,6 +71,12 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Bigcito maneja el sistema con vos (fase 119)
+
+- **Te lleva por el sistema (119.1).** «Llevame a cerrar caja», «abrime la ficha de López», «nueva factura para García», «imprimí la factura 123». Hablando (Alt+B) o escribiendo.
+- **Sabe qué estás mirando.** Con la ficha de un cliente abierta alcanza con «¿cuánto me debe?» o «cobrale 50.000»; en una factura, «imprimila» o «mandásela».
+- **La charla sigue** cuando cambia de pantalla, y al buscar por nombre ya no importan los acentos.
+
 ## Conectar WhatsApp escaneando un QR (fase 118)
 
 - **Un botón en vez de claves.** En Configuración → Tienda y canales → Pedidos por WhatsApp, **Conectar WhatsApp (escaneás un QR)** abre la ventana de Meta: entrás con Facebook, escaneás el QR desde la app WhatsApp Business y listo. Igual que en el CRM.

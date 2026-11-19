@@ -88,6 +88,26 @@ Lo que le podés pedir, además de ventas, cobros, stock y gastos:
 
 Lo mismo funciona desde Claude o ChatGPT conectados por MCP (Configuración → Conexiones IA): son las mismas herramientas y las acciones también se confirman.
 
+## Bigcito te lleva por el sistema y sabe qué estás mirando (fase 119.1)
+
+Bigcito ya no es sólo un chat: es alguien que maneja el sistema con vos.
+
+**Sabe dónde estás parado.** Si tenés abierta la ficha de un cliente, una factura, un artículo, un proveedor, una orden de compra o de servicio, no hace falta nombrarlos:
+
+- En la ficha de un cliente: «¿cuánto me debe?», «cobrale 50.000 en efectivo», «facturale dos bolsas de cemento», «mandale el resumen».
+- En una factura: «imprimila», «mandásela por WhatsApp», «hacele una nota de crédito».
+- En un artículo: «subile el precio un 10 %», «¿cuánto vendí de esto este mes?».
+- En cualquier lado: «¿qué estoy viendo?».
+
+**Te abre lo que le pidas**, hablando o escribiendo:
+
+- «Llevame a cerrar caja», «abrí los pedidos web», «ir a libros IVA», «mostrame stock».
+- «Abrime la ficha de López», «mostrame la última factura de García», «abrí el artículo cemento».
+- «Nueva factura para López» abre el formulario con el cliente ya elegido; también «nuevo presupuesto», «nuevo remito», «nueva orden de compra».
+- «Imprimí la factura 123» la abre lista para imprimir o guardar en PDF.
+
+Sólo abre pantallas que tu usuario puede ver. **La charla no se pierde** cuando cambia de pantalla: el panel queda abierto con lo que venían hablando, y en manos libres sigue escuchando. Funciona también sin clave de IA (modo básico) para abrir pantallas y fichas. Al buscar por nombre no importan los acentos ni las mayúsculas: «López» encuentra a «LOPEZ SRL».
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:

@@ -27,7 +27,28 @@ class Busca
         if (strlen($dig) === 11 && ($c = $q()->get(['id', 'cuit'])->first(fn($x) => preg_replace('/\D/', '', (string) $x->cuit) === $dig))) return Contact::find($c->id);
         return $q()->where('name', $like, $t)->first()
             ?? $q()->where('name', $like, "%{$t}%")->orderByRaw('LENGTH(name)')->first()
-            ?? $q()->where(function ($w) use ($t, $like) { foreach (array_filter(explode(' ', $t), fn($p) => mb_strlen($p) > 2) as $p) $w->where('name', $like, "%{$p}%"); })->first();
+            ?? $q()->where(function ($w) use ($t, $like) { foreach (array_filter(explode(' ', $t), fn($p) => mb_strlen($p) > 2) as $p) $w->where('name', $like, "%{$p}%"); })->first()
+            // Fase 119.1: dictando, «López» tiene que encontrar «LOPEZ SRL» y «lopez» a «López»: último intento sin mirar acentos.
+            ?? (($pals = self::flojo($t)) ? $q()->where(function ($w) use ($pals, $like) { foreach ($pals as $p) $w->where('name', $like, "%{$p}%"); })->orderByRaw('LENGTH(name)')->get()->first(fn($c) => self::parecido($c->name, $t)) : null);
+    }
+
+    // Palabras de más de 2 letras con las vocales (con o sin acento), la ñ y la ü como comodín de un carácter, para LIKE.
+    public static function flojo(string $t): array
+    {
+        $out = [];
+        foreach (preg_split('/\s+/u', trim($t)) as $p) {
+            if (mb_strlen($p) < 3) continue;
+            $out[] = preg_replace('/[aeiouáéíóúüñAEIOUÁÉÍÓÚÜÑ]/u', '_', str_replace(['%', '_'], '', $p));
+        }
+        return $out;
+    }
+
+    // ¿El nombre contiene todas las palabras buscadas, sin mirar acentos ni mayúsculas?
+    public static function parecido(string $nombre, string $buscado): bool
+    {
+        $n = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($nombre));
+        foreach (preg_split('/\s+/u', trim($buscado)) as $p) { if (mb_strlen($p) < 3) continue; if (! str_contains($n, \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($p)))) return false; }
+        return true;
     }
 
     public static function cliente($t): ?Contact { return self::contacto($t, 'customers'); }
@@ -41,7 +62,8 @@ class Busca
         return Product::where('active', true)->where(fn($w) => $w->where('sku', $t)->orWhere('barcode', $t))->first()
             ?? Product::where('active', true)->where('name', $like, $t)->first()
             ?? Product::where('active', true)->where('name', $like, "%{$t}%")->orderByRaw('LENGTH(name)')->first()
-            ?? Product::where('active', true)->where(function ($w) use ($t, $like) { foreach (array_filter(explode(' ', $t), fn($p) => mb_strlen($p) > 2) as $p) $w->where('name', $like, "%{$p}%"); })->orderByRaw('LENGTH(name)')->first();
+            ?? Product::where('active', true)->where(function ($w) use ($t, $like) { foreach (array_filter(explode(' ', $t), fn($p) => mb_strlen($p) > 2) as $p) $w->where('name', $like, "%{$p}%"); })->orderByRaw('LENGTH(name)')->first()
+            ?? (($pals = self::flojo($t)) ? Product::where('active', true)->where(function ($w) use ($pals, $like) { foreach ($pals as $p) $w->where('name', $like, "%{$p}%"); })->orderByRaw('LENGTH(name)')->limit(200)->get()->first(fn($x) => self::parecido($x->name, $t)) : null);
     }
 
     // Comprobante por id o por número ("0001-00001234", "FA 1-1234", "1234").
