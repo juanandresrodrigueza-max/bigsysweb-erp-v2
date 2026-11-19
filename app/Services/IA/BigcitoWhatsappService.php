@@ -69,6 +69,11 @@ class BigcitoWhatsappService
         // Fase 119.4: puede haber varias propuestas pendientes (un pedido con varias acciones, o las que dejó una rutina).
         $pend = $estado['propuestas'] ?? (! empty($estado['propuesta']) ? [$estado['propuesta']] : []);
         unset($estado['propuesta']);
+        // Fase 120.6: «HECHO», «HECHO 2», «mis encargos»: lo que le dejaron encargado se contesta acá, sin pasar por la IA.
+        if (! $pend && ($enc = app(\App\Services\Equipo\EncargosService::class)->porWhatsapp($u, $texto)) !== null) {
+            $this->recordar($estado['historial'], $texto, $enc);
+            return ['respuesta' => $enc, 'tipo' => 'encargo'];
+        }
         if ($pend && preg_match(self::SI, $texto)) {
             $estado['propuestas'] = []; $partes = []; $ok = true;
             foreach ($pend as $p) {

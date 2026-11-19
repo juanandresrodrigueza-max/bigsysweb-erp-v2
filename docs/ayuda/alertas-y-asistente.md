@@ -200,6 +200,28 @@ Si BigSys la tiene activada, en el encabezado del panel de Bigcito aparece un **
 
 Cada llamada tiene un tope de minutos y hay un máximo por día; cuando se cumple, Bigcito avisa y podés seguir con el micrófono común. Necesita permiso de micrófono y anda en Chrome, Edge, Safari y Firefox actuales, en computadora y celular. Si no ves el 📞, es que BigSys no la activó (la decisión es de BigSys porque se cobra por minuto hablado).
 
+## Encargos: dejarle algo a alguien del equipo (fase 120.6)
+
+Sirve para lo de todos los días: «prepará el pedido 12 para las 17», «llamá a López por el cheque», «contá el stock de cemento».
+
+**Cómo se encarga**
+- **Hablándole a Bigcito**: «decile a Pedro que prepare el pedido 12 para las 17», «pedile a Ana que llame a López», «anotame que mañana paso por el banco». Bigcito te muestra a quién, qué y para cuándo, y con tu sí lo manda.
+- **Desde la pantalla Encargos** (pedile a Bigcito «llevame a encargos», o tocá el 📌 del encabezado cuando tenés alguno): **Nuevo encargo**, elegís la persona, escribís qué hay que hacer y, si querés, para cuándo.
+
+**Cómo le llega a la otra persona**
+- Por **WhatsApp**, si tiene el celular cargado en su usuario y la empresa tiene el WhatsApp conectado. Si hace más de un día que no le escribe al número de la empresa, le llega un aviso corto y el detalle cuando contesta.
+- Por **la campana y el aviso del celular**, siempre. Ese aviso lo ve **sólo esa persona**.
+- En el encabezado le aparece un **📌 con la cantidad** que tiene para hacer.
+
+**Cómo se cierra**
+- Por WhatsApp contesta **HECHO**. Si tiene varios, Bigcito le pasa la lista y contesta **HECHO 2**. Puede agregar un comentario: «hecho 2 quedó en la estantería B». Con **MIS ENCARGOS** ve lo que tiene pendiente.
+- Hablándole a Bigcito: «ya hice lo del banco».
+- Desde la pantalla, con el tilde.
+
+Cuando lo termina, **a vos te llega el aviso** (campana y WhatsApp), con el comentario si dejó uno. Si tenía fecha y se pasó, se le recuerda **una vez por día** y a vos te avisa que sigue pendiente. Podés **cancelarlo** o **reabrirlo** desde la pantalla (sólo quien lo encargó). A Bigcito también le podés preguntar «¿qué tengo pendiente?» o «¿qué le encargué a Pedro?».
+
+Para que a alguien le llegue por WhatsApp: cargale el **celular** en Configuración → Usuarios.
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:

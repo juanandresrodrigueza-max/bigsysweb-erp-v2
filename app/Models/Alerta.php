@@ -12,7 +12,7 @@ class Alerta extends Model
 
     protected $fillable = [
         'business_id', 'business_location_id', 'modulo', 'tipo', 'severidad', 'titulo', 'detalle',
-        'url', 'modelo', 'modelo_id', 'leida_por', 'resuelta_en',
+        'url', 'modelo', 'modelo_id', 'leida_por', 'resuelta_en', 'user_id',
     ];
 
     protected $casts = ['leida_por' => 'array', 'resuelta_en' => 'datetime'];
@@ -32,7 +32,8 @@ class Alerta extends Model
     public function scopeVisiblesPara(Builder $q, User $user): Builder
     {
         $modulos = $user->modulosVisibles();
-        return $q->whereIn('modulo', $modulos)->where(function ($w) use ($user) {
+        // Fase 120.6: un aviso puede ser para una sola persona (un encargo); los demás no lo ven.
+        return $q->whereIn('modulo', $modulos)->where(fn($w) => $w->whereNull('user_id')->orWhere('user_id', $user->id))->where(function ($w) use ($user) {
             $w->whereNull('business_location_id');
             if ($user->current_location_id) {
                 $w->orWhere('business_location_id', $user->current_location_id);

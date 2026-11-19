@@ -61,6 +61,7 @@ class HandleInertiaRequests extends Middleware
             // Fase 119.2: ¿hay voz por servidor (escuchar y hablar) para esta empresa? El panel de Bigcito elige cómo oír y cómo contestar.
             'vozServidor' => fn() => $user?->business_id ? app(\App\Services\IA\VozFotoService::class)->disponible($user->business) : false,
             'vozVivo' => fn() => $user?->business_id ? app(\App\Services\IA\VozVivoService::class)->disponible($user->business) : false, // Fase 120.4
+            'encargos' => fn() => $user?->business_id ? \App\Models\Encargo::where('business_id', $user->business_id)->where('para_user_id', $user->id)->where('estado', 'pendiente')->count() : 0, // Fase 120.6
             'novedades' => fn() => $user?->business_id ? app(\App\Services\Avisos\CelularService::class)->sinLeer($user) : 0,
             'tiendas' => fn() => $user ? \App\Http\Controllers\MovilController::tiendas() : null, // Fase 93.1: links a la app en las tiendas
             'alertas' => fn() => $user?->business_id ? [
