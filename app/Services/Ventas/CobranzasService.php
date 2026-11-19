@@ -68,6 +68,8 @@ class CobranzasService
             return $envio;
         }
         $destino = $canal === 'mail' ? $c->contact?->email : ($c->contact?->mobile ?: $c->contact?->phone);
+        // Fase 120.5: con el cobrador prendido, el recordatorio de algo vencido por WhatsApp invita a armar un plan ahí mismo.
+        if ($canal === 'whatsapp' && $dias > 0 && ($inv = CobradorService::invitacion($b)) && ! str_contains($texto, 'respondé PLAN')) $texto .= "\n" . $inv;
         return $this->envios->enviar($c, $canal, $destino, 'recordatorio', $texto, false);
     }
 

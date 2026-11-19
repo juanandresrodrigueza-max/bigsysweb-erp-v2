@@ -105,6 +105,36 @@ class Clientes
                     $cv = \App\Services\Integraciones\CrmSyncService::conversaciones($u->business, $c);
                     return ['cliente' => $c->name, 'conversaciones' => array_map(fn($x) => ['canal' => $x['canal'], 'estado' => $x['estado'], 'sin_leer' => $x['no_leidos'], 'ultimo_mensaje' => $x['ultimo'], 'mensajes' => $x['mensajes'], 'url' => Busca::url($x['url'])], $cv), 'nota' => $cv ? 'Para escribirle, el botón "Escribirle por el CRM" en la ficha del cliente.' : 'El CRM no tiene conversaciones con este cliente.'];
                 }],
+            // Fase 120.5: lo que Bigcito cobrador acordó con clientes por WhatsApp y espera aprobación.
+            ['nombre' => 'acuerdos_por_aprobar', 'titulo' => 'Acuerdos de pago que esperan aprobación', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Los planes de pago que clientes con deuda vencida aceptaron por WhatsApp hablando con Bigcito cobrador y que todavía esperan que la empresa los apruebe: cliente, cuotas, importe de la cuota y primer vencimiento. También dice si el cobrador está activo y con qué límites.',
+                'parametros' => [],
+                'ejecutar' => function (User $u, array $a) {
+                    $cfg = \App\Services\Ventas\CobradorService::config($u->business);
+                    $p = array_map(fn($x) => \Illuminate\Support\Arr::except($x, ['charla']), app(\App\Services\Ventas\CobradorService::class)->pendientes($u->business));
+                    return ['cobrador_activo' => $cfg['activo'], 'limites' => ['cuotas_maximo' => $cfg['max_cuotas'], 'interes_pct' => $cfg['interes_pct'], 'cuota_minima' => $cfg['cuota_minima'], 'requiere_aprobacion' => $cfg['aprobar']], 'pendientes' => $p, 'url' => Busca::url('/clientes/cobranzas'),
+                        'resumen' => count($p) ? count($p) . ' acuerdo(s) esperan aprobación.' : ($cfg['activo'] ? 'No hay acuerdos esperando aprobación.' : 'El cobrador está apagado: se prende en Cobranzas → Bigcito cobrador.')];
+                }],
+            ['nombre' => 'resolver_acuerdo_pago', 'titulo' => 'Aprobar o rechazar un acuerdo de pago', 'modulo' => 'clientes', 'permiso' => 'crear', 'tipo' => 'accion',
+                'descripcion' => 'Aprueba (crea el plan de pago y le avisa al cliente por WhatsApp) o rechaza un acuerdo de pago que un cliente aceptó por WhatsApp. Usá acuerdos_por_aprobar para ver cuáles hay.',
+                'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Nombre del cliente del acuerdo'], 'decision' => ['type' => 'string', 'enum' => ['aprobar', 'rechazar']], 'motivo' => ['type' => 'string', 'description' => 'Si se rechaza, el motivo que se le dice al cliente']],
+                'requeridos' => ['cliente'],
+                'proponer' => function (User $u, array $a) {
+                    $q = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii((string) ($a['cliente'] ?? '')));
+                    $ac = \App\Models\AcuerdoPago::where('estado', 'pendiente')->with('contact:id,name')->get()->filter(fn($x) => $q !== '' && str_contains(\Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii((string) $x->contact?->name)), $q))->values();
+                    if ($ac->isEmpty()) return ['error' => 'No encuentro un acuerdo pendiente de ese cliente.'];
+                    if ($ac->count() > 1) return ['error' => 'Hay más de un acuerdo que coincide: ' . $ac->map(fn($x) => $x->contact?->name)->implode(', ') . '. Decime cuál.'];
+                    $x = $ac->first(); $rech = ($a['decision'] ?? 'aprobar') === 'rechazar';
+                    return ['datos' => ['acuerdo_id' => $x->id, 'decision' => $rech ? 'rechazar' : 'aprobar', 'motivo' => $a['motivo'] ?? null],
+                        'titulo' => ($rech ? 'Rechazar' : 'Aprobar') . " el acuerdo de {$x->contact?->name}",
+                        'detalle' => ($x->cuotas === 1 ? 'Un pago de ' : "{$x->cuotas} cuotas de ") . '$ ' . number_format($x->cuota, 0, ',', '.') . ', la primera el ' . $x->primer_vencimiento->format('d/m') . ($rech ? '. Se le avisa al cliente que no se toma.' : '. Se crea el plan de pago y se le avisa al cliente.')];
+                },
+                'confirmar' => function (User $u, array $a) {
+                    $x = \App\Models\AcuerdoPago::findOrFail((int) $a['acuerdo_id']); $cob = app(\App\Services\Ventas\CobradorService::class);
+                    $r = $a['decision'] === 'rechazar' ? $cob->rechazar($x, $u, $a['motivo'] ?? null) : $cob->aprobar($x, $u);
+                    if (! $r['ok']) throw new \RuntimeException($r['error']);
+                    return ['texto' => $a['decision'] === 'rechazar' ? 'Listo, lo rechacé y le avisé al cliente.' : "Listo: plan {$r['plan']} creado y avisado al cliente.", 'url' => '/clientes/cobranzas'];
+                }],
             ['nombre' => 'situacion_bcra', 'titulo' => 'Situación en el Banco Central', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Consulta la Central de Deudores del BCRA (información pública): situación crediticia con cada banco (1 normal a 5 irrecuperable), cuánto debe y cheques rechazados. Usala antes de dar cuenta corriente, subir un límite de crédito o aceptar un cheque: «¿cómo está López en el Banco Central?», «¿le puedo fiar a este?», «fijate el CUIT 30-71234567-8». Acepta un cliente o proveedor (por nombre) o un CUIT suelto (por ejemplo el del firmante de un cheque).',
                 'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Nombre, id o CUIT del cliente o proveedor.'], 'cuit' => ['type' => 'string', 'description' => 'Un CUIT/CUIL de 11 números, si no es un cliente cargado.']],

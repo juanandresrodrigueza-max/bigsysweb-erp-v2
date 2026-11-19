@@ -28,6 +28,7 @@ class CobranzasController extends Controller
             'deudores' => $deudores, 'llamarAntes' => $riesgo->paraLlamarAntes($b), 'ia' => \App\Support\Ia::tiene($b),
             'kpis' => $this->service->resumenDeudores(),
             'config' => $this->service->config($b),
+            'cobrador' => \App\Services\Ventas\CobradorService::config($b), 'acuerdos' => app(\App\Services\Ventas\CobradorService::class)->pendientes($b), // Fase 120.5
             'whatsapp' => ['token' => $b->whatsapp_settings['token'] ?? '', 'phone_id' => $b->whatsapp_settings['phone_id'] ?? '', 'configurado' => ! empty($b->whatsapp_settings['token'])],
             'mailConfigurado' => config('mail.default') !== 'log',
             'bancos' => \App\Models\CuentaFondos::whereIn('tipo', ['banco', 'billetera'])->where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
@@ -42,10 +43,32 @@ class CobranzasController extends Controller
     {
         $d = $request->validate(['activo' => 'boolean', 'ia' => 'boolean', 'dias' => 'nullable|array', 'dias.*' => 'integer|min:-30|max:180', 'canales' => 'nullable|array', 'canales.*' => 'in:mail,whatsapp,crm', 'texto' => 'nullable|string|max:1000', 'whatsapp_token' => 'nullable|string|max:500', 'whatsapp_phone_id' => 'nullable|string|max:60']);
         $b = $request->user()->business;
-        $b->recordatorios = ['activo' => $d['activo'] ?? false, 'ia' => $d['ia'] ?? true, 'dias' => array_values(array_unique(array_map('intval', $d['dias'] ?? []))), 'canales' => $d['canales'] ?? ['mail'], 'texto' => $d['texto'] ?: CobranzasService::DEFAULT['texto']];
-        $b->whatsapp_settings = ['token' => $d['whatsapp_token'] ?? ($b->whatsapp_settings['token'] ?? ''), 'phone_id' => $d['whatsapp_phone_id'] ?? ($b->whatsapp_settings['phone_id'] ?? '')];
+        // Se conserva lo que esta pantalla no toca (el cobrador de la fase 120.5; y del WhatsApp: el modo QR, la cuenta, las plantillas).
+        $b->recordatorios = array_merge($b->recordatorios ?? [], ['activo' => $d['activo'] ?? false, 'ia' => $d['ia'] ?? true, 'dias' => array_values(array_unique(array_map('intval', $d['dias'] ?? []))), 'canales' => $d['canales'] ?? ['mail'], 'texto' => $d['texto'] ?: CobranzasService::DEFAULT['texto']]);
+        $ws = $b->whatsapp_settings ?? [];
+        $b->whatsapp_settings = array_merge($ws, ['token' => $d['whatsapp_token'] ?? ($ws['token'] ?? ''), 'phone_id' => $d['whatsapp_phone_id'] ?? ($ws['phone_id'] ?? '')]);
         $b->save();
         return back()->with('success', 'Configuración de cobranzas guardada.');
+    }
+
+    // ---- Fase 120.5: Bigcito cobrador ----
+    public function configurarCobrador(Request $request)
+    {
+        $d = $request->validate(['activo' => 'boolean', 'max_cuotas' => 'required|integer|min:1|max:24', 'interes_pct' => 'nullable|numeric|min:0|max:200', 'cuota_minima' => 'nullable|numeric|min:0', 'dias_primer_vto' => 'required|integer|min:0|max:60', 'aprobar' => 'boolean']);
+        $b = $request->user()->business;
+        $b->recordatorios = array_merge($b->recordatorios ?? [], ['cobrador' => ['activo' => $d['activo'] ?? false, 'max_cuotas' => (int) $d['max_cuotas'], 'interes_pct' => (float) ($d['interes_pct'] ?? 0), 'cuota_minima' => (float) ($d['cuota_minima'] ?? 0), 'dias_primer_vto' => (int) $d['dias_primer_vto'], 'aprobar' => $d['aprobar'] ?? true]]);
+        $b->save();
+        \App\Models\AuditLog::registrar('editar', $b, 'Bigcito cobrador ' . (($d['activo'] ?? false) ? "activado: hasta {$d['max_cuotas']} cuotas" : 'apagado'));
+        return back()->with('success', ($d['activo'] ?? false) ? 'Listo: Bigcito puede ofrecer planes de pago por WhatsApp dentro de esos límites.' : 'Bigcito cobrador quedó apagado.');
+    }
+
+    public function resolverAcuerdo(Request $request, int $id, \App\Services\Ventas\CobradorService $cob)
+    {
+        $d = $request->validate(['decision' => 'required|in:aprobar,rechazar', 'motivo' => 'nullable|string|max:200']);
+        $a = \App\Models\AcuerdoPago::findOrFail($id);
+        $r = $d['decision'] === 'aprobar' ? $cob->aprobar($a, $request->user()) : $cob->rechazar($a, $request->user(), $d['motivo'] ?? null);
+        if (! $r['ok']) return back()->with('error', $r['error']);
+        return back()->with('success', $d['decision'] === 'aprobar' ? "Plan {$r['plan']} armado. Le avisamos al cliente por WhatsApp." : 'Acuerdo rechazado. Le avisamos al cliente.');
     }
 
     // Recordatorio manual de todas las facturas vencidas del cliente por el canal elegido (una por factura más vieja).
