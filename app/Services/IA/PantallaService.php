@@ -26,6 +26,7 @@ class PantallaService
         ['label' => 'Suscripción', 'ruta' => '/suscripcion', 'modulo' => 'configuracion', 'palabras' => 'plan pago del sistema débito automático'],
         ['label' => 'Ayuda', 'ruta' => '/ayuda', 'modulo' => null, 'palabras' => 'manual guías cómo se hace'],
         ['label' => 'Rutinas de Bigcito', 'ruta' => '/rutinas', 'modulo' => 'dashboard', 'palabras' => 'rutinas programadas tareas automáticas encargos recordatorios informes automáticos'],
+        ['label' => 'Encargos', 'ruta' => '/encargos', 'modulo' => 'dashboard', 'palabras' => 'encargos tareas pendientes del equipo lo que tengo que hacer lo que pedí que hagan'],
         ['label' => 'Propuestas de Bigcito', 'ruta' => '/propuestas', 'modulo' => 'dashboard', 'palabras' => 'propuestas agentes bandeja'],
     ];
 

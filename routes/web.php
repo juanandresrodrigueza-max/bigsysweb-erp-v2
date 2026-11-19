@@ -214,6 +214,12 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/propuestas/configurar',        [\App\Http\Controllers\PropuestasController::class, 'configurar']);
     Route::post('/propuestas/{id}/resolver',     [\App\Http\Controllers\PropuestasController::class, 'resolver'])->middleware('permiso:configuracion,editar')->whereNumber('id');
     Route::get('/resumen-hablado',               [\App\Http\Controllers\PropuestasController::class, 'resumenHablado'])->middleware('permiso:dashboard');
+    // Fase 120.6: encargos entre personas del equipo.
+    Route::get('/encargos',                      [\App\Http\Controllers\EncargosController::class, 'index'])->middleware('permiso:dashboard');
+    Route::post('/encargos',                     [\App\Http\Controllers\EncargosController::class, 'guardar'])->middleware(['permiso:dashboard', 'throttle:40,1']);
+    Route::post('/encargos/{id}/hecho',          [\App\Http\Controllers\EncargosController::class, 'hecho'])->middleware('permiso:dashboard')->whereNumber('id');
+    Route::post('/encargos/{id}/cancelar',       [\App\Http\Controllers\EncargosController::class, 'cancelar'])->middleware('permiso:dashboard')->whereNumber('id');
+    Route::post('/encargos/{id}/reabrir',        [\App\Http\Controllers\EncargosController::class, 'reabrir'])->middleware('permiso:dashboard')->whereNumber('id');
     // Fase 119.4: rutinas de Bigcito (lo que cada usuario le dejó encargado).
     Route::get('/rutinas',                       [\App\Http\Controllers\RutinasController::class, 'index'])->middleware('permiso:dashboard');
     Route::post('/rutinas',                      [\App\Http\Controllers\RutinasController::class, 'guardar'])->middleware(['permiso:dashboard', 'throttle:20,1']);
