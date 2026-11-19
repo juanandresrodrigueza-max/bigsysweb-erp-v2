@@ -15,6 +15,7 @@ class AgenteController extends Controller
             'historial.*.rol'   => 'required_with:historial|in:user,assistant',
             'historial.*.texto' => 'required_with:historial|string|max:4000',
             'pantalla'  => 'nullable|string|max:200',
+            'url'       => 'nullable|string|max:500', // Fase 119.1: la dirección que tiene abierta, para saber qué está viendo
             'imagen'    => 'nullable|string|max:7500000', // Fase 40.3: una foto con la pregunta (data URL)
         ]);
         return response()->json(app(\App\Services\IA\BigcitoService::class)->responder($request->user(), $data));

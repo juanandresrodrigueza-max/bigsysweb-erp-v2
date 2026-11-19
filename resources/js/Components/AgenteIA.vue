@@ -33,7 +33,7 @@
                 <div v-if="!m.propuesta.estado" class="flex gap-2 mt-2"><button class="btn-primary !py-1 !px-3 text-xs" :disabled="ejecutando" @click="confirmar(m)">{{ ejecutando ? 'Haciendo…' : 'Confirmar' }}</button><button class="btn-secondary !py-1 !px-3 text-xs" @click="cancelar(m)">Cancelar</button></div>
                 <p v-else-if="m.propuesta.estado === 'cancelado'" class="mt-1">Cancelado.</p>
               </div>
-              <a v-if="m.url" :href="m.url" class="block mt-1 text-xs text-violeta font-semibold underline">Ver →</a>
+              <a v-if="m.url" :href="m.url" :target="m.nueva ? '_blank' : null" class="block mt-1 text-xs text-violeta font-semibold underline">{{ m.nueva ? 'Abrir para imprimir →' : 'Ver →' }}</a>
               <!-- Fase 40.1: gráfico, planilla y repreguntas -->
               <div v-if="m.grafico?.valores?.length" class="mt-2" data-e2e="grafico"><p class="text-[11px] font-semibold text-marca-muted mb-1">{{ m.grafico.titulo }}</p>
                 <div v-for="(v, k) in m.grafico.valores" :key="k" class="flex items-center gap-1.5 text-[11px] leading-4"><span class="w-24 truncate text-marca-muted">{{ m.grafico.etiquetas[k] }}</span><div class="flex-1 h-2.5 rounded bg-gris-light"><div class="h-2.5 rounded" :class="String(m.grafico.etiquetas[k]).includes('proy') ? 'bg-violeta/50' : 'bg-violeta'" :style="{ width: Math.max(2, v / Math.max(...m.grafico.valores, 1) * 100) + '%' }"></div></div><span class="w-16 text-right tabular-nums">{{ abreviar(v) }}</span></div></div>
@@ -64,13 +64,18 @@
 </template>
 
 <script setup>
-import { ref, nextTick, computed, onMounted, onBeforeUnmount } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { ref, nextTick, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { usePage, router } from '@inertiajs/vue3'
 import Icono from '@/Components/Icono.vue'
 import { useDictado } from '@/util/dictado'
 
 const page = usePage()
-const abierto = ref(false)
+// Fase 119.1: la charla sigue cuando Bigcito te lleva a otra pantalla (el panel se vuelve a montar en cada página).
+// Se guarda por pestaña, por usuario y por empresa; no guarda las fotos.
+const CLAVE = `bigcito_chat_${page.props.auth?.user?.id ?? 0}_${page.props.empresa?.id ?? 0}`
+const guardado = (() => { try { return JSON.parse(sessionStorage.getItem(CLAVE) || 'null') } catch { return null } })()
+const abierto = ref(!!guardado?.abierto)
+const yo = Symbol('bigcito'); if (typeof window !== 'undefined') window.__bigcito = yo
 const texto = ref('')
 // Dictado: el texto final reemplaza lo dictado y se manda solo.
 let baseDictado = ''
@@ -95,7 +100,11 @@ function alternarManos() {
   try { localStorage.setItem('bigcito_manos', manosLibres.value ? '1' : '0') } catch {}
   if (manosLibres.value) { habla.value = true; if (!dictado.escuchando.value) dictado.iniciar() } else dictado.detener()
 }
-function volverAEscuchar() { if (manosLibres.value && abierto.value && dictado.soportado && !dictado.escuchando.value && !cargando.value) dictado.iniciar() }
+function volverAEscuchar() {
+  // Si en el medio Bigcito cambió de pantalla, este panel ya no es el que se ve: le pasa la posta al nuevo.
+  if (window.__bigcito !== yo) { window.dispatchEvent(new Event('bigcito:escuchar')); return }
+  if (manosLibres.value && abierto.value && dictado.soportado && !dictado.escuchando.value && !cargando.value) dictado.iniciar()
+}
 const atajo = e => {
   if (!e.altKey || e.ctrlKey || e.metaKey || (e.key || '').toLowerCase() !== 'b') return
   e.preventDefault(); abierto.value = true
@@ -111,13 +120,16 @@ const whatsappSoporte = computed(() => {
 const pendiente = () => [...mensajes.value].reverse().find(m => m.propuesta && !m.propuesta.estado)
 
 const cargando = ref(false)
-const modo = ref('ia')
-const mensajes = ref([])
+const modo = ref(guardado?.modo ?? 'ia')
+const mensajes = ref(Array.isArray(guardado?.mensajes) ? guardado.mensajes : [])
 const scroll = ref(null)
+watch([mensajes, abierto, modo], () => {
+  try { sessionStorage.setItem(CLAVE, JSON.stringify({ abierto: abierto.value, modo: modo.value, mensajes: mensajes.value.slice(-30).map(m => ({ ...m, foto: undefined, tabla: m.tabla?.filas?.length > 200 ? null : m.tabla })) })) } catch {}
+}, { deep: true })
 
 const nombre = computed(() => page.props.auth?.user?.name?.split(' ')[0] ?? '')
 const empresa = computed(() => page.props.empresa?.nombre ?? 'tu empresa')
-const sugerencias = ['¿Qué podés hacer?', '¿Cuánto vendí hoy?', '¿Quiénes me deben?', 'Cobrale 10000 a … en efectivo', 'Facturale a … 2 bolsas de cemento', 'Gasté 5000 en nafta', 'Cambiale el teléfono a …']
+const sugerencias = ['¿Qué podés hacer?', '¿Cuánto vendí hoy?', '¿Quiénes me deben?', 'Abrime la ficha de …', 'Llevame a cerrar caja', 'Cobrale 10000 a … en efectivo', 'Facturale a … 2 bolsas de cemento', 'Gasté 5000 en nafta', 'Cambiale el teléfono a …']
 const ejecutando = ref(false)
 async function confirmar(m) {
   ejecutando.value = true
@@ -167,8 +179,13 @@ async function alternarGrabacion() {
 }
 // Fase 107: otra pantalla (el resumen hablado) abre a Bigcito con una pregunta ya escrita.
 const alPreguntar = (e) => { abierto.value = true; nextTick(() => enviar(e.detail?.texto ?? '')) }
-onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo) })
-onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo) })
+onMounted(() => { window.addEventListener('bigcito:preguntar', alPreguntar); window.addEventListener('keydown', atajo); window.addEventListener('bigcito:escuchar', volverAEscuchar); if (abierto.value) bajar() })
+onBeforeUnmount(() => { window.removeEventListener('bigcito:preguntar', alPreguntar); window.removeEventListener('keydown', atajo); window.removeEventListener('bigcito:escuchar', volverAEscuchar); dictado.detener() })
+// Fase 119.1: Bigcito abre pantallas. La charla queda guardada y sigue en la pantalla nueva.
+function irA(ruta) {
+  if (!ruta || ruta === location.pathname + location.search) return
+  setTimeout(() => router.visit(ruta, { preserveScroll: false }), 250)
+}
 async function enviar(pre, porVoz = false) {
   let msg = (pre ?? texto.value).trim()
   if (!msg && foto.value) msg = '¿Qué ves en esta foto?'
@@ -185,9 +202,11 @@ async function enviar(pre, porVoz = false) {
   cargando.value = true
   await bajar()
   try {
-    const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component, ...(imagen ? { imagen } : {}) })
+    const { data } = await window.axios.post('/agente/chat', { mensaje: msg, historial, pantalla: page.component, url: location.pathname + location.search, ...(imagen ? { imagen } : {}) })
     modo.value = data.modo ?? 'ia'
-    mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', propuesta: data.propuesta ?? null, tabla: data.tabla ?? null, grafico: data.grafico ?? null, sugerencias: data.sugerencias ?? [] })
+    mensajes.value.push({ rol: 'assistant', texto: data.respuesta ?? 'No pude responder.', propuesta: data.propuesta ?? null, tabla: data.tabla ?? null, grafico: data.grafico ?? null, sugerencias: data.sugerencias ?? [], url: data.abrir ?? null, nueva: !!data.abrir })
+    if (data.abrir) { try { window.open(data.abrir, '_blank') } catch {} }
+    if (data.navegar) irA(data.navegar)
     if (porVoz) decir((data.respuesta ?? '') + (data.propuesta ? ` ${data.propuesta.titulo}. ¿Lo hago? Decime sí o no.` : ''))
   } catch (e) {
     const st = e.response?.status

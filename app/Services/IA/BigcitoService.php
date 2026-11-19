@@ -19,13 +19,17 @@ class BigcitoService
     public function responder(User $user, array $data): array
     {
         $origen = $data['origen'] ?? 'asistente'; // Fase 111: 'whatsapp' cuando llega por el WhatsApp del equipo
-                $contexto = $this->contexto($user);
+        $contexto = $this->contexto($user);
+        // Fase 119.1: qué está viendo el usuario (la ficha de un cliente, una factura, una sección), sacado de la URL del navegador.
+        $viendo = ! empty($data['url']) ? app(PantallaService::class)->contexto($user, $data['url']) : null;
         $apiKey   = config('services.anthropic.api_key');
         $acciones = app(\App\Services\IA\AccionesService::class);
         $cat      = app(\App\Mcp\Catalogo::class);
 
         if (! $apiKey && ! empty($data['imagen'])) return (['respuesta' => 'Para mirar fotos hace falta la clave de IA de la empresa (Configuración → Conexiones IA).', 'modo' => 'local']);
         if (! $apiKey) {
+            // Fase 119.1: sin IA también lleva a pantallas y fichas («abrime la ficha de López», «llevame a cerrar caja»).
+            if ($origen === 'asistente' && ($nav = $this->navegarLocal($cat, $user, $data['mensaje']))) return $nav;
             // Sin IA: se entienden las frases más comunes (cobros, gastos, recordatorios, presupuestos, saldos, stock, ventas).
             if ($i = $acciones->interpretarLocal($data['mensaje'])) {
                 if (isset($i['consulta'])) return (['respuesta' => $acciones->consultar($i['consulta'], $i['args']), 'modo' => 'local']);
@@ -43,7 +47,7 @@ class BigcitoService
         try {
             $tools = $cat->paraAnthropic($user);
             $llamar = fn(array $msgs) => Http::withHeaders(['x-api-key' => $apiKey, 'anthropic-version' => '2023-06-01'])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
-                'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null), 'messages' => $msgs, 'tools' => $tools,
+                'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null, $viendo), 'messages' => $msgs, 'tools' => $tools,
             ]);
             $res = $llamar($mensajes); $adjuntos = [];
             // Hasta 3 rondas: las consultas se resuelven y se le devuelven a la IA; una acción se propone al usuario.
@@ -62,8 +66,11 @@ class BigcitoService
                     // Fase 40.1: la tabla (para bajar a Excel) y el gráfico van al panel; al modelo le llega el resto.
                     if (isset($r['_tabla'])) $adjuntos['tabla'] = $r['_tabla'] + ['nombre' => $u['name']];
                     if (isset($r['_grafico'])) $adjuntos['grafico'] = $r['_grafico'];
-                    if (! isset($r['_tabla']) && ($lista = collect($r)->first(fn($v) => is_array($v) && array_is_list($v) && isset($v[0]) && is_array($v[0]) && count($v) >= 3))) $adjuntos['tabla'] ??= ['columnas' => array_keys($lista[0]), 'filas' => array_map(fn($f) => array_map(fn($x) => is_array($x) ? implode(', ', array_map('strval', $x)) : $x, array_values($f)), $lista), 'nombre' => $u['name']];
-                    unset($r['_tabla'], $r['_grafico']);
+                    // Fase 119.1: «abrime…» / «imprimilo»: el panel navega o abre la impresión; por WhatsApp queda el enlace en el texto.
+                    if (isset($r['_navegar']) && $origen === 'asistente') $adjuntos['navegar'] = $r['_navegar'];
+                    if (isset($r['_abrir']) && $origen === 'asistente') $adjuntos['abrir'] = $r['_abrir'];
+                    if (! isset($r['_tabla']) && ! isset($r['_navegar']) && ($lista = collect($r)->first(fn($v) => is_array($v) && array_is_list($v) && isset($v[0]) && is_array($v[0]) && count($v) >= 3))) $adjuntos['tabla'] ??= ['columnas' => array_keys($lista[0]), 'filas' => array_map(fn($f) => array_map(fn($x) => is_array($x) ? implode(', ', array_map('strval', $x)) : $x, array_values($f)), $lista), 'nombre' => $u['name']];
+                    unset($r['_tabla'], $r['_grafico'], $r['_navegar'], $r['_abrir']);
                     return ['type' => 'tool_result', 'tool_use_id' => $u['id'], 'content' => json_encode($r, JSON_UNESCAPED_UNICODE)];
                 })->values()->all();
                 $mensajes[] = ['role' => 'assistant', 'content' => $contenido];
@@ -80,6 +87,20 @@ class BigcitoService
             Log::error('Agente IA: error', ['e' => $e->getMessage()]);
             return (['respuesta' => $this->respuestaLocal($data['mensaje'], $contexto), 'modo' => 'local']);
         }
+    }
+
+    // Fase 119.1: navegación sin IA. «abrime/llevame/ir a/mostrame …» → una ficha (cliente, proveedor, artículo) o una pantalla del menú.
+    private function navegarLocal(\App\Mcp\Catalogo $cat, User $user, string $mensaje): ?array
+    {
+        if (! preg_match('/^\s*(?:abr[ií](?:me|r)?|llev[aá]me|and[aá]|ir|vamos|mostr[aá]me|quiero ir|quiero ver)\s+(?:(?:a|al|la|el|los|las)\s+)*(.+?)[.!]?\s*$/iu', $mensaje, $m)) return null;
+        $que = trim($m[1]); $r = null;
+        if (preg_match('/^ficha\s+(?:de(?:l)?\s+)?(?:(cliente|proveedor|art[ií]culo|producto)\s+)?(.+)$/iu', $que, $f)) {
+            $tipos = $f[1] ? [str_starts_with(mb_strtolower($f[1]), 'cli') ? 'cliente' : (str_starts_with(mb_strtolower($f[1]), 'prov') ? 'proveedor' : 'articulo')] : ['cliente', 'proveedor', 'articulo'];
+            foreach ($tipos as $t) { $x = $cat->llamar($user, 'abrir_ficha', ['tipo' => $t, 'buscar' => $f[2]], 'asistente'); if (isset($x['_navegar'])) { $r = $x; break; } }
+        } else {
+            $x = $cat->llamar($user, 'abrir_pantalla', ['pantalla' => $que], 'asistente'); if (isset($x['_navegar'])) $r = $x;
+        }
+        return $r ? ['respuesta' => 'Te abrí ' . rtrim($r['abierta'], '.') . '.', 'navegar' => $r['_navegar'], 'modo' => 'local'] : null;
     }
 
     // Fase 40.1: separa las repreguntas sugeridas ("SUGERENCIAS: a | b | c") del texto y suma la tabla y el gráfico.
@@ -127,8 +148,9 @@ class BigcitoService
         ];
     }
 
-    private function systemPrompt($user, array $c, ?string $pantalla): string
+    private function systemPrompt($user, array $c, ?string $pantalla, ?array $viendo = null): string
     {
+        $loQueVe = $viendo ? $viendo['texto'] : 'nada en particular (no hay una ficha abierta)';
         $modulos = implode(', ', $c['modulos']);
         $alertas = $c['alertas'] ? '- ' . implode("\n- ", $c['alertas']) : 'ninguna';
         $fmt = fn($n) => '$ ' . number_format($n, 0, ',', '.');
@@ -152,6 +174,9 @@ Cada madrugada dejás propuestas (cobranzas, reposición, precios, cierre del me
 
 Usuario: {$user->name}, rol {$c['rol']}, empresa {$c['empresa']}, sucursal {$c['sucursal']}.
 Pantalla actual: {$pantalla}.
+Lo que está viendo ahora: {$loQueVe}
+Cuando diga «este», «esta», «el de acá», «a este cliente», «esta factura», «imprimilo», «cobrale», «mandáselo», se refiere a lo que está viendo: usá ese nombre o id en las herramientas sin volver a preguntar. Si no está viendo nada y falta el dato, preguntá.
+Podés llevarlo por el sistema: abrir_pantalla («llevame a cerrar caja», «abrí nueva factura para López»), abrir_ficha («abrime la ficha de López», «mostrame la última factura de García») e imprimir. Después de abrir algo, decilo en una frase corta («Te abrí la ficha de López.») y no repitas la dirección.
 Módulos habilitados: {$modulos}.
 Cómo trabaja esta empresa (lo que contó en la entrevista de bienvenida): {$c['induccion']}.
 
