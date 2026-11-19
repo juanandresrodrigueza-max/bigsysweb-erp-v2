@@ -57,4 +57,8 @@ return [
     // Lo que se carga en Superadmin → Salud manda; esto es el valor inicial desde el .env.
     'monitoreo' => ['email' => env('MONITOREO_EMAIL')],
 
+    // Fase 120.2: Central de Deudores del BCRA (API pública). Si el servidor no puede validar el certificado del BCRA
+    // (le suele faltar un intermedio), se puede apagar la verificación sólo para esta consulta con BCRA_VERIFICAR_SSL=false.
+    'bcra' => ['base' => env('BCRA_API', 'https://api.bcra.gob.ar/centraldedeudores/v1.0'), 'verificar_ssl' => env('BCRA_VERIFICAR_SSL', true)],
+
 ];

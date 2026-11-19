@@ -57,6 +57,17 @@ class ClientesController extends Controller
         return response()->json($p);
     }
 
+    // Fase 120.2: consulta la Central de Deudores del BCRA con el CUIT del cliente y deja el resultado en su ficha.
+    public function bcra(int $id, \App\Services\Fiscal\BcraService $bcra)
+    {
+        $c = Contact::customers()->findOrFail($id);
+        if (! $c->cuit) return back()->withErrors(['bcra' => 'Cargale el CUIT al cliente para poder consultarlo en el Banco Central.']);
+        $r = $bcra->consultarContacto($c);
+        if (! $r['ok']) return back()->withErrors(['bcra' => $r['error']]);
+        \App\Models\AuditLog::registrar('consultar', $c, 'Consulta al BCRA: ' . $r['resumen']);
+        return back()->with('success', 'Banco Central: ' . $r['resumen']);
+    }
+
     public function show(int $id, Request $request)
     {
         $c = Contact::customers()->with('tipoCliente')->findOrFail($id);
@@ -81,6 +92,7 @@ class ClientesController extends Controller
         return Inertia::render('Clientes/Ver', [
             'cliente' => $c->only('id', 'name', 'cuit', 'condicion_iva', 'email', 'phone', 'mobile', 'address', 'city', 'province', 'postal_code', 'credit_limit', 'lista_precios', 'dias_pago', 'descuento', 'percepcion_iibb', 'percepcion_iva', 'percepcion_ganancias', 'pais_codigo', 'cuit_pais', 'id_impositivo', 'balance', 'is_active', 'notes', 'tipo_cliente_id', 'interes_mora', 'vendedor_id', 'recordar_precio', 'cobrador_id', 'visitas') + ['tipo' => $c->tipoCliente?->nombre, 'deuda_vencida' => $c->deudaVencida(), 'vendedor' => $c->vendedor?->nombre, 'interes_calculado' => $this->interesMora($c, $pendientes), 'portal_url' => \App\Http\Controllers\PortalController::url($c), 'puntos' => (float) $c->puntos, 'puntos_pesos' => app(\App\Services\Ventas\FidelizacionService::class)->valorEnPesos($request->user()->business, (float) $c->puntos), 'fidelizacion_activa' => (bool) app(\App\Services\Ventas\FidelizacionService::class)->config($request->user()->business)['activo']],
             'cc' => $cc, 'pendientes' => $pendientes, 'antiguedad' => $antiguedad,
+            'bcra' => $c->bcra ? $c->bcra + ['fecha' => $c->bcra_en?->format('d/m/Y H:i'), 'viejo' => $c->bcra_en ? $c->bcra_en->lt(now()->subDays(30)) : true] : null, // Fase 120.2
             'rubros' => \App\Models\Rubro::with('parent')->orderBy('nombre')->get()->map(fn($r) => ['id' => $r->id, 'nombre' => $r->nombreCompleto()])->sortBy('nombre')->values(),
             'comprobantes' => Comprobante::where('contact_id', $c->id)->orderByDesc('fecha')->orderByDesc('id')->limit(30)->get()->map(fn($x) => ['id' => $x->id, 'nombre' => $x->nombreTipo(), 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'saldo' => (float) $x->saldo, 'estado' => $x->estado, 'estado_cobro' => $x->estadoCobro(), 'es_acopio' => $x->es_acopio]),
             'cobros' => Cobro::where('contact_id', $c->id)->with('medios')->orderByDesc('fecha')->orderByDesc('id')->limit(20)->get()->map(fn($x) => ['id' => $x->id, 'numero' => $x->numeroFormateado(), 'fecha' => $x->fecha->format('d/m/Y'), 'total' => (float) $x->total, 'a_cuenta' => (float) $x->a_cuenta, 'estado' => $x->estado, 'medios' => $x->medios->map(fn($m) => Cobro::MEDIOS[$m->medio] . ' $ ' . number_format((float) $m->monto, 0, ',', '.'))->implode(', ')]),

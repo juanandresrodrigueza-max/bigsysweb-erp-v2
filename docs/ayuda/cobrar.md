@@ -64,6 +64,21 @@ En **Configuración → Empresa → Avisos** se activan los recordatorios de ven
 
 **Los dos caminos se cruzan:** si hiciste el recibo desde la foto, cuando importes el extracto ese renglón se concilia solo. También se lo podés pedir a Bigcito: «¿qué transferencias entraron sin recibo?», y después «hacele el recibo».
 
+## Antes de fiar: cómo está con los bancos (Banco Central, fase 120.2)
+
+En la ficha de cada cliente (**Clientes → el cliente**) hay un cuadro **Situación en el Banco Central**. Tocá **Consultar ahora** y en unos segundos te dice, con el CUIT del cliente:
+
+- **El semáforo**: verde (sin antecedentes), amarillo (con antecedentes: conviene límite bajo y plazos cortos) o rojo (riesgo alto: mejor no darle cuenta corriente ni aceptarle cheques sin garantía).
+- **La peor situación** que tiene hoy con algún banco o financiera, del 1 (normal) al 5 (irrecuperable), **cuánto debe** en total y con qué entidades (en «Ver detalle»).
+- Si tuvo una situación peor en los **últimos 24 meses**.
+- **Cheques rechazados**: cuántos, por cuánto y cuántos siguen sin pagar.
+
+Es la **Central de Deudores del BCRA**, información pública. El cliente **no se entera** de la consulta ni le queda ningún registro. El resultado queda guardado en la ficha con su fecha; si tiene más de 30 días te avisa para que lo actualices. Hace falta que el cliente tenga el **CUIT** cargado.
+
+También se lo pedís a Bigcito: «¿cómo está López en el Banco Central?», «¿le puedo fiar a este?» (con su ficha abierta) o, para el firmante de un cheque que no es cliente, «fijate el CUIT 30-71234567-8». Y lo podés dejar como rutina: «todos los lunes revisá en el Banco Central a mis diez mayores deudores y avisame sólo si alguno empeoró».
+
+Si dice que no se pudo validar el certificado del Banco Central, es un tema del servidor: avisale a BigSys.
+
 ## Cobranzas con cabeza: riesgo de mora, recordatorios a medida y plan de pago (Fase 57)
 
 - **Riesgo de mora:** en Cobranzas, cada deudor tiene un puntaje de 0 a 100 (bajo, medio, alto) con sus motivos a la vista: cuántos días tarda en pagar en promedio, cuántas veces pagó tarde, si viene empeorando, lo vencido hoy, si pasó su límite o si tiene un plan de pago con cuotas vencidas. No es una caja negra: siempre dice por qué.

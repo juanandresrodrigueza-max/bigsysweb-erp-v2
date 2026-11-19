@@ -105,6 +105,22 @@ class Clientes
                     $cv = \App\Services\Integraciones\CrmSyncService::conversaciones($u->business, $c);
                     return ['cliente' => $c->name, 'conversaciones' => array_map(fn($x) => ['canal' => $x['canal'], 'estado' => $x['estado'], 'sin_leer' => $x['no_leidos'], 'ultimo_mensaje' => $x['ultimo'], 'mensajes' => $x['mensajes'], 'url' => Busca::url($x['url'])], $cv), 'nota' => $cv ? 'Para escribirle, el botón "Escribirle por el CRM" en la ficha del cliente.' : 'El CRM no tiene conversaciones con este cliente.'];
                 }],
+            ['nombre' => 'situacion_bcra', 'titulo' => 'Situación en el Banco Central', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
+                'descripcion' => 'Consulta la Central de Deudores del BCRA (información pública): situación crediticia con cada banco (1 normal a 5 irrecuperable), cuánto debe y cheques rechazados. Usala antes de dar cuenta corriente, subir un límite de crédito o aceptar un cheque: «¿cómo está López en el Banco Central?», «¿le puedo fiar a este?», «fijate el CUIT 30-71234567-8». Acepta un cliente o proveedor (por nombre) o un CUIT suelto (por ejemplo el del firmante de un cheque).',
+                'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Nombre, id o CUIT del cliente o proveedor.'], 'cuit' => ['type' => 'string', 'description' => 'Un CUIT/CUIL de 11 números, si no es un cliente cargado.']],
+                'ejecutar' => function (User $u, array $a) {
+                    $svc = app(\App\Services\Fiscal\BcraService::class);
+                    $ref = trim((string) ($a['cliente'] ?? '')); $cuit = \App\Services\Fiscal\BcraService::limpiar($a['cuit'] ?? '');
+                    $c = $ref !== '' ? (Busca::cliente($ref) ?? Busca::proveedor($ref)) : null;
+                    if (! $c && strlen($cuit) !== 11 && strlen(\App\Services\Fiscal\BcraService::limpiar($ref)) === 11) $cuit = \App\Services\Fiscal\BcraService::limpiar($ref);
+                    if ($c && ! $c->cuit && strlen($cuit) !== 11) return ['error' => "{$c->name} no tiene el CUIT cargado. Decime el CUIT o cargáselo en su ficha."];
+                    if (! $c && strlen($cuit) !== 11) return ['error' => $ref !== '' ? "No encuentro a «{$ref}». Decime el CUIT de 11 números." : 'Decime el cliente o el CUIT de 11 números.'];
+                    $r = $c && $c->cuit ? $svc->consultarContacto($c) : $svc->consultar($cuit, true);
+                    if (! $r['ok']) return ['error' => $r['error']];
+                    return ['quien' => $c?->name ?: ($r['denominacion'] ?: $r['cuit']), 'cuit' => $r['cuit'], 'semaforo' => $r['semaforo'], 'resumen' => $r['resumen'], 'consejo' => $r['consejo'], 'peor_situacion' => $r['peor'], 'peor_en_24_meses' => $r['peor_24m'], 'deuda_total' => $r['total'], 'periodo' => $r['periodo'],
+                        'entidades' => array_map(fn($e) => ['entidad' => $e['entidad'], 'situacion' => $e['situacion'], 'debe' => $e['monto'], 'dias_atraso' => $e['dias_atraso']], array_slice($r['entidades'], 0, 8)), 'cheques_rechazados' => $r['cheques'],
+                        'limite_de_credito_actual' => $c ? (float) $c->credit_limit : null, 'saldo_con_nosotros' => $c ? (float) $c->balance : null, 'fuente' => 'Central de Deudores del BCRA (información pública)'];
+                }],
             ['nombre' => 'ficha_cliente', 'titulo' => 'Ficha del cliente', 'modulo' => 'clientes', 'permiso' => 'ver', 'tipo' => 'consulta',
                 'descripcion' => 'Todo de un cliente: datos, saldo, lo vencido, facturas pendientes, últimas compras, contactos y condiciones (lista de precios, descuento, días de pago).',
                 'parametros' => ['cliente' => ['type' => 'string', 'description' => 'Nombre, CUIT o id.']], 'requeridos' => ['cliente'],
@@ -113,6 +129,7 @@ class Clientes
                     $pend = Comprobante::where('contact_id', $c->id)->pendientesCobro()->orderBy('fecha_vto')->limit(30)->get();
                     return self::fila($c) + ['direccion' => trim("{$c->address} {$c->city}"), 'lista_precios' => (int) $c->lista_precios, 'descuento' => (float) $c->descuento, 'dias_pago' => (int) $c->dias_pago, 'limite_credito' => (float) $c->credit_limit,
                         'vencido' => round((float) $pend->filter(fn($x) => $x->fecha_vto && $x->fecha_vto->lt(today()))->sum('saldo'), 2),
+                        'banco_central' => \App\Services\Fiscal\BcraService::linea($c) ?? 'sin consultar (usá situacion_bcra)',
                         'pendientes' => $pend->map(fn($x) => Busca::comp($x))->all(),
                         'ultimas_facturas' => Comprobante::where('contact_id', $c->id)->ventas()->emitidos()->facturas()->orderByDesc('fecha')->limit(5)->get()->map(fn($x) => Busca::comp($x))->all(),
                         'contactos' => $c->personas->map(fn($p) => $p->only('nombre', 'cargo', 'telefono', 'email'))->all()];
