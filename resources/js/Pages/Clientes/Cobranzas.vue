@@ -17,6 +17,7 @@
       :mas="[
         { label: 'Enviar avisos de hoy', click: () => router.post('/clientes/cobranzas/correr', {}, { preserveScroll: true }), cuando: puede('clientes','crear'), title: config.activo ? '' : 'Activá los avisos automáticos primero' },
         { label: `Avisos automáticos ${config.activo ? 'ON' : 'OFF'}`, icono: 'settings', click: () => cfgAbierta = true, cuando: puede('clientes','editar') },
+        { label: `Bigcito cobrador ${cobrador.activo ? 'ON' : 'OFF'}`, icono: 'settings', click: () => cobAbierto = true, cuando: puede('clientes','editar') },
       ]">
       <template #extra><label v-if="puede('clientes','crear')" class="btn-secondary cursor-pointer" data-e2e="subir-transferencia" title="Subí el comprobante de transferencia y la IA arma el recibo">{{ tr.leyendo ? 'Leyendo…' : 'Recibo desde comprobante' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerTransferencia" /></label></template>
     </PageHeader>
@@ -27,6 +28,41 @@
       </div>
       <template #pie><button class="btn-secondary" @click="elegirAbierto = false">Cancelar</button><Link :href="elegido ? `/clientes/${elegido}?cobro=1` : '#'" class="btn-primary" :class="{ 'opacity-50 pointer-events-none': !elegido }">Ir a registrar el cobro</Link></template>
     </Modal>
+
+    <!-- Fase 120.5: Bigcito cobrador -->
+    <Modal :abierto="cobAbierto" titulo="Bigcito cobrador" @cerrar="cobAbierto = false">
+      <div class="space-y-3 text-sm" data-e2e="cobrador-config">
+        <p class="text-marca-muted">Cuando un cliente con deuda vencida escribe por WhatsApp que no puede pagar todo junto (o responde <b>PLAN</b> a un recordatorio), Bigcito le ofrece pagar en cuotas <b>sólo dentro de estos límites</b>. Lo que pida de más te lo pasa a vos.</p>
+        <label class="flex items-center gap-2"><input v-model="cob.activo" type="checkbox" /> <b>Activar el cobrador</b></label>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label">Cuotas como máximo</label><input v-model.number="cob.max_cuotas" type="number" min="1" max="24" class="input" /></div>
+          <div><label class="label">Interés sobre la deuda (%)</label><input v-model.number="cob.interes_pct" type="number" min="0" step="0.5" class="input" /></div>
+          <div><label class="label">Cuota mínima ($)</label><input v-model.number="cob.cuota_minima" type="number" min="0" step="1000" class="input" /><p class="text-[11px] text-marca-muted mt-0.5">0 = sin mínimo. Evita planes de cuotas muy chicas.</p></div>
+          <div><label class="label">Primera cuota a los (días)</label><input v-model.number="cob.dias_primer_vto" type="number" min="0" max="60" class="input" /></div>
+        </div>
+        <label class="flex items-start gap-2"><input v-model="cob.aprobar" type="checkbox" class="mt-1" /><span><b>Quiero aprobar cada acuerdo antes de que quede firme</b> (recomendado). Si lo destildás, el plan se arma solo cuando el cliente dice que sí.</span></label>
+        <p v-if="!whatsapp.configurado" class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 text-xs">Para que funcione, la empresa tiene que tener el WhatsApp conectado (Configuración → Tienda y canales).</p>
+        <p class="text-xs text-marca-muted">Ejemplo con una deuda de {{ moneda(100000, 0) }}: hasta {{ cob.max_cuotas }} cuota{{ cob.max_cuotas > 1 ? 's' : '' }} de {{ moneda(100000 * (1 + (Number(cob.interes_pct) || 0) / 100) / Math.max(1, cob.max_cuotas), 0) }}{{ Number(cob.interes_pct) > 0 ? ` (con ${cob.interes_pct} % de interés)` : ' sin interés' }}, la primera a los {{ cob.dias_primer_vto }} días.</p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="cobAbierto = false">Cancelar</button><button class="btn-primary" :disabled="cob.processing" @click="cob.post('/clientes/cobranzas/cobrador', { preserveScroll: true, onSuccess: () => (cobAbierto = false) })" data-e2e="cobrador-guardar">Guardar</button></template>
+    </Modal>
+    <div v-if="acuerdos.length" class="card mb-4 text-sm border-violeta/40" data-e2e="acuerdos">
+      <h2 class="font-bold">Acuerdos de pago que esperan tu aprobación</h2>
+      <p class="text-xs text-marca-muted mb-1">Los armó Bigcito por WhatsApp con el cliente, dentro de tus límites. Al aprobar se crea el plan de pago y se le avisa.</p>
+      <div v-for="a in acuerdos" :key="a.id" class="py-2 border-t border-marca-borde" data-e2e="acuerdo">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span><Link :href="`/clientes/${a.contact_id}`" class="font-semibold">{{ a.cliente }}</Link> · {{ a.cuotas === 1 ? 'un pago de' : `${a.cuotas} cuotas de` }} <b>{{ moneda(a.cuota, 0) }}</b><span v-if="a.interes_pct"> (con {{ a.interes_pct }} % de interés)</span> · debe {{ moneda(a.deuda, 0) }} vencidos · primera el {{ a.primer_vencimiento }} <span class="text-marca-muted">· {{ a.cuando }}</span></span>
+          <span v-if="puede('clientes','crear')" class="flex gap-1 shrink-0">
+            <button class="btn-ghost !py-1 text-xs" @click="charlaDe = charlaDe === a.id ? null : a.id">{{ charlaDe === a.id ? 'Ocultar la charla' : 'Ver la charla' }}</button>
+            <button class="btn-primary !py-1 text-xs" @click="resolver(a, 'aprobar')" data-e2e="acuerdo-aprobar">Aprobar</button>
+            <button class="btn-ghost !py-1 text-xs text-carmin" @click="resolver(a, 'rechazar')">Rechazar</button>
+          </span>
+        </div>
+        <div v-if="charlaDe === a.id" class="mt-2 space-y-1 rounded-xl bg-marca-fondo p-2 text-xs">
+          <p v-for="(l, i) in a.charla" :key="i" class="whitespace-pre-line" :class="l[0] === 'c' ? '' : 'text-marca-muted'"><b>{{ l[0] === 'c' ? a.cliente : 'Bigcito' }}:</b> {{ l[1] }}</p>
+        </div>
+      </div>
+    </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
       <div class="card py-3"><p class="text-[11px] font-bold uppercase tracking-widest text-marca-muted">Por cobrar</p><p class="text-xl font-extrabold tabular-nums">{{ moneda(kpis.por_cobrar, 0) }}</p></div>
@@ -135,11 +171,20 @@ import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
 
-const props = defineProps({ deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean, llamarAntes: { type: Array, default: () => [] }, ia: Boolean, bancos: { type: Array, default: () => [] }, clientesLista: { type: Array, default: () => [] } })
+const props = defineProps({ cobrador: { type: Object, default: () => ({ activo: false, max_cuotas: 3, interes_pct: 0, cuota_minima: 0, dias_primer_vto: 10, aprobar: true }) }, acuerdos: { type: Array, default: () => [] }, deudores: Array, kpis: Object, config: Object, whatsapp: Object, mailConfigurado: Boolean, envios: Array, planes: Array, crmActivo: Boolean, llamarAntes: { type: Array, default: () => [] }, ia: Boolean, bancos: { type: Array, default: () => [] }, clientesLista: { type: Array, default: () => [] } })
 const { puede } = usePermisos()
 const elegirAbierto = ref(false), elegido = ref(null)
 const page = usePage()
 const cfgAbierta = ref(false)
+// Fase 120.5: Bigcito cobrador
+const cobAbierto = ref(false), charlaDe = ref(null)
+const cob = useForm({ ...props.cobrador })
+function resolver(a, decision) {
+  let motivo = null
+  if (decision === 'rechazar') { motivo = window.prompt(`¿Por qué no se toma el plan de ${a.cliente}? (se lo decimos al cliente; podés dejarlo vacío)`, ''); if (motivo === null) return }
+  else if (!confirm(`Se crea el plan de pago de ${a.cliente} y se le avisa por WhatsApp. ¿Seguimos?`)) return
+  router.post(`/clientes/cobranzas/acuerdos/${a.id}`, { decision, motivo }, { preserveScroll: true })
+}
 // Fase 47: la foto o el PDF de la transferencia → la IA lo lee → recibo para confirmar.
 const tr = reactive({ leyendo: false, datos: null, por: null, imputaciones: [], repetido: false })
 const trf = useForm({ contact_id: null, monto: 0, fecha: '', cuenta_fondos_id: props.bancos?.[0]?.id ?? null, referencia: '' })

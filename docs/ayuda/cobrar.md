@@ -79,6 +79,35 @@ También se lo pedís a Bigcito: «¿cómo está López en el Banco Central?», 
 
 Si dice que no se pudo validar el certificado del Banco Central, es un tema del servidor: avisale a BigSys.
 
+## Bigcito cobrador: que el cliente arme su plan por WhatsApp (fase 120.5)
+
+En **Cobrar → Cobranzas → ⋯ → Bigcito cobrador** lo prendés y le ponés **los límites**:
+
+- **Cuotas como máximo** (por ejemplo 3).
+- **Interés sobre la deuda** (0 = sin interés).
+- **Cuota mínima** (para que no arme cuotas ridículas; 0 = sin mínimo).
+- **Primera cuota a los X días**.
+- **Quiero aprobar cada acuerdo** (recomendado): nada queda firme hasta que vos digas que sí.
+
+Con eso, cuando un cliente **con facturas vencidas** escribe al WhatsApp de la empresa algo como «no llego a pagar todo», «¿se puede en cuotas?» o responde **PLAN** a un recordatorio, Bigcito:
+
+1. Le dice cuánto tiene vencido y le ofrece las opciones **que entran en tus límites** (1 pago, 2 cuotas, 3 cuotas…), con el importe de cada una y cuándo vence la primera.
+2. El cliente elige («en 2», «tres cuotas») y Bigcito le muestra el detalle cuota por cuota.
+3. Con el **SÍ** del cliente, el acuerdo queda anotado y a vos te avisa la campana.
+
+En Cobranzas aparece arriba **«Acuerdos de pago que esperan tu aprobación»**: ves el plan, podés leer **la charla completa**, y elegís **Aprobar** (se crea el plan de pago de siempre, con su nota de débito si hay interés, y al cliente le llega la confirmación con las fechas) o **Rechazar** (con un motivo opcional que se le dice al cliente).
+
+Cosas que conviene saber:
+- **Las cuentas las hace el sistema, no la IA**: Bigcito nunca ofrece más cuotas, menos interés ni más plazo que los que cargaste.
+- Si el cliente **pide más** de lo permitido («¿y en 12?»), no se lo da: le dice el tope y **te avisa a vos** para que decidas. Lo mismo si pide hablar con una persona.
+- Sólo atiende a quien **está cargado como cliente con ese celular** y tiene algo **vencido**. Si pregunta por «cuotas con tarjeta» para comprar, no se mete.
+- Si destildás la aprobación, el plan se arma solo cuando el cliente dice que sí.
+- Si el cliente paga antes de que apruebes, al aprobar el acuerdo se cierra solo, sin armar nada.
+- Los recordatorios automáticos por WhatsApp de facturas vencidas terminan con «Si no podés pagar todo junto, respondé PLAN y lo armamos por acá».
+- A Bigcito le podés decir **«¿hay acuerdos para aprobar?»** y **«aprobá el acuerdo de Gómez»**.
+
+Necesita el WhatsApp de la empresa conectado (Configuración → Tienda y canales).
+
 ## Cobranzas con cabeza: riesgo de mora, recordatorios a medida y plan de pago (Fase 57)
 
 - **Riesgo de mora:** en Cobranzas, cada deudor tiene un puntaje de 0 a 100 (bajo, medio, alto) con sus motivos a la vista: cuántos días tarda en pagar en promedio, cuántas veces pagó tarde, si viene empeorando, lo vencido hoy, si pasó su límite o si tiene un plan de pago con cuotas vencidas. No es una caja negra: siempre dice por qué.

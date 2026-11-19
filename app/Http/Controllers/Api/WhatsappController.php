@@ -60,6 +60,12 @@ class WhatsappController extends Controller
                 continue;
             }
             if (trim($m['texto']) === '') continue;
+            // Fase 120.5: si un cliente con deuda vencida pide pagar de a poco (o ya venía hablándolo), lo atiende el cobrador.
+            if (\App\Services\Ventas\CobradorService::activo($b) && ($co = app(\App\Services\Ventas\CobradorService::class)->atender($b, $m['de'], $m['texto']))) {
+                if ($m['de']) $wa->responder($b, $m['de'], $co['respuesta'], ['texto_libre' => true]);
+                $atendidos[] = 'cobrador';
+                continue;
+            }
             // Fase 60: si es una consulta (saldo, pedido, stock, reclamo, hablar con alguien) la atiende Bigcito y no sigue como pedido.
             if (\App\Services\Canales\AtencionClientesService::activo($b) && ($at = app(\App\Services\Canales\AtencionClientesService::class)->atender($b, $m['de'], $m['texto']))) {
                 if (($ws['auto_responder'] ?? true) && $m['de']) $wa->responder($b, $m['de'], $at['respuesta']);

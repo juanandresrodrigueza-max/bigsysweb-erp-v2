@@ -327,6 +327,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/campanas',               [\App\Http\Controllers\Clientes\CampanasController::class, 'enviar'])->middleware(['permiso:clientes,crear', 'throttle:6,1']);
         Route::post('/campanas/envios/{id}/enviado', [\App\Http\Controllers\Clientes\CampanasController::class, 'marcarEnviado'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/configurar',   [\App\Http\Controllers\Clientes\CobranzasController::class, 'configurar'])->middleware('permiso:clientes,editar');
+        Route::post('/cobranzas/cobrador',     [\App\Http\Controllers\Clientes\CobranzasController::class, 'configurarCobrador'])->middleware('permiso:clientes,editar'); // Fase 120.5
+        Route::post('/cobranzas/acuerdos/{id}', [\App\Http\Controllers\Clientes\CobranzasController::class, 'resolverAcuerdo'])->middleware('permiso:clientes,crear')->whereNumber('id');
         Route::post('/cobranzas/leer-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'leerTransferencia'])->middleware(['permiso:clientes,crear', 'throttle:30,1']);
         Route::post('/cobranzas/desde-transferencia', [\App\Http\Controllers\Clientes\CobranzasController::class, 'desdeTransferencia'])->middleware('permiso:clientes,crear');
         Route::post('/cobranzas/correr',       [\App\Http\Controllers\Clientes\CobranzasController::class, 'correr'])->middleware('permiso:clientes,crear');

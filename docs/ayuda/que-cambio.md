@@ -77,6 +77,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **Banco Central antes de fiar (120.2).** En la ficha del cliente, «Situación en el Banco Central»: semáforo, peor situación con los bancos, cuánto debe y cheques rechazados. También por Bigcito: «¿cómo está López en el Banco Central?».
 - **Casilla de facturas (120.3).** Cada empresa tiene una dirección de mail propia: reenviás ahí las facturas de compra (o te las mandan tus proveedores) y aparecen leídas en Comprar → Facturas de compra, listas para revisar y registrar. También se pueden subir hasta 20 juntas. Nada se registra solo.
 - **Conversación en vivo con Bigcito (120.4).** Con el 📞 del panel hablás con Bigcito como por teléfono: te contesta al instante, lo podés interrumpir y las acciones siguen esperando tu «sí». La llamada sigue aunque cambies de pantalla. Lo activa BigSys (se cobra por minuto).
+- **Bigcito cobrador (120.5).** Un cliente con deuda vencida que escribe por WhatsApp «no llego a pagar todo» recibe de Bigcito un plan en cuotas dentro de los límites que vos fijaste (cuotas, interés, cuota mínima, plazo). Cuando acepta, el acuerdo queda en Cobranzas para que lo apruebes; lo que pide de más te lo pasa a vos. Además se corrigió que guardar los avisos automáticos de Cobranzas desarmaba la conexión de WhatsApp hecha con el QR.
 
 ## Bigcito maneja el sistema con vos (fase 119)
 
