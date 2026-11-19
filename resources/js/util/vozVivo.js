@@ -32,7 +32,8 @@ export async function llamar() {
     canal = pc.createDataChannel('oai-events')
     canal.onopen = () => {
       vivo.estado = 'hablando'; vivo.desde = Date.now()
-      if (data.sesion) mandar({ type: 'session.update', session: data.sesion })
+      // El modelo ya quedó elegido al abrir la llamada: en la actualización de sesión no se manda de nuevo.
+      if (data.sesion) { const { model, ...sesion } = data.sesion; mandar({ type: 'session.update', session: sesion }) }
       mandar({ type: 'response.create', response: { instructions: 'Saludá en pocas palabras y preguntá en qué podés ayudar.' } })
     }
     canal.onmessage = (e) => { try { alEvento(JSON.parse(e.data)) } catch {} }
@@ -71,13 +72,21 @@ async function alEvento(ev) {
   if (t === 'conversation.item.input_audio_transcription.completed') { if (ev.transcript?.trim()) manos.dijo?.('user', ev.transcript.trim()); return }
   if (t === 'response.output_audio_transcript.done' || t === 'response.audio_transcript.done') { if (ev.transcript?.trim() && !lecturas.has(ev.response_id)) manos.dijo?.('assistant', ev.transcript.trim()); return }
   if (t === 'response.created') { if (trasHerramienta) { trasHerramienta = false; const id = ev.response?.id; if (id) { lecturas.add(id); if (esperaDespedida) idDespedida = id } } return }
-  if (t === 'response.done') { if (idDespedida && ev.response?.id === idDespedida) setTimeout(() => colgar('despedida'), 1200); return }
+  if (t === 'response.done') {
+    if (idDespedida && ev.response?.id === idDespedida) setTimeout(() => colgar('despedida'), 1200)
+    // Red de seguridad (así lo hace el ejemplo oficial): los pedidos del modelo también vienen listados al cerrar la respuesta.
+    for (const o of ev.response?.output ?? []) if (o?.type === 'function_call') await atender({ id: o.call_id ?? o.id, nombre: o.name, args: o.arguments })
+    return
+  }
   if (t === 'error') { console.warn('Voz en vivo:', ev.error?.message ?? ev); return }
 
   // El modelo pide algo: se lo pasamos al Bigcito de siempre y le devolvemos el resultado para que lo diga.
-  let llamada = null
-  if (t === 'response.function_call_arguments.done') llamada = { id: ev.call_id, nombre: ev.name, args: ev.arguments }
-  else if (t === 'response.output_item.done' && ev.item?.type === 'function_call') llamada = { id: ev.item.call_id, nombre: ev.item.name, args: ev.item.arguments }
+  if (t === 'response.function_call_arguments.done') await atender({ id: ev.call_id, nombre: ev.name, args: ev.arguments })
+  else if (t === 'response.output_item.done' && ev.item?.type === 'function_call') await atender({ id: ev.item.call_id ?? ev.item.id, nombre: ev.item.name, args: ev.item.arguments })
+}
+
+// Un pedido del modelo llega por hasta tres avisos distintos; se atiende una sola vez (por su identificador).
+async function atender(llamada) {
   if (!llamada?.id || !llamada.nombre || atendidas.has(llamada.id)) return
   atendidas.add(llamada.id)
   let args = {}; try { args = JSON.parse(llamada.args || '{}') } catch {}
