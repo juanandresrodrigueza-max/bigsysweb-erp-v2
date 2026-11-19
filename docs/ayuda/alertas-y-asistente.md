@@ -188,6 +188,18 @@ Lo que faltaba para no tener que tocar el mouse en el día a día:
 
 Como siempre: te muestra qué va a hacer y espera tu sí, usa las mismas reglas que la pantalla y respeta los permisos de tu usuario. «¿Qué podés hacer?» te lista todo lo que tenés disponible.
 
+## Conversación en vivo con Bigcito: 📞 (fase 120.4)
+
+Si BigSys la tiene activada, en el encabezado del panel de Bigcito aparece un **📞**. Lo tocás y quedás **en llamada** con Bigcito: hablás como por teléfono, sin tocar nada, y te contesta al instante. Podés **interrumpirlo** mientras habla y seguir de largo con otra cosa.
+
+- Pedile lo mismo que siempre: «¿cuánto vendí hoy?», «abrime la ficha de López», «cobrale diez mil a García en efectivo».
+- **Las acciones siguen esperando tu sí**: Bigcito te cuenta qué va a hacer y pregunta «¿Lo confirmo?». Decís «sí» y lo hace; «no» y lo descarta. En la charla escrita queda la tarjeta de siempre, por si preferís tocar **Confirmar**.
+- Lo que hablan queda escrito en el panel, con las listas y los links.
+- Si Bigcito te lleva a otra pantalla, **la llamada sigue**.
+- Para terminar: «nada más» o «chau», o tocá **Cortar**.
+
+Cada llamada tiene un tope de minutos y hay un máximo por día; cuando se cumple, Bigcito avisa y podés seguir con el micrófono común. Necesita permiso de micrófono y anda en Chrome, Edge, Safari y Firefox actuales, en computadora y celular. Si no ves el 📞, es que BigSys no la activó (la decisión es de BigSys porque se cobra por minuto hablado).
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:

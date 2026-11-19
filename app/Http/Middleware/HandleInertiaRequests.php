@@ -60,6 +60,7 @@ class HandleInertiaRequests extends Middleware
             'soporteWhatsapp' => fn() => $user?->business_id ? \App\Models\SistemaConfig::get('soporte_whatsapp') : null,
             // Fase 119.2: ¿hay voz por servidor (escuchar y hablar) para esta empresa? El panel de Bigcito elige cómo oír y cómo contestar.
             'vozServidor' => fn() => $user?->business_id ? app(\App\Services\IA\VozFotoService::class)->disponible($user->business) : false,
+            'vozVivo' => fn() => $user?->business_id ? app(\App\Services\IA\VozVivoService::class)->disponible($user->business) : false, // Fase 120.4
             'novedades' => fn() => $user?->business_id ? app(\App\Services\Avisos\CelularService::class)->sinLeer($user) : 0,
             'tiendas' => fn() => $user ? \App\Http\Controllers\MovilController::tiendas() : null, // Fase 93.1: links a la app en las tiendas
             'alertas' => fn() => $user?->business_id ? [

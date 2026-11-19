@@ -142,6 +142,16 @@
         <div><label class="label">Clave {{ config.voz_api_key_set ? '(dejar vacío para no cambiarla)' : '' }}</label><input v-model="form.voz_api_key" type="password" class="input font-mono" autocomplete="new-password" placeholder="sk-… o AIza…" /></div>
         <div><label class="label">Voz</label><select v-model="form.voz_nombre" class="input"><option :value="null">La de siempre</option><option v-for="v in (config.voces?.[form.voz_proveedor] ?? [])" :key="v" :value="v">{{ v }}</option></select></div>
       </div>
+      <!-- Fase 120.4: conversación en vivo -->
+      <div class="rounded-xl border border-marca-borde p-3 space-y-2" data-e2e="voz-vivo">
+        <label class="flex items-start gap-2 text-sm"><input v-model="form.voz_vivo" type="checkbox" class="mt-1" :disabled="form.voz_proveedor !== 'openai'" /><span><b>Conversación en vivo (📞)</b>: hablar con Bigcito como por teléfono, se lo puede interrumpir y contesta al instante. Usa el servicio de voz en tiempo real de OpenAI (sólo con clave de OpenAI) y <b>se cobra por minuto hablado</b>, bastante más caro que el micrófono común; por eso tiene tope por llamada y por día. <span v-if="form.voz_proveedor !== 'openai'" class="text-carmin">Elegí OpenAI como servicio para poder prenderla.</span></span></label>
+        <div v-if="form.voz_vivo" class="grid sm:grid-cols-3 gap-3">
+          <div><label class="label">Modelo</label><input v-model="form.voz_vivo_modelo" class="input font-mono" placeholder="gpt-realtime" /></div>
+          <div><label class="label">Minutos máximos por llamada</label><input v-model.number="form.voz_vivo_minutos" type="number" min="1" max="30" class="input" /></div>
+          <div><label class="label">Llamadas por usuario por día</label><input v-model.number="form.voz_vivo_diarias" type="number" min="1" max="500" class="input" /></div>
+        </div>
+        <p v-if="config.voz_vivo" class="text-xs text-marca-muted">Este mes se hablaron <b>{{ config.voz_vivo_mes }}</b> minutos en vivo entre todas las empresas.</p>
+      </div>
       <div class="flex justify-end gap-2"><button v-if="config.voz_api_key_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('voz_api_key')">Borrar clave</button><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
     </form>
 
