@@ -1,5 +1,5 @@
 <template>
-  <AppLayout titulo="Rutinas de Bigcito">
+  <AppLayout titulo="Rutinas y memoria de Bigcito">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div><p class="kicker mb-1">Bigcito trabaja solo</p><h1 class="page-title">Lo que le dejaste encargado</h1>
         <p class="page-subtitle">Le decís qué querés y cada cuánto, y Bigcito lo hace solo y te lo manda. Si hay que hacer algo (cobrar, mandar un recordatorio, pedir mercadería), te lo deja propuesto y vos confirmás. También se lo podés pedir hablando: «todos los lunes a las 8 pasame el resumen de la semana».</p></div>
@@ -47,6 +47,25 @@
       </div>
     </div>
 
+    <!-- Fase 119.5: lo que Bigcito recuerda -->
+    <div class="card mt-4" data-e2e="memoria">
+      <p class="font-bold">Lo que Bigcito recuerda</p>
+      <p class="text-sm text-marca-muted mb-3">Apodos, cuentas y formas de trabajar que no querés repetir. Se lo decís hablando («acordate que Pepe es Pérez SRL», «mi caja es la Caja Central», «contestame corto») o lo anotás acá. Lo tiene presente en el panel, por WhatsApp y en las rutinas.</p>
+      <ul v-if="memoria.length" class="space-y-1.5 mb-3">
+        <li v-for="m in memoria" :key="m.id" class="flex items-start gap-2 text-sm p-2 rounded-xl bg-marca-fondo" data-e2e="memoria-item">
+          <span class="flex-1">{{ m.texto }} <span v-if="m.de_la_empresa" class="badge bg-violeta-light text-violeta ml-1">toda la empresa</span></span>
+          <button v-if="!m.de_la_empresa || puedeMemoriaEmpresa" type="button" class="text-xs text-carmin shrink-0" @click="router.delete(`/rutinas/memoria/${m.id}`, { preserveScroll: true })">Olvidar</button>
+        </li>
+      </ul>
+      <p v-else class="text-sm text-marca-muted mb-3">Todavía no le pediste que recuerde nada.</p>
+      <form class="flex flex-wrap items-center gap-2" @submit.prevent="fm.post('/rutinas/memoria', { preserveScroll: true, onSuccess: () => fm.reset('texto') })">
+        <input v-model="fm.texto" class="input flex-1 min-w-[14rem]" maxlength="300" placeholder="Pepe es Pérez SRL" data-e2e="memoria-texto" />
+        <label v-if="puedeMemoriaEmpresa" class="flex items-center gap-1.5 text-sm"><input v-model="fm.empresa" type="checkbox" class="accent-carmin" /> Para toda la empresa</label>
+        <button class="btn-primary" :disabled="fm.processing || fm.texto.trim().length < 4" data-e2e="memoria-guardar">Anotar</button>
+      </form>
+      <p v-if="fm.errors.texto" class="text-xs text-carmin mt-1">{{ fm.errors.texto }}</p>
+    </div>
+
     <Modal :abierto="abierto" :titulo="f.id ? 'Editar rutina' : 'Nueva rutina'" @cerrar="abierto = false">
       <form class="space-y-3" @submit.prevent="guardar">
         <div><label class="label">¿Qué tiene que hacer?</label><textarea v-model="f.instruccion" rows="3" class="input" placeholder="Pasame cuánto se vendió y cuánto se cobró, y quiénes son los que más deben." data-e2e="rutina-instruccion"></textarea><p v-if="f.errors.instruccion" class="text-xs text-carmin mt-1">{{ f.errors.instruccion }}</p></div>
@@ -75,7 +94,8 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 
-const props = defineProps({ rutinas: Array, frecuencias: Object, canales: Object, dias: Object, puedeWhatsapp: Boolean, canalDefecto: String, conIa: Boolean, prueba: Object, ejemplos: Array })
+const props = defineProps({ rutinas: Array, frecuencias: Object, canales: Object, dias: Object, puedeWhatsapp: Boolean, canalDefecto: String, conIa: Boolean, prueba: Object, ejemplos: Array, memoria: { type: Array, default: () => [] }, puedeMemoriaEmpresa: Boolean })
+const fm = useForm({ texto: '', empresa: false })
 const abierto = ref(false), probando = ref(null)
 const vacio = () => ({ id: null, nombre: '', instruccion: '', frecuencia: 'diaria', hora: '08:00', dias: [1], dia_mes: 1, canal: props.canalDefecto, solo_si_hay: false })
 const f = useForm(vacio())

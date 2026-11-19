@@ -23,7 +23,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 //   acción:   proponer(User, array): ['titulo', 'detalle', 'datos'] | ['error' => '...'];  confirmar(User, array $datos): ['texto', 'url'?]
 class Catalogo
 {
-    public const MODULOS = [Modulos\General::class, Modulos\Clientes::class, Modulos\Ventas::class, Modulos\Stock::class, Modulos\Compras::class, Modulos\Fondos::class, Modulos\Contable::class, Modulos\Personal::class, Modulos\Gestion::class, Modulos\Consejos::class, Modulos\Agentes::class, Modulos\Edicion::class, Modulos\Navegacion::class, Modulos\Rutinas::class];
+    public const MODULOS = [Modulos\General::class, Modulos\Clientes::class, Modulos\Ventas::class, Modulos\Stock::class, Modulos\Compras::class, Modulos\Fondos::class, Modulos\Contable::class, Modulos\Personal::class, Modulos\Gestion::class, Modulos\Consejos::class, Modulos\Agentes::class, Modulos\Edicion::class, Modulos\Navegacion::class, Modulos\Rutinas::class, Modulos\Memoria::class];
     public const VENCE_MINUTOS = 30;
     public const LIMITE_POR_MINUTO = 120; // Fase 59: ya hay 60 consultas; una charla larga con Bigcito encadena varias
 

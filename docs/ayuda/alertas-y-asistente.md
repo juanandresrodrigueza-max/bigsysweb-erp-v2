@@ -158,6 +158,22 @@ Cómo trabaja una rutina:
 
 **Varias cosas en un solo pedido.** «Cobrale 5.000 a López y 3.000 a García», «mandale el recordatorio a los tres que más deben», «hacele un presupuesto a Gómez y abrime su ficha». Bigcito arma la lista, te la muestra y con un **«Confirmar las 3»** (o un «sí» hablando o por WhatsApp) hace todas. Podés sacar alguna de la lista antes. Si una falla, queda marcada en rojo y las demás se hacen igual.
 
+## Bigcito se acuerda de cómo trabajás (fase 119.5)
+
+Para no repetirle siempre lo mismo, decile que lo anote:
+
+- **Apodos**: «acordate que Pepe es Pérez SRL», «el Gordo es Ferretería López», «la camioneta es la cuenta Gastos de rodados». Después alcanza con «cobrale 5.000 a Pepe».
+- **Valores de siempre**: «mi caja es la Caja Central», «a López siempre le facturo con la lista 2», «los gastos de nafta van a Rodados».
+- **Cómo querés que te hable**: «contestame corto», «decime siempre los importes sin centavos».
+- **Datos del negocio que no están en el sistema**: «los pedidos de obra se entregan los martes».
+
+Lo tiene presente en el panel, por WhatsApp y en las rutinas. Para revisarlo: «¿qué recordás?». Para sacarlo: «olvidate de lo de Pepe». También está en **Inicio → Rutinas**, abajo, en «Lo que Bigcito recuerda», donde lo anotás o lo borrás a mano.
+
+- Cada persona tiene **lo suyo**. El dueño (o quien puede editar la configuración) puede dejar algo **para toda la empresa**: «acordate, para todos, que…» o el tilde «Para toda la empresa» en la pantalla.
+- Si le decís algo nuevo sobre el mismo apodo, **lo reemplaza** (no quedan dos «Pepe»).
+- Son anotaciones: no saltean permisos ni la confirmación antes de hacer algo.
+- No le pidas que recuerde contraseñas, claves ni datos de tarjetas.
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:

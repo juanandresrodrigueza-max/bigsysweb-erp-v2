@@ -18,6 +18,8 @@ class RutinasController extends Controller
             'frecuencias' => RutinasService::FRECUENCIAS, 'canales' => RutinasService::CANALES, 'dias' => RutinasService::DIAS,
             'puedeWhatsapp' => $svc->puedeWhatsapp($u), 'canalDefecto' => $svc->canalPorDefecto($u), 'conIa' => (bool) config('services.anthropic.api_key'),
             'prueba' => session('prueba'),
+            // Fase 119.5: lo que Bigcito recuerda de este usuario y de la empresa.
+            'memoria' => app(\App\Services\IA\MemoriaService::class)->para($u), 'puedeMemoriaEmpresa' => app(\App\Services\IA\MemoriaService::class)->puedeEmpresa($u),
             'ejemplos' => [
                 ['nombre' => 'Resumen del lunes', 'instruccion' => 'Pasame cómo cerró la semana pasada: cuánto se vendió, cuánto se cobró, cuánto queda por cobrar y los 5 clientes que más deben.', 'frecuencia' => 'semanal', 'dias' => [1], 'hora' => '08:00'],
                 ['nombre' => 'Cierre del día', 'instruccion' => 'Decime cuánto se vendió hoy, cuánto entró en caja y bancos y si quedó algo sin cobrar de hoy.', 'frecuencia' => 'habiles', 'hora' => '19:00'],
@@ -48,6 +50,20 @@ class RutinasController extends Controller
     {
         BigcitoRutina::where('user_id', $request->user()->id)->findOrFail($id)->delete();
         return back()->with('success', 'Rutina borrada.');
+    }
+
+    // Fase 119.5: anotar y borrar lo que Bigcito recuerda.
+    public function recordar(Request $request, \App\Services\IA\MemoriaService $svc)
+    {
+        $d = $request->validate(['texto' => 'required|string|min:4|max:300', 'empresa' => 'boolean']);
+        $r = $svc->recordar($request->user(), $d['texto'], (bool) ($d['empresa'] ?? false));
+        return isset($r['error']) ? back()->withErrors(['texto' => $r['error']]) : back()->with('success', $r['reemplazo'] ? 'Actualizado: ya tenía algo anotado sobre eso.' : 'Anotado. Bigcito lo va a tener presente.');
+    }
+
+    public function olvidar(Request $request, \App\Services\IA\MemoriaService $svc, int $id)
+    {
+        $r = $svc->olvidar($request->user(), (string) $id);
+        return isset($r['error']) ? back()->withErrors(['memoria' => $r['error']]) : back()->with('success', 'Listo, Bigcito ya no lo recuerda.');
     }
 
     // «Probar ahora»: la hace y muestra el resultado en pantalla, sin mandarlo ni mover el horario.

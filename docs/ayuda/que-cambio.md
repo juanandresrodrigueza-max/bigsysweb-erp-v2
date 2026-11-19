@@ -80,6 +80,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **«Hola Bigcito» (119.3).** Con la oreja 👂 prendida lo llamás con la voz desde cualquier pantalla: «Bigcito, ¿cuánto vendí hoy?». Y entiende la charla de corrido: «lo mismo para García», «pero por transferencia», «nada más».
 - **Rutinas (119.4).** «Todos los lunes a las 8 pasame el resumen», «avisame sólo si alguien pasa su límite». Bigcito lo hace solo y te lo manda por la campana, WhatsApp o mail; lo que sea una acción queda propuesto para que confirmes. Están en Inicio → Rutinas.
 - **Varias cosas en un pedido (119.4).** «Cobrale a López y a García»: arma la lista y las confirma todas juntas.
+- **Se acuerda de cómo trabajás (119.5).** «Acordate que Pepe es Pérez SRL», «mi caja es la Caja Central», «contestame corto». Lo ves y lo borrás con «¿qué recordás?» / «olvidate de…» o en Inicio → Rutinas.
 
 ## Conectar WhatsApp escaneando un QR (fase 118)
 

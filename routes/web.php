@@ -220,6 +220,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/rutinas/{id}/alternar',        [\App\Http\Controllers\RutinasController::class, 'alternar'])->middleware('permiso:dashboard')->whereNumber('id');
     Route::post('/rutinas/{id}/probar',          [\App\Http\Controllers\RutinasController::class, 'probar'])->middleware(['permiso:dashboard', 'throttle:10,1'])->whereNumber('id');
     Route::delete('/rutinas/{id}',               [\App\Http\Controllers\RutinasController::class, 'borrar'])->middleware('permiso:dashboard')->whereNumber('id');
+    Route::post('/rutinas/memoria',              [\App\Http\Controllers\RutinasController::class, 'recordar'])->middleware(['permiso:dashboard', 'throttle:30,1']); // Fase 119.5
+    Route::delete('/rutinas/memoria/{id}',       [\App\Http\Controllers\RutinasController::class, 'olvidar'])->middleware('permiso:dashboard')->whereNumber('id');
     Route::get('/novedades',                     [\App\Http\Controllers\AvisosCelularController::class, 'novedades']);
     Route::post('/novedades/{id}',               [\App\Http\Controllers\AvisosCelularController::class, 'marcar'])->whereNumber('id');
     Route::get('/mejoras',                       [\App\Http\Controllers\AvisosCelularController::class, 'mejoras']);
