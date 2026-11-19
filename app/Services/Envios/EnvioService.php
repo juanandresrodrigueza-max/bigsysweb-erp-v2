@@ -79,8 +79,12 @@ class EnvioService
                 if (! str_starts_with($tel, '54')) $tel = '54' . ltrim($tel, '0');
                 $ws = $b->whatsapp_settings ?? [];
                 if (! empty($ws['token']) && ! empty($ws['phone_id'])) {
-                    $r = Http::withToken($ws['token'])->timeout(10)->post("https://graph.facebook.com/v20.0/{$ws['phone_id']}/messages", ['messaging_product' => 'whatsapp', 'to' => $tel, 'type' => 'text', 'text' => ['body' => $cuerpo]]);
-                    if (! $r->ok()) throw new \RuntimeException('WhatsApp API: ' . $r->body());
+                    // Fase 120.1: pasa por el mismo envío que respeta la ventana de 24 horas. Un recordatorio de deuda a alguien
+                    // que no escribió hoy sale con la plantilla aprobada, y el texto completo le llega cuando contesta.
+                    $opt = ['nombre' => $contact?->name ? explode(' ', trim($contact->name))[0] : null];
+                    if ($tipo === 'recordatorio' && $contact) $opt += ['plantilla' => 'bigsys_recordatorio', 'params' => [$opt['nombre'] ?: 'cómo estás', $b->name, '$ ' . number_format((float) ($m instanceof Contact ? $m->balance : ($m->saldo ?? $contact->balance)), 0, ',', '.')]];
+                    $r = app(\App\Services\Canales\WhatsappPedidosService::class)->responder($b, $tel, $cuerpo, $opt);
+                    if (empty($r['enviado'])) throw new \RuntimeException('WhatsApp API: ' . ($r['error'] ?? 'no salió'));
                     $envio->update(['estado' => 'enviado', 'enviado_en' => now(), 'link' => "https://wa.me/{$tel}"]);
                 } else {
                     // Sin API: queda el link listo para abrir WhatsApp Web con el texto cargado.

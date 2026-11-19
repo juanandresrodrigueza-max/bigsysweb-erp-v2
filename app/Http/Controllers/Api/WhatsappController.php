@@ -37,7 +37,22 @@ class WhatsappController extends Controller
         // Formato simple para integradores: {"telefono": "...", "texto": "..."}
         if (! $mensajes && $request->filled('texto')) $mensajes[] = ['de' => $request->input('telefono'), 'texto' => $request->input('texto')];
         $creados = []; $atendidos = [];
+        // Fase 120.1: Meta avisa cuando un texto no se pudo entregar porque la persona no escribió en las últimas 24 horas
+        // (código 131047): se cierra esa ventana y, si hay plantilla aprobada, se reintenta con ella.
+        $pl = app(\App\Services\Canales\WhatsappPlantillasService::class);
+        foreach ($request->input('entry', []) as $e) foreach ($e['changes'] ?? [] as $ch) foreach ($ch['value']['statuses'] ?? [] as $st) {
+            if (($st['status'] ?? '') !== 'failed' || empty($st['recipient_id'])) continue;
+            $codigos = array_map(fn($x) => (int) ($x['code'] ?? 0), (array) ($st['errors'] ?? []));
+            if (array_intersect($codigos, [131047, 131026])) { if ($pl->rebotado($b, (string) $st['recipient_id'], $st['id'] ?? null)) $atendidos[] = 'reintento_plantilla'; }
+        }
         foreach ($mensajes as $m) {
+            // Fase 120.1: quien escribe abre su ventana de 24 horas; si tenía algo pendiente de recibir (lo que salió como plantilla), se lo mandamos ahora.
+            if (! empty($m['de'])) {
+                $pend = $pl->registrarEntrante($b, (string) $m['de']);
+                foreach ($pend as $texto) $wa->responder($b, (string) $m['de'], $texto, ['texto_libre' => true]);
+                // Si sólo contestó «ver», «ok» o parecido para leer lo pendiente, no hay nada más que atender.
+                if ($pend) { $atendidos[] = 'pendientes'; if (empty($m['audio_id']) && preg_match('/^\W*(ver|ok|okey|dale|hola|buenas|listo|mostrar|leer|s[ií])\W*$/iu', trim((string) $m['texto']))) continue; }
+            }
             // Fase 111: si escribe (o manda un audio) alguien del equipo, es una orden para Bigcito: propone y con «sí» ejecuta.
             if (\App\Services\IA\BigcitoWhatsappService::activo($b) && ($bg = app(\App\Services\IA\BigcitoWhatsappService::class)->atender($b, $m))) {
                 if ($m['de']) $wa->responder($b, $m['de'], $bg['respuesta']);

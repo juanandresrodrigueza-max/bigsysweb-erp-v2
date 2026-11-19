@@ -71,6 +71,10 @@ El sistema se ve como la web de BigSys: fondo lila muy suave, **ciruela** para e
 
 BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma pantalla que ves en el navegador, adentro de una app): avisos que llegan al toque aunque no tengas el sistema abierto, Bigcito que escucha mejor y los links a erp.bigsysweb.com que abren directo en la app. Cuando esté publicada en las tiendas, en el celular aparece la barra **«Instalar la app»** con los links. Mientras tanto, **Avisos al celular** sigue funcionando desde el navegador. Hay un artículo entero: **App del celular**.
 
+## Más inteligencia y conexiones (fase 120)
+
+- **WhatsApp fuera de las 24 horas (120.1).** Los recordatorios, informes y avisos que el sistema manda «en frío» ahora salen con una plantilla aprobada por Meta, y el mensaje completo llega cuando la persona contesta. Se piden en Configuración → Tienda y canales → Pedidos por WhatsApp.
+
 ## Bigcito maneja el sistema con vos (fase 119)
 
 - **Te lleva por el sistema (119.1).** «Llevame a cerrar caja», «abrime la ficha de López», «nueva factura para García», «imprimí la factura 123». Hablando (Alt+B) o escribiendo.

@@ -32,6 +32,20 @@ Tenelo en cuenta:
 - Si el botón no aparece y dice «todavía no está habilitado», BigSys tiene que cargar la aplicación de Meta en el panel. Mientras tanto queda el modo manual en **Avanzado** (Phone ID y token de Meta for Developers, con el webhook y el verify token que muestra la pantalla).
 - Las casillas de abajo (crear el pedido solo, responder solo, Bigcito atiende clientes y equipo) valen igual para las dos formas de conectar.
 
+### Escribirle a alguien que no te escribió hoy: plantillas (fase 120.1)
+
+WhatsApp tiene una regla: por la conexión del sistema sólo se puede mandar un **mensaje libre** a quien le escribió a tu número en las **últimas 24 horas**. Para escribirle a alguien «en frío» (un recordatorio de deuda, el informe de una rutina de Bigcito, un encargo a un empleado) hace falta una **plantilla aprobada por Meta**.
+
+El ERP lo resuelve solo:
+
+1. En **Configuración → Tienda y canales → Pedidos por WhatsApp**, debajo de «WhatsApp conectado», tocá **Pedir las plantillas a Meta**. Si conectaste con el QR ya quedan pedidas. Meta las aprueba en minutos u horas; el estado de cada una se ve ahí mismo y se actualiza solo dos veces por día (o con el botón).
+2. Cuando hay que escribirle a alguien que no te escribió hoy, sale la **plantilla** («Hola Ana, tenés un mensaje de Corralón Demo: … Respondé VER para leerlo completo»).
+3. Apenas la persona contesta (con VER o con lo que sea), **le llega el mensaje completo** y la charla sigue normal por 24 horas.
+
+Si la persona te escribió hace poco, nada cambia: el mensaje sale directo. Si Meta rebota un mensaje porque la ventana ya había cerrado, el ERP lo reintenta con la plantilla. Lo que mandás **desde tu celular** con la app WhatsApp Business no tiene esta regla; es sólo para lo que manda el sistema.
+
+Las plantillas son cuatro: avisos en general, recordatorios de deuda (con el saldo), informes de Bigcito y encargos del equipo. Si conectaste a mano (con Phone ID y token), cargá también el **WABA ID** en «Avanzado» para poder pedirlas.
+
 ### Bigcito atiende a tus clientes por WhatsApp (Fase 60)
 
 Con la API conectada, además de tomar pedidos, Bigcito contesta las consultas de siempre sin que nadie esté mirando el teléfono:

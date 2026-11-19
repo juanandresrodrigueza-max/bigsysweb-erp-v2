@@ -104,6 +104,8 @@ class WhatsappConexionService
         ]);
         $b->update(['whatsapp_settings' => $nuevo]);
         AuditLog::registrar('editar', $b, 'WhatsApp conectado con el QR de Meta: ' . ($nuevo['numero'] ?? $phoneId));
+        // Fase 120.1: deja pedidas las plantillas para poder escribir fuera de las 24 horas (Meta las aprueba en minutos u horas).
+        try { app(WhatsappPlantillasService::class)->sincronizar($b->fresh()); } catch (\Throwable $e) { report($e); }
         return self::estado($b->fresh());
     }
 
@@ -115,7 +117,7 @@ class WhatsappConexionService
             try { Http::withToken($ws['token'])->timeout(10)->delete(self::GRAPH . "/{$ws['waba_id']}/subscribed_apps"); } catch (\Throwable $e) { report($e); }
         }
         $num = $ws['numero'] ?? ($ws['phone_id'] ?? '');
-        unset($ws['token'], $ws['phone_id'], $ws['waba_id'], $ws['numero'], $ws['nombre_verificado'], $ws['conectado_en'], $ws['registrado'], $ws['sincronizado'], $ws['coexistencia'], $ws['modo'], $ws['pin']);
+        unset($ws['plantillas'], $ws['plantillas_en'], $ws['token'], $ws['phone_id'], $ws['waba_id'], $ws['numero'], $ws['nombre_verificado'], $ws['conectado_en'], $ws['registrado'], $ws['sincronizado'], $ws['coexistencia'], $ws['modo'], $ws['pin']);
         $b->update(['whatsapp_settings' => $ws]);
         AuditLog::registrar('editar', $b, 'WhatsApp desconectado' . ($num ? " ({$num})" : ''));
     }

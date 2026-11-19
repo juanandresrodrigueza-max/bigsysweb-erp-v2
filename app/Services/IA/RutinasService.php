@@ -187,7 +187,8 @@ class RutinasService
         $lista = $props ? "\n\n" . collect($props)->map(fn($p) => "➡️ {$p['titulo']}")->implode("\n") : '';
         if ($r->canal === 'whatsapp' && $this->puedeWhatsapp($u)) {
             $msg = "🤖 *{$r->nombre}*\n{$texto}" . ($props ? $lista . "\n\nRespondé SÍ para " . (count($props) > 1 ? 'hacerlas' : 'hacerlo') . ' o NO para cancelar.' : '');
-            $env = app(\App\Services\Canales\WhatsappPedidosService::class)->responder($u->business, (string) $u->mobile, $msg);
+            // Fase 120.1: si el usuario no le escribió al número en el último día, sale la plantilla «informe listo» y el informe le llega al contestar VER.
+            $env = app(\App\Services\Canales\WhatsappPedidosService::class)->responder($u->business, (string) $u->mobile, $msg, ['nombre' => explode(' ', trim((string) $u->name))[0], 'plantilla' => 'bigsys_informe', 'params' => [explode(' ', trim((string) $u->name))[0], $r->nombre, $u->business->name]]);
             if (empty($env['error'])) {
                 // Deja la charla de WhatsApp lista para que un SÍ confirme lo propuesto.
                 $clave = "bigcito:wa:{$u->id}"; $estado = Cache::get($clave, ['historial' => [], 'propuestas' => []]);

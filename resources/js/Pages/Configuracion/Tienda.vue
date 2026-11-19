@@ -129,6 +129,25 @@
           <p v-else class="text-sm p-3 rounded-xl bg-amber-50 text-amber-800">Todavía no está habilitado el botón de conexión. {{ $page.props.auth?.user?.is_superadmin ? 'Cargá la aplicación de Meta en Panel → Sistema → «WhatsApp con un botón».' : 'Pedile a BigSys que lo habilite, o conectalo a mano más abajo.' }}</p>
         </div>
 
+        <!-- Fase 120.1: plantillas para escribir fuera de las 24 horas -->
+        <div v-if="wa.conectado" class="mt-3 p-3 rounded-xl border border-marca-borde text-sm" data-e2e="wa-plantillas">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="font-semibold">Escribirle a alguien que no te escribió hoy</p>
+            <span class="badge" :class="plantillas.aprobadas === plantillas.plantillas.length ? 'bg-emerald-50 text-emerald-700' : plantillas.aprobadas ? 'bg-amber-50 text-amber-700' : 'bg-gris-light text-marca-muted'">{{ plantillas.aprobadas }} de {{ plantillas.plantillas.length }} aprobadas</span>
+          </div>
+          <p class="text-xs text-marca-muted mt-1">WhatsApp sólo deja mandar un mensaje libre a quien te escribió en las últimas 24 horas. Para recordatorios de deuda, informes de Bigcito o encargos «en frío» hace falta una plantilla aprobada por Meta: sale la plantilla y, cuando la persona contesta, le llega el mensaje completo.</p>
+          <ul class="mt-2 space-y-1 text-xs">
+            <li v-for="p in plantillas.plantillas" :key="p.nombre" class="flex items-center justify-between gap-2"><span>{{ p.para }}</span>
+              <span :class="{ aprobada: 'text-emerald-700', en_revision: 'text-amber-700', rechazada: 'text-carmin', error: 'text-carmin', pausada: 'text-carmin' }[p.estado] ?? 'text-marca-muted'" :title="p.motivo ?? ''">{{ { aprobada: 'aprobada', en_revision: 'en revisión de Meta', rechazada: 'rechazada', error: 'no se pudo pedir', pausada: 'pausada por Meta', sin_crear: 'sin pedir' }[p.estado] ?? p.estado }}</span></li>
+          </ul>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
+            <button type="button" class="btn-secondary !py-1 text-xs" :disabled="!plantillas.disponible" @click="router.post('/configuracion/tienda/whatsapp/plantillas', {}, { preserveScroll: true })" data-e2e="wa-plantillas-pedir">{{ plantillas.revisado ? 'Actualizar el estado' : 'Pedir las plantillas a Meta' }}</button>
+            <span v-if="!plantillas.disponible" class="text-xs text-amber-700">Falta el identificador de la cuenta (WABA): cargalo en «Avanzado» o conectá con el QR.</span>
+            <span v-else-if="plantillas.revisado" class="text-xs text-marca-muted">Revisado el {{ plantillas.revisado.slice(0, 16).replace('T', ' ') }}. Meta suele aprobarlas en minutos u horas.</span>
+          </div>
+          <p v-if="$page.props.errors?.plantillas" class="text-xs text-carmin mt-1">{{ $page.props.errors.plantillas }}</p>
+        </div>
+
         <form @submit.prevent="fw.post('/configuracion/tienda/whatsapp', { preserveScroll: true })" class="space-y-2 mt-3">
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_pedidos" type="checkbox" class="accent-carmin" /> Crear el pedido automáticamente</label>
           <label class="flex items-center gap-2 text-sm"><input v-model="fw.auto_responder" type="checkbox" class="accent-carmin" /> Responder automáticamente</label>
@@ -139,6 +158,7 @@
             <div class="space-y-2 mt-2">
               <input v-model="fw.phone_id" class="input" placeholder="Phone number ID" />
               <input v-model="fw.token" class="input" placeholder="Token permanente (vacío = no cambiar)" />
+              <input v-model="fw.waba_id" class="input" placeholder="WABA ID (identificador de la cuenta de WhatsApp Business, para las plantillas)" />
               <div class="text-[11px]">Webhook: <code class="select-all break-all">{{ whatsapp.url_entrada }}</code><br>Verify token: <code class="select-all">{{ whatsapp.verify_token ?? '(se genera al guardar)' }}</code></div>
             </div>
           </details>
@@ -236,7 +256,8 @@ const tab = ref(location.hash === '#canales' ? 'canales' : location.hash === '#p
 const base = location.origin
 const ft = useForm({ tienda: JSON.parse(JSON.stringify({ ...props.config, rubros: props.config.rubros ?? [] })) })
 const ff = useForm({ ...props.fidelizacion })
-const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', token: '', verify_token: '', auto_pedidos: props.whatsapp.auto_pedidos ?? true, auto_responder: props.whatsapp.auto_responder ?? true, atencion_clientes: props.whatsapp.atencion_clientes ?? true, bigcito_equipo: props.whatsapp.bigcito_equipo ?? true })
+const plantillas = computed(() => props.whatsapp.plantillas ?? { disponible: false, plantillas: [], aprobadas: 0, revisado: null })
+const fw = useForm({ phone_id: props.whatsapp.phone_id ?? '', waba_id: props.whatsapp.waba_id ?? '', token: '', verify_token: '', auto_pedidos: props.whatsapp.auto_pedidos ?? true, auto_responder: props.whatsapp.auto_responder ?? true, atencion_clientes: props.whatsapp.atencion_clientes ?? true, bigcito_equipo: props.whatsapp.bigcito_equipo ?? true })
 // Fase 118: «Conectar WhatsApp» con el QR de Meta (Embedded Signup con coexistencia), con la app de Meta de BigSys.
 const wa = computed(() => props.whatsapp.conexion ?? { conectado: props.whatsapp.configurado, app_lista: false })
 const conectando = ref(false), errorWa = ref(null), pruebaWa = ref('')
