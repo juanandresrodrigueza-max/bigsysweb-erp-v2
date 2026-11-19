@@ -108,6 +108,17 @@ Bigcito ya no es sólo un chat: es alguien que maneja el sistema con vos.
 
 Sólo abre pantallas que tu usuario puede ver. **La charla no se pierde** cuando cambia de pantalla: el panel queda abierto con lo que venían hablando, y en manos libres sigue escuchando. Funciona también sin clave de IA (modo básico) para abrir pantallas y fichas. Al buscar por nombre no importan los acentos ni las mayúsculas: «López» encuentra a «LOPEZ SRL».
 
+## Bigcito escucha y habla en cualquier navegador y celular (fase 119.2)
+
+Antes, hablarle a Bigcito dependía del navegador: en Chrome andaba, en iPhone, Safari o Firefox no. Ahora funciona igual en todos:
+
+- **Para hablarle**, tocá el micrófono (o Alt+B). Donde el navegador dicta solo (Chrome, Edge, Android) se usa eso, que es instantáneo. Donde no, Bigcito **graba, corta solo cuando dejás de hablar** y pasa el audio a texto en el servidor. No hace falta tocar para cortar (si querés, podés).
+- **Para contestarte**, usa una **voz natural** en vez de la voz robótica del navegador. Se silencia con el parlante 🔊 del panel.
+- **Manos libres** (🎙️) ahora anda también en iPhone: te contesta y vuelve a escuchar solo. Si nadie habla en unos segundos, deja de escuchar hasta que lo vuelvas a llamar.
+- Los **audios de WhatsApp** al número de la empresa se entienden sin que tengas que cargar ninguna clave.
+
+Todo esto viene **incluido por BigSys**. Si preferís usar tu propia cuenta de OpenAI o Gemini, la cargás en Configuración → Conexiones IA → «Audios para Bigcito» y pasa a usarse la tuya. La primera vez el navegador te pide permiso para el micrófono: aceptalo.
+
 ## Bigcito por WhatsApp y manos libres (fase 111)
 
 **Por WhatsApp.** Si la empresa tiene la API de WhatsApp Cloud conectada (Configuración → Tienda y canales → Pedidos por WhatsApp), cualquier persona del equipo con su **celular cargado en Configuración → Usuarios** puede escribirle o **mandarle un audio** a ese número y Bigcito lo atiende como si estuviera en la pantalla:

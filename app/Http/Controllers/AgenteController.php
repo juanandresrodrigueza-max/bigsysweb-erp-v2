@@ -24,10 +24,21 @@ class AgenteController extends Controller
     // Fase 40.3: un audio grabado se transcribe (OpenAI o Gemini) y vuelve como texto; el panel lo manda como pregunta por voz.
     public function audio(Request $request)
     {
-        $request->validate(['audio' => 'required|file|max:12288']);
+        $request->validate(['audio' => 'required|file|max:12288', 'mime' => 'nullable|string|max:60']);
         $f = $request->file('audio');
-        $texto = app(\App\Services\IA\VozFotoService::class)->transcribir($request->user()->business()->first(), $f->getRealPath(), $f->getMimeType() ?: 'audio/webm');
+        // El navegador sabe mejor qué grabó (Safari graba audio/mp4; por contenido a veces se detecta como video).
+        $mime = $request->input('mime') && str_starts_with((string) $request->input('mime'), 'audio/') ? explode(';', $request->input('mime'))[0] : ($f->getMimeType() ?: 'audio/webm');
+        $texto = app(\App\Services\IA\VozFotoService::class)->transcribir($request->user()->business()->first(), $f->getRealPath(), $mime);
         return response()->json(['texto' => $texto]);
+    }
+
+    // Fase 119.2: Bigcito contesta con voz natural (OpenAI o Gemini). Sin clave de voz devuelve 204 y el panel usa la del navegador.
+    public function voz(Request $request)
+    {
+        $d = $request->validate(['texto' => 'required|string|max:4000']);
+        $r = app(\App\Services\IA\VozFotoService::class)->hablar($request->user()->business()->first(), $d['texto']);
+        if (! $r) return response()->noContent();
+        return response($r['audio'], 200, ['Content-Type' => $r['mime'], 'Cache-Control' => 'private, max-age=600']);
     }
 
     // El usuario confirmó una propuesta: se ejecuta con sus permisos (vueltos a chequear) y queda auditado. Mismo catálogo que MCP.

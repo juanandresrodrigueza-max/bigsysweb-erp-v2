@@ -62,7 +62,7 @@ Lo que sigue es lo que **no** puede hacer el sistema solo. El resto (artículos,
 
 - [ ] Cargar el **celular de cada usuario** en Configuración → Usuarios (con código de área).
 - [ ] WhatsApp Cloud API de la empresa en Configuración → Tienda y canales → Pedidos por WhatsApp (phone ID, token, webhook) y dejar tildado «Bigcito atiende al equipo».
-- [ ] Para audios: clave de **OpenAI o Gemini** en Configuración → Conexiones IA (Claude no escucha audio).
+- [ ] **Voz de Bigcito para todas las empresas** (fase 119.2): cargar una clave de **OpenAI o Gemini** en Panel → Sistema → «Voz de Bigcito». Con eso Bigcito escucha en iPhone/Safari/Firefox, entiende audios de WhatsApp y contesta con voz natural, sin que cada empresa cargue nada (antes era por empresa en Configuración → Conexiones IA).
 - [ ] Probar: mandar «cuánto vendí hoy» y después un audio «cobrale 1000 a (cliente) en efectivo» y responder SÍ.
 
 ### ARCA (fase 102 a 104 ya contemplan letras y condiciones)
