@@ -79,4 +79,11 @@ class RendimientoFase77Test extends ErpTestCase
         $props = $this->actingAs($this->dueno->fresh())->get('/admin/salud')->assertOk()->viewData('page')['props'];
         $this->assertSame('/estadisticas', $props['paginas']['paginas'][0]['url']);
     }
+    // Fase 118.2: la empresa de BigSys sólo tiene superadmins; antes la ronda la salteaba y la salud quedaba en «todavía no corrió» para siempre.
+    public function test_la_ronda_nocturna_mide_igual_una_empresa_que_solo_tiene_superadmins(): void
+    {
+        \App\Models\User::withoutGlobalScopes()->where('business_id', $this->empresa->id)->update(['is_superadmin' => true]);
+        Artisan::call('erp:medir', ['--nocturna' => true, 'urls' => ['/dashboard']]);
+        $this->assertSame(1, MedicionPagina::count()); $this->assertSame($this->empresa->id, MedicionPagina::first()->business_id); $this->assertSame(200, MedicionPagina::first()->http);
+    }
 }
