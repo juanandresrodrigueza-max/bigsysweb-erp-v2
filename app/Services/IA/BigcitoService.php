@@ -47,7 +47,7 @@ class BigcitoService
         try {
             $tools = $cat->paraAnthropic($user);
             $llamar = fn(array $msgs) => Http::withHeaders(['x-api-key' => $apiKey, 'anthropic-version' => '2023-06-01'])->timeout(40)->post('https://api.anthropic.com/v1/messages', [
-                'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null, $viendo), 'messages' => $msgs, 'tools' => $tools,
+                'model' => config('services.anthropic.model'), 'max_tokens' => 800, 'system' => $this->systemPrompt($user, $contexto, $data['pantalla'] ?? null, $viendo) . (! empty($data['extra_sistema']) ? "\n\n" . $data['extra_sistema'] : ''), 'messages' => $msgs, 'tools' => $tools,
             ]);
             $res = $llamar($mensajes); $adjuntos = [];
             // Hasta 5 rondas: las consultas se resuelven y se le devuelven a la IA (puede encadenar: buscar, mirar, abrir); una acción se propone al usuario.
@@ -56,10 +56,15 @@ class BigcitoService
                 $usos = collect($contenido)->where('type', 'tool_use');
                 $texto = collect($contenido)->where('type', 'text')->pluck('text')->implode("\n");
                 if ($usos->isEmpty()) return ($this->armar($texto ?: 'No pude generar una respuesta. Probá de nuevo.', $adjuntos));
-                $accion = $usos->first(fn($u) => ($cat->todas()[$u['name']]['tipo'] ?? null) === 'accion');
-                if ($accion) {
-                    $p = $this->proponer($cat, $user, $accion['name'], (array) $accion['input'], $origen);
-                    return isset($p['error']) ? (['respuesta' => trim($texto . "\n" . $p['error']), 'modo' => 'ia']) : (['respuesta' => trim($texto) ?: 'Te propongo esto. ¿Confirmás?', 'propuesta' => $p, 'modo' => 'ia']);
+                // Fase 119.4: si pidió varias cosas juntas («cobrale a López y a García»), se proponen todas y se confirman con un solo sí.
+                $accionesPedidas = $usos->filter(fn($u) => ($cat->todas()[$u['name']]['tipo'] ?? null) === 'accion')->take(10)->values();
+                if ($accionesPedidas->isNotEmpty()) {
+                    $props = []; $errores = [];
+                    foreach ($accionesPedidas as $au) { $p = $this->proponer($cat, $user, $au['name'], (array) $au['input'], $origen); if (isset($p['error'])) $errores[] = $p['error']; else $props[] = $p; }
+                    if (! $props) return ['respuesta' => trim($texto . "\n" . implode("\n", array_unique($errores))), 'modo' => 'ia'];
+                    $r = ['respuesta' => trim((trim($texto) ?: (count($props) > 1 ? 'Te propongo estas ' . count($props) . ' acciones. ¿Las hago?' : 'Te propongo esto. ¿Confirmás?')) . ($errores ? "\nNo pude armar: " . implode(' ', array_unique($errores)) : '')), 'propuesta' => $props[0], 'modo' => 'ia'];
+                    if (count($props) > 1) $r['propuestas'] = $props;
+                    return $r + array_intersect_key($adjuntos, ['navegar' => 1, 'abrir' => 1]);
                 }
                 $resultados = $usos->map(function ($u) use ($cat, $user, $origen, &$adjuntos) {
                     $r = $cat->llamar($user, $u['name'], (array) $u['input'], $origen);
@@ -178,6 +183,8 @@ Pantalla actual: {$pantalla}.
 Lo que está viendo ahora: {$loQueVe}
 Cuando diga «este», «esta», «el de acá», «a este cliente», «esta factura», «imprimilo», «cobrale», «mandáselo», se refiere a lo que está viendo: usá ese nombre o id en las herramientas sin volver a preguntar. Si no está viendo nada y falta el dato, preguntá.
 La charla tiene memoria: el historial trae lo que se habló y, entre corchetes, cada propuesta con su herramienta, sus datos y si se confirmó. Si dice «lo mismo para García», «otro igual», «y a Pérez también», «pero en transferencia», «el doble», repetí esa última acción cambiando sólo lo que pidió. «El de antes», «ese cliente», «esa factura» son los últimos que se nombraron.
+Si pide varias cosas a la vez («cobrale 5000 a López y 3000 a García», «mandale el recordatorio a los tres que más deben»), llamá a las herramientas de acción todas juntas en la misma respuesta (hasta 10): el sistema las muestra como lista y se confirman todas con un sí. Si primero necesitás saber a quiénes, consultá y después proponé.
+Rutinas: si pide que hagas algo solo cada tanto («todos los lunes a las 8 pasame el resumen de la semana», «todos los días a las 18 avisame si alguien pasó su límite de crédito», «el último día del mes mandame qué falta cobrar»), usá crear_rutina con la instrucción escrita como para vos mismo, la frecuencia y la hora; «avisame sólo si…» es solo_si_hay. mis_rutinas las lista, cambiar_rutina las pausa, cambia o borra, y correr_rutina la hace ahora.
 Podés llevarlo por el sistema: abrir_pantalla («llevame a cerrar caja», «abrí nueva factura para López»), abrir_ficha («abrime la ficha de López», «mostrame la última factura de García») e imprimir. Después de abrir algo, decilo en una frase corta («Te abrí la ficha de López.») y no repitas la dirección.
 Módulos habilitados: {$modulos}.
 Cómo trabaja esta empresa (lo que contó en la entrevista de bienvenida): {$c['induccion']}.

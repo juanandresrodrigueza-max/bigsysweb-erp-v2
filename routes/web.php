@@ -213,6 +213,13 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
     Route::post('/propuestas/configurar',        [\App\Http\Controllers\PropuestasController::class, 'configurar']);
     Route::post('/propuestas/{id}/resolver',     [\App\Http\Controllers\PropuestasController::class, 'resolver'])->middleware('permiso:configuracion,editar')->whereNumber('id');
     Route::get('/resumen-hablado',               [\App\Http\Controllers\PropuestasController::class, 'resumenHablado'])->middleware('permiso:dashboard');
+    // Fase 119.4: rutinas de Bigcito (lo que cada usuario le dejó encargado).
+    Route::get('/rutinas',                       [\App\Http\Controllers\RutinasController::class, 'index'])->middleware('permiso:dashboard');
+    Route::post('/rutinas',                      [\App\Http\Controllers\RutinasController::class, 'guardar'])->middleware(['permiso:dashboard', 'throttle:20,1']);
+    Route::post('/rutinas/{id}',                 [\App\Http\Controllers\RutinasController::class, 'guardar'])->middleware('permiso:dashboard')->whereNumber('id');
+    Route::post('/rutinas/{id}/alternar',        [\App\Http\Controllers\RutinasController::class, 'alternar'])->middleware('permiso:dashboard')->whereNumber('id');
+    Route::post('/rutinas/{id}/probar',          [\App\Http\Controllers\RutinasController::class, 'probar'])->middleware(['permiso:dashboard', 'throttle:10,1'])->whereNumber('id');
+    Route::delete('/rutinas/{id}',               [\App\Http\Controllers\RutinasController::class, 'borrar'])->middleware('permiso:dashboard')->whereNumber('id');
     Route::get('/novedades',                     [\App\Http\Controllers\AvisosCelularController::class, 'novedades']);
     Route::post('/novedades/{id}',               [\App\Http\Controllers\AvisosCelularController::class, 'marcar'])->whereNumber('id');
     Route::get('/mejoras',                       [\App\Http\Controllers\AvisosCelularController::class, 'mejoras']);

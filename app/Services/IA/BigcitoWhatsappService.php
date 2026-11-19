@@ -55,7 +55,7 @@ class BigcitoWhatsappService
             }
             if ($texto === '') return ['respuesta' => 'No me llegó texto. Escribime o mandame un audio con lo que necesitás.', 'usuario' => $u->name, 'tipo' => 'vacio'];
             $clave = "bigcito:wa:{$u->id}";
-            $estado = Cache::get($clave, ['historial' => [], 'propuesta' => null]);
+            $estado = Cache::get($clave, ['historial' => [], 'propuestas' => []]);
             $r = $this->procesar($u, $texto, $estado);
             Cache::put($clave, $estado, now()->addMinutes(self::TTL_MINUTOS));
             return $r + ['usuario' => $u->name, 'texto' => $texto];
@@ -66,32 +66,39 @@ class BigcitoWhatsappService
 
     private function procesar(User $u, string $texto, array &$estado): array
     {
-        $pend = $estado['propuesta'] ?? null;
+        // Fase 119.4: puede haber varias propuestas pendientes (un pedido con varias acciones, o las que dejó una rutina).
+        $pend = $estado['propuestas'] ?? (! empty($estado['propuesta']) ? [$estado['propuesta']] : []);
+        unset($estado['propuesta']);
         if ($pend && preg_match(self::SI, $texto)) {
-            $estado['propuesta'] = null;
-            $r = $this->cat->llamar($u, 'confirmar_accion', ['propuesta_id' => $pend['id']], 'whatsapp');
-            $resp = isset($r['error']) ? 'No se pudo: ' . $r['error'] : trim(($r['texto'] ?? 'Listo.') . (! empty($r['url']) ? "\n{$r['url']}" : ''));
+            $estado['propuestas'] = []; $partes = []; $ok = true;
+            foreach ($pend as $p) {
+                $r = $this->cat->llamar($u, 'confirmar_accion', ['propuesta_id' => $p['id']], 'whatsapp');
+                if (isset($r['error'])) { $ok = false; $partes[] = (count($pend) > 1 ? "{$p['titulo']}: " : '') . 'No se pudo: ' . $r['error']; }
+                else $partes[] = trim(($r['texto'] ?? 'Listo.') . (! empty($r['url']) ? "\n{$r['url']}" : ''));
+            }
+            $resp = implode("\n", $partes);
             $this->recordar($estado['historial'], $texto, $resp);
-            return ['respuesta' => $resp, 'tipo' => 'confirmado', 'ok' => ! isset($r['error'])];
+            return ['respuesta' => $resp, 'tipo' => 'confirmado', 'ok' => $ok];
         }
         if ($pend && preg_match(self::NO, $texto)) {
-            $estado['propuesta'] = null;
-            $this->cat->cancelar($u, $pend['id']);
+            $estado['propuestas'] = [];
+            foreach ($pend as $p) $this->cat->cancelar($u, $p['id']);
             $this->recordar($estado['historial'], $texto, 'Listo, no lo hago.');
             return ['respuesta' => 'Listo, no lo hago.', 'tipo' => 'cancelado'];
         }
         $r = $this->bigcito->responder($u, ['mensaje' => $texto, 'historial' => $estado['historial'], 'pantalla' => 'WhatsApp', 'origen' => 'whatsapp']);
         $resp = trim((string) ($r['respuesta'] ?? ''));
-        $estado['propuesta'] = null;
-        if (! empty($r['propuesta'])) {
-            $p = $r['propuesta'];
-            $estado['propuesta'] = ['id' => $p['id'], 'titulo' => $p['titulo']];
-            $resp = trim($resp . "\n\n➡️ {$p['titulo']}" . (! empty($p['detalle']) ? "\n{$p['detalle']}" : '') . "\n\nRespondé SÍ para hacerlo o NO para cancelar." . (! empty($p['delicada']) ? ' Es una acción delicada: revisá bien antes.' : ''));
+        $estado['propuestas'] = [];
+        $props = $r['propuestas'] ?? (! empty($r['propuesta']) ? [$r['propuesta']] : []);
+        if ($props) {
+            $estado['propuestas'] = array_map(fn($p) => ['id' => $p['id'], 'titulo' => $p['titulo']], $props);
+            foreach ($props as $p) $resp = trim($resp . "\n\n➡️ {$p['titulo']}" . (! empty($p['detalle']) ? "\n{$p['detalle']}" : ''));
+            $resp .= "\n\nRespondé SÍ para " . (count($props) > 1 ? 'hacer las ' . count($props) : 'hacerlo') . ' o NO para cancelar.' . (collect($props)->contains(fn($p) => ! empty($p['delicada'])) ? ' Hay una acción delicada: revisá bien antes.' : '');
         } elseif (! empty($r['tabla']['filas'])) {
             $resp .= "\n(" . count($r['tabla']['filas']) . ' filas; la lista completa está en el sistema.)';
         }
-        $this->recordar($estado['historial'], $texto, $resp . ($estado['propuesta'] ? " [propuesta: {$estado['propuesta']['titulo']} → sin confirmar]" : ''));
-        return ['respuesta' => $resp !== '' ? $resp : 'No pude responder. Probá de nuevo.', 'tipo' => $estado['propuesta'] ? 'propuesta' : 'respuesta', 'propuesta' => $estado['propuesta']];
+        $this->recordar($estado['historial'], $texto, $resp . ($estado['propuestas'] ? ' [' . collect($estado['propuestas'])->map(fn($p) => "propuesta: {$p['titulo']} → sin confirmar")->implode('; ') . ']' : ''));
+        return ['respuesta' => $resp !== '' ? $resp : 'No pude responder. Probá de nuevo.', 'tipo' => $estado['propuestas'] ? 'propuesta' : 'respuesta', 'propuesta' => $estado['propuestas'][0] ?? null, 'propuestas' => $estado['propuestas']];
     }
 
     private function recordar(array &$historial, string $pregunta, string $respuesta): void
