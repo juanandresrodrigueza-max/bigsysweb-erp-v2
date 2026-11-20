@@ -155,4 +155,23 @@ class Fase121bTest extends ErpTestCase
         $this->assertStringContainsString('es obligación de cada empresa', $p); $this->assertStringNotContainsString('(hasta 10 años)', $p);
         $this->assertStringContainsString('La constancia de que autorizaste a BigSys', $p);
     }
+
+    // Fase 122.1: la empresa de BigSys (mismo CUIT que el certificado) factura lo suyo sin autorizarse a sí misma.
+    public function test_la_empresa_del_certificado_activa_sin_autorizar_a_nadie(): void
+    {
+        $this->empresa->update(['cuit' => '30-71234567-1', 'razon_social' => 'BIGSYS S.R.L.']);
+        $this->assertTrue(ArcaPlataforma::esTitular('30712345671')); $this->assertFalse(ArcaPlataforma::esTitular('30700123452')); $this->assertFalse(ArcaPlataforma::esTitular(null));
+        $p = $this->get('/configuracion/puntos-venta')->viewData('page')['props']['arca'];
+        $this->assertTrue($p['titular']);
+        $this->assertStringContainsString('emite sus propios comprobantes electrónicos con su certificado', $p['autorizacion']['texto']);
+        $this->assertStringNotContainsString('autoriza a', $p['autorizacion']['texto']);
+        // Sin tilde ni versión: igual se activa, porque no hay nada que autorizar. Queda la constancia de quién la activó.
+        $this->post('/configuracion/afip/bigsys', ['activo' => true])->assertSessionHas('success', fn($m) => str_contains($m, 'con el certificado de BigSys'));
+        $this->assertTrue($this->empresa->fresh()->arca_bigsys);
+        $this->assertSame($this->dueno->id, ArcaAutorizacion::firstOrFail()->user_id);
+        // Una empresa cliente sigue necesitando aceptar.
+        $this->empresa->update(['cuit' => '30-70012345-2', 'arca_bigsys' => false]); $this->dueno->unsetRelation('business');
+        $this->assertFalse($this->get('/configuracion/puntos-venta')->viewData('page')['props']['arca']['titular']);
+        $this->post('/configuracion/afip/bigsys', ['activo' => true])->assertSessionHasErrors('acepto');
+    }
 }

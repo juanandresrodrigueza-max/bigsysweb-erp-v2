@@ -66,6 +66,14 @@ class ArcaPlataforma
         return ['cuit' => \App\Support\Cuit::formatear($info['cuit']), 'razon' => SistemaConfig::get('arca_razon') ?: ($info['razon'] ?? 'BigSys')];
     }
 
+    // ¿Ese CUIT es el mismo del certificado de BigSys? Entonces es BigSys facturando lo suyo: no hay nada que delegar ni
+    // autorizar, porque el certificado ya es de ese CUIT (alcanza con la relación del computador fiscal con el servicio).
+    public static function esTitular(?string $cuit): bool
+    {
+        $rep = self::representante(); $c = preg_replace('/\D/', '', (string) $cuit);
+        return $rep && strlen($c) === 11 && $c === preg_replace('/\D/', '', $rep['cuit']);
+    }
+
     // Genera la clave privada EN EL SERVIDOR y el pedido de certificado (CSR) para subir a ARCA. La clave no sale nunca de acá.
     public static function generarPedido(string $cuit, string $razon, string $alias): string
     {

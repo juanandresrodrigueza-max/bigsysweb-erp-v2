@@ -23,7 +23,7 @@ class PuntosVentaController extends Controller
                 // Fase 121.1: el texto que se acepta al activar, y la constancia de la última aceptación.
                 'autorizacion' => ['version' => \App\Services\Afip\ArcaAutorizaciones::VERSION, 'texto' => \App\Services\Afip\ArcaAutorizaciones::texto($b->razon_social ?: $b->name, \App\Support\Cuit::formatear(preg_replace('/\D/', '', (string) $b->cuit)) ?? (string) $b->cuit),
                     'ultima' => ($u = \App\Services\Afip\ArcaAutorizaciones::ultima($b)) ? ['usuario' => $u->usuario, 'fecha' => $u->aceptada_en->format('d/m/Y H:i'), 'version' => $u->version, 'revocada' => $u->revocada_en?->format('d/m/Y H:i')] : null],
-                'revocar' => session('arca_revocar'), 'puede_aceptar' => $request->user()->esDueno(),
+                'revocar' => session('arca_revocar'), 'puede_aceptar' => $request->user()->esDueno(), 'titular' => \App\Services\Afip\ArcaPlataforma::esTitular($b->cuit),
                 'modo' => $afip->modo($b), 'bigsys' => (bool) $b->arca_bigsys, 'verificada' => $b->arca_verificada_en?->format('d/m/Y H:i'), 'cuit' => $b->cuit, 'cuit_ok' => strlen(preg_replace('/\D/', '', (string) $b->cuit)) === 11,
                 'sucursales' => $b->locations()->where('is_active', true)->whereNotNull('cuit')->where('cuit', '!=', '')->orderBy('name')->get()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'cuit' => $l->cuit, 'bigsys' => (bool) $l->arca_bigsys, 'propio' => (bool) ($l->afip_cert_path && $l->afip_key_path)])->values()],
             'afip' => ['configurado' => $afip->configurado($b), 'modo' => $afip->modo($b), 'cuit' => $b->cuit, 'produccion' => $b->afip_produccion, 'cert' => (bool) $b->afip_cert_path, 'key' => (bool) $b->afip_key_path, 'pendientes' => \App\Models\Comprobante::where('estado', 'emitido')->where('afip_estado', 'pendiente')->count()],
@@ -112,15 +112,16 @@ class PuntosVentaController extends Controller
         if ($d['activo']) {
             if (strlen($cuit) !== 11) return back()->with('error', 'Primero cargá el CUIT (Configuración → Empresa).');
             if (! $request->user()->esDueno()) return back()->withErrors(['acepto' => 'La autorización a BigSys la acepta el dueño de la cuenta: pedile que entre y la active.']);
-            if (empty($d['acepto'])) return back()->withErrors(['acepto' => 'Para activarla tenés que aceptar la autorización a BigSys.']);
-            if (($d['version'] ?? null) !== \App\Services\Afip\ArcaAutorizaciones::VERSION) return back()->withErrors(['acepto' => 'El texto de la autorización cambió: recargá la página, leelo y volvé a aceptarlo.']);
+            $titular = \App\Services\Afip\ArcaPlataforma::esTitular($cuit); // la empresa del certificado no tiene nada que autorizar
+            if (! $titular && empty($d['acepto'])) return back()->withErrors(['acepto' => 'Para activarla tenés que aceptar la autorización a BigSys.']);
+            if (! $titular && ($d['version'] ?? null) !== \App\Services\Afip\ArcaAutorizaciones::VERSION) return back()->withErrors(['acepto' => 'El texto de la autorización cambió: recargá la página, leelo y volvé a aceptarlo.']);
             try { \App\Services\Afip\ArcaPlataforma::cliente()->puntosVenta($cuit); }
             catch (\App\Services\Afip\ArcaError $e) {
                 $ex = \App\Services\Afip\AfipErrores::explicar($e->getMessage());
                 return back()->with('error', "Todavía no se puede activar: {$ex['que']} {$ex['como']}");
             }
             \App\Services\Afip\ArcaAutorizaciones::aceptar($b, $loc, $request->user(), $request->ip(), $request->userAgent());
-            return back()->with('success', "Listo: {$donde} ya factura electrónicamente a través de BigSys." . ($quien->afip_cert_path ? ' Ojo: como también tiene certificado propio cargado, se sigue usando ese.' : ''));
+            return back()->with('success', ($titular ? "Listo: {$donde} ya factura electrónicamente con el certificado de BigSys." : "Listo: {$donde} ya factura electrónicamente a través de BigSys.") . ($quien->afip_cert_path ? ' Ojo: como también tiene certificado propio cargado, se sigue usando ese.' : ''));
         }
         \App\Services\Afip\ArcaAutorizaciones::revocar($b, $loc, $request->user(), 'Apagada desde Configuración → Puntos de venta y ARCA');
         AuditLog::registrar('editar', $b, "Apagó la factura electrónica a través de BigSys para {$donde}");
