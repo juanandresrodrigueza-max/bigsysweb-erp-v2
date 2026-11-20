@@ -22,6 +22,9 @@ class ArcaAutorizaciones
     public static function texto(string $razon, string $cuit, ?array $rep = null): string
     {
         $rep ??= ArcaPlataforma::representante() ?? ['razon' => 'BigSys S.R.L.', 'cuit' => '(CUIT de BigSys)'];
+        // Fase 122.1: la propia empresa del certificado no se autoriza a sí misma; queda constancia de que emite con su certificado.
+        if (preg_replace('/\D/', '', $cuit) === preg_replace('/\D/', '', (string) $rep['cuit']))
+            return "{$razon} (CUIT {$cuit}) emite sus propios comprobantes electrónicos con su certificado de ARCA, el mismo con el que BigSys factura para sus clientes. No hay delegación de terceros.";
         return "{$razon} (CUIT {$cuit}) autoriza a {$rep['razon']} (CUIT {$rep['cuit']}) a emitir y consultar comprobantes electrónicos ante ARCA en su nombre, "
             . "con el servicio «Facturación Electrónica» que le delegó en el Administrador de Relaciones de Clave Fiscal. "
             . "BigSys emite sólo los comprobantes que generan los usuarios de la empresa en el sistema, con los datos que ellos cargan; "

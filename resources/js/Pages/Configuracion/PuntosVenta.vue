@@ -32,18 +32,20 @@
 
         <!-- Fase 121: como en el CRM. La empresa no carga certificado: le delega el servicio a BigSys en ARCA. -->
         <div v-if="arca.plataforma && afip.modo !== 'propio'" class="rounded-2xl border border-violeta/30 bg-violeta-light/30 p-3 mb-3" data-e2e="arca-guia">
-          <p class="font-bold text-sm">{{ arca.bigsys ? 'Facturás a través de BigSys' : 'Facturá sin certificado: BigSys factura por vos' }}</p>
-          <p class="text-xs text-marca-muted mb-2">No tenés que generar, subir ni descargar ningún certificado. Hacés dos trámites en ARCA (una sola vez), los verificás desde acá y listo.</p>
+          <p class="font-bold text-sm" data-e2e="arca-titulo">{{ arca.titular ? (arca.bigsys ? 'Facturás con el certificado de BigSys' : 'Esta es la empresa del certificado de BigSys') : (arca.bigsys ? 'Facturás a través de BigSys' : 'Facturá sin certificado: BigSys factura por vos') }}</p>
+          <p v-if="arca.titular" class="text-xs text-marca-muted mb-2">El certificado con el que BigSys factura es de este mismo CUIT, así que no hay que autorizar a nadie: sólo falta el punto de venta para web services, verificar y activar.</p>
+          <p v-else class="text-xs text-marca-muted mb-2">No tenés que generar, subir ni descargar ningún certificado. Hacés dos trámites en ARCA (una sola vez), los verificás desde acá y listo.</p>
           <ol class="space-y-2.5 text-sm">
             <li class="flex gap-2"><span :class="paso(arca.cuit_ok ? 'ok' : '')">{{ arca.cuit_ok ? '✓' : '1' }}</span><div><b>Datos fiscales de la empresa.</b> <span v-if="arca.cuit_ok" class="text-marca-muted">CUIT {{ arca.cuit }}.</span><span v-else>Falta el CUIT: cargalo en <Link href="/configuracion/empresa" class="underline">Configuración → Empresa</Link>.</span></div></li>
             <li class="flex gap-2"><span :class="paso(verif?.alta_punto_venta)">{{ verif?.alta_punto_venta === 'ok' ? '✓' : '2' }}</span><div><b>Dá de alta el punto de venta para Web Services.</b> En ARCA → «Administración de puntos de venta y domicilios» → Agregar, y en «Sistema» elegí <b>«RECE para aplicativo y web services»</b> si sos responsable inscripto, o <b>«Factura Electrónica - Monotributo - Web Services»</b> si sos monotributista. El de «Comprobantes en línea» (el de facturar a mano en la web de ARCA) no sirve acá.
               <p v-if="verif?.alta_punto_venta === 'falta'" class="text-carmin text-xs mt-0.5">ARCA te reconoce, pero no tenés ningún punto de venta dado de alta para web services todavía.</p></div></li>
-            <li class="flex gap-2"><span :class="paso(verif?.delegacion)">{{ verif?.delegacion === 'ok' ? '✓' : '3' }}</span><div><b>Autorizá a {{ arca.representante?.razon ?? 'BigSys' }} a facturar en tu nombre.</b> Entrá a ARCA con clave fiscal (nivel 3) → <b>«Administrador de Relaciones de Clave Fiscal»</b> → <b>Nueva relación</b> → Buscar → ARCA → WebServices → <b>«Facturación Electrónica»</b> → en Representante poné el CUIT
+            <li v-if="arca.titular" class="flex gap-2" data-e2e="arca-titular"><span :class="paso('ok')">✓</span><div><b>No hace falta autorizar a nadie.</b> <span class="text-marca-muted">El certificado de BigSys es de este mismo CUIT ({{ arca.representante?.cuit }}).</span></div></li>
+            <li v-else class="flex gap-2"><span :class="paso(verif?.delegacion)">{{ verif?.delegacion === 'ok' ? '✓' : '3' }}</span><div><b>Autorizá a {{ arca.representante?.razon ?? 'BigSys' }} a facturar en tu nombre.</b> Entrá a ARCA con clave fiscal (nivel 3) → <b>«Administrador de Relaciones de Clave Fiscal»</b> → <b>Nueva relación</b> → Buscar → ARCA → WebServices → <b>«Facturación Electrónica»</b> → en Representante poné el CUIT
               <button v-if="arca.representante" type="button" class="font-mono font-bold underline decoration-dotted" @click="copiar(arca.representante.cuit)" data-e2e="arca-cuit-bigsys">{{ arca.representante.cuit }}</button><span v-if="copiado" class="text-emerald-700 text-xs"> · copiado</span> → Confirmar.
               <p v-if="verif?.delegacion === 'falta'" class="text-carmin text-xs mt-0.5">ARCA dice que todavía no está hecha (o se hizo con otro CUIT). Puede tardar unos minutos en verse después de hacerla.</p></div></li>
-            <li class="flex gap-2"><span :class="paso(arca.bigsys ? 'ok' : '')">{{ arca.bigsys ? '✓' : '4' }}</span><div class="flex-1"><b>Verificá y activá.</b> Le pregunta a ARCA si los dos trámites quedaron bien. No emite ni reserva nada.
+            <li class="flex gap-2"><span :class="paso(arca.bigsys ? 'ok' : '')">{{ arca.bigsys ? '✓' : '4' }}</span><div class="flex-1"><b>Verificá y activá.</b> {{ arca.titular ? 'Le pregunta a ARCA si el punto de venta quedó bien.' : 'Le pregunta a ARCA si los dos trámites quedaron bien.' }} No emite ni reserva nada.
               <!-- Fase 121.1: autorización expresa, con constancia de quién, cuándo y con qué texto -->
-              <div v-if="hayParaActivar" class="mt-2 rounded-xl border border-marca-borde bg-white p-2.5 text-xs" data-e2e="arca-autorizacion">
+              <div v-if="hayParaActivar && (!arca.titular || arca.bigsys)" class="mt-2 rounded-xl border border-marca-borde bg-white p-2.5 text-xs" data-e2e="arca-autorizacion">
                 <p class="text-marca-muted leading-relaxed">{{ arca.autorizacion?.texto }} <a href="/terminos#facturacion" target="_blank" class="underline">Ver términos</a></p>
                 <label v-if="arca.puede_aceptar" class="flex items-start gap-2 mt-2 font-semibold"><input v-model="acepto" type="checkbox" class="mt-0.5 accent-carmin" data-e2e="arca-acepto" /> Leí y acepto esta autorización en nombre de la empresa, y declaro tener facultades para hacerlo.</label>
                 <p v-else class="mt-2 font-semibold text-amber-700">La autorización la acepta el dueño de la cuenta: pedile que entre y la active.</p>
@@ -51,10 +53,10 @@
               </div>
               <div class="flex flex-wrap gap-2 mt-1.5">
                 <button type="button" class="btn-secondary !py-1 text-xs" :disabled="verificando || !arca.cuit_ok" @click="verificar()" data-e2e="arca-verificar">{{ verificando ? 'Consultando a ARCA…' : 'Verificar en ARCA' }}</button>
-                <button v-if="!arca.bigsys" type="button" class="btn-primary !py-1 text-xs" :disabled="verif?.delegacion !== 'ok' || !acepto" @click="activar(true)" data-e2e="arca-activar">Activar la facturación por BigSys</button>
+                <button v-if="!arca.bigsys" type="button" class="btn-primary !py-1 text-xs" :disabled="verif?.delegacion !== 'ok' || (!acepto && !arca.titular)" @click="activar(true)" data-e2e="arca-activar">{{ arca.titular ? 'Activar la factura electrónica' : 'Activar la facturación por BigSys' }}</button>
                 <button v-else type="button" class="btn-ghost !py-1 text-xs text-carmin" @click="activar(false)">Apagar</button>
               </div>
-              <p v-if="arca.bigsys && arca.autorizacion?.ultima && !arca.autorizacion.ultima.revocada" class="text-[11px] text-marca-muted mt-1" data-e2e="arca-constancia">Autorizado por {{ arca.autorizacion.ultima.usuario }} el {{ arca.autorizacion.ultima.fecha }} (texto versión {{ arca.autorizacion.ultima.version }}).</p>
+              <p v-if="arca.bigsys && arca.autorizacion?.ultima && !arca.autorizacion.ultima.revocada" class="text-[11px] text-marca-muted mt-1" data-e2e="arca-constancia">{{ arca.titular ? 'Activado por' : 'Autorizado por' }} {{ arca.autorizacion.ultima.usuario }} el {{ arca.autorizacion.ultima.fecha }} (texto versión {{ arca.autorizacion.ultima.version }}).</p>
               </div></li>
           </ol>
           <div v-if="arca.revocar" class="mt-3 rounded-xl p-2.5 text-xs bg-amber-50 text-amber-800" data-e2e="arca-revocar">

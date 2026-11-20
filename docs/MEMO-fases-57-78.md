@@ -180,3 +180,8 @@ responde con los permisos de esa persona y audita a su nombre.
 - Pregunta nueva del inductor: `origen` («¿Con qué trabajabas hasta ahora?»).
 - Pantalla: tarjeta «Siguiente paso» (Empezar / ¿Cómo se hace? / Ya lo hice), «Cómo funciona BigSys Web, en un minuto» (abierta mientras no hay nada hecho) y los pasos agrupados por etapa con su avance. Barra de arriba: «Primeros pasos: X de Y · Sigue: …».
 - Ayuda: `implementacion.md` reescrita con el mismo orden (sin certificados; BIG Connect primero; WhatsApp por QR; corte con Control de cierre) y `primeros-pasos.md` al día. Novedad `2027_02_23_000001`. Tests en `Fase122Test`.
+
+### Fase 122.1 · La empresa del certificado de BigSys factura lo suyo sin autorizarse
+- `ArcaPlataforma::esTitular($cuit)`: el CUIT es el mismo del certificado de BigSys. En ese caso no hay delegación ni texto que aceptar: `PuntosVentaController::bigsys` no pide `acepto`/`version`, `ArcaAutorizaciones::texto` deja constancia de que «emite sus propios comprobantes con su certificado» y la pantalla dice «Esta es la empresa del certificado de BigSys», con el paso 3 tildado y el botón «Activar la factura electrónica». Sigue haciendo falta el punto de venta para web services y Verificar en ARCA.
+- Decisión del dueño (20/11/2026): una empresa con CRM y ERP factura sólo en el ERP. El CRM ya lo hace (`server/lib/facturaElErp.ts`: con la integración ERP activa no sale ningún comprobante del CRM a ARCA; única excepción, la facturación de la plataforma). Ojo: depende de que la integración esté conectada en el CRM.
+- El nombre es siempre **BigSys** (B y S mayúsculas). Si un dictado dice «Vixis» o parecido, es BigSys.
