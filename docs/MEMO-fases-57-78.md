@@ -229,3 +229,14 @@ responde con los permisos de esa persona y audita a su nombre.
 ### Borrador de la inscripción ante la AAIP (sin fase, sólo documentos)
 - `docs/LEGAL-inscripcion-AAIP.md`: qué va en cada campo de TAD para el responsable (BIGSYS S.R.L.) y para la base «Clientes y usuarios de BigSys Web». Sale del código: tablas, proveedores, medidas de seguridad, conservación. Las otras bases posibles (CRM, personal, proveedores) quedan para que decida el abogado.
 - Hallazgos para el abogado: los proveedores en Estados Unidos (art. 12 y Disposición 60-E/2016) y los plazos de la política de privacidad. La política dice 10 días hábiles para todo; la ley da 10 corridos para el acceso y 5 hábiles para rectificar o suprimir.
+
+### Fase 126 · Contingencia con CAEA
+- **Para qué**: cuando ARCA no responde, la factura quedaba «pendiente de CAE», no válida hasta que ARCA volviera. Con CAEA sale al momento y válida. Desde 2026 ARCA deja el CAEA sólo para contingencias (RG 5782/2025) y lo pone como primera opción de contingencia de los web services (RG 5785/2025).
+- **Cómo**:
+  - `ArcaDirecto` suma `caeaSolicitar`, `caeaConsultar`, `caeaInformar` (FECAEARegInformativo con `CAEA` y `CbteFchHsGen`) y `caeaSinMovimiento`. El detalle del comprobante se arma con el mismo código que el pedido de CAE.
+  - `CaeaService` pide el CAEA de cada quincena (desde 5 días antes), emite en contingencia en el punto de venta con modo `caea`, informa y avisa los puntos sin movimiento.
+  - Tablas y columnas nuevas: `arca_caeas`, `businesses.arca_caea`, `comprobantes.cae_tipo` y `caea_informado_en`. El comprobante queda `aprobado`, así que libros, anulación y PDF siguen igual; sólo el impreso, la pantalla y el QR dicen CAEA.
+  - Comando `arca:caea` a las 06:40. `afip:reintentar` informa cada 5 minutos. Control de Salud `caea`.
+  - Pantalla: un recuadro «Si ARCA se cae» en Configuración → Puntos de venta y ARCA.
+- **Lo que no pude verificar**: el manual oficial del WSFEv1 no se pudo bajar desde el entorno (DNS de arca.gob.ar). Los nombres de los métodos y campos son los conocidos del WSFEv1; quedan por confirmar los códigos de error exactos y las validaciones nuevas de las RG de 2025 y 2026. **Probar en homologación antes del primer uso real.**
+- Ayuda en `facturar.md` y técnica en `docs/arca.md`. Novedad. Tests en `Fase126Test` (9 pruebas, incluido el sobre SOAP de los cuatro métodos).

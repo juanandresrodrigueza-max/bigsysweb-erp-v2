@@ -28,6 +28,11 @@ Referencias: ✅ hecho · ⏳ falta probarlo con datos reales · ❌ falta hacer
 - [ ] ❌ **Clave de las copias guardada afuera**: confirmar que la clave generada el 20/11 está en el gestor de contraseñas y en papel. Si no, Panel → Sistema → **Cambiar la clave** y hacer una copia nueva. Después hacer el **ensayo** de la sección 5 del manual: bajar una copia de Backblaze y abrirla con la clave.
 - [ ] ❌ **WhatsApp de la empresa BigSys**: entrar a «Bigsys Web ERP» → Configuración → Tienda y canales → **Conectar WhatsApp** y escanear el QR. Después **Pedir las plantillas a Meta**. Sin esto no salen por WhatsApp los avisos de altas nuevas ni de vencimiento del certificado, ni los recordatorios a los clientes de BigSys.
 - [ ] ❌ **Celulares de aviso**: cargar los celulares en Panel → Sistema → «Altas con aprobación» → «Avisar por WhatsApp a», y activar los avisos en el celular de al menos un superadmin (la campanita del navegador o la app).
+- [ ] ⏳ **Probar la contingencia con CAEA** (Fase 126), primero en homologación:
+  - dar de alta en ARCA un punto de venta para CAEA para BigSys (por ejemplo el 0009);
+  - agregarlo en el ERP con modo «CAEA (contingencia)» y tildar «Activa» en Configuración → Puntos de venta y ARCA. Tiene que mostrar el CAEA de la quincena.
+  
+  La prueba de una factura con ARCA caído la hacemos juntos.
 - [ ] ⏳ **Probar «Facturar después»** (Fase 104): una venta tildada como comprobante interno y, desde el comprobante, **Facturar**. Tiene que salir con CAE.
 
 ## 3 · Conexiones de la plataforma (Panel → Sistema, una sola vez)
@@ -90,9 +95,8 @@ Lo guía la pantalla **Primeros pasos**, con el siguiente paso siempre a la vist
 ## 9 · Lo que sigue siendo software (lo hago yo cuando haga falta)
 
 - **Migración vía B**, subiendo la carpeta `.tps` del BigSys de escritorio, para clientes sin BIG Connect. Necesito un juego de `.tps` de prueba (puede ser de una empresa demo o con datos anonimizados).
-- **Factura de exportación con CAE** por BigSys (hoy sólo con certificado propio) y **CAEA** para cortes largos de ARCA, si algún cliente lo necesita.
+- **Factura de exportación con CAE** por BigSys (hoy sólo con certificado propio). El **CAEA** para cortes de ARCA ya está (Fase 126); falta probarlo en homologación (ver punto 2).
 - Lo que surja de las pruebas de los puntos 2, 4, 5 y del primer cliente.
-- Pruebas automáticas que fallan sin afectar producción: `MonitoreoTest` (siempre), y algunas que fallan de vez en cuando por orden en PostgreSQL y pasan solas.
 
 ---
 

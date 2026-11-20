@@ -1035,6 +1035,8 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/afip/verificar',       [PuntosVentaController::class, 'verificarArca'])->middleware(['permiso:configuracion,editar', 'throttle:20,1']);
         Route::post('/afip/bigsys',          [PuntosVentaController::class, 'bigsys'])->middleware(['permiso:configuracion,editar', 'throttle:20,1']);
         Route::post('/afip/traer-puntos',    [PuntosVentaController::class, 'traerPuntos'])->middleware('permiso:configuracion,editar');
+        Route::post('/afip/caea',            [PuntosVentaController::class, 'caea'])->middleware(['permiso:configuracion,editar', 'throttle:20,1']); // Fase 126
+        Route::post('/afip/caea/pedir',      [PuntosVentaController::class, 'caeaPedir'])->middleware(['permiso:configuracion,editar', 'throttle:20,1']);
     });
 
     // Módulos en construcción: pantalla "próximamente" para que el menú no rompa.

@@ -32,6 +32,9 @@ class AfipReintentar extends Command
             }
         }
         Auth::logout();
+        // Fase 126: lo emitido con CAEA se informa apenas ARCA responde.
+        try { $n = app(\App\Services\Afip\CaeaService::class)->informarPendientes($this->option('empresa') ? (int) $this->option('empresa') : null); if ($n['informados'] || $n['rechazados']) $this->line("CAEA · informados: {$n['informados']} · rechazados: {$n['rechazados']}"); }
+        catch (\Throwable $e) { $this->error('CAEA: ' . $e->getMessage()); }
         $this->info("Autorizados: {$ok} · pendientes: {$pend}");
         return self::SUCCESS;
     }

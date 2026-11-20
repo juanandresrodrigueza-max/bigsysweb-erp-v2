@@ -24,4 +24,4 @@ ERP en Laravel 11 + Inertia/Vue 3 (PostgreSQL en producción, SQLite en las prue
 - `docs/MANUAL-DATOS-Y-RESTAURACION.md`: copias y qué hacer en cada tipo de problema.
 - `docs/ayuda/*.md`: el centro de ayuda (27 artículos). Bigcito busca ahí; `administracion-bigsys.md` es el del panel de BigSys.
 - `docs/LEGAL-facturacion-por-bigsys.md`: lo legal de facturar por BigSys, para el abogado y el contador.
-- Pruebas que fallan sin afectar producción: `MonitoreoTest` falla siempre; algunas de PostgreSQL fallan de vez en cuando por orden y pasan solas.
+- Pruebas: desde la Fase 124 pasan todas en SQLite y en PostgreSQL. Correr las dos tandas una después de la otra, no a la vez.

@@ -28,6 +28,7 @@ class PuntosVentaController extends Controller
                 'sucursales' => $b->locations()->where('is_active', true)->whereNotNull('cuit')->where('cuit', '!=', '')->orderBy('name')->get()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'cuit' => $l->cuit, 'bigsys' => (bool) $l->arca_bigsys, 'propio' => (bool) ($l->afip_cert_path && $l->afip_key_path)])->values()],
             'afip' => ['configurado' => $afip->configurado($b), 'modo' => $afip->modo($b), 'cuit' => $b->cuit, 'produccion' => $b->afip_produccion, 'cert' => (bool) $b->afip_cert_path, 'key' => (bool) $b->afip_key_path, 'pendientes' => \App\Models\Comprobante::where('estado', 'emitido')->where('afip_estado', 'pendiente')->count()],
             'prueba' => session('afip_prueba'),
+            'caea' => app(\App\Services\Afip\CaeaService::class)->estado($b), // Fase 126
         ]);
     }
 
@@ -36,7 +37,7 @@ class PuntosVentaController extends Controller
         $b = $request->user()->business;
         $data = $request->validate([
             'numero' => ['required', 'integer', 'min:1', 'max:9999', Rule::unique('puntos_venta', 'numero')->where('business_id', $b->id)->ignore($id)],
-            'modo' => 'required|in:electronico,manual', 'activo' => 'boolean',
+            'modo' => 'required|in:electronico,manual,caea', 'activo' => 'boolean',
             'business_location_id' => ['nullable', Rule::exists('business_locations', 'id')->where('business_id', $b->id)],
         ]);
         $p = $id ? PuntoVenta::findOrFail($id) : new PuntoVenta(['business_id' => $b->id]);
@@ -126,6 +127,35 @@ class PuntosVentaController extends Controller
         \App\Services\Afip\ArcaAutorizaciones::revocar($b, $loc, $request->user(), 'Apagada desde Configuración → Puntos de venta y ARCA');
         AuditLog::registrar('editar', $b, "Apagó la factura electrónica a través de BigSys para {$donde}");
         return back()->with('success', "Se apagó la facturación a través de BigSys para {$donde}.")->with('arca_revocar', \App\Services\Afip\ArcaAutorizaciones::pasosRevocar());
+    }
+
+    // Fase 126: la contingencia con CAEA. Activarla pide ya el CAEA de la quincena (y el de la próxima, si falta poco).
+    public function caea(Request $request, \App\Services\Afip\CaeaService $caea, AfipEmisor $afip)
+    {
+        $d = $request->validate(['activo' => 'required|boolean']);
+        $b = $request->user()->business;
+        if (! $d['activo']) {
+            $b->forceFill(['arca_caea' => false])->save();
+            AuditLog::registrar('editar', $b, 'Apagó la contingencia con CAEA');
+            return back()->with('success', 'Contingencia con CAEA apagada: si ARCA no responde, los comprobantes quedan pendientes de CAE y se reintentan solos.');
+        }
+        abort_unless($afip->configurado($b), 422, 'Primero tiene que estar andando la factura electrónica (en esta misma pantalla).');
+        if (! $caea->puntoVenta($b, null)) return back()->with('error', 'Falta el punto de venta para CAEA. Dalo de alta en ARCA (Administración de puntos de venta y domicilios, sistema «RECE para aplicativo y web services» con CAEA) y agregalo acá con el mismo número y modo «CAEA (contingencia)».');
+        $b->forceFill(['arca_caea' => true])->save();
+        AuditLog::registrar('editar', $b, 'Activó la contingencia con CAEA');
+        $r = collect($caea->pedirProximos($b->id));
+        $mal = $r->firstWhere('ok', false);
+        return back()->with($mal && $r->where('ok', true)->isEmpty() ? 'error' : 'success', 'Contingencia con CAEA activada. ' . ($r->where('ok', true)->isNotEmpty() ? 'ARCA dio el CAEA ' . $r->where('ok', true)->pluck('caea')->implode(' y ') . '.' : '') . ($mal ? ' No se pudo pedir el CAEA todavía (' . \App\Services\Afip\AfipErrores::explicar($mal['error'])['que'] . '): el sistema lo vuelve a intentar todos los días.' : ''));
+    }
+
+    public function caeaPedir(Request $request, \App\Services\Afip\CaeaService $caea)
+    {
+        $b = $request->user()->business;
+        abort_unless($b->arca_caea, 422, 'Activá primero la contingencia con CAEA.');
+        $r = collect($caea->pedirProximos($b->id));
+        if ($r->isEmpty()) return back()->with('error', 'No hay nada para pedir: revisá que esté el punto de venta CAEA y la factura electrónica andando.');
+        $mal = $r->firstWhere('ok', false);
+        return back()->with($mal ? 'error' : 'success', $mal ? 'ARCA no dio el CAEA: ' . \App\Services\Afip\AfipErrores::explicar($mal['error'])['que'] . ' (' . mb_substr($mal['error'], 0, 200) . ')' : 'Listo: CAEA ' . $r->pluck('caea')->unique()->implode(' y ') . '.');
     }
 
     // Crea acá los puntos de venta que ARCA tiene dados de alta para web services y todavía no estaban.

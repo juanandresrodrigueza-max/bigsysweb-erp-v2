@@ -92,6 +92,13 @@ class SaludService
         $pendArca = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->count();
         $viejos = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->where('emitido_en', '<', now()->subHours(2))->count();
         $c[] = $this->item('arca', 'Comprobantes pendientes de CAE', $viejos > 0 ? 'critico' : ($pendArca > 0 ? 'aviso' : 'ok'), $pendArca ? "{$pendArca} pendientes" . ($viejos ? ", {$viejos} desde hace más de 2 h" : '') : 'Ninguno');
+        // Fase 126: lo emitido con CAEA (ARCA caído) que todavía no se informó. Rechazado, o a 2 días del tope, es crítico.
+        try {
+            $sinInf = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('cae_tipo', 'CAEA')->whereNull('caea_informado_en')->get(['id', 'cae', 'afip_respuesta']);
+            $topes = \App\Models\ArcaCaea::whereIn('caea', $sinInf->pluck('cae')->unique())->pluck('tope_informar', 'caea');
+            $urgentes = $sinInf->filter(fn($x) => ! empty($x->afip_respuesta['error_informe']) || (($t = $topes[$x->cae] ?? null) && today()->gte($t->copy()->subDays(\App\Services\Afip\CaeaService::AVISO_TOPE))))->count();
+            $c[] = $this->item('caea', 'Comprobantes con CAEA sin informar', $urgentes ? 'critico' : ($sinInf->count() ? 'aviso' : 'ok'), $sinInf->count() ? "{$sinInf->count()} sin informar a ARCA" . ($urgentes ? ", {$urgentes} rechazados o cerca del tope" : ' (se informan solos cuando ARCA responde)') : 'Ninguno');
+        } catch (\Throwable $e) { $c[] = $this->item('caea', 'Comprobantes con CAEA sin informar', 'aviso', $e->getMessage()); }
         // Fase 121.1: el certificado de BigSys con el que se factura en nombre de las empresas. Vencido o por vencer, nadie factura.
         try {
             $ae = \App\Services\Afip\ArcaPlataforma::estado(); $usan = (int) $ae['empresas'] + (int) \App\Models\BusinessLocation::withoutGlobalScopes()->where('arca_bigsys', true)->count();

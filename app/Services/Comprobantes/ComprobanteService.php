@@ -224,7 +224,7 @@ class ComprobanteService
     {
         $pv = $c->puntoVenta ?? $this->puntoVentaPorDefecto(Auth::user());
         if ($c->location?->tieneCuitPropio() && $c->esFiscal() && (! $pv || $pv->business_location_id !== $c->business_location_id)) {
-            $pv = PuntoVenta::where('activo', true)->where('business_location_id', $c->business_location_id)->orderBy('numero')->first();
+            $pv = PuntoVenta::where('activo', true)->where('modo', '!=', 'caea')->where('business_location_id', $c->business_location_id)->orderBy('numero')->first();
             abort_if(! $pv, 422, "La sucursal {$c->location->name} factura con su propio CUIT ({$c->location->cuit}) y no tiene un punto de venta propio. Crealo en Configuración → Puntos de venta.");
         }
         abort_if(! $pv, 422, 'Configurá un punto de venta antes de emitir.');
@@ -241,6 +241,12 @@ class ComprobanteService
             throw ValidationException::withMessages(['afip' => 'ARCA rechazó el comprobante: ' . ($ex ? "{$ex['que']} {$ex['como']} (detalle: {$res['error']})" : $res['error'])]);
         }
         $pendiente = $res['estado'] === 'pendiente';
+        // Fase 126: ARCA no respondió y la empresa tiene la contingencia con CAEA → sale ya, válida, con el CAEA de la quincena
+        // en su punto de venta CAEA. Se informa a ARCA sola cuando vuelve. Sin CAEA, queda pendiente de CAE como siempre.
+        if ($pendiente && ($caea = app(\App\Services\Afip\CaeaService::class)->contingencia($c, (string) ($res['error'] ?? '')))) {
+            $c->cae_tipo = 'CAEA';
+            return [$caea, $caea['numero'], false];
+        }
         $numero = $pendiente ? null : ($res['numero'] ?? $pv->proximoNumero($c->tipo));
         if ($res['estado'] === 'aprobado') $pv->sincronizarUltimo($c->tipo, $numero);
         return [$res, $numero, $pendiente];
@@ -379,7 +385,7 @@ class ComprobanteService
 
     public function puntoVentaPorDefecto($user): ?PuntoVenta
     {
-        return PuntoVenta::where('activo', true)
+        return PuntoVenta::where('activo', true)->where('modo', '!=', 'caea') // el de CAEA es sólo para contingencia
             ->orderByRaw('CASE WHEN business_location_id = ? THEN 0 ELSE 1 END', [$user->current_location_id])
             ->orderBy('numero')->first();
     }

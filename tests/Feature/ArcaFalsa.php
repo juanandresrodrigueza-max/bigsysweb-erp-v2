@@ -30,5 +30,11 @@ class ArcaFalsa
     public function fexGetLastId(): int { return $this->fexUltimoId; }
     public function fexAuthorize(array $cmp): array { $this->fexEnviados[] = $cmp; if ($this->fexAlAutorizar) return ($this->fexAlAutorizar)($cmp); return ['Resultado' => 'A', 'CAE' => '79876543210987', 'CAEFchVto' => now()->addDays(10)->format('Ymd'), 'Cbte_nro' => $cmp['Cbte_nro'], 'Reproceso' => 'N', 'Motivos_Obs' => '', 'Id' => $cmp['Id']]; }
     public function fexGetVoucherInfo(int $pv, int $tipo, int $nro): ?array { return $this->fexInfo; }
+    // Fase 126: CAEA.
+    public array $caeaPedidos = []; public array $caeaInformados = []; public array $sinMovimiento = []; public ?\Closure $alInformar = null; public ?\Closure $alPedirCaea = null;
+    public function caeaSolicitar(int $periodo, int $orden): array { $this->caeaPedidos[] = [$periodo, $orden]; if ($this->alPedirCaea) return ($this->alPedirCaea)($periodo, $orden); $d = \App\Services\Afip\CaeaService::inicio($periodo, $orden); $h = \App\Services\Afip\CaeaService::fin($periodo, $orden); return ['CAEA' => '3' . $periodo . $orden . '000012', 'Periodo' => $periodo, 'Orden' => $orden, 'FchVigDesde' => $d->format('Ymd'), 'FchVigHasta' => $h->format('Ymd'), 'FchTopeInf' => $h->copy()->addDays(8)->format('Ymd'), 'FchProceso' => now()->format('YmdHis')]; }
+    public function caeaConsultar(int $periodo, int $orden): ?array { return null; }
+    public function caeaInformar(array $data): array { $this->caeaInformados[] = $data; if ($this->alInformar) return ($this->alInformar)($data); return ['Resultado' => 'A', 'Observaciones' => []]; }
+    public function caeaSinMovimiento(int $pv, string $caea): array { $this->sinMovimiento[] = [$pv, $caea]; return ['Resultado' => 'A', 'FchProceso' => now()->format('YmdHis')]; }
     public function padron(string $cuit): ?array { return ['cuit' => Cuit::formatear($cuit), 'nombre' => 'ACME SRL', 'condicion_iva' => 'Responsable Inscripto', 'direccion' => 'Av. Colón 1234', 'localidad' => 'Córdoba', 'provincia' => 'Córdoba', 'codigo_postal' => '5000', 'estado' => 'ACTIVO']; }
 }

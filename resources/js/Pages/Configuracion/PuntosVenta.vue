@@ -10,7 +10,7 @@
           <thead><tr><th>N°</th><th>Sucursal</th><th>Modo</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             <tr v-for="p in puntos" :key="p.id">
-              <td class="font-extrabold tabular-nums">{{ String(p.numero).padStart(4, '0') }}</td><td>{{ p.sucursal ?? 'General' }}</td><td class="capitalize text-marca-muted">{{ p.modo }}</td>
+              <td class="font-extrabold tabular-nums">{{ String(p.numero).padStart(4, '0') }}</td><td>{{ p.sucursal ?? 'General' }}</td><td class="capitalize text-marca-muted">{{ p.modo === 'caea' ? 'CAEA (contingencia)' : p.modo }}</td>
               <td><span class="badge" :class="p.activo ? 'bg-emerald-50 text-emerald-700' : 'bg-gris-light text-marca-muted'">{{ p.activo ? 'Activo' : 'Inactivo' }}</span></td>
               <td class="text-right"><button @click="abrir(p)" class="btn-ghost !px-2 text-xs" title="Editar" aria-label="Editar"><Icono nombre="edit" clase="w-4 h-4" /></button></td>
             </tr>
@@ -94,6 +94,28 @@
           <div v-for="p in prueba.pasos" :key="p.nombre" class="flex items-start gap-2 py-0.5"><span class="mt-1 w-2 h-2 rounded-full shrink-0" :class="p.ok ? 'bg-emerald-500' : 'bg-carmin'"></span><span><b>{{ p.nombre }}</b> · {{ p.detalle }}</span></div>
         </div>
 
+        <div v-if="afip.configurado && caea" class="rounded-2xl border p-3 mb-3 text-sm" :class="caea.activo ? 'border-emerald-200 bg-emerald-50/50' : 'border-marca-border'" data-e2e="caea">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="font-bold">Si ARCA se cae: contingencia con CAEA</p>
+            <label class="flex items-center gap-2 text-xs"><input type="checkbox" :checked="caea.activo" @change="router.post('/configuracion/afip/caea', { activo: $event.target.checked }, { preserveScroll: true })" data-e2e="caea-activo" /> Activa</label>
+          </div>
+          <p class="text-xs text-marca-muted mt-1">ARCA da por adelantado un código (CAEA) para cada quincena. Si al facturar ARCA no responde, la factura sale igual, válida, con ese código y en el punto de venta para CAEA. Cuando ARCA vuelve, se le informa sola. Sin esto, la factura queda «pendiente de CAE» hasta que ARCA responda.</p>
+          <ol v-if="!caea.pv" class="text-xs text-marca-muted list-decimal pl-5 mt-2 space-y-0.5">
+            <li>En ARCA → Administración de puntos de venta y domicilios, dá de alta un punto de venta nuevo para <b>CAEA</b> (sistema «RECE para aplicativo y web services», con el mismo domicilio que el de siempre).</li>
+            <li>Agregalo acá abajo con el mismo número y modo <b>CAEA (contingencia)</b>.</li>
+            <li>Tildá <b>Activa</b>.</li>
+          </ol>
+          <div v-else class="mt-2 grid sm:grid-cols-2 gap-2 text-xs">
+            <p>Punto de venta CAEA: <b class="tabular-nums">{{ String(caea.pv).padStart(4, '0') }}</b></p>
+            <p v-if="caea.vigente">Vigente: <b class="tabular-nums">{{ caea.vigente.caea }}</b> · {{ caea.vigente.quincena }}<span v-if="caea.vigente.tope" class="text-marca-muted"> · informar hasta el {{ caea.vigente.tope }}</span></p>
+            <p v-else-if="caea.activo" class="text-carmin">Sin CAEA para esta quincena.</p>
+            <p v-if="caea.proximo">Próxima quincena: <b class="tabular-nums">{{ caea.proximo.caea }}</b></p>
+            <p v-else-if="caea.activo" class="text-marca-muted">El de la próxima quincena se pide solo desde el {{ caea.proximo_desde }}.</p>
+            <p v-if="caea.sin_informar" :class="caea.rechazados ? 'text-carmin' : 'text-amber-700'">{{ caea.sin_informar }} comprobante(s) con CAEA sin informar a ARCA<span v-if="caea.rechazados"> ({{ caea.rechazados }} rechazado(s): mirá los avisos)</span>.</p>
+          </div>
+          <button v-if="caea.activo && caea.pv" class="btn-secondary !py-1 text-xs mt-2" @click="router.post('/configuracion/afip/caea/pedir', {}, { preserveScroll: true })" data-e2e="caea-pedir">Pedir el CAEA ahora</button>
+        </div>
+
         <details class="text-sm" :open="afip.modo === 'propio' || !arca.plataforma">
           <summary class="cursor-pointer font-semibold text-violeta">Tengo mi propio certificado (avanzado)</summary>
           <p v-if="arca.plataforma" class="text-xs text-marca-muted mt-1">Sólo si ya facturás por web services con otro sistema y querés usar tu certificado. Si cargás uno, se usa ese en lugar de BigSys. La factura de exportación y la consulta de padrón por ahora necesitan certificado propio.</p>
@@ -117,7 +139,7 @@
       <div class="grid sm:grid-cols-2 gap-4">
         <div><label class="label">Número</label><input v-model.number="form.numero" type="number" min="1" max="9999" class="input" /><p v-if="form.errors.numero" class="text-carmin text-xs mt-1">{{ form.errors.numero }}</p></div>
         <div><label class="label">Sucursal</label><select v-model="form.business_location_id" class="input"><option :value="null">General</option><option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.name }}{{ s.cuit ? ' · CUIT propio ' + s.cuit : '' }}</option></select></div>
-        <div><label class="label">Modo</label><select v-model="form.modo" class="input"><option value="electronico">Electrónico (ARCA)</option><option value="manual">Manual / talonario</option></select></div>
+        <div><label class="label">Modo</label><select v-model="form.modo" class="input"><option value="electronico">Electrónico (ARCA)</option><option value="manual">Manual / talonario</option><option value="caea">CAEA (contingencia)</option></select></div>
         <label class="flex items-center gap-2 text-sm mt-6"><input v-model="form.activo" type="checkbox" class="accent-carmin" /> Activo</label>
       </div>
       <template #pie>
@@ -136,7 +158,7 @@ import EstadoVacio from '@/Components/EstadoVacio.vue'
 import Modal from '@/Components/Modal.vue'
 import Icono from '@/Components/Icono.vue'
 
-const props = defineProps({ puntos: Array, sucursales: Array, afip: Object, prueba: Object, arca: { type: Object, default: () => ({ plataforma: false, sucursales: [] }) } })
+const props = defineProps({ puntos: Array, sucursales: Array, afip: Object, prueba: Object, caea: Object, arca: { type: Object, default: () => ({ plataforma: false, sucursales: [] }) } })
 // Fase 121: verificar los trámites en ARCA, activar la facturación por BigSys y traer los puntos de venta.
 const verif = ref(null), verificando = ref(false), copiado = ref(false)
 async function verificar(locationId = null) {

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('alertas:generar')->everyFifteenMinutes();
 Schedule::command('afip:reintentar')->everyFiveMinutes()->withoutOverlapping(); // contingencia: comprobantes pendientes de CAE
+Schedule::command('arca:caea')->dailyAt('06:40')->withoutOverlapping(); // Fase 126: CAEA de cada quincena, lo emitido con CAEA y los PV sin movimiento
 Schedule::command('agentes:correr')->dailyAt('05:45')->withoutOverlapping(); // Fase 107: Bigcito trabaja de noche y deja propuestas
 Schedule::command('whatsapp:plantillas')->twiceDaily(8, 14); // Fase 120.1: ¿Meta ya aprobó las plantillas de cada empresa?
 Schedule::command('bigcito:rutinas')->everyFiveMinutes()->withoutOverlapping(); // Fase 119.4: lo que cada usuario le dejó encargado a Bigcito
