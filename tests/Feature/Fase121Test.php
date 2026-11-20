@@ -264,4 +264,20 @@ class Fase121Test extends ErpTestCase
         $this->assertNotEmpty(\App\Services\Afip\ArcaDirecto::opcionesConexion('https://servicios1.afip.gov.ar/wsfexv1/service.asmx'));
         foreach (['https://wsaa.afip.gov.ar/ws/services/LoginCms', 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx', 'https://servicios1.afip.gov.ar.otro.com/x'] as $u) $this->assertSame([], \App\Services\Afip\ArcaDirecto::opcionesConexion($u), $u);
     }
+
+    // Fase 123.2: «Según el certificado» llega vacío en el formulario y no tiene que leerse como «homologación».
+    public function test_segun_el_certificado_no_lo_pasa_a_homologacion(): void
+    {
+        $this->superadmin();
+        $this->post('/admin/sistema/arca/pedido', ['cuit' => self::CUIT_BIGSYS, 'razon' => 'BIGSYS S.R.L.', 'alias' => 'bigsyserp'])->assertSessionHas('success');
+        $csr = openssl_csr_get_public_key(SistemaConfig::get('arca_pedido'));
+        $ca = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        $caCert = openssl_csr_sign(openssl_csr_new(['commonName' => 'Computadores', 'organizationName' => 'AFIP', 'countryName' => 'AR'], $ca), null, $ca, 3650);
+        openssl_x509_export(openssl_csr_sign(SistemaConfig::get('arca_pedido'), $caCert, $ca, 730, ['digest_alg' => 'sha256']), $crt);
+        $this->post('/admin/sistema/arca/certificado', ['cert' => UploadedFile::fake()->createWithContent('bigsyserp.crt', $crt), 'produccion' => ''])->assertSessionHas('success');
+        $this->assertTrue(ArcaPlataforma::config()['produccion']);
+        // Elegido a mano, se respeta.
+        $this->post('/admin/sistema/arca/certificado', ['cert' => UploadedFile::fake()->createWithContent('bigsyserp.crt', $crt), 'key' => UploadedFile::fake()->createWithContent('k.key', SistemaConfig::get('arca_key')), 'produccion' => '0'])->assertSessionHas('success');
+        $this->assertFalse(ArcaPlataforma::config()['produccion']);
+    }
 }

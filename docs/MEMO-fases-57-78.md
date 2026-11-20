@@ -196,3 +196,7 @@ responde con los permisos de esa persona y audita a su nombre.
 ### Fase 123.1 · «Probar la casilla» prueba lo que está escrito
 - Antes probaba sólo lo guardado: quien escribía la clave y tocaba Probar sin Guardar probaba la vieja («rechazó el usuario o la clave»). Ahora el botón manda servidor, puerto, usuario y clave de la pantalla; lo vacío sale de lo guardado, no se guarda nada y el resultado aclara «se probó con lo que está escrito: tocá Guardar». Tests en `Fase123bTest`.
 - Producción: la casilla `facturacion@bigsysweb.com` quedó configurada y probada el 20/11 (falta la prueba de punta a punta con un PDF a `facturacion+código@`).
+
+### Fase 123.2 · «Según el certificado» no es «homologación»
+- Al cargar el certificado de producción `bigsyserp` (20/11), quedó marcado «homologación»: con `forceFormData` el «Según el certificado» (null) llega como cadena vacía y `has()` + `boolean('')` daba false. `SistemaController::arcaCertificado` usa `filled()`. Test en `Fase121Test` (falla con el código viejo). En producción se corrigió a mano con «Pasar a producción».
+- Certificado de BigSys para el ERP: alias `bigsyserp`, BIGSYS S.R.L. 30-71438573-5, emitido 20/11/2026, vence 19/11/2028, relación «Facturación Electrónica» → computador fiscal `bigsyserp` hecha en el Administrador de Relaciones.
