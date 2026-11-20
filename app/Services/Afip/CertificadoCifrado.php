@@ -18,6 +18,14 @@ class CertificadoCifrado
         return $path;
     }
 
+    // El contenido en claro (para la conexión directa con ARCA, que no necesita archivos de larga vida).
+    public static function leer(?string $path): ?string
+    {
+        if (! $path || ! Storage::disk('local')->exists($path)) return null;
+        $c = Storage::disk('local')->get($path);
+        return str_ends_with($path, '.enc') ? Crypt::decryptString($c) : $c;
+    }
+
     // Devuelve una ruta legible por la librería de AFIP: la original si no está cifrada, o una copia temporal descifrada (0600).
     public static function rutaLegible(string $path): string
     {

@@ -46,7 +46,7 @@ class ClientesController extends Controller
     {
         if (! \App\Support\Cuit::valido($cuit)) return response()->json(['error' => 'El CUIT no es válido (revisá el dígito verificador).'], 422);
         $b = $request->user()->business;
-        if (! app(\App\Services\Comprobantes\AfipEmisor::class)->configurado($b)) return response()->json(['error' => 'Para consultar el padrón hace falta el certificado de ARCA (Configuración → Puntos de venta).'], 422);
+        if (! app(\App\Services\Comprobantes\AfipEmisor::class)->padronDisponible($b)) return response()->json(['error' => 'Para consultar el padrón de ARCA hace falta el certificado propio de la empresa (Configuración → Puntos de venta y ARCA). Con la facturación por BigSys, completá los datos a mano.'], 422);
         try {
             $p = \App\Services\Afip\AfipService::forBusiness($b)->padron($cuit);
         } catch (\Throwable $e) {

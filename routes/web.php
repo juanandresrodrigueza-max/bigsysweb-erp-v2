@@ -159,6 +159,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema/clave/borrar',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'borrarClave']);
     Route::post('/sistema/clave-duenos',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'claveDuenos']); // Fase 106
     Route::post('/sistema/probar-correo',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCorreo']);
+    // Fase 121: certificado de BigSys para ARCA (facturar en nombre de las empresas)
+    Route::post('/sistema/arca/pedido',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaPedido']);
+    Route::get('/sistema/arca/pedido.csr',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaPedidoBajar']);
+    Route::post('/sistema/arca/certificado',          [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaCertificado']);
+    Route::post('/sistema/arca/ambiente',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaAmbiente']);
+    Route::post('/sistema/arca/probar',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaProbar'])->middleware('throttle:10,1');
+    Route::post('/sistema/arca/borrar',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaBorrar']);
     Route::post('/sistema/probar-casilla',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCasilla']); // Fase 120.3
     Route::post('/sistema/probar-aviso',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarAviso'])->middleware('throttle:10,1'); // Fase 113.2
     Route::post('/sistema/probar-push',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarPush']); // Fase 93
@@ -1022,6 +1029,10 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/puntos-venta/{id?}',   [PuntosVentaController::class, 'guardar'])->middleware('permiso:configuracion,editar')->name('puntos.guardar');
         Route::post('/afip/probar',          [PuntosVentaController::class, 'probar'])->middleware('permiso:configuracion,editar');
         Route::post('/afip/certificados',    [PuntosVentaController::class, 'certificados'])->middleware('permiso:configuracion,editar')->name('afip.certificados');
+        // Fase 121: facturar a través de BigSys (delegación en ARCA, como el CRM)
+        Route::post('/afip/verificar',       [PuntosVentaController::class, 'verificarArca'])->middleware(['permiso:configuracion,editar', 'throttle:20,1']);
+        Route::post('/afip/bigsys',          [PuntosVentaController::class, 'bigsys'])->middleware(['permiso:configuracion,editar', 'throttle:20,1']);
+        Route::post('/afip/traer-puntos',    [PuntosVentaController::class, 'traerPuntos'])->middleware('permiso:configuracion,editar');
     });
 
     // Módulos en construcción: pantalla "próximamente" para que el menú no rompa.

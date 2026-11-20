@@ -15,10 +15,20 @@ class AfipEmisor
     // RG 5616: condición frente al IVA del receptor.
     public const CONDICION_RECEPTOR = ['Responsable Inscripto' => 1, 'Exento' => 4, 'Consumidor Final' => 5, 'Monotributista' => 6, 'No Responsable' => 7, 'No Categorizado' => 7, 'Exterior' => 9, 'Monotributista Social' => 13, 'IVA No Alcanzado' => 15, 'Monotributista Trabajador Independiente Promovido' => 16];
 
-    public function configurado(Business $b): bool
+    public function configurado(Business $b): bool { return $this->modo($b) !== null; }
+
+    // Fase 121: con qué certificado factura. «propio» = el de la empresa; «bigsys» = el de BigSys, porque la empresa le
+    // delegó el servicio en ARCA (como en el CRM); null = no está configurada y emite simulado.
+    public function modo(Business $b): ?string
     {
-        return (bool) ($b->cuit && $b->afip_cert_path && $b->afip_key_path);
+        if (! $b->cuit) return null;
+        if ($b->afip_cert_path && $b->afip_key_path) return 'propio';
+        if ($b->arca_bigsys && strlen(preg_replace('/\D/', '', (string) $b->cuit)) === 11 && \App\Services\Afip\ArcaPlataforma::configurada()) return 'bigsys';
+        return null;
     }
+
+    // El padrón de ARCA (completar la ficha por CUIT) sigue necesitando el certificado propio.
+    public function padronDisponible(Business $b): bool { return app()->bound('afip.fake') ? $this->configurado($b) : $this->modo($b) === 'propio'; }
 
     public function emitir(Comprobante $c, Business $b): array
     {
@@ -26,7 +36,10 @@ class AfipEmisor
         if (! $afipId) return ['estado' => 'no_aplica', 'numero' => null];
         $b = $c->emisor(); // sucursal con CUIT propio: factura con su certificado
         if (! $this->configurado($b)) return ['estado' => 'simulado', 'numero' => null, 'cae' => null, 'cae_vto' => null];
-        if ($c->esExportacion()) return $this->emitirExportacion($c, $b);
+        if ($c->esExportacion()) {
+            if ($this->modo($b) === 'bigsys' && ! app()->bound('afip.fake')) return ['estado' => 'rechazado', 'numero' => null, 'error' => 'La factura de exportación (E) todavía necesita el certificado propio de la empresa.', 'explicacion' => ['tipo' => 'exportacion', 'que' => 'La factura de exportación no se puede emitir a través de BigSys todavía.', 'como' => 'Cargá el certificado propio de la empresa en Configuración → Puntos de venta y ARCA, o emitila desde el sitio de ARCA.', 'original' => '']];
+            return $this->emitirExportacion($c, $b);
+        }
 
         $pv = (int) $c->punto_venta;
         try {

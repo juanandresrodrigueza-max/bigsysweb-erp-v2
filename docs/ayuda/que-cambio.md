@@ -79,6 +79,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **Conversación en vivo con Bigcito (120.4).** Con el 📞 del panel hablás con Bigcito como por teléfono: te contesta al instante, lo podés interrumpir y las acciones siguen esperando tu «sí». La llamada sigue aunque cambies de pantalla. Lo activa BigSys (se cobra por minuto).
 - **Bigcito cobrador (120.5).** Un cliente con deuda vencida que escribe por WhatsApp «no llego a pagar todo» recibe de Bigcito un plan en cuotas dentro de los límites que vos fijaste (cuotas, interés, cuota mínima, plazo). Cuando acepta, el acuerdo queda en Cobranzas para que lo apruebes; lo que pide de más te lo pasa a vos. Además se corrigió que guardar los avisos automáticos de Cobranzas desarmaba la conexión de WhatsApp hecha con el QR.
 - **Encargos entre personas (120.6).** «Decile a Pedro que prepare el pedido 12 para las 17»: a Pedro le llega por WhatsApp y por la campana, contesta HECHO y vos te enterás. Lo vencido se recuerda solo. Hay pantalla de Encargos y un 📌 en el encabezado con lo que tenés para hacer.
+- **Factura electrónica sin certificado (121).** Como en el CRM: BigSys factura por tu empresa con su certificado; vos sólo lo autorizás una vez en ARCA y lo activás en Configuración → Puntos de venta y ARCA, que verifica los trámites con ARCA y trae tus puntos de venta. Además, la factura ahora informa siempre la condición frente al IVA del receptor (RG 5616).
 
 ## Bigcito maneja el sistema con vos (fase 119)
 

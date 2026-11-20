@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class BusinessLocation extends Model
 {
     protected $fillable = ['business_id', 'name', 'short_name', 'address', 'city', 'province', 'postal_code', 'phone', 'email', 'is_active', 'is_default',
-        'cuit', 'razon_social', 'condicion_iva', 'iibb', 'inicio_actividades', 'afip_cert_path', 'afip_key_path', 'afip_produccion', 'lat', 'lng'];
+        'cuit', 'razon_social', 'condicion_iva', 'iibb', 'inicio_actividades', 'arca_bigsys', 'arca_verificada_en', 'afip_cert_path', 'afip_key_path', 'afip_produccion', 'lat', 'lng'];
 
-    protected $casts = ['is_active' => 'boolean', 'is_default' => 'boolean', 'afip_produccion' => 'boolean', 'inicio_actividades' => 'date'];
+    protected $casts = ['is_active' => 'boolean', 'is_default' => 'boolean', 'afip_produccion' => 'boolean', 'arca_bigsys' => 'boolean', 'arca_verificada_en' => 'datetime', 'inicio_actividades' => 'date'];
 
     protected $hidden = ['afip_cert_path', 'afip_key_path'];
 
@@ -30,5 +30,5 @@ class BusinessLocation extends Model
     public function tieneCuitPropio(): bool { return ! empty($this->cuit); }
 
     // Además del CUIT tiene certificado ARCA cargado: emite electrónico por su cuenta.
-    public function arcaConfigurado(): bool { return $this->tieneCuitPropio() && $this->afip_cert_path && $this->afip_key_path; }
+    public function arcaConfigurado(): bool { return $this->tieneCuitPropio() && (($this->afip_cert_path && $this->afip_key_path) || ($this->arca_bigsys && \App\Services\Afip\ArcaPlataforma::configurada())); }
 }

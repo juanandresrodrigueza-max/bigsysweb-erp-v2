@@ -6,6 +6,9 @@ namespace App\Services\Afip;
 class AfipErrores
 {
     private const TABLA = [
+        // Fase 121: la empresa factura por BigSys pero todavía no le delegó el servicio en ARCA (código 600).
+        ['/\(600\)|lista de relaciones|autoriz[oó] a BigSys|no apareci[oó] CUIT/i', 'Esta empresa todavía no autorizó a BigSys a facturar en su nombre ante ARCA.', 'En ARCA → Administrador de Relaciones de Clave Fiscal → Nueva relación → Facturación Electrónica, con BigSys como representante. El paso a paso está en Configuración → Puntos de venta y ARCA.', 'delegacion'],
+        ['/certificado de BigSys/i', 'El certificado de BigSys para facturar tiene un problema.', 'Es de BigSys, no de tu empresa: avisanos y lo resolvemos. Mientras tanto el comprobante queda pendiente.', 'plataforma'],
         ['/10016|ya fue registrado|CbteDesde.*registrado/i', 'El número de comprobante ya existe en ARCA.', 'El sistema consulta el comprobante en ARCA y adopta su CAE. Si persiste, revisá que no haya otro sistema facturando en el mismo punto de venta.', 'duplicado'],
         ['/10015|CbteFch|fecha.*(fuera|anterior|posterior)/i', 'La fecha del comprobante está fuera del rango que acepta ARCA (hasta 5 días atrás para productos, 10 para servicios, y nunca posterior a hoy).', 'Corregí la fecha del comprobante y volvé a emitir.', 'fecha'],
         ['/10048|DocNro|CUIT.*(inválido|invalido|inexistente)|documento.*inválido/i', 'El CUIT/DNI del cliente no es válido para ARCA.', 'Verificá el número en la ficha del cliente (o consultalo en el padrón).', 'cliente'],
@@ -32,7 +35,7 @@ class AfipErrores
     // ¿Es un problema de conexión (contingencia) y no un rechazo de ARCA?
     public static function esConexion(string $mensaje): bool
     {
-        return self::explicar($mensaje)['tipo'] === 'conexion' || preg_match('/SoapFault|SOAP|cURL|timed out|Could not connect|resolve host|http headers/i', $mensaje) === 1;
+        return self::explicar($mensaje)['tipo'] === 'conexion' || preg_match('/SoapFault|SOAP|cURL|timed out|Could not connect|resolve host|http headers|No se pudo conectar con ARCA|tardando en entregar el ticket/i', $mensaje) === 1;
     }
 
     public static function esDuplicado(string $mensaje): bool

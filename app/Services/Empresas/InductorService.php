@@ -19,7 +19,7 @@ class InductorService
         return [
             'rubro' => ['texto' => '¡Hola! Soy Bigcito. Para dejarte el sistema a medida, contame: ¿a qué se dedica tu negocio?', 'opciones' => Business::VERTICALES, 'rubros' => null],
             'como_vende' => ['texto' => '¿Cómo vendés casi siempre?', 'opciones' => ['mostrador' => 'En el mostrador, cobro en el momento', 'cuenta' => 'Con presupuestos y facturas, muchos a cuenta corriente', 'ambos' => 'Las dos cosas'], 'rubros' => null],
-            'arca' => ['texto' => '¿Hacés factura electrónica con ARCA?', 'opciones' => ['si' => 'Sí, y tengo el certificado', 'sin_cert' => 'Sí, pero no tengo el certificado', 'no' => 'No por ahora (solo comprobantes internos)'], 'rubros' => null],
+            'arca' => ['texto' => '¿Hacés factura electrónica con ARCA?', 'opciones' => ['si' => 'Sí, ya facturo electrónicamente', 'sin_cert' => 'Sí, quiero empezar (BigSys factura por mí, sin certificado)', 'no' => 'No por ahora (solo comprobantes internos)'], 'rubros' => null],
             'stock' => ['texto' => '¿Querés controlar el stock de lo que vendés?', 'opciones' => ['si' => 'Sí, de todo', 'algunos' => 'Solo de algunos artículos', 'no' => 'No, vendo servicios o no lo necesito'], 'rubros' => null],
             'sucursales' => ['texto' => '¿Tenés más de un local, sucursal o depósito?', 'opciones' => ['una' => 'Uno solo', 'varias' => 'Varios'], 'rubros' => null],
             'reparto' => ['texto' => '¿Entregás la mercadería con reparto propio (camión, moto)?', 'opciones' => $sn, 'rubros' => ['corralon', 'minimarket', 'industria', 'retail', 'otro']],
@@ -79,7 +79,7 @@ class InductorService
         return [
             'mostrador' => $q('turnos_caja')->exists(),
             'cuenta_corriente' => $q('cobros')->exists() || DB::table('contacts')->where('business_id', $id)->where('balance', '>', 0.005)->exists(),
-            'arca' => (bool) $b->afip_cert_path,
+            'arca' => (bool) $b->afip_cert_path || (bool) $b->arca_bigsys, // Fase 121: o factura a través de BigSys
             'stock' => $q('stock_movements')->exists(),
             'sucursales' => $q('business_locations')->count() > 1,
             'reparto' => $q('ordenes_entrega')->exists(),
