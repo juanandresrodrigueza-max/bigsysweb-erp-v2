@@ -45,7 +45,8 @@ abstract class ErpTestCase extends TestCase
         $dueno = User::create(['name' => "Dueño {$nombre}", 'email' => "{$slug}@test.com", 'password' => 'password', 'status' => 'active']);
         $b = Business::create(['name' => $nombre, 'slug' => $slug, 'email' => "{$slug}@test.com", 'cuit' => '30-' . str_pad((string) abs(crc32($slug) % 100000000), 8, '0', STR_PAD_LEFT) . '-' . (crc32($slug) % 10), 'razon_social' => "{$nombre} S.R.L.", 'condicion_iva' => $condicionIva, 'afip_punto_venta' => '0001', 'owner_id' => $dueno->id, 'vertical' => 'corralon']);
         $suc = BusinessLocation::create(['business_id' => $b->id, 'name' => 'Casa Central', 'short_name' => 'CC', 'is_default' => true]);
-        $plan = Plan::where('slug', 'pro')->first() ?? Plan::first();
+        // Siempre el mismo plan, con todo habilitado («prueba»): sin orden, PostgreSQL devolvía a veces «Gratis» y fallaban pruebas al azar (Fase 124).
+        $plan = Plan::where('slug', 'prueba')->first() ?? Plan::orderBy('id')->first();
         Subscription::create(['business_id' => $b->id, 'plan_id' => $plan->id, 'status' => 'active', 'amount' => $plan->price_monthly, 'starts_at' => now()->subMonth(), 'ends_at' => now()->addMonth()]);
         Role::crearRolesSistema($b->id);
         $roles = $b->roles()->pluck('id', 'slug');

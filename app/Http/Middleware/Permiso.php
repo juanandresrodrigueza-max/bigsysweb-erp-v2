@@ -11,6 +11,11 @@ class Permiso
     public function handle(Request $request, Closure $next, string $modulo, string $accion = 'ver')
     {
         $user = $request->user();
+        // Fase 124: un superadmin sin empresa no puede usar pantallas de empresa (se rompían con error de servidor): al panel.
+        if ($user?->is_superadmin && ! $user->business_id) {
+            $msg = 'Esta pantalla es de una empresa: entrá a una desde Panel → Empresas, o a «Bigsys Web ERP» con el botón de arriba.';
+            return $request->expectsJson() ? response()->json(['message' => $msg], 409) : redirect('/admin')->with('error', $msg);
+        }
         if (! $user || ! $user->puede($modulo, $accion)) {
             // Fase 39.1: el mensaje dice qué permiso falta y a quién pedírselo.
             $nombreModulo = config("erp.modulos.{$modulo}.label") ?? ucfirst($modulo);

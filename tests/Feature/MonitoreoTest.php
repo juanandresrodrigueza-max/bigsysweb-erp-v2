@@ -71,10 +71,13 @@ class MonitoreoTest extends ErpTestCase
         $this->assertSame('ok', $porKey['cron']['estado']);
         $this->assertSame('ok', $porKey['errores']['estado']);
         $this->assertSame('aviso', $porKey['backups']['estado'], 'Sin copias todavía: aviso, no crítico');
-        $this->assertNotSame('critico', $r['estado']);
+        $this->assertNotSame('critico', $r['estado'], json_encode(collect($r['controles'])->where('estado', 'critico')->values(), JSON_UNESCAPED_UNICODE));
 
         $this->admin();
-        $this->get('/admin/salud')->assertOk()->assertInertia(fn($a) => $a->component('Superadmin/Salud', false)->has('salud.controles', 15)->where('monitoreo.dsn_set', false));
+        $this->get('/admin/salud')->assertOk()->assertInertia(fn($a) => $a->component('Superadmin/Salud', false)->has('salud.controles')->where('monitoreo.dsn_set', false));
+        // Los controles que no pueden faltar (se suman otros con cada fase: se chequea que estén, no cuántos son).
+        $keys = collect($this->get('/admin/salud')->viewData('page')['props']['salud']['controles'])->pluck('key');
+        foreach (['base', 'cache', 'cola', 'cron', 'disco', 'backups', 'copias_verificadas', 'copias_remotas', 'copia_completa', 'arca', 'arca_certificado', 'errores'] as $k) $this->assertContains($k, $keys, "Falta el control {$k}");
         $this->get('/salud')->assertOk()->assertJsonStructure(['estado', 'hora'])->assertJsonMissing(['controles']);
         SistemaConfig::set('salud_token', 'tok-123'); SistemaConfig::set('monitoreo_email', 'ops@bigsys.test');
         $this->get('/salud?token=tok-123')->assertOk()->assertJsonStructure(['estado', 'controles']);
