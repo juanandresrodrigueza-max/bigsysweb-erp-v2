@@ -239,9 +239,10 @@ class SistemaController extends Controller
     }
 
     // Fase 120.3: entra a la casilla de facturas y cuenta lo que hay sin leer.
-    public function probarCasilla(\App\Services\Compras\BandejaFacturasService $svc)
+    public function probarCasilla(Request $request, \App\Services\Compras\BandejaFacturasService $svc)
     {
-        $r = $svc->probar();
+        $d = $request->validate(['casilla_host' => 'nullable|string|max:150', 'casilla_puerto' => 'nullable|integer|in:993,143', 'casilla_usuario' => 'nullable|string|max:150', 'casilla_clave' => 'nullable|string|max:300']);
+        $r = $svc->probar(['host' => $d['casilla_host'] ?? null, 'puerto' => isset($d['casilla_puerto']) ? (int) $d['casilla_puerto'] : null, 'usuario' => $d['casilla_usuario'] ?? null, 'clave' => $d['casilla_clave'] ?? null]);
         return back()->with('prueba', ['que' => 'casilla', 'ok' => $r['ok'], 'texto' => $r['texto']]);
     }
 

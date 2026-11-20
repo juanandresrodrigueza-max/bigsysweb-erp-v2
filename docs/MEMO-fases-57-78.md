@@ -192,3 +192,7 @@ responde con los permisos de esa persona y audita a su nombre.
 - Comando `backups:completa` a las 03:20 (`withoutOverlapping`). Salud: control `copia_completa` (aviso sin clave o sin disco; crítico si falló, si tiene más de 30 h o si no subió). Panel → Sistema: tarjeta con estado, lista, «Generar/Cambiar la clave», «Hacer una copia ahora» y cómo se restaura. Dockerfile suma `postgresql16-client openssl`.
 - Ensayado de punta a punta en PostgreSQL 16: copia → descifrado con la clave → `pg_restore` en una base vacía → mismos conteos (7 empresas, 13 usuarios, 88 comprobantes, 28 artículos, config).
 - Manual nuevo: `docs/MANUAL-DATOS-Y-RESTAURACION.md` (qué copias hay, rutina, casos A–G, ensayo trimestral y restauración completa).
+
+### Fase 123.1 · «Probar la casilla» prueba lo que está escrito
+- Antes probaba sólo lo guardado: quien escribía la clave y tocaba Probar sin Guardar probaba la vieja («rechazó el usuario o la clave»). Ahora el botón manda servidor, puerto, usuario y clave de la pantalla; lo vacío sale de lo guardado, no se guarda nada y el resultado aclara «se probó con lo que está escrito: tocá Guardar». Tests en `Fase123bTest`.
+- Producción: la casilla `facturacion@bigsysweb.com` quedó configurada y probada el 20/11 (falta la prueba de punta a punta con un PDF a `facturacion+código@`).
