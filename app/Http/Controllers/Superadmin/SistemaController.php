@@ -193,7 +193,7 @@ class SistemaController extends Controller
     {
         $request->validate(['cert' => 'required|file|max:64', 'key' => 'nullable|file|max:64', 'produccion' => 'nullable|boolean']);
         try {
-            $info = \App\Services\Afip\ArcaPlataforma::cargar(file_get_contents($request->file('cert')->getRealPath()), $request->hasFile('key') ? file_get_contents($request->file('key')->getRealPath()) : null, $request->has('produccion') ? $request->boolean('produccion') : null);
+            $info = \App\Services\Afip\ArcaPlataforma::cargar(file_get_contents($request->file('cert')->getRealPath()), $request->hasFile('key') ? file_get_contents($request->file('key')->getRealPath()) : null, $request->filled('produccion') ? $request->boolean('produccion') : null); // «Según el certificado» llega vacío: no es «homologación»
         } catch (\App\Services\Afip\ArcaError $e) { return back()->withErrors(['cert' => $e->getMessage()]); }
         \App\Services\Afip\ArcaPlataforma::limpiarTickets();
         AuditLog::registrar('editar', null, "Cargó el certificado de BigSys para ARCA (alias {$info['alias']}, vence {$info['vence']->format('d/m/Y')})");
