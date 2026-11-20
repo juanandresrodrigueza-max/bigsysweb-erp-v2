@@ -17,6 +17,9 @@ class SaludService
 
     // Fase 94.3: el latido del cron vive en un archivo de storage, no sólo en la caché: `optimize:clear` (que corre en cada
     // actualización) borraba la caché y el semáforo mostraba «Nunca corrió» durante un minuto. La caché queda como respaldo.
+    // En las pruebas se fija el espacio libre: el disco de la máquina donde corren no es el del servidor (Fase 124).
+    public static ?\Closure $espacioDisco = null;
+
     public static function archivoLatido(): string { return storage_path('framework/salud-latido'); }
 
     public static function latir(): void
@@ -56,7 +59,7 @@ class SaludService
         $min = $latido ? (int) abs(now()->diffInMinutes(\Carbon\Carbon::parse($latido))) : null;
         $c[] = $this->item('cron', 'Tareas programadas (cron)', $min === null ? 'aviso' : ($min > 30 ? 'critico' : ($min > 5 ? 'aviso' : 'ok')), $min === null ? 'Nunca corrió: falta el cron `php artisan schedule:run` cada minuto.' : "Último latido hace {$min} min");
         // Disco
-        try { $libre = disk_free_space(storage_path()); $total = disk_total_space(storage_path()); $pct = $total ? round($libre / $total * 100) : 0; $c[] = $this->item('disco', 'Disco', $pct < 5 ? 'critico' : ($pct < 15 ? 'aviso' : 'ok'), round($libre / 1024 / 1024 / 1024, 1) . " GB libres ({$pct}%)"); }
+        try { [$libre, $total] = self::$espacioDisco ? (self::$espacioDisco)() : [disk_free_space(storage_path()), disk_total_space(storage_path())]; $pct = $total ? round($libre / $total * 100) : 0; $c[] = $this->item('disco', 'Disco', $pct < 5 ? 'critico' : ($pct < 15 ? 'aviso' : 'ok'), round($libre / 1024 / 1024 / 1024, 1) . " GB libres ({$pct}%)"); }
         catch (\Throwable $e) { $c[] = $this->item('disco', 'Disco', 'aviso', $e->getMessage()); }
         // Copias de seguridad
         $ultimo = Backup::withoutGlobalScopes()->max('created_at');

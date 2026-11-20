@@ -13,8 +13,9 @@ class CuotasService
         ['nombre' => 'Naranja', 'planes' => [['cuotas' => 1, 'recargo' => 0], ['cuotas' => 3, 'recargo' => 12], ['cuotas' => 6, 'recargo' => 22]]],
     ];
 
-    public function planes(Business $b): array
+    public function planes(?Business $b): array
     {
+        if (! $b) return self::DEFAULT; // un superadmin sin empresa abriendo el mostrador (Fase 124): los planes de siempre
         $t = $b->tarjetas;
         if (! is_array($t) || ! $t) return self::DEFAULT;
         return array_values(array_map(fn($x) => ['nombre' => (string) ($x['nombre'] ?? 'Tarjeta'), 'planes' => array_values(array_map(fn($p) => ['cuotas' => max(1, (int) ($p['cuotas'] ?? 1)), 'recargo' => round((float) ($p['recargo'] ?? 0), 2)], $x['planes'] ?? []))], $t));

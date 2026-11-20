@@ -43,7 +43,7 @@ class EmpresaBigSysService
             CuentaFondos::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'tipo' => 'caja', 'nombre' => 'Caja', 'es_default' => true]);
             \App\Models\Deposito::create(['business_id' => $empresa->id, 'business_location_id' => $central->id, 'nombre' => 'Depósito principal', 'es_default' => true]);
             \App\Services\Contabilidad\PlanCuentas::crear($empresa);
-            $plan = Plan::whereJsonContains('features', '*')->orderBy('orden')->first() ?? Plan::where('is_active', true)->orderByDesc('price_monthly')->first() ?? Plan::first();
+            $plan = Plan::whereJsonContains('features', '*')->orderBy('orden')->first() ?? Plan::where('is_active', true)->orderByDesc('price_monthly')->first() ?? Plan::orderBy('id')->first();
             $this->suscripciones->activar($empresa, $plan, 'yearly', 'cortesia', $super, now()->addYears(20));
             $this->vincular($empresa, $super);
             AuditLog::registrar('crear', $empresa, "{$super->name} creó la empresa propia de BigSys ({$empresa->name})");

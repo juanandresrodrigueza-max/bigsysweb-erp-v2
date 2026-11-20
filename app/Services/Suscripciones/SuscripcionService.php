@@ -124,7 +124,7 @@ class SuscripcionService
     // cuando llega cada cobro (registrarCobroDebito); el primer cobro llega a los pocos minutos de autorizar.
     public function activarDebito(Business $empresa, string $preapprovalId, ?User $por = null): Subscription
     {
-        $sub = $empresa->subscription ?? $this->iniciarPrueba($empresa, Plan::where('is_free', true)->first() ?? Plan::first(), 0);
+        $sub = $empresa->subscription ?? $this->iniciarPrueba($empresa, Plan::where('is_free', true)->orderBy('id')->first() ?? Plan::orderBy('id')->first(), 0);
         if ($sub->mp_preapproval_id && $sub->mp_preapproval_id !== $preapprovalId) { try { app(MercadoPagoSuscripcionService::class)->cancelarDebito($sub->mp_preapproval_id); } catch (\Throwable $e) { report($e); } }
         $sub->update(['auto_renew' => true, 'mp_preapproval_id' => $preapprovalId, 'payment_method' => 'debito']);
         AuditLog::registrar('suscripcion', $sub, 'Débito automático autorizado en Mercado Pago (' . $preapprovalId . ')');
