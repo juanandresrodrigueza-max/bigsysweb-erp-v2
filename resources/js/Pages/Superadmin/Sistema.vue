@@ -252,7 +252,7 @@
         <div class="sm:col-span-2"><label class="label">Dirección pública <span class="font-normal text-marca-muted">(sólo si no es igual al usuario)</span></label><input v-model="form.casilla_direccion" type="email" class="input" placeholder="facturas@bigsysweb.com" /></div>
       </div>
       <p v-if="prueba?.que === 'casilla'" class="text-sm px-3 py-2 rounded-lg" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="prueba-casilla">{{ prueba.ok ? '✓' : '✗' }} {{ prueba.texto }}</p>
-      <div class="flex flex-wrap justify-end gap-2"><button v-if="config.casilla_clave_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('casilla_clave')">Borrar clave</button><Link v-if="config.casilla_clave_set" href="/admin/sistema/probar-casilla" method="post" as="button" preserve-scroll class="btn-secondary" data-e2e="probar-casilla">Probar la casilla</Link><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
+      <div class="flex flex-wrap justify-end gap-2"><button v-if="config.casilla_clave_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('casilla_clave')">Borrar clave</button><button v-if="config.casilla_clave_set || form.casilla_clave" type="button" class="btn-secondary" @click="router.post('/admin/sistema/probar-casilla', { casilla_host: form.casilla_host, casilla_puerto: form.casilla_puerto, casilla_usuario: form.casilla_usuario, casilla_clave: form.casilla_clave }, { preserveScroll: true, preserveState: true })" data-e2e="probar-casilla">Probar la casilla</button><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
     </form>
 
     <!-- Fase 118: WhatsApp con el QR de Meta -->

@@ -58,21 +58,24 @@ class BandejaFacturasService
         return $u . '+' . self::token($b) . '@' . $d;
     }
 
-    private function abrir(): ImapCliente
+    private function abrir(?array $c = null): ImapCliente
     {
-        $c = self::config();
+        $c ??= self::config();
         $imap = ImapCliente::abrir($c['host'], $c['puerto']);
         $imap->entrar($c['usuario'], $c['clave']);
         return $imap;
     }
 
     // Para el botón «Probar la casilla»: entra y cuenta lo que hay sin leer.
-    public function probar(): array
+    // Fase 123.1: prueba lo que está escrito en la pantalla (aunque no se haya guardado); lo que no se escribió, sale de lo guardado.
+    public function probar(array $escrito = []): array
     {
-        if (! self::configurada()) return ['ok' => false, 'texto' => 'Falta cargar el servidor, el usuario y la clave de la casilla.'];
-        try { $imap = $this->abrir(); $n = count($imap->sinLeer(200)); $imap->salir(); }
-        catch (\Throwable $e) { return ['ok' => false, 'texto' => $e->getMessage()]; }
-        return ['ok' => true, 'texto' => "La casilla contesta bien. Mensajes sin leer: {$n}."];
+        $escrito = array_filter($escrito, fn($v) => $v !== null && $v !== '');
+        $c = array_merge(self::config(), $escrito); $sinGuardar = (bool) array_diff_assoc(array_map('strval', $escrito), array_map('strval', array_intersect_key(self::config(), $escrito)));
+        if (empty($c['host']) || empty($c['usuario']) || empty($c['clave'])) return ['ok' => false, 'texto' => 'Falta cargar el servidor, el usuario y la clave de la casilla.'];
+        try { $imap = $this->abrir($c); $n = count($imap->sinLeer(200)); $imap->salir(); }
+        catch (\Throwable $e) { return ['ok' => false, 'texto' => $e->getMessage() . ($sinGuardar ? ' (Se probó con lo que está escrito en la pantalla.)' : '')]; }
+        return ['ok' => true, 'texto' => "La casilla contesta bien. Mensajes sin leer: {$n}." . ($sinGuardar ? ' Esto se probó con lo que está escrito: tocá Guardar para que quede.' : '')];
     }
 
     // Lo que corre cada cinco minutos: baja lo nuevo, lo reparte por empresa y lo deja leído.
