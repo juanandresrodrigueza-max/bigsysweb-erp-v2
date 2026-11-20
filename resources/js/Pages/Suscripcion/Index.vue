@@ -111,11 +111,11 @@
 
       <!-- Fase 94.1: baja de la empresa por el dueño (lo exige la política de privacidad y Google Play) -->
       <div v-if="soloDueno && !administrativa" class="mt-8 border-t border-marca-borde pt-4 flex flex-wrap items-center justify-between gap-3 text-sm" data-e2e="baja-empresa">
-        <div class="min-w-0"><p class="font-semibold">Dar de baja la empresa</p><p class="text-xs text-marca-muted">Se cierra la cuenta de todos los usuarios. Los datos se conservan 90 días por si volvés; después se eliminan, salvo lo que la ley fiscal obliga a guardar.</p></div>
+        <div class="min-w-0"><p class="font-semibold">Dar de baja la empresa</p><p class="text-xs text-marca-muted">Se cierra la cuenta de todos los usuarios. Los datos se conservan 90 días por si volvés; después se eliminan. Guardar los comprobantes y registros por el plazo legal es obligación de la empresa: antes, bajá una copia completa.</p></div>
         <button class="btn-secondary text-carmin shrink-0" @click="bajaAbierta = true">Dar de baja…</button>
       </div>
       <Modal :abierto="bajaAbierta" titulo="Dar de baja la empresa" @cerrar="bajaAbierta = false">
-        <p class="text-sm mb-3">Esto cierra el acceso de <b>todos</b> los usuarios de <b>{{ empresa }}</b> ahora mismo. Antes, si querés, exportá tus datos desde Configuración → Datos.</p>
+        <p class="text-sm mb-3">Esto cierra el acceso de <b>todos</b> los usuarios de <b>{{ empresa }}</b> ahora mismo. Los datos quedan 90 días por si volvés y después <b>se eliminan</b>. Guardar los comprobantes y registros por el plazo legal es obligación de la empresa: antes, <Link href="/configuracion/datos" class="underline font-semibold">bajá una copia completa</Link> (Configuración → Datos). Los comprobantes electrónicos, además, quedan en ARCA.</p>
         <label class="label">¿Por qué te vas? (nos ayuda a mejorar)</label>
         <input v-model="baja.motivo" class="input mb-3" maxlength="200" placeholder="Cerré el negocio, me paso a otro sistema, es caro…" />
         <label class="label">Escribí el nombre de la empresa para confirmar: <b>{{ empresa }}</b></label>

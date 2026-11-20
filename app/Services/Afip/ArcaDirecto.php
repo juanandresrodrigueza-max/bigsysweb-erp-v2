@@ -201,7 +201,7 @@ class ArcaDirecto
         if ($codigo === '600' || preg_match('/lista de relaciones|no apareci[oó] cuit/i', $msg)) return '(600) ' . ($this->plataforma
             ? 'Esta empresa todavía no autorizó a BigSys a facturar en su nombre ante ARCA, o lo autorizó con otro CUIT. Se hace desde ARCA → Administrador de Relaciones de Clave Fiscal → Nueva relación → Facturación Electrónica, con BigSys como representante. Ver Configuración → Puntos de venta y ARCA.'
             : 'El certificado no está autorizado a facturar con este CUIT (ARCA → Administrador de Relaciones). ' . $msg);
-        if (preg_match('/punto de venta/i', $msg)) return "({$codigo}) {$msg} — revisá que el punto de venta esté dado de alta en ARCA para WEB SERVICES (el de «Comprobantes en línea» no sirve) y que sea el mismo número que en el sistema.";
+        if (preg_match('/punto de venta/i', $msg)) return "({$codigo}) {$msg} — revisá que el punto de venta esté dado de alta en ARCA para WEB SERVICES («RECE para aplicativo y web services», o «Factura Electrónica - Monotributo - Web Services» si es monotributista; el de «Comprobantes en línea» no sirve) y que sea el mismo número que en el sistema.";
         return $codigo !== '' ? "({$codigo}) {$msg}" : ($msg ?: 'ARCA rechazó la operación sin detallar el motivo.');
     }
 

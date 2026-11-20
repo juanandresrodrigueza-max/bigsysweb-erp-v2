@@ -85,6 +85,13 @@ class SaludService
                 ($dias < 0 ? 'VENCIDO el ' . $ae['vence'] . ': nadie puede facturar por BigSys. Renovalo en ARCA y cargalo en Panel → Sistema.' : "Alias {$ae['alias']} · vence el {$ae['vence']} (en {$dias} días)" . ($dias < 30 ? ': renovalo en ARCA y cargalo en Panel → Sistema.' : ''))
                 . ' · ' . ($ae['produccion'] ? 'producción' : 'homologación: los CAE no valen fiscalmente') . " · {$usan} empresa(s)/sucursal(es) lo usan.");
         } catch (\Throwable $e) { $c[] = $this->item('arca_certificado', 'Certificado de BigSys para ARCA', 'aviso', $e->getMessage()); }
+        // Fase 121.2: lo que promete la privacidad: a los 90 días de la baja, los datos de la empresa se eliminan (lo hace el superadmin).
+        try {
+            $vencidas = \App\Models\Business::onlyTrashed()->where('deleted_at', '<', now()->subDays(90))->orderBy('deleted_at')->get(['id', 'name', 'deleted_at']);
+            $c[] = $this->item('bajas_vencidas', 'Empresas dadas de baja hace más de 90 días', $vencidas->count() ? 'aviso' : 'ok', $vencidas->count()
+                ? $vencidas->count() . ' esperan que se eliminen sus datos, como dice la política de privacidad: ' . $vencidas->take(5)->map(fn($b) => "{$b->name} (baja el {$b->deleted_at->format('d/m/Y')})")->implode(', ') . ($vencidas->count() > 5 ? '…' : '') . '. Panel → Empresas → ficha → «Eliminar definitivamente».'
+                : 'Ninguna pendiente de eliminar.');
+        } catch (\Throwable $e) { $c[] = $this->item('bajas_vencidas', 'Empresas dadas de baja hace más de 90 días', 'aviso', $e->getMessage()); }
         // Cotización
         $cot = Cotizacion::withoutGlobalScopes()->whereNull('business_id')->where('tipo', 'oficial')->max('fecha');
         $dias = $cot ? (int) abs(today()->diffInDays(\Carbon\Carbon::parse($cot))) : null;

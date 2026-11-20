@@ -43,6 +43,7 @@ class Fase121bTest extends ErpTestCase
         $this->assertSame(ArcaAutorizaciones::VERSION, $p['autorizacion']['version']); $this->assertTrue($p['puede_aceptar']); $this->assertNull($p['autorizacion']['ultima']);
         $this->assertStringContainsString('Corralón Test S.R.L. (CUIT 30-70012345-2) autoriza a BIGSYS S.R.L. (CUIT 30-71234567-1)', $p['autorizacion']['texto']);
         $this->assertStringContainsString('la empresa sigue siendo el emisor', $p['autorizacion']['texto']);
+        $this->assertStringContainsString('declara tener facultades suficientes para obligar a la empresa', $p['autorizacion']['texto']); $this->assertSame('2026-11-21', $p['autorizacion']['version']);
         // Sin tildar, o con un texto viejo, no se activa.
         $this->post('/configuracion/afip/bigsys', ['activo' => true])->assertSessionHasErrors('acepto');
         $this->activar(['version' => '2020-01-01'])->assertSessionHasErrors('acepto');
@@ -123,6 +124,23 @@ class Fase121bTest extends ErpTestCase
         $this->assertSame('critico', $control()['estado']); $this->assertStringContainsString('emiten simulado', $control()['detalle']);
     }
 
+    public function test_las_empresas_dadas_de_baja_hace_mas_de_90_dias_se_avisan_y_se_pueden_eliminar(): void
+    {
+        $control = fn() => collect(app(\App\Services\Monitoreo\SaludService::class)->verificar()['controles'])->firstWhere('key', 'bajas_vencidas');
+        [$otra] = $this->crearEmpresa('Se Fue SA', 'sefue');
+        app(\App\Services\Suscripciones\SuscripcionService::class)->darDeBaja($otra, 'Cerró');
+        $this->assertSame('ok', $control()['estado']);
+        $this->travel(91)->days();
+        $this->assertSame('aviso', $control()['estado']); $this->assertStringContainsString('Se Fue SA (baja el', $control()['detalle']);
+        // El superadmin la puede eliminar aunque esté dada de baja (antes daba 404).
+        $su = \App\Models\User::withoutGlobalScopes()->where('is_superadmin', true)->first() ?? \App\Models\User::factory()->create(['is_superadmin' => true, 'business_id' => $this->empresa->id]);
+        $this->actingAs($su); Auth::login($su);
+        $this->getJson("/admin/empresas/{$otra->id}/eliminar")->assertOk()->assertJson(['empresa' => 'Se Fue SA']);
+        $this->delete("/admin/empresas/{$otra->id}", ["nombre" => "Se Fue SA"])->assertRedirect("/admin/empresas");
+        $this->assertNull(\App\Models\Business::withTrashed()->find($otra->id));
+        $this->assertSame('ok', $control()['estado']);
+    }
+
     public function test_los_terminos_y_la_privacidad_dicen_como_funciona(): void
     {
         $t = $this->get('/terminos')->assertOk()->getContent();
@@ -131,5 +149,10 @@ class Fase121bTest extends ErpTestCase
         $p = $this->get('/privacidad')->assertOk()->getContent();
         $this->assertStringContainsString('artículo 25 de la Ley 25.326', $p); $this->assertStringContainsString('con el certificado de BigSys, si autorizaste a BigSys', $p);
         $this->assertStringNotContainsString('con tu propio certificado.</li>', $p);
+        // Encargo de tratamiento, responsabilidad y conservación.
+        $this->assertStringContainsString('id="datos"', $t); $this->assertStringContainsString('ni siquiera para conservarlos', $t); $this->assertStringContainsString('después los eliminamos', $t);
+        $this->assertStringContainsString('no se aplica si el daño se debe a dolo o culpa grave', $t); $this->assertStringContainsString('BigSys la corrige sin cargo', $t);
+        $this->assertStringContainsString('es obligación de cada empresa', $p); $this->assertStringNotContainsString('(hasta 10 años)', $p);
+        $this->assertStringContainsString('La constancia de que autorizaste a BigSys', $p);
     }
 }

@@ -16,7 +16,7 @@ use App\Models\User;
 // la versión nueva (las anteriores conservan la que aceptaron).
 class ArcaAutorizaciones
 {
-    public const VERSION = '2026-11-20';
+    public const VERSION = '2026-11-21'; // agrega la declaración de facultades de quien acepta
 
     // Lo que se le muestra a la empresa al lado del tilde, y lo que queda guardado.
     public static function texto(string $razon, string $cuit, ?array $rep = null): string
@@ -27,7 +27,8 @@ class ArcaAutorizaciones
             . "BigSys emite sólo los comprobantes que generan los usuarios de la empresa en el sistema, con los datos que ellos cargan; "
             . "la empresa sigue siendo el emisor y la responsable de esos datos y de sus obligaciones fiscales. "
             . "Esta autorización se puede dejar sin efecto en cualquier momento, apagando la facturación por BigSys en el sistema "
-            . "y revocando la relación en ARCA. Rigen los Términos de uso de BigSys Web.";
+            . "y revocando la relación en ARCA. Rigen los Términos de uso de BigSys Web. "
+            . "Quien la acepta declara tener facultades suficientes para obligar a la empresa.";
     }
 
     // Activa: registra la constancia y prende la facturación por BigSys de la empresa o de la sucursal.

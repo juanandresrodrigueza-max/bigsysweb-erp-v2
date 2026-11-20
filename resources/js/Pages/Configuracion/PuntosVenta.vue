@@ -36,7 +36,7 @@
           <p class="text-xs text-marca-muted mb-2">No tenés que generar, subir ni descargar ningún certificado. Hacés dos trámites en ARCA (una sola vez), los verificás desde acá y listo.</p>
           <ol class="space-y-2.5 text-sm">
             <li class="flex gap-2"><span :class="paso(arca.cuit_ok ? 'ok' : '')">{{ arca.cuit_ok ? '✓' : '1' }}</span><div><b>Datos fiscales de la empresa.</b> <span v-if="arca.cuit_ok" class="text-marca-muted">CUIT {{ arca.cuit }}.</span><span v-else>Falta el CUIT: cargalo en <Link href="/configuracion/empresa" class="underline">Configuración → Empresa</Link>.</span></div></li>
-            <li class="flex gap-2"><span :class="paso(verif?.alta_punto_venta)">{{ verif?.alta_punto_venta === 'ok' ? '✓' : '2' }}</span><div><b>Dá de alta el punto de venta para Web Services.</b> En ARCA → «Administración de puntos de venta y domicilios» → Agregar, y en «Sistema» elegí <b>«RECE para aplicativo y web services»</b>. El de «Comprobantes en línea» (el de facturar a mano en la web de ARCA) no sirve acá.
+            <li class="flex gap-2"><span :class="paso(verif?.alta_punto_venta)">{{ verif?.alta_punto_venta === 'ok' ? '✓' : '2' }}</span><div><b>Dá de alta el punto de venta para Web Services.</b> En ARCA → «Administración de puntos de venta y domicilios» → Agregar, y en «Sistema» elegí <b>«RECE para aplicativo y web services»</b> si sos responsable inscripto, o <b>«Factura Electrónica - Monotributo - Web Services»</b> si sos monotributista. El de «Comprobantes en línea» (el de facturar a mano en la web de ARCA) no sirve acá.
               <p v-if="verif?.alta_punto_venta === 'falta'" class="text-carmin text-xs mt-0.5">ARCA te reconoce, pero no tenés ningún punto de venta dado de alta para web services todavía.</p></div></li>
             <li class="flex gap-2"><span :class="paso(verif?.delegacion)">{{ verif?.delegacion === 'ok' ? '✓' : '3' }}</span><div><b>Autorizá a {{ arca.representante?.razon ?? 'BigSys' }} a facturar en tu nombre.</b> Entrá a ARCA con clave fiscal (nivel 3) → <b>«Administrador de Relaciones de Clave Fiscal»</b> → <b>Nueva relación</b> → Buscar → ARCA → WebServices → <b>«Facturación Electrónica»</b> → en Representante poné el CUIT
               <button v-if="arca.representante" type="button" class="font-mono font-bold underline decoration-dotted" @click="copiar(arca.representante.cuit)" data-e2e="arca-cuit-bigsys">{{ arca.representante.cuit }}</button><span v-if="copiado" class="text-emerald-700 text-xs"> · copiado</span> → Confirmar.
@@ -45,7 +45,7 @@
               <!-- Fase 121.1: autorización expresa, con constancia de quién, cuándo y con qué texto -->
               <div v-if="hayParaActivar" class="mt-2 rounded-xl border border-marca-borde bg-white p-2.5 text-xs" data-e2e="arca-autorizacion">
                 <p class="text-marca-muted leading-relaxed">{{ arca.autorizacion?.texto }} <a href="/terminos#facturacion" target="_blank" class="underline">Ver términos</a></p>
-                <label v-if="arca.puede_aceptar" class="flex items-start gap-2 mt-2 font-semibold"><input v-model="acepto" type="checkbox" class="mt-0.5 accent-carmin" data-e2e="arca-acepto" /> Leí y acepto esta autorización en nombre de la empresa.</label>
+                <label v-if="arca.puede_aceptar" class="flex items-start gap-2 mt-2 font-semibold"><input v-model="acepto" type="checkbox" class="mt-0.5 accent-carmin" data-e2e="arca-acepto" /> Leí y acepto esta autorización en nombre de la empresa, y declaro tener facultades para hacerlo.</label>
                 <p v-else class="mt-2 font-semibold text-amber-700">La autorización la acepta el dueño de la cuenta: pedile que entre y la active.</p>
                 <p v-if="errorAcepto" class="text-carmin mt-1">{{ errorAcepto }}</p>
               </div>
@@ -97,7 +97,7 @@
             <li>Generá el certificado en ARCA (Administración de certificados digitales) y asociale «Facturación Electrónica» en el Administrador de Relaciones.</li>
             <li>Subí acá el certificado (.crt) y la clave privada (.key). Quedan cifrados.</li>
             <li>Verificá el CUIT y el modo (homologación para probar, producción para facturar de verdad) en la pestaña Empresa.</li>
-            <li>Dale de alta el punto de venta en ARCA como «RECE para aplicativo y web services» con el mismo número que acá.</li>
+            <li>Dale de alta el punto de venta en ARCA como «RECE para aplicativo y web services» (o «Factura Electrónica - Monotributo - Web Services» si sos monotributista) con el mismo número que acá.</li>
             <li>Probá la conexión y emití una factura de prueba en homologación antes de pasar a producción.</li>
           </ol>
           <form @submit.prevent="cert.post('/configuracion/afip/certificados', { forceFormData: true, preserveScroll: true })" class="grid sm:grid-cols-2 gap-3">
