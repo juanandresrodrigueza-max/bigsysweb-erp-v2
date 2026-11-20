@@ -133,7 +133,7 @@ class EmpresasController extends Controller
     // Fase 113: qué se va a borrar (filas por tabla) antes de confirmar.
     public function planEliminar(int $id, \App\Services\Empresas\EliminarEmpresaService $svc)
     {
-        $b = Business::findOrFail($id);
+        $b = Business::withTrashed()->findOrFail($id);
         $plan = $svc->plan($b);
         return response()->json(['empresa' => $b->name, 'filas' => array_sum($plan), 'tablas' => count($plan), 'detalle' => array_slice($plan, 0, 12, true), 'usuarios' => $b->users()->count()]);
     }
@@ -141,7 +141,7 @@ class EmpresasController extends Controller
     // Fase 113: eliminar la empresa entera. Pide el nombre escrito igual y la clave de aprobación (si está configurada). Definitivo.
     public function eliminar(Request $request, int $id, \App\Services\Empresas\EliminarEmpresaService $svc)
     {
-        $b = Business::findOrFail($id);
+        $b = Business::withTrashed()->findOrFail($id); // Fase 121.2: también (sobre todo) las dadas de baja hace más de 90 días
         $d = $request->validate(['nombre' => 'required|string', 'clave' => 'nullable|string|max:120']);
         if (mb_strtolower(trim($d['nombre'])) !== mb_strtolower(trim($b->name))) return back()->withErrors(['nombre' => 'Escribí el nombre de la empresa exactamente como figura.']);
         $aprob = app(\App\Services\Suscripciones\AprobacionService::class);

@@ -81,6 +81,7 @@ BigSysWeb está preparado para ser **app nativa de iPhone y Android** (la misma 
 - **Encargos entre personas (120.6).** «Decile a Pedro que prepare el pedido 12 para las 17»: a Pedro le llega por WhatsApp y por la campana, contesta HECHO y vos te enterás. Lo vencido se recuerda solo. Hay pantalla de Encargos y un 📌 en el encabezado con lo que tenés para hacer.
 - **Factura electrónica sin certificado (121).** Como en el CRM: BigSys factura por tu empresa con su certificado; vos sólo lo autorizás una vez en ARCA y lo activás en Configuración → Puntos de venta y ARCA, que verifica los trámites con ARCA y trae tus puntos de venta. Además, la factura ahora informa siempre la condición frente al IVA del receptor (RG 5616).
 - **Autorización expresa y términos actualizados (121.1).** Para activar la factura electrónica a través de BigSys, el dueño de la cuenta acepta un texto de autorización y queda constancia (quién, cuándo y con qué texto). Si la apagás o das de baja la empresa, te decimos cómo revocar la relación en ARCA. Actualizamos los términos de uso y la política de privacidad para explicarlo.
+- **Términos, privacidad y baja más claros (121.2).** Los términos explican cómo tratamos los datos de tu empresa por tu cuenta y la privacidad dice qué pasa al darte de baja: los datos quedan 90 días y después se eliminan, así que guardar tus comprobantes por el plazo legal es tuyo (antes de irte, bajá la copia completa). La guía de ARCA ahora dice qué punto de venta dar de alta si sos monotributista.
 
 ## Bigcito maneja el sistema con vos (fase 119)
 

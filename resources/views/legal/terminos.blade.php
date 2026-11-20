@@ -29,17 +29,29 @@
 <ul>
   <li><b>La empresa sigue siendo el emisor.</b> Los comprobantes salen con su CUIT, su punto de venta y su numeración. BigSys es el medio técnico: emite sólo lo que generan los usuarios de la empresa en el sistema, con los datos que ellos cargan, y no emite nada por su cuenta.</li>
   <li><b>Los datos y las obligaciones fiscales son de la empresa.</b> Es responsable de que los datos de cada comprobante sean correctos (cliente, importes, alícuotas, condición frente al IVA) y de cumplir sus obligaciones ante ARCA y los demás organismos.</li>
+  <li><b>Si el sistema se equivoca.</b> Si un comprobante sale mal por una falla del sistema (por ejemplo, un cálculo equivocado), BigSys la corrige sin cargo y ayuda a emitir la nota de crédito o de débito que corresponda. Las multas, intereses o reclamos que se originen en datos cargados por la empresa son de la empresa.</li>
   <li><b>Lo que depende de ARCA.</b> BigSys no responde por rechazos, demoras o caídas de los servicios de ARCA. Si ARCA no responde, el comprobante queda pendiente y el sistema lo reintenta solo; si lo rechaza, el sistema muestra el motivo para corregirlo.</li>
   <li><b>El certificado de BigSys.</b> BigSys lo guarda cifrado, no lo comparte y lo usa sólo para emitir y consultar comprobantes de las empresas que lo autorizaron. Si sospecha que fue comprometido, lo revoca ante ARCA y avisa a las empresas.</li>
   <li><b>Cómo se deja sin efecto.</b> La empresa puede apagar la facturación a través de BigSys cuando quiera, desde Configuración → Puntos de venta y ARCA, y revocar la relación en ARCA. Si la empresa se da de baja, BigSys la apaga y le explica al dueño cómo revocar la relación en ARCA.</li>
   <li><b>Lo emitido queda.</b> Los comprobantes emitidos son de la empresa: los puede consultar y descargar mientras tenga la cuenta, y también están en ARCA.</li>
 </ul>
 
+<h2 id="datos">Los datos de tu empresa: los tratamos por tu cuenta</h2>
+<p>Los datos que tu empresa carga sobre sus clientes, proveedores y empleados son de tu empresa, que es la responsable de esa base. BigSys los trata por cuenta y orden de ella, como prestador de servicios de tratamiento de datos (artículo 25 de la Ley 25.326). Al usar el sistema, tu empresa nos encarga ese tratamiento en estas condiciones:</p>
+<ul>
+  <li><b>Sólo para prestarte el servicio.</b> No usamos esos datos para otra finalidad, no los vendemos y no los cedemos a terceros, ni siquiera para conservarlos.</li>
+  <li><b>Servicios que usamos para eso.</b> Tu empresa nos autoriza a apoyarnos en los proveedores que figuran en la <a href="/privacidad">política de privacidad</a> (servidores, ARCA, y los que vos conectes: Mercado Pago, WhatsApp, inteligencia artificial, notificaciones), cada uno sólo con lo que necesita. Si sumamos uno nuevo, lo publicamos ahí.</li>
+  <li><b>Seguridad y confidencialidad.</b> Aplicamos medidas técnicas y organizativas para proteger los datos (conexión cifrada, claves cifradas, accesos restringidos, copias verificadas) y quienes trabajan en BigSys guardan secreto sobre ellos.</li>
+  <li><b>Te ayudamos con los pedidos de las personas.</b> Si un cliente o empleado tuyo pide acceder, corregir o borrar sus datos, el sistema te deja hacerlo; si hace falta, te damos una mano.</li>
+  <li><b>Incidentes.</b> Si detectamos un incidente que afecte los datos de tu empresa, te avisamos sin demora con lo que sepamos y lo que estamos haciendo.</li>
+  <li><b>Cuando termina el servicio.</b> Al darte de baja, los datos quedan 90 días por si volvés o nos pedís una copia; después los eliminamos. Guardar los comprobantes y registros por el plazo que exige la ley es obligación de tu empresa: antes de irte, bajá una copia completa desde Configuración → Datos. Si nos lo pedís por escrito, podemos acordar conservarlos por más tiempo.</li>
+</ul>
+
 <h2>Lo que no se puede</h2>
 <p>Usar el sistema para actividades ilegales, intentar acceder a datos de otras empresas, revender el servicio sin acuerdo, o sobrecargarlo con uso automatizado abusivo. En esos casos podemos suspender la cuenta.</p>
 
 <h2>Responsabilidad</h2>
-<p>El sistema es una herramienta: las decisiones comerciales, fiscales y contables son de cada empresa y de sus asesores. Las respuestas de Bigcito (la IA) son sugerencias y cada acción importante se confirma antes de hacerse. Respondemos por los daños directos que cause una falla nuestra hasta el monto pagado en los últimos 12 meses.</p>
+<p>El sistema es una herramienta: las decisiones comerciales, fiscales y contables son de cada empresa y de sus asesores. Las respuestas de Bigcito (la IA) son sugerencias y cada acción importante se confirma antes de hacerse. Respondemos por los daños directos que cause una falla nuestra hasta el monto pagado en los últimos 12 meses. Esta limitación no se aplica si el daño se debe a dolo o culpa grave de BigSys.</p>
 
 <h2>Cambios</h2>
 <p>Si cambiamos estos términos, avisamos dentro del sistema con al menos 15 días. Seguir usándolo implica aceptarlos. Rige la ley argentina y los tribunales ordinarios de la ciudad de Mendoza.</p>

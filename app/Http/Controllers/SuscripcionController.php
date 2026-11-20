@@ -64,7 +64,7 @@ class SuscripcionController extends Controller
         \Illuminate\Support\Facades\Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/login')->with('success', 'Listo: la empresa quedó dada de baja. Los datos se conservan 90 días por si volvés (escribinos y se restaura al instante); después se eliminan, salvo lo que la ley fiscal obliga a guardar.');
+        return redirect('/login')->with('success', 'Listo: la empresa quedó dada de baja. Los datos se conservan 90 días por si volvés (escribinos y se restaura al instante); después se eliminan. Si no bajaste la copia, pedila por mail dentro de esos 90 días.');
     }
 
     // Elige plan y ciclo, crea el cobro pendiente y manda a MercadoPago (o registra la transferencia a confirmar).

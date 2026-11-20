@@ -31,7 +31,11 @@
 <p>No transferimos datos a terceros con otros fines y no los vendemos.</p>
 
 <h2>Cuánto tiempo los guardamos</h2>
-<p>Mientras tu cuenta esté activa y, al darla de baja, durante el plazo que exigen las normas fiscales y contables argentinas para los comprobantes y registros (hasta 10 años). El resto se borra a los 90 días de la baja.</p>
+<ul>
+  <li><b>Los datos de tu negocio</b> (clientes, comprobantes, stock y lo demás que cargás): mientras la cuenta esté activa y 90 días después de la baja, por si volvés o nos pedís una copia. Después se eliminan. Guardar los comprobantes y registros por el plazo que exige la ley es obligación de cada empresa: antes de darte de baja, bajá una copia completa desde Configuración → Datos (los comprobantes electrónicos, además, quedan en ARCA).</li>
+  <li><b>Los datos de tu cuenta con BigSys</b> (quién contrató, qué plan, qué se te facturó): el tiempo que exigen las normas fiscales y contables a BigSys para su propia facturación.</li>
+  <li><b>La constancia de que autorizaste a BigSys a facturar en tu nombre</b>: se conserva aunque la apagues o te des de baja, como prueba de lo que se autorizó y hasta cuándo.</li>
+</ul>
 
 <h2>Tus derechos</h2>
 <p>Podés acceder, corregir, exportar y borrar tus datos cuando quieras. Desde el sistema exportás todo a Excel o por API en cualquier momento. Para cualquier pedido escribinos a <a href="mailto:{{ $email }}">{{ $email }}</a> y lo resolvemos en un plazo máximo de 10 días hábiles. Si no quedás conforme, podés reclamar ante la AAIP.</p>
@@ -42,7 +46,7 @@
   <li>Dentro del sistema: Configuración → Suscripción → <b>Dar de baja la empresa</b>.</li>
   <li>Por email a <a href="mailto:{{ $email }}?subject=Baja%20de%20cuenta%20BigSys%20Web">{{ $email }}</a> desde el email con el que entrás, indicando el nombre de la empresa.</li>
 </ul>
-<p>Te confirmamos la baja en 10 días hábiles. Los comprobantes fiscales se conservan el tiempo que exige la ley; todo lo demás se elimina. Si sólo querés quitar la app del celular, desinstalala: el identificador para notificaciones se borra solo.</p>
+<p>Te confirmamos la baja en 10 días hábiles. Los datos de tu negocio quedan 90 días por si volvés o nos pedís una copia, y después se eliminan; guardar tus comprobantes por el plazo legal es obligación de tu empresa, así que bajá antes la copia completa. Si sólo querés quitar la app del celular, desinstalala: el identificador para notificaciones se borra solo.</p>
 
 <h2>Seguridad</h2>
 <p>Conexión cifrada (HTTPS), contraseñas con hash, doble factor opcional, registro de cambios, copias de seguridad diarias verificadas y acceso al servidor restringido. Si detectamos un incidente que afecte tus datos, te avisamos.</p>
