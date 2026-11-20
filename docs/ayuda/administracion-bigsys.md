@@ -131,6 +131,29 @@ Cada noche el sistema mide solo las pantallas clave (Inicio, Comprobantes, Clien
 
 En **Panel → Salud**, la tabla "Copias de seguridad por empresa" dice de cada una: cuándo fue la última copia, si **se abre y cuadra** (se verifica al generarla y de nuevo a las 3:40), si el **ensayo de restauración** del domingo anduvo (se restaura en una transacción que se deshace, sin tocar datos), y si está **fuera del servidor**. Dos controles de salud nuevos: "Copias verificadas" (crítico si una copia no abre, no cuadra o no se pudo restaurar) y "Copias fuera del servidor" (aviso mientras no haya disco externo; crítico si hay y una copia no subió). Para el disco externo: las variables `OFFSITE_S3_*` en el `.env` (las mismas que usa el CRM; si está en el mismo servidor se copian tal cual), y las copias se suben a `bigsysweb/erp/<empresa>/` en el mismo bucket. A mano: `php artisan backups:probar` y `php artisan backups:probar --ensayo`.
 
+## Facturación electrónica por BigSys: el certificado (fases 121 a 123)
+
+Las empresas facturan con **un solo certificado de BigSys**: cada una autoriza a BigSys en ARCA y activa la factura electrónica desde Configuración → Puntos de venta y ARCA. El certificado se administra en **Panel → Sistema → «Facturación electrónica: certificado de BigSys (ARCA)»**.
+
+- **Uno propio para el ERP.** El ERP usa su propio alias del mismo CUIT, distinto del que usa el CRM. ARCA da un solo permiso de acceso por certificado a la vez, así que si los dos sistemas compartieran el mismo certificado, se pisarían.
+- **Sacarlo o renovarlo** (15 minutos, con la clave fiscal de BigSys): «Generar pedido» y bajar el `.csr`. En ARCA, «Administración de Certificados Digitales» → el CUIT de BigSys → agregar el alias (o, para renovar, «Agregar certificado» en el mismo alias) → subir el `.csr` → bajar el `.crt`. La primera vez, además, en el «Administrador de Relaciones» va «Facturación Electrónica» con el computador fiscal de ese alias como representante. Después: «Cargar el certificado», sin clave (la clave queda en el servidor), con Ambiente «Según el certificado», y **Probar**: tienen que salir dos tildes verdes.
+- **Producción u homologación**: el estado lo dice arriba. «Pasar a producción» y «Pasar a homologación» lo cambian sin volver a cargar nada.
+- **Vencimiento**: dura 2 años. A los 30, 7 y 1 día antes, y si llegara a vencer, se avisa a los administradores de BigSys por mail, WhatsApp y celular, con los pasos para renovarlo. Panel → Salud también lo muestra.
+- **La empresa de BigSys** factura con ese mismo certificado sin autorizarse a sí misma: la pantalla dice «Esta es la empresa del certificado de BigSys». Usa **su propio punto de venta para el ERP**, distinto de los que usan el CRM u otros sistemas, para no pisar la numeración.
+- **Puntos de venta de otros sistemas**: «Verificar en ARCA» muestra también los puntos de venta del CUIT que el ERP no usa. Se suman sólo si se van a usar desde el ERP.
+
+## Copia completa de la base (fase 123)
+
+Además de la copia de cada empresa, cada noche a las 03:20 se hace **una copia completa del ERP**: todas las empresas, superadmins, planes, suscripciones, el certificado de ARCA, las claves de Panel → Sistema y la configuración del servidor. Se cifra con la **clave de las copias**, se comprueba descifrándola y se sube al disco externo (Backblaze), fuera del servidor. Quedan las de 14 días y la primera de cada mes durante un año.
+
+- La clave se genera en **Panel → Sistema → «Copia completa de la base de datos»** y se muestra **una sola vez**: va al gestor de contraseñas y a un papel, nunca a un chat. Sin ella, las copias no se pueden abrir.
+- «Hacer una copia ahora» la hace en el momento. Panel → Salud la controla («Copia completa de la base»).
+- Qué hacer en cada problema (una empresa que borró datos, una actualización que salió mal, la base rota, el servidor perdido, la clave perdida) está paso a paso en el **Manual de datos y restauración** (`docs/MANUAL-DATOS-Y-RESTAURACION.md` del repositorio).
+
+## Casilla de facturas (fase 120.3)
+
+Una casilla común para todas las empresas: cada una tiene su dirección `casilla+código@…` y lo que le mandan (PDF o foto de una factura de compra) aparece leído en Comprar → Facturas de compra. Se configura en Panel → Sistema → «Casilla de facturas» (IMAP; en Hostinger, `imap.hostinger.com`, puerto 993). **Probar la casilla** prueba lo que está escrito en la pantalla aunque no se haya guardado. Si dice «tocá Guardar», todavía no quedó. La casilla tiene que ser **sólo para esto**: el sistema lee y marca como leídos todos los mails que llegan.
+
 ## Uso y soporte
 
 **Uso**: qué empresas usan el sistema, cuáles se están enfriando (7 y 14 días sin uso), ranking, módulos más usados y detalle por empresa y usuario. **Soporte**: los tickets de todas las empresas por prioridad; al responder, la empresa recibe una alerta.
