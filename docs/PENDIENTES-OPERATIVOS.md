@@ -69,7 +69,7 @@ Está compilable y la ficha de la tienda ya está redactada (`docs/MOVIL.md`). F
 
 ## 7 · Legal y comercial
 
-- [ ] ❌ **Inscribir las bases de datos de BigSys ante la AAIP**, por TAD, con la clave fiscal de BigSys y el estatuto (`docs/LEGAL-facturacion-por-bigsys.md` §6.1).
+- [ ] ❌ **Inscribir las bases de datos de BigSys ante la AAIP**, por TAD, con la clave fiscal de BigSys y el estatuto. **El borrador de qué cargar en cada campo está en `docs/LEGAL-inscripcion-AAIP.md`**: falta completar domicilio, representante, el país del servidor y la región de Backblaze, y que lo revise el abogado (sobre todo las transferencias a Estados Unidos y los plazos de la política de privacidad).
 - [ ] ❌ **Abogado y contador**: revisar `docs/LEGAL-facturacion-por-bigsys.md`. Al final está la lista de lo que les queda confirmar.
 - [ ] ❌ **Revisar en ARCA quién representa a BIGSYS S.R.L.**: además de Juan figuran 20-16117738-6, 20-26314728-7 y 20-21877471-8. Quitar a quien ya no deba tener acceso.
 - [ ] ❌ **Primer cliente piloto** facturando con ARCA y usando el ERP de verdad (el bloque 8 completo).
