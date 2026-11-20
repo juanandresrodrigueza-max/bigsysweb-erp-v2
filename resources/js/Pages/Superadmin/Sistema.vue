@@ -118,7 +118,12 @@
 
     <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="apps-tiendas">
       <h2 class="font-bold">Aplicaciones para conectar tiendas con un botón</h2>
-      <p class="text-sm text-marca-muted">Una sola vez para todos los clientes: la aplicación de BigSys en MercadoLibre (developers.mercadolibre.com.ar) y en Tienda Nube (partners.tiendanube.com). Con esto cada empresa conecta su cuenta entrando con su usuario, sin copiar claves. La URL de retorno de las dos es <code>{{ base }}/conectar/&lt;tienda&gt;/volver</code> y la de notificaciones de MercadoLibre <code>{{ base }}/api/canales/mercadolibre/notificaciones</code>.</p>
+      <p class="text-sm text-marca-muted">Una sola vez para todos los clientes: la aplicación de BigSys en cada plataforma. Con esto cada empresa conecta su cuenta entrando con su usuario, sin copiar claves. Estas son las direcciones que piden al crear cada aplicación (la guía paso a paso está en la ayuda, «Panel de BigSys»):</p>
+      <ul class="text-sm space-y-1" data-e2e="apps-urls">
+        <li><b>Mercado Pago</b> (developers.mercadopago.com.ar) · URL de redirección <code class="select-all">{{ base }}/conectar/mercadopago/volver</code> · notificaciones <code class="select-all">{{ base }}/api/mercadopago/webhook</code></li>
+        <li><b>MercadoLibre</b> (developers.mercadolibre.com.ar) · URI de redirect <code class="select-all">{{ base }}/conectar/mercadolibre/volver</code> · notificaciones <code class="select-all">{{ base }}/api/canales/mercadolibre/notificaciones</code> (tema «Orders v2»)</li>
+        <li><b>Tienda Nube</b> (partners.tiendanube.com) · URL de redirección <code class="select-all">{{ base }}/conectar/tiendanube/volver</code> · datos personales: <code class="select-all">{{ base }}/api/tiendanube/lgpd/store-redact</code>, <code class="select-all">{{ base }}/api/tiendanube/lgpd/customers-redact</code> y <code class="select-all">{{ base }}/api/tiendanube/lgpd/customers-data-request</code></li>
+      </ul>
       <div class="grid sm:grid-cols-2 gap-3">
         <div><label class="label">Mercado Pago (cobros en el local) · App ID</label><input v-model="form.mp_app_id" class="input" /></div>
         <div><label class="label">Mercado Pago · Secret {{ config.mp_app_secret_set ? '(dejar vacío para no cambiarlo)' : '' }}</label><input v-model="form.mp_app_secret" type="password" class="input" autocomplete="new-password" /></div>
