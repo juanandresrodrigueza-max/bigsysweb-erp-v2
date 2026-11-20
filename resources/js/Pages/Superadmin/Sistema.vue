@@ -165,6 +165,7 @@
       </div>
       <p class="text-xs px-3 py-2 rounded-lg bg-violeta-light/50 text-violeta-dark"><b>Importante:</b> conviene que el ERP tenga <b>su propio certificado</b> (mismo CUIT de BigSys, otro alias), y no el mismo archivo del CRM. ARCA entrega un solo ticket de acceso vigente por certificado: si los dos sistemas usan el mismo, se lo pisan y uno se queda sin facturar hasta 12 horas.</p>
 
+      <p v-if="arca.lista" class="text-xs text-marca-muted" data-e2e="arca-recordatorio">Recordatorio: 30 días, 7 días y 1 día antes de que venza (y si llegara a vencer) avisamos a los administradores de BigSys por mail, WhatsApp y celular, con los pasos para renovarlo. Son los mismos canales que las altas nuevas («Altas con aprobación», más arriba).</p>
       <details class="rounded-xl border border-marca-borde p-3" :open="!arca.lista">
         <summary class="cursor-pointer font-semibold text-sm">1 · Generar el pedido de certificado (la clave queda en el servidor)</summary>
         <form @submit.prevent="pedido.post('/admin/sistema/arca/pedido', { preserveScroll: true })" class="grid sm:grid-cols-3 gap-3 mt-3">

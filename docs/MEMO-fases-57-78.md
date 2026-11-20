@@ -200,3 +200,7 @@ responde con los permisos de esa persona y audita a su nombre.
 ### Fase 123.2 · «Según el certificado» no es «homologación»
 - Al cargar el certificado de producción `bigsyserp` (20/11), quedó marcado «homologación»: con `forceFormData` el «Según el certificado» (null) llega como cadena vacía y `has()` + `boolean('')` daba false. `SistemaController::arcaCertificado` usa `filled()`. Test en `Fase121Test` (falla con el código viejo). En producción se corrigió a mano con «Pasar a producción».
 - Certificado de BigSys para el ERP: alias `bigsyserp`, BIGSYS S.R.L. 30-71438573-5, emitido 20/11/2026, vence 19/11/2028, relación «Facturación Electrónica» → computador fiscal `bigsyserp` hecha en el Administrador de Relaciones.
+
+### Fase 123.3 · Recordatorio del vencimiento del certificado de ARCA
+- `ArcaVencimiento::revisar()` + comando `arca:vencimiento` (todos los días 09:12): a los 30, 7 y 1 día antes del vencimiento del certificado de BigSys, y si venció, avisa por `AprobacionService::avisar()` (mail a `aviso_registros_emails` o superadmins + soporte; WhatsApp a `aviso_registros_whatsapp` por la línea de la empresa de BigSys; celular de los superadmins), con los pasos para renovarlo. Una vez por umbral y por certificado (huella en `arca_avisos_vencimiento`): uno nuevo reinicia la cuenta. El aviso al celular ahora abre la pantalla del aviso (antes siempre /admin/pendientes). Tests en `Fase123cTest`.
+- El certificado actual (`bigsyserp`) vence el 19/11/2028: avisos el 20/10, el 12/11 y el 18/11/2028.
