@@ -208,3 +208,8 @@ responde con los permisos de esa persona y audita a su nombre.
 ### Fase 123.4 · Puntos de venta de otros sistemas
 - «Verificar en ARCA» ofrecía «Agregarlos» con todos los puntos de venta para web services del CUIT. Ahora avisa que se suman sólo si se usan desde el ERP (dos sistemas sobre el mismo punto de venta se pisan la numeración), pide confirmación y, en la empresa del certificado de BigSys (los demás son del CRM, Odoo, etc.), no ofrece el botón. Textos de la empresa titular: «Factura con el certificado de BigSys» y «ARCA acepta el certificado de BigSys para este CUIT».
 - Producción, 20/11: la empresa BigSys factura en el ERP con el certificado `bigsyserp` por el punto de venta **0008** («BIGSYS WEB ERP», RECE). Los puntos 0001, 0005, 0006 y 0007 son de otros sistemas: no sumarlos al ERP.
+
+### 20/11/2026 · Puesta en marcha (bitácora del día)
+- Producción al día hasta la Fase 123.4 (`d299a5d`). /salud en «aviso» sólo por un corte puntual de la casilla con Hostinger (12:00): todos los errores del panel revisados, ninguno pide cambios.
+- Hecho en producción: certificado de ARCA `bigsyserp` (producción, vence 19/11/2028), empresa BigSys facturando por el punto 0008, copia completa con clave y primera copia en Backblaze, «Entrar con Google» (proyecto propio en Google Cloud), casilla `facturacion@bigsysweb.com`.
+- Repaso de lo que falta reescrito en `docs/PENDIENTES-OPERATIVOS.md` (hecho, esta semana, conexiones de la plataforma, delivery, Big Restó, app, legal, por cliente y software). Memoria para las próximas sesiones en `CLAUDE.md` (idioma, nombre BigSys, reglas, «¿qué me falta?»). La ayuda del panel de BigSys suma certificado, copia completa y casilla, para que Bigcito los explique.
