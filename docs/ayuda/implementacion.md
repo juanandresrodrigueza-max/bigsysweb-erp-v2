@@ -1,86 +1,102 @@
 ---
-titulo: Guía de implementación: de cero a operar en una semana
+titulo: Guía de implementación: cómo arrancar paso a paso
 modulo: dashboard
 rutas: /primeros-pasos
 orden: 0
-resumen: El plan día por día para poner BigSysWeb en marcha sin ayuda externa: qué cargar, en qué orden, qué probar y cuándo cortar con el sistema anterior.
+resumen: Cómo funciona el sistema y el paso a paso para que una empresa empiece a trabajar: qué tener a mano, en qué orden configurar, cómo traer los datos desde BigSys de escritorio y cuándo hacer el corte.
 ---
 
-Esta guía está pensada para que el dueño o el administrativo la sigan solos. Cada día tiene un objetivo, una lista de tareas y una prueba para saber que quedó bien. Los pasos marcados con ★ son los mínimos para facturar; el resto se puede hacer después.
+Esta guía sigue el mismo orden que **Primeros pasos** (menú → Inicio → Primeros pasos). Arriba de esa pantalla siempre está el **Siguiente paso**: qué es, para qué sirve, cuánto lleva y un botón para empezar. Lo que hacés en otra pantalla se tilda solo. Lo mínimo para empezar a facturar está marcado con ★; lo demás se puede hacer después.
 
-## Antes de empezar (30 minutos)
+## Cómo funciona, en un minuto
 
-Tené a mano:
-- CUIT, razón social, condición frente al IVA y el número de punto de venta electrónico dado de alta en ARCA.
-- El certificado digital de ARCA (archivo `.crt` y clave `.key`), o la clave fiscal para generarlo (ver la guía *ARCA y factura electrónica*).
-- La lista de artículos y la lista de clientes y proveedores del sistema anterior, exportadas a Excel o CSV. Si venís del BigSys viejo (Clarion), las tablas de cuentas, artículos y movimientos. Si no tenés exportación, alcanza con las planillas que usás hoy.
-- Domicilio comercial, número de Ingresos Brutos y fecha de inicio de actividades: ARCA exige que salgan en la factura impresa.
-- Los saldos de cuenta corriente de clientes y proveedores al día del corte.
-- El logo en PNG o JPG.
+- **Está en internet.** Se entra desde la compu o el celular en erp.bigsysweb.com, sin instalar nada. Cada persona tiene su usuario y ve sólo lo que su rol permite.
+- **Todo sale de la venta.** Cuando hacés una factura o una venta de mostrador, el sistema descuenta el stock, carga la cuenta corriente del cliente, registra la plata en la caja o el banco y arma el asiento contable. Nada se carga dos veces.
+- **La factura electrónica la hace BigSys por vos.** Le das permiso a BigSys en ARCA con tu clave fiscal, una sola vez. No hay certificados que generar, subir ni renovar.
+- **Si venís de BigSys de escritorio, no perdés nada.** Con BIG Connect se traen tus datos. El escritorio sigue andando hasta el día que elijas para cambiar.
+- **Bigcito te acompaña.** El asistente violeta responde preguntas, hace tareas y te avisa lo importante. El **?** del encabezado abre la ayuda de la pantalla en la que estás.
 
-## Día 1 · La empresa queda armada
+## Antes de empezar: qué tener a mano
 
-1. ★ **Configuración → Empresa**: nombre comercial, razón social, CUIT, condición IVA, email y teléfono. En "Datos fiscales de la factura impresa" cargá domicilio comercial, Ingresos Brutos e inicio de actividades.
-2. **Configuración → Empresa → Diseño de comprobantes**: subí el logo, elegí tus dos colores, el estilo del encabezado, los datos extra (web, redes, CBU) y la leyenda al pie. Con "Ver una factura con este diseño" lo comprobás.
-3. ★ **Configuración → Puntos de venta y ARCA**: creá el punto de venta con el mismo número que en ARCA y marcá "electrónico". Subí el certificado y la clave; probá con "Probar conexión". Si todavía no tenés certificado, seguí igual: las facturas salen simuladas hasta que lo cargues.
-4. ★ **Fondos**: verificá que exista una caja en efectivo y creá la cuenta bancaria (banco, CBU, saldo inicial al día del corte). Si usás Mercado Pago, creá también la billetera.
-5. **Configuración → Sucursales**: si tenés más de un local, creá cada sucursal con su depósito y su punto de venta.
-6. **Configuración → Impuestos**: si sos agente de percepción o retención, activá lo que corresponda. Si no, dejalo como está.
+- CUIT, razón social, condición frente al IVA, domicilio comercial, número de Ingresos Brutos y fecha de inicio de actividades: ARCA exige que salgan en la factura.
+- La **clave fiscal** de quien factura (nivel 3 o más), para dar el permiso en ARCA.
+- El número de **punto de venta para web services** en ARCA. Si no tenés uno, se crea en ARCA en «Administración de puntos de venta y domicilios». Si sos responsable inscripto, es del tipo «RECE para aplicativo y web services». Si sos monotributista, es «Factura Electrónica - Monotributo - Web Services». El de «Comprobantes en línea» (el de facturar a mano en la web de ARCA) no sirve para un sistema.
+- **Si venís de BigSys de escritorio:** que BIG Connect esté instalado y sincronizando. Si no lo tenés, pedíselo a Soporte de BigSys.
+- **Si venís de otro sistema:** la lista de artículos, la de clientes y proveedores y los saldos, exportados a Excel o CSV. Si no hay exportación, alcanza con las planillas que usás hoy.
+- El logo en PNG o JPG, y el celular con **WhatsApp Business** si querés conectar el número de la empresa.
 
-**Prueba del día**: entrá a Vender → Nueva factura, elegí Consumidor Final, cargá un ítem cualquiera a mano y emití. Tiene que salir un comprobante (simulado o con CAE) que se pueda imprimir. Después anulalo con nota de crédito o dejalo: es la prueba.
+## Paso 1 · Tu empresa
 
-## Día 2 · Artículos y precios
+1. ★ **Datos de la empresa** (Configuración → Empresa): nombre comercial, razón social, CUIT, condición de IVA, email y teléfono. En «Datos fiscales de la factura impresa» van el domicilio, Ingresos Brutos e inicio de actividades. En **Diseño de comprobantes** subís el logo y elegís los colores.
+2. ★ **Punto de venta** (Configuración → Puntos de venta y ARCA): crealo con el mismo número que en ARCA y marcalo como electrónico.
+3. **Factura electrónica**, en la misma pantalla. La guía tiene cuatro pasos, con un tilde verde en cada uno que ya está bien:
+   1. **Datos fiscales**: el CUIT de la empresa cargado.
+   2. **Punto de venta para web services** dado de alta en ARCA (ver «Antes de empezar»).
+   3. **Autorizá a BigSys**: con tu clave fiscal, en ARCA → **Administrador de Relaciones de Clave Fiscal** → **Nueva relación**, elegís el servicio «Facturación Electrónica» y ponés como representante a BigSys. La pantalla te muestra el CUIT exacto, con un botón para copiarlo.
+   4. **Verificá y activá**: **Verificar en ARCA** le pregunta a ARCA si los trámites quedaron bien, sin emitir nada. Después el dueño lee la autorización, la acepta y toca **Activar la facturación por BigSys**.
 
-1. ★ **Configuración → Importar datos → Artículos**: bajá la plantilla, pegá tu lista (código, descripción, rubro, costo, precios, IVA, stock) y subila. Si venís de Tango, Bejerman, Colppy o del BigSys viejo, elegí el perfil en "Viene de" y el mapeo se arma solo. Con BigSys tildá "Los precios del archivo son finales con IVA". Revisá la vista previa y confirmá.
-2. **Stock → artículo**: revisá que los rubros hayan quedado bien y que los artículos de servicio (mano de obra, flete) estén como "servicio" para que no muevan stock.
-3. **Stock → Precios**: si tus precios son un margen sobre el costo, configurá el margen por rubro; así al subir el costo sube el precio.
-4. **Stock → Más → Preferencias de stock → Rubros**: cargá en cada rubro lo que heredan sus artículos (IVA, perecedero, con serie, pesable en la tienda, cuenta de ventas) y tocá **Aplicar a sus artículos**.
-5. Según el rubro del negocio:
-   - **Supermercado, farmacia, alimentos**: marcá **Perecedero** y cargá lote y vencimiento en las compras. Revisá **Stock → Lotes y vencimientos**.
-   - **Electrónica, celulares, herramientas**: marcá **Con número de serie** y la garantía en meses.
-   - **Carnicería, fiambrería, verdulería**: marcá **Pesable** con su PLU, exportá el archivo a la balanza y armá la plantilla de despiece en **Stock → Carnicería y pesables**.
-   - **Mayorista o depósito grande**: generá las ubicaciones en **Stock → Almacén**, imprimí sus etiquetas y guardá la mercadería con la pistola.
-6. **Stock → Etiquetas**: imprimí los códigos de barras que falten y las etiquetas de góndola (con el precio por kilo o por litro: cargá el contenido neto del envase).
-7. **Stock → Catálogos** y **Stock → Descuentos por lista**: un catálogo por cada lista que uses y los descuentos por cantidad de cada lista.
+   Si ARCA todavía no ve la relación, esperá unos minutos y verificá de nuevo. Hasta que lo actives, las facturas salen **simuladas** (sin CAE): sirven para probar todo lo demás. Si ya tenés tu propio certificado, también se puede usar (en «Tengo mi propio certificado»).
+4. Si tenés más de un local: **Configuración → Sucursales**, cada uno con su depósito y su punto de venta. Si sos agente de percepción o retención: **Configuración → Impuestos**.
 
-**Prueba del día**: en el buscador (Ctrl+K) escribí parte del nombre de tres artículos y verificá precio y stock. Escaneá uno con el lector en Punto de venta.
+**Prueba**: en la pantalla de ARCA tiene que decir «Facturás a través de BigSys» (o, con certificado propio, que la conexión anda bien con **Probar conexión con ARCA**).
 
-## Día 3 · Clientes, proveedores y saldos
+## Paso 2 · Tus datos
 
-1. ★ **Importar → Clientes** y **Importar → Proveedores** con la plantilla. CUIT y condición IVA son importantes: definen si sale factura A o B.
-2. ★ **Importar → Saldos de clientes** y **Saldos de proveedores**: el detalle por comprobante pendiente al día del corte. Así la cuenta corriente arranca al día y los vencimientos se calculan bien. Desde el BigSys viejo se sube la tabla de movimientos y el saldo de cada cuenta se calcula solo.
-3. **Clientes → tipos de cliente**: si manejás listas o descuentos por tipo (mayorista, minorista), crealos y asignalos.
-4. **Clientes → Vendedores**: si liquidás comisiones, cargá los vendedores y su porcentaje. Si otra persona sale a cobrar, cargala también y asignala como cobrador en la ficha de cada cliente.
-5. **Clientes → ficha → Precios pactados**: los precios fijos o descuentos que tenés acordados con clientes puntuales, por artículo o por rubro.
+### Si venís de BigSys de escritorio (lo más rápido)
 
-**Prueba del día**: abrí la ficha de un cliente con deuda y compará el saldo con el sistema anterior. Tienen que coincidir.
+1. En BIG Connect → **Importar y exportar → API**, generá una clave con acceso completo (empieza con `bk_`) y copiá la dirección del Hub. Si no sabés dónde está, pedíle a Bigcito «¿cómo conecto BIG Connect?» o escribile a Soporte.
+2. En el ERP → **Configuración → Importar**, tarjeta **Traer todo desde BIG Connect**: pegá la dirección y la clave, elegí la empresa (`e01`, `e02`…) si hay varias y tocá **Conectar**.
+3. **Probar sin guardar**: muestra cuántos clientes, proveedores, artículos, saldos, cajas y cheques entrarían, y cuáles tienen errores. No guarda nada. Corregí en el escritorio lo que haga falta y probá de nuevo.
+4. **Migrar de verdad**: guarda todo. Se puede repetir cuantas veces quieras: lo que ya está se actualiza, no se duplica.
+5. **Control de cierre**: compara los totales del escritorio con los del ERP (saldos de clientes y proveedores, inventario valorizado, cheques en cartera, el saldo de cada caja y banco) y dice qué cierra y qué no.
 
-## Día 4 · Usuarios, roles y forma de trabajo
+Se traen proveedores y clientes con su código de BigSys, CUIT, condición de IVA, lista, descuento, vendedor y límite de crédito. También los artículos con las 6 listas, costo, IVA, stock y mínimo, y lo impago de cada cuenta, comprobante por comprobante. Y además rubros y departamentos, vendedores con comisiones, empleados, cajas y bancos con su saldo, cheques en cartera, el último precio de cada proveedor y las ventas de los últimos 12 meses. Cada parte tiene su tilde.
 
-1. ★ **Configuración → Usuarios**: un usuario por persona, con su rol (vendedor, cajero, depósito, compras, contador). No compartan claves: la auditoría registra quién hizo cada cosa.
-2. **Configuración → Roles y permisos**: si un rol necesita más o menos de lo que trae, copialo y ajustalo permiso por permiso.
-3. **Configuración → Empresa → Punto de venta**: balanza, impresora térmica, tarjetas y planes de cuotas, Mercado Pago QR o Point si los usás.
-4. **Configuración → Seguridad**: activá la verificación en dos pasos, al menos para el dueño y el administrador.
-5. Cada usuario entra por primera vez: ve el tour y su pantalla de inicio según el rol.
+**Prueba**: abrí la ficha de tres clientes con deuda y compará el saldo con el escritorio. Tienen que coincidir.
 
-**Prueba del día**: que un vendedor haga una factura desde su usuario y que un cajero la cobre. Fondos tiene que mostrar el cobro en la caja correcta.
+### Si venís de otro sistema o de Excel
 
-## Día 5 · Canales, avisos y contador
+1. ★ **Configuración → Importar → Artículos**: bajá la plantilla, pegá tu lista (código, descripción, rubro, costo, precios, IVA, stock) y subila. Si venís de Tango, Bejerman o Colppy, elegí el perfil en «Viene de» y las columnas se reconocen solas. Revisá la vista previa y confirmá.
+2. ★ **Importar → Clientes** e **Importar → Proveedores**. El CUIT y la condición de IVA son importantes porque definen si sale factura A o B.
+3. ★ **Importar → Saldos de clientes** y **Saldos de proveedores**: el detalle de cada comprobante pendiente al día del corte, para que la cuenta corriente y los vencimientos arranquen al día.
 
-1. **Configuración → Tienda y canales**: tienda online propia, WhatsApp, Mercado Libre, Tiendanube o el que uses. Los pedidos entran en Vender → Pedidos web.
-2. **Configuración → Empresa → Avisos al dueño**: resumen diario por WhatsApp y alertas críticas.
-3. **Contable → Contador**: dale acceso al estudio con su email. Ve libros, exportaciones y todo lo que necesita cada mes sin pedirte nada.
-4. **Configuración → Copias de seguridad**: verificá que la copia automática esté encendida y bajá una para guardarla afuera.
-5. **Sueldos** (si liquidás en el sistema): cargá la plantilla de tu convenio en Conceptos (Comercio viene lista), completá en Configuración la actividad, el convenio y el banco de depósito, y cargá los empleados con básico, jornada y fecha de ingreso. Liquidá un mes que ya tengas hecho por el estudio y compará recibo contra recibo antes de dejar el sistema anterior.
+**Prueba**: buscá tres artículos con Ctrl+K y verificá el precio y el stock. Abrí un cliente con deuda y compará el saldo.
+
+### Después, en los dos casos
+
+- **Stock → Precios**: si tus precios son un margen sobre el costo, poné el margen por rubro; así, cuando sube el costo, sube el precio.
+- **Stock → Más → Preferencias de stock → Rubros**: lo que heredan los artículos de cada rubro (IVA, perecedero, con número de serie, pesable).
+- Los artículos de servicio (mano de obra, flete) van como «servicio» para que no muevan stock.
+- **Clientes → ficha → Precios pactados**: los precios o descuentos fijos que tenés acordados con un cliente.
+
+## Paso 3 · La plata y el equipo
+
+1. ★ **Caja y banco** (Plata): una caja en efectivo y la cuenta bancaria con el saldo al día del corte. Si migraste desde BigSys, ya están. Si usás Mercado Pago, creá también la billetera.
+2. ★ **Usuarios** (Configuración → Usuarios): un usuario por persona, con su rol (vendedor, cajero, depósito, compras, contador). No compartan contraseñas: queda registrado quién hizo cada cosa. Si un rol necesita más o menos permisos, ajustalo en **Roles y permisos**.
+3. **WhatsApp de la empresa** (Configuración → Tienda y canales → WhatsApp): tocás **Conectar WhatsApp**, escaneás el QR con la app WhatsApp Business y listo. El número sigue andando en el celular. Desde ahí salen las facturas, los recordatorios de deuda y los avisos, y Bigcito puede atender consultas.
+4. **Punto de venta del mostrador** (Configuración → Empresa → Punto de venta): balanza, impresora térmica, tarjetas y cuotas, y el QR o el Point de Mercado Pago, si los usás.
+
+**Prueba**: que un vendedor haga una factura con su usuario y que un cajero la cobre. En Plata, el cobro tiene que aparecer en la caja correcta.
+
+## Paso 4 · A vender
+
+★ **Primera factura**: Vender → Nueva factura, a Consumidor Final, con un artículo cualquiera. Mirá cómo bajó el stock, cómo entró la plata y cómo se armó el asiento. Si fue de prueba, anulala con una nota de crédito.
+
+Con esto ya estás trabajando. Lo que sigue en Primeros pasos son los pasos **para tu negocio** que sumó Bigcito (reparto, tienda online, producción, sueldos, el acceso del contador…) y los de **quedarte tranquilo**: la verificación en dos pasos, la copia automática y el plan.
 
 ## El corte con el sistema anterior
 
-- Elegí un día de corte (idealmente inicio de mes). Hasta ese día se opera en el sistema viejo; desde ese día, todo acá.
-- Los saldos que importaste tienen que ser los del cierre del día anterior al corte.
-- Si en los días de transición facturaste en papel, cargá esas facturas como **Manual de talonario** con su número y fecha: entran en el libro de IVA sin pedir CAE.
-- Durante la primera semana revisá cada tarde **Entregar → Por entregar** (entregado sin facturar, facturado sin entregar) y **Plata → Cerrar caja**.
-- A fin del primer mes, el contador entra a **Contable → Contador**, corre el checklist y exporta los asientos. Si algo no cierra, aparece ahí.
+1. Elegí un día de corte, si se puede a principio de mes. Hasta ese día se trabaja en el sistema anterior; desde ese día, todo acá.
+2. **Si venís de BigSys de escritorio**: al cierre del último día, corré otra vez **Migrar de verdad** y después **Control de cierre**. Cuando todo cierra, dejás de usar el escritorio. Si algo no cierra, el control te dice qué.
+3. **Si venís de otro sistema**: los saldos que importes tienen que ser los del cierre del día anterior al corte.
+4. Si en los días de transición facturaste en papel, cargá esas facturas como **Manual de talonario**, con su número y su fecha: entran en el libro de IVA sin pedir CAE.
+
+## La primera semana
+
+- Cada tarde: **Plata → Cerrar caja** y **Entregar → Por entregar** (lo entregado sin facturar y lo facturado sin entregar).
+- Dale acceso al contador en **Contable → Contador** con su email: ve los libros y las exportaciones sin pedirte nada.
+- A fin del primer mes, el contador corre el checklist de cierre. Si algo no cierra, aparece ahí.
 
 ## Cuándo pedir ayuda
 
-Todo lo de esta guía se puede hacer sin nadie. Si algo se traba, el botón **?** de cada pantalla abre la guía de esa pantalla, y **Soporte** (menú) abre un ticket que se responde ahí y por mail.
+Todo lo de esta guía se puede hacer sin nadie. Si algo se traba: el **?** de cada pantalla abre su guía, Bigcito responde «¿cómo hago…?», y **Soporte** (menú) abre un ticket que se responde ahí y por mail.

@@ -109,9 +109,10 @@
       </div>
       <div v-if="mensajeGlobal" class="px-4 md:px-6 py-2 bg-lavanda-light text-violeta text-sm flex items-center gap-2"><Icono nombre="info" clase="w-4 h-4 shrink-0" /><span>{{ mensajeGlobal }}</span></div>
       <div v-if="onboarding && !$page.url.startsWith('/primeros-pasos')" class="px-4 md:px-6 py-2 bg-white border-b border-marca-borde text-sm flex items-center gap-3">
-        <span class="text-marca-muted">Primeros pasos: <b class="text-marca-texto">{{ onboarding.hechos }} de {{ onboarding.total }}</b> listos</span>
-        <div class="flex-1 max-w-48 h-1.5 rounded-full bg-marca-fondo"><div class="h-1.5 rounded-full bg-marca-grad" :style="{ width: (onboarding.hechos / onboarding.total * 100) + '%' }"></div></div>
-        <Link href="/primeros-pasos" class="text-xs font-bold text-carmin underline whitespace-nowrap">Seguir configurando</Link>
+        <span class="text-marca-muted whitespace-nowrap">Primeros pasos: <b class="text-marca-texto">{{ onboarding.hechos }} de {{ onboarding.total }}</b></span>
+        <div class="hidden sm:block flex-1 max-w-40 h-1.5 rounded-full bg-marca-fondo"><div class="h-1.5 rounded-full bg-marca-grad" :style="{ width: (onboarding.hechos / onboarding.total * 100) + '%' }"></div></div>
+        <span v-if="onboarding.siguiente" class="min-w-0 truncate text-marca-muted">Sigue: <Link :href="onboarding.siguiente.url" class="font-semibold text-marca-texto hover:text-carmin" data-e2e="onboarding-siguiente">{{ onboarding.siguiente.titulo }}</Link></span>
+        <Link href="/primeros-pasos" class="ml-auto text-xs font-bold text-carmin underline whitespace-nowrap">Ver todos</Link>
       </div>
       <!-- Fase 93.1: en el celular web, invitar a instalar la app (notificaciones al instante, Bigcito con micrófono). Nunca adentro de la app. -->
       <div v-if="linkApp && !appOculta" class="md:hidden px-4 py-2 bg-ciruela text-white text-sm flex items-center gap-3" data-e2e="instalar-app">
