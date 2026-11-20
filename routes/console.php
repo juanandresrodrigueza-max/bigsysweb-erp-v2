@@ -19,6 +19,7 @@ Schedule::command('salud:revisar')->hourly(); // salud del servidor: avisa por m
 Schedule::call(fn() => \App\Services\Monitoreo\SaludService::latir())->everyMinute()->name('salud:latido'); // previsiones recurrentes: registrar automáticas y avisar; recordatorios para facturar abonos
 Schedule::command('cobranzas:recordar')->dailyAt('09:30');
 Schedule::command('backups:diario')->dailyAt('03:00');
+Schedule::command('backups:completa')->dailyAt('03:20')->withoutOverlapping(180); // Fase 123: la base entera, cifrada y afuera
 Schedule::command('backups:probar')->dailyAt('03:40');                 // Fase 78: cada copia se abre y se comprueba
 Schedule::command('backups:probar --ensayo')->weeklyOn(0, '05:10');    // y los domingos se ensaya la restauración
 Schedule::command('erp:medir --nocturna')->dailyAt('04:40'); // Fase 77: las páginas clave de las empresas grandes, medidas cada noche

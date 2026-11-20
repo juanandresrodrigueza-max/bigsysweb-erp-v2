@@ -85,7 +85,7 @@ class SistemaConfig extends Model
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key', 'casilla_clave', 'arca_key', 'arca_pedido_key'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key', 'casilla_clave', 'arca_key', 'arca_pedido_key', 'copia_clave'];
 
     public static function get(string $clave, $default = null)
     {

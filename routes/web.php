@@ -165,6 +165,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->group(function () {
     Route::post('/sistema/arca/certificado',          [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaCertificado']);
     Route::post('/sistema/arca/ambiente',             [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaAmbiente']);
     Route::post('/sistema/arca/probar',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaProbar'])->middleware('throttle:10,1');
+    Route::post('/sistema/copia/clave',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'copiaClave']); // Fase 123
+    Route::post('/sistema/copia/ahora',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'copiaAhora'])->middleware('throttle:3,10');
     Route::post('/sistema/arca/borrar',               [\App\Http\Controllers\Superadmin\SistemaController::class, 'arcaBorrar']);
     Route::post('/sistema/probar-casilla',            [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarCasilla']); // Fase 120.3
     Route::post('/sistema/probar-aviso',              [\App\Http\Controllers\Superadmin\SistemaController::class, 'probarAviso'])->middleware('throttle:10,1'); // Fase 113.2
