@@ -154,6 +154,14 @@ Además de la copia de cada empresa, cada noche a las 03:20 se hace **una copia 
 
 Una casilla común para todas las empresas: cada una tiene su dirección `casilla+código@…` y lo que le mandan (PDF o foto de una factura de compra) aparece leído en Comprar → Facturas de compra. Se configura en Panel → Sistema → «Casilla de facturas» (IMAP; en Hostinger, `imap.hostinger.com`, puerto 993). **Probar la casilla** prueba lo que está escrito en la pantalla aunque no se haya guardado. Si dice «tocá Guardar», todavía no quedó. La casilla tiene que ser **sólo para esto**: el sistema lee y marca como leídos todos los mails que llegan.
 
+## Aplicaciones de Mercado Pago, Mercado Libre y Tienda Nube (fase 125)
+
+Una sola vez para todas las empresas: la aplicación de BigSys en cada plataforma, para que cada empresa conecte su cuenta con un botón. Panel → Sistema → «Aplicaciones para conectar tiendas con un botón» muestra las direcciones que pide cada portal (redirección, notificaciones y, en Tienda Nube, las tres de datos personales) y ahí se cargan el **App ID** y el **Secret** de cada una. La guía paso a paso está en `docs/GUIA-conexiones-plataforma.md` del repositorio.
+
+- **Mercado Pago**: es otra aplicación que la de cobrar las suscripciones. Tipo «Pagos presenciales», con la URL de redireccionamiento `…/conectar/mercadopago/volver`; se cargan el Client ID y el Client Secret de producción.
+- **Mercado Libre**: con los permisos de lectura, escritura y acceso offline, el tópico «Orders v2» y PKCE destildado.
+- **Tienda Nube**: aplicación pública en el portal de socios, con permisos de productos, órdenes y clientes. Tienda Nube la revisa antes de publicarla. Cuando una tienda desinstala la aplicación, el ERP borra su acceso. Cuando un comprador pide que borren sus datos o una copia, la empresa recibe un aviso con quién es y qué cliente del ERP le corresponde: lo resuelve la empresa, porque lo facturado se guarda 10 años.
+
 ## Uso y soporte
 
 **Uso**: qué empresas usan el sistema, cuáles se están enfriando (7 y 14 días sin uso), ranking, módulos más usados y detalle por empresa y usuario. **Soporte**: los tickets de todas las empresas por prioridad; al responder, la empresa recibe una alerta.

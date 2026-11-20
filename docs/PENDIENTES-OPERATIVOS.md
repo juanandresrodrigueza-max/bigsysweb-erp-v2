@@ -32,10 +32,10 @@ Referencias: ✅ hecho · ⏳ falta probarlo con datos reales · ❌ falta hacer
 
 ## 3 · Conexiones de la plataforma (Panel → Sistema, una sola vez)
 
-Son las aplicaciones de BigSys en cada plataforma. Con eso, **cada empresa conecta la suya con un botón**, sin copiar claves. Las URL de retorno las muestra la misma tarjeta del panel.
+Son las aplicaciones de BigSys en cada plataforma. Con eso, **cada empresa conecta la suya con un botón**, sin copiar claves. **El paso a paso, con cada dirección exacta, está en `docs/GUIA-conexiones-plataforma.md`** (y la misma tarjeta del panel muestra las direcciones para copiar).
 
 - [ ] ❌ **Mercado Pago para las empresas** (cobros en el local, QR, Point y conciliación): en Mercado Pago Developers, una aplicación de BigSys para «conectar cuentas de terceros» (OAuth). Su **App ID** y **Secret** van en Panel → Sistema → «Aplicaciones para conectar tiendas». Es otra cosa que el Mercado Pago con el que BigSys cobra sus suscripciones, que ya está hecho.
-- [ ] ❌ **Tienda Nube**: alta como socio en partners.tiendanube.com, crear la aplicación y cargar su **App ID** y **Secret**. Tienda Nube revisa la aplicación antes de publicarla.
+- [ ] ❌ **Tienda Nube**: alta como socio en partners.tiendanube.com, crear la aplicación y cargar su **App ID** y **Secret**. Tienda Nube revisa la aplicación antes de publicarla; los avisos de datos personales (LGPD) que pide ya están hechos (Fase 125).
 - [ ] ❌ **Mercado Libre**: aplicación en developers.mercadolibre.com.ar, con la URL de retorno y la de notificaciones que muestra el panel. Cargar su **App ID** y **Secret**.
 - [ ] ⏳ **Voz de Bigcito** (OpenAI): la clave está cargada. Falta probar el micrófono desde un iPhone y la **conversación en vivo** (📞). Si no conecta, destildarla y avisar con el mensaje que muestre.
 - [ ] Opcional: **Sentry** (DSN en Panel → Salud). Sin él, los errores igual llegan por mail y quedan en el panel.

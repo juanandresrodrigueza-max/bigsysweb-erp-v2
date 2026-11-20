@@ -37,6 +37,8 @@ Route::prefix('auth')->group(function () {
 Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook'])->middleware('throttle:webhooks');
 Route::post('crm/webhook/{business}', [\App\Http\Controllers\Api\CrmWebhookController::class, 'recibir'])->middleware('throttle:webhooks')->whereNumber('business');
 Route::post('tiendanube/webhook',  [TiendanubeController::class, 'webhook'])->middleware('throttle:webhooks');
+// Fase 125: los avisos de datos personales (LGPD) que Tienda Nube exige a las aplicaciones.
+Route::post('tiendanube/lgpd/{tema}', [\App\Http\Controllers\Api\TiendanubeLgpdController::class, 'recibir'])->middleware('throttle:webhooks')->whereIn('tema', \App\Http\Controllers\Api\TiendanubeLgpdController::TEMAS);
 Route::post('webhooks/mercadopago/suscripcion', [\App\Http\Controllers\SuscripcionController::class, 'webhook'])->middleware('throttle:webhooks');
 
 // Todo lo demás requiere autenticación
