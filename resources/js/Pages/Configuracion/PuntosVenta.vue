@@ -42,12 +42,25 @@
               <button v-if="arca.representante" type="button" class="font-mono font-bold underline decoration-dotted" @click="copiar(arca.representante.cuit)" data-e2e="arca-cuit-bigsys">{{ arca.representante.cuit }}</button><span v-if="copiado" class="text-emerald-700 text-xs"> · copiado</span> → Confirmar.
               <p v-if="verif?.delegacion === 'falta'" class="text-carmin text-xs mt-0.5">ARCA dice que todavía no está hecha (o se hizo con otro CUIT). Puede tardar unos minutos en verse después de hacerla.</p></div></li>
             <li class="flex gap-2"><span :class="paso(arca.bigsys ? 'ok' : '')">{{ arca.bigsys ? '✓' : '4' }}</span><div class="flex-1"><b>Verificá y activá.</b> Le pregunta a ARCA si los dos trámites quedaron bien. No emite ni reserva nada.
+              <!-- Fase 121.1: autorización expresa, con constancia de quién, cuándo y con qué texto -->
+              <div v-if="hayParaActivar" class="mt-2 rounded-xl border border-marca-borde bg-white p-2.5 text-xs" data-e2e="arca-autorizacion">
+                <p class="text-marca-muted leading-relaxed">{{ arca.autorizacion?.texto }} <a href="/terminos#facturacion" target="_blank" class="underline">Ver términos</a></p>
+                <label v-if="arca.puede_aceptar" class="flex items-start gap-2 mt-2 font-semibold"><input v-model="acepto" type="checkbox" class="mt-0.5 accent-carmin" data-e2e="arca-acepto" /> Leí y acepto esta autorización en nombre de la empresa.</label>
+                <p v-else class="mt-2 font-semibold text-amber-700">La autorización la acepta el dueño de la cuenta: pedile que entre y la active.</p>
+                <p v-if="errorAcepto" class="text-carmin mt-1">{{ errorAcepto }}</p>
+              </div>
               <div class="flex flex-wrap gap-2 mt-1.5">
                 <button type="button" class="btn-secondary !py-1 text-xs" :disabled="verificando || !arca.cuit_ok" @click="verificar()" data-e2e="arca-verificar">{{ verificando ? 'Consultando a ARCA…' : 'Verificar en ARCA' }}</button>
-                <button v-if="!arca.bigsys" type="button" class="btn-primary !py-1 text-xs" :disabled="verif?.delegacion !== 'ok'" @click="activar(true)" data-e2e="arca-activar">Activar la facturación por BigSys</button>
+                <button v-if="!arca.bigsys" type="button" class="btn-primary !py-1 text-xs" :disabled="verif?.delegacion !== 'ok' || !acepto" @click="activar(true)" data-e2e="arca-activar">Activar la facturación por BigSys</button>
                 <button v-else type="button" class="btn-ghost !py-1 text-xs text-carmin" @click="activar(false)">Apagar</button>
-              </div></div></li>
+              </div>
+              <p v-if="arca.bigsys && arca.autorizacion?.ultima && !arca.autorizacion.ultima.revocada" class="text-[11px] text-marca-muted mt-1" data-e2e="arca-constancia">Autorizado por {{ arca.autorizacion.ultima.usuario }} el {{ arca.autorizacion.ultima.fecha }} (texto versión {{ arca.autorizacion.ultima.version }}).</p>
+              </div></li>
           </ol>
+          <div v-if="arca.revocar" class="mt-3 rounded-xl p-2.5 text-xs bg-amber-50 text-amber-800" data-e2e="arca-revocar">
+            <p class="font-bold mb-1">Para cerrar del todo, revocá también la autorización en ARCA:</p>
+            <ol class="list-decimal pl-4 space-y-0.5"><li v-for="p in arca.revocar" :key="p">{{ p }}</li></ol>
+          </div>
           <div v-if="verif" class="mt-3 rounded-xl p-2.5 text-xs" :class="verif.delegacion === 'ok' ? 'bg-emerald-50 text-emerald-800' : verif.delegacion === 'falta' ? 'bg-amber-50 text-amber-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="arca-verificacion">
             <template v-if="verif.delegacion === 'ok'">
               ✓ ARCA confirma la autorización a BigSys.<span v-if="verif.puntos.length"> Puntos de venta para web services: <b>{{ verif.puntos.map(n => String(n).padStart(4, '0')).join(', ') }}</b>.</span>
@@ -62,7 +75,7 @@
             <p class="text-marca-muted mb-1">Cada CUIT hace su propia autorización en ARCA (paso 3, entrando con la clave fiscal de ese CUIT).</p>
             <div v-for="l in arca.sucursales" :key="l.id" class="flex flex-wrap items-center justify-between gap-2 py-1">
               <span><b>{{ l.nombre }}</b> · CUIT {{ l.cuit }} · {{ l.propio ? 'certificado propio' : (l.bigsys ? 'a través de BigSys' : 'sin configurar') }}</span>
-              <span v-if="!l.propio" class="flex gap-1"><button type="button" class="btn-ghost !py-0.5 text-xs" @click="verificar(l.id)">Verificar</button><button type="button" class="btn-ghost !py-0.5 text-xs" @click="activar(!l.bigsys, l.id)">{{ l.bigsys ? 'Apagar' : 'Activar' }}</button></span>
+              <span v-if="!l.propio" class="flex gap-1"><button type="button" class="btn-ghost !py-0.5 text-xs" @click="verificar(l.id)">Verificar</button><button type="button" class="btn-ghost !py-0.5 text-xs" :disabled="!l.bigsys && !acepto" :title="!l.bigsys && !acepto ? 'Primero aceptá la autorización (paso 4)' : ''" @click="activar(!l.bigsys, l.id)">{{ l.bigsys ? 'Apagar' : 'Activar' }}</button></span>
             </div>
           </div>
         </div>
@@ -112,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import EstadoVacio from '@/Components/EstadoVacio.vue'
@@ -129,7 +142,13 @@ async function verificar(locationId = null) {
   finally { verificando.value = false }
 }
 function paso(e) { return 'w-6 h-6 shrink-0 rounded-full grid place-items-center text-xs font-bold ' + (e === 'ok' ? 'bg-emerald-500 text-white' : e === 'falta' ? 'bg-amber-400 text-white' : 'bg-gris-light text-marca-muted') }
-function activar(activo, locationId = null) { if (!activo && !confirm('¿Apagar la facturación a través de BigSys? Las facturas van a salir simuladas hasta que la vuelvas a activar.')) return; router.post('/configuracion/afip/bigsys', { activo, location_id: locationId }, { preserveScroll: true }) }
+const acepto = ref(false), errorAcepto = ref(null)
+const hayParaActivar = computed(() => !props.arca.bigsys || (props.arca.sucursales ?? []).some(l => !l.bigsys && !l.propio))
+function activar(activo, locationId = null) {
+  if (!activo && !confirm('¿Apagar la facturación a través de BigSys? Las facturas van a salir simuladas hasta que la vuelvas a activar.')) return
+  errorAcepto.value = null
+  router.post('/configuracion/afip/bigsys', { activo, location_id: locationId, acepto: activo ? acepto.value : null, version: props.arca.autorizacion?.version }, { preserveScroll: true, onError: (e) => (errorAcepto.value = e.acepto ?? null), onSuccess: () => (acepto.value = false) })
+}
 function traer(numeros) { router.post('/configuracion/afip/traer-puntos', { numeros }, { preserveScroll: true, onSuccess: () => verificar() }) }
 async function copiar(t) { try { await navigator.clipboard.writeText(t.replace(/\D/g, '')); copiado.value = true; setTimeout(() => (copiado.value = false), 2000) } catch (e) { window.prompt('Copiá el CUIT', t) } }
 const probando = ref(false)
