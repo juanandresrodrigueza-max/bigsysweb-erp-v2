@@ -81,16 +81,16 @@ Lo que sigue es lo que **no** puede hacer el sistema solo. El resto (artículos,
 ### Bigcito por WhatsApp (fase 111)
 
 - [ ] Cargar el **celular de cada usuario** en Configuración → Usuarios (con código de área).
-- [ ] WhatsApp Cloud API de la empresa en Configuración → Tienda y canales → Pedidos por WhatsApp (phone ID, token, webhook) y dejar tildado «Bigcito atiende al equipo».
+- [ ] **WhatsApp de la empresa** (fase 118): Configuración → Tienda y canales → «Conectar WhatsApp» y escanear el QR desde la app WhatsApp Business (el número sigue andando en el celular). Después, **Pedir las plantillas a Meta** y dejar tildado «Bigcito atiende al equipo».
 - [ ] **Voz de Bigcito para todas las empresas** (fase 119.2): cargar una clave de **OpenAI o Gemini** en Panel → Sistema → «Voz de Bigcito». Con eso Bigcito escucha en iPhone/Safari/Firefox, entiende audios de WhatsApp y contesta con voz natural, sin que cada empresa cargue nada (antes era por empresa en Configuración → Conexiones IA).
 - [ ] Probar: mandar «cuánto vendí hoy» y después un audio «cobrale 1000 a (cliente) en efectivo» y responder SÍ.
 
 ### ARCA (fase 102 a 104 ya contemplan letras y condiciones)
 
-- [ ] **Certificado**: clave fiscal → Administrador de Relaciones → adherir **WSFE** (y `ws_sr_padron_a13`/`a5` para padrón). CSR con `openssl` (comando en `docs/arca.md`), bajar el `.crt`. Para homologación, certificado del entorno de homologación.
-- [ ] **Cargarlo**: Configuración → Puntos de venta → Factura electrónica: `.crt` y `.key`. Punto de venta dado de alta en ARCA como *Web Services* con el mismo número.
-- [ ] **Probar conexión** y emitir los **comprobantes de prueba** que ARCA pide para habilitar producción: A a responsable inscripto, B a consumidor final y a monotributista, NC A asociada, ND, una con servicios. El ERP los arma solo.
-- [ ] **Pasar a producción**: certificado de producción, tildar *Modo producción* en Configuración → Empresa, probar de nuevo, primera factura real y **Verificar en ARCA**.
+- [ ] **Sin certificado (fase 121)**: la empresa no genera ni sube nada. Con su clave fiscal (nivel 3) hace dos trámites en ARCA: dar de alta el punto de venta para web services («RECE para aplicativo y web services», o «Factura Electrónica - Monotributo - Web Services» si es monotributista) y autorizar a BigSys en el Administrador de Relaciones («Facturación Electrónica», representante: el CUIT de BigSys). Si ya lo había hecho para el CRM, no hace nada de nuevo.
+- [ ] **Verificar y activar**: Configuración → Puntos de venta y ARCA → **Verificar en ARCA** (trae los puntos de venta) → el **dueño** acepta la autorización y toca **Activar**. **Probar conexión con ARCA**.
+- [ ] **Primera factura real** y **Verificar en ARCA** desde el comprobante. (La facturación por BigSys usa el ambiente de producción que esté elegido en Panel → Sistema.)
+- [ ] Sólo si la empresa ya tenía certificado propio de otro sistema y lo quiere seguir usando: «Tengo mi propio certificado (avanzado)» en la misma pantalla. Lo necesita también para factura de exportación y padrón.
 - [ ] **Clientes**: revisar la condición IVA de cada uno (los monotributistas reciben **A** con la leyenda de la ley 27.618; sin CUIT, consumidor final). Marcar **«Comprobante interno por defecto»** sólo en los clientes que corresponda (fase 103).
 - [ ] **Impuestos**: Configuración → Impuestos sólo si la empresa es agente de percepción o retención.
 - [ ] **Comprobantes internos** (los que no van a ARCA, letra X, fases 103 y 104): ya están hechos. Sólo hay que marcar el tilde en la venta o en el cliente, y usar **Facturar** después si esa venta tiene que pasar a fiscal. No hay nada que configurar.
