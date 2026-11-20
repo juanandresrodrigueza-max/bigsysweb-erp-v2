@@ -100,6 +100,8 @@ class SistemaController extends Controller
             // Fase 87: la empresa propia de BigSys (los superadmins saltan entre el panel y ella).
             'bigsys' => ($b = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual()) ? ['id' => $b->id, 'nombre' => $b->name] : null,
             'empresasParaBigsys' => Business::whereNull('suspended_at')->orderBy('name')->get(['id', 'name']),
+            // Fase 121: el certificado de BigSys para facturar en nombre de las empresas (como el CRM).
+            'arca' => \App\Services\Afip\ArcaPlataforma::estado() + ['sugerido' => (function () { $bs = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual(); return ['cuit' => $bs?->cuit, 'razon' => $bs?->razon_social ?: $bs?->name, 'alias' => 'bigsyserp']; })()],
             'version' => ['php' => PHP_VERSION, 'laravel' => app()->version(), 'db' => config('database.default')],
         ]);
     }
@@ -167,6 +169,55 @@ class SistemaController extends Controller
         $ok = collect($r)->contains(fn($c) => $c && $c['ok']);
         $texto = collect(['mail' => 'Mail', 'whatsapp' => 'WhatsApp', 'celular' => 'Celular'])->map(fn($n, $k) => ($r[$k]['ok'] ?? false ? '✓ ' : '✗ ') . "{$n}: " . ($r[$k]['texto'] ?? '—'))->implode("\n");
         return back()->with('prueba', ['que' => 'aviso', 'ok' => $ok, 'texto' => $texto]);
+    }
+
+    // ---- Fase 121: certificado de BigSys para ARCA ----
+    public function arcaPedido(Request $request)
+    {
+        $d = $request->validate(['cuit' => 'required|string|max:20', 'razon' => 'required|string|max:120', 'alias' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9]+$/']], ['alias.regex' => 'El alias va sin espacios ni símbolos: sólo letras y números (por ejemplo bigsyserp).']);
+        if (! \App\Support\Cuit::valido($d['cuit'])) return back()->withErrors(['cuit' => 'El CUIT no es válido.']);
+        \App\Services\Afip\ArcaPlataforma::generarPedido($d['cuit'], $d['razon'], $d['alias']);
+        AuditLog::registrar('editar', null, "Generó el pedido de certificado de ARCA (alias {$d['alias']})");
+        return back()->with('success', 'Pedido de certificado generado. La clave privada quedó guardada en el servidor; bajá el pedido y subilo a ARCA.');
+    }
+
+    public function arcaPedidoBajar()
+    {
+        $csr = SistemaConfig::get('arca_pedido');
+        abort_unless($csr, 404);
+        return response($csr, 200, ['Content-Type' => 'application/pkcs10', 'Content-Disposition' => 'attachment; filename="' . (SistemaConfig::get('arca_pedido_alias') ?: 'bigsys') . '.csr"']);
+    }
+
+    public function arcaCertificado(Request $request)
+    {
+        $request->validate(['cert' => 'required|file|max:64', 'key' => 'nullable|file|max:64', 'produccion' => 'nullable|boolean']);
+        try {
+            $info = \App\Services\Afip\ArcaPlataforma::cargar(file_get_contents($request->file('cert')->getRealPath()), $request->hasFile('key') ? file_get_contents($request->file('key')->getRealPath()) : null, $request->has('produccion') ? $request->boolean('produccion') : null);
+        } catch (\App\Services\Afip\ArcaError $e) { return back()->withErrors(['cert' => $e->getMessage()]); }
+        \App\Services\Afip\ArcaPlataforma::limpiarTickets();
+        AuditLog::registrar('editar', null, "Cargó el certificado de BigSys para ARCA (alias {$info['alias']}, vence {$info['vence']->format('d/m/Y')})");
+        return back()->with('success', "Certificado cargado: alias {$info['alias']}, CUIT " . \App\Support\Cuit::formatear((string) $info['cuit']) . ", vence el {$info['vence']->format('d/m/Y')}. Tocá «Probar».");
+    }
+
+    public function arcaAmbiente(Request $request)
+    {
+        $d = $request->validate(['produccion' => 'required|boolean']);
+        SistemaConfig::set('arca_produccion', $d['produccion']);
+        AuditLog::registrar('editar', null, 'Facturación por BigSys en ' . ($d['produccion'] ? 'producción' : 'homologación'));
+        return back()->with('success', $d['produccion'] ? 'Facturación por BigSys en PRODUCCIÓN: los comprobantes valen fiscalmente.' : 'Facturación por BigSys en homologación (prueba): los CAE no valen fiscalmente.');
+    }
+
+    public function arcaProbar()
+    {
+        $r = \App\Services\Afip\ArcaPlataforma::probar();
+        return back()->with('prueba', ['que' => 'arca', 'ok' => $r['ok'], 'texto' => collect($r['pasos'])->map(fn($p) => ($p['ok'] ? '✓ ' : '✗ ') . "{$p['nombre']}: {$p['detalle']}")->implode("\n")]);
+    }
+
+    public function arcaBorrar()
+    {
+        \App\Services\Afip\ArcaPlataforma::borrar();
+        AuditLog::registrar('editar', null, 'Borró el certificado de BigSys para ARCA');
+        return back()->with('success', 'Certificado borrado. Las empresas que facturaban a través de BigSys pasan a emitir simulado hasta que se cargue otro.');
     }
 
     // Fase 120.3: entra a la casilla de facturas y cuenta lo que hay sin leer.

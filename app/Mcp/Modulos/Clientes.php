@@ -190,7 +190,7 @@ class Clientes
                     if (strlen($doc) === 11 && ! \App\Support\Cuit::valido($doc)) return ['error' => 'El CUIT no es válido (revisá el dígito verificador).'];
                     if ($ya = app(\App\Services\Ventas\ClienteDesdeFacturaService::class)->buscar(['nombre' => $a['nombre'], 'documento' => $doc])) return ['error' => "Ya existe el cliente {$ya->name} (id {$ya->id}). Usá ese."];
                     // Fase 107: con CUIT y certificado de ARCA, el padrón completa nombre, condición y domicilio solo.
-                    $pad = null; if (strlen($doc) === 11 && app(\App\Services\Comprobantes\AfipEmisor::class)->configurado($u->business)) { try { $pad = \App\Services\Afip\AfipService::forBusiness($u->business)->padron($doc); } catch (\Throwable) { $pad = null; } }
+                    $pad = null; if (strlen($doc) === 11 && app(\App\Services\Comprobantes\AfipEmisor::class)->padronDisponible($u->business)) { try { $pad = \App\Services\Afip\AfipService::forBusiness($u->business)->padron($doc); } catch (\Throwable) { $pad = null; } }
                     if ($pad) { $a['nombre'] = $a['nombre'] ?: $pad['nombre']; $a['condicion_iva'] = $a['condicion_iva'] ?? $pad['condicion_iva']; $a['direccion'] = $a['direccion'] ?? ($pad['direccion'] ?: null); $a['localidad'] = $a['localidad'] ?? ($pad['localidad'] ?: null); }
                     $iva = $a['condicion_iva'] ?? (strlen($doc) === 11 ? 'Responsable Inscripto' : 'Consumidor Final');
                     if (in_array($iva, ['Responsable Inscripto', 'Monotributista'], true) && strlen($doc) !== 11) return ['error' => "Un {$iva} necesita CUIT."];

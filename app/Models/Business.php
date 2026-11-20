@@ -15,7 +15,7 @@ class Business extends Model
         'name', 'slug', 'email', 'phone', 'logo', 'currency', 'country',
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
-        'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id',
+        'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id', 'arca_bigsys', 'arca_verificada_en',
         'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'aprobacion', 'aprobacion_pedida_por', 'aprobada_en', 'aprobada_por', 'aprobacion_avisos', 'agentes', 'onboarding', 'induccion', 'modulos_ocultos', 'gastronomia_config', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'modulos_contratados', 'bigconnect', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'conciliacion', 'servicios_config', 'estudio', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
     ];
 
@@ -44,6 +44,8 @@ class Business extends Model
         'suspended_at'         => 'datetime',
         'aprobada_en'          => 'datetime', 'aprobacion_avisos' => 'array', // Fase 106
         'afip_produccion'      => 'boolean',
+        'arca_bigsys'          => 'boolean', // Fase 121
+        'arca_verificada_en'   => 'datetime',
         'mercadopago_settings' => 'encrypted:array',
         'arba_settings'        => 'encrypted:array',
         'crm_settings'         => 'encrypted:array',
@@ -194,7 +196,7 @@ class Business extends Model
         $e->forceFill(['cuit' => $loc->cuit, 'razon_social' => $loc->razon_social ?: $this->razon_social, 'condicion_iva' => $loc->condicion_iva ?: $this->condicion_iva,
             'iibb' => $loc->iibb ?: $this->iibb, 'inicio_actividades' => $loc->inicio_actividades ?: $this->inicio_actividades,
             'address' => $loc->address ?: $this->address, 'city' => $loc->city ?: $this->city, 'province' => $loc->province ?: $this->province, 'phone' => $loc->phone ?: $this->phone, 'email' => $loc->email ?: $this->email,
-            'afip_cert_path' => $loc->afip_cert_path, 'afip_key_path' => $loc->afip_key_path, 'afip_produccion' => $loc->afip_produccion ?? $this->afip_produccion]);
+            'afip_cert_path' => $loc->afip_cert_path, 'afip_key_path' => $loc->afip_key_path, 'arca_bigsys' => (bool) $loc->arca_bigsys, 'arca_verificada_en' => $loc->arca_verificada_en, 'afip_produccion' => $loc->afip_produccion ?? $this->afip_produccion]);
         $e->sucursalEmisora = $loc;
         return $e;
     }

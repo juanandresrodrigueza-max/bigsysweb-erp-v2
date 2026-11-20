@@ -74,10 +74,18 @@ class SistemaConfig extends Model
         'casilla_usuario'    => null,
         'casilla_clave'      => null,
         'casilla_direccion'  => null, // la dirección pública si no es igual al usuario
+        // Fase 121: certificado de BigSys para facturar en nombre de las empresas (delegación, como el CRM).
+        'arca_cert'          => null,
+        'arca_key'           => null,
+        'arca_produccion'    => false,
+        'arca_razon'         => null,
+        'arca_pedido'        => null, // pedido de certificado (CSR) generado acá, esperando el .crt de ARCA
+        'arca_pedido_key'    => null,
+        'arca_pedido_alias'  => null,
     ];
 
     // Claves que se guardan cifradas.
-    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key', 'casilla_clave'];
+    public const SECRETOS = ['mp_access_token', 'ia_api_key', 'mail_password', 'sentry_dsn', 'salud_token', 'ml_app_secret', 'tn_app_secret', 'mp_app_secret', 'vapid', 'fcm_service_account', 'google_client_secret', 'clave_aprobacion', 'meta_app_secret', 'voz_api_key', 'casilla_clave', 'arca_key', 'arca_pedido_key'];
 
     public static function get(string $clave, $default = null)
     {

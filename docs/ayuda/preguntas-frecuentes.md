@@ -6,9 +6,9 @@ orden: 12
 resumen: Las dudas que más llegan a soporte, con la respuesta corta.
 ---
 
-## ¿Puedo probar sin certificado de ARCA?
+## ¿Necesito un certificado de ARCA para facturar?
 
-Sí. Las facturas salen **simuladas** (dicen "sin CAE, no válido como factura"). Cuando cargues el certificado, todo lo demás queda igual.
+No. BigSys factura por vos con su propio certificado: vos sólo lo autorizás una vez en ARCA (Administrador de Relaciones de Clave Fiscal) y lo activás en **Configuración → Puntos de venta y ARCA**, donde está el paso a paso. Mientras no lo actives, las facturas salen **simuladas** (dicen "sin CAE, no válido como factura"); cuando lo actives, todo lo demás queda igual. Si ya tenés tu propio certificado de otro sistema, también lo podés cargar.
 
 ## ¿Cómo anulo una factura emitida?
 

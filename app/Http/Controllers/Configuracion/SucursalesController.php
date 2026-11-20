@@ -17,7 +17,7 @@ class SucursalesController extends Controller
 
         return Inertia::render('Configuracion/Sucursales', [
             'items' => $b->locations()->withCount('users')->orderByDesc('is_default')->orderBy('name')->get()
-                ->map(fn($l) => $l->only('id', 'name', 'short_name', 'address', 'city', 'province', 'phone', 'email', 'is_active', 'is_default', 'cuit', 'razon_social', 'condicion_iva', 'iibb') + ['inicio_actividades' => $l->inicio_actividades?->toDateString(), 'afip_produccion' => (bool) $l->afip_produccion, 'cert' => (bool) $l->afip_cert_path, 'key' => (bool) $l->afip_key_path, 'puntos_venta' => $l->puntosVenta()->where('activo', true)->orderBy('numero')->pluck('numero'), 'usuarios' => $l->users_count]),
+                ->map(fn($l) => $l->only('id', 'name', 'short_name', 'address', 'city', 'province', 'phone', 'email', 'is_active', 'is_default', 'cuit', 'razon_social', 'condicion_iva', 'iibb', 'arca_bigsys') + ['inicio_actividades' => $l->inicio_actividades?->toDateString(), 'afip_produccion' => (bool) $l->afip_produccion, 'cert' => (bool) $l->afip_cert_path, 'key' => (bool) $l->afip_key_path, 'puntos_venta' => $l->puntosVenta()->where('activo', true)->orderBy('numero')->pluck('numero'), 'usuarios' => $l->users_count]),
             'empresa' => ['cuit' => $b->cuit, 'razon_social' => $b->razon_social, 'condicion_iva' => $b->condicion_iva], 'condicionesIva' => ['Responsable Inscripto', 'Monotributista', 'Exento', 'No Responsable'],
             'limite' => ['max' => $max, 'usadas' => $b->locations()->count()],
         ]);

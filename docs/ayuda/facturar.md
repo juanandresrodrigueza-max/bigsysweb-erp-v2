@@ -66,6 +66,25 @@ Con el CRM de BigSys conectado, el vendedor presupuesta desde el CRM viendo **st
 
 Desde la factura, **Convertir → Nota de crédito** la anula total o parcialmente (ARCA exige asociarla a la factura original, el sistema lo hace solo). La nota de débito suma intereses o diferencias.
 
+## Factura electrónica sin certificado: BigSys factura por vos (fase 121)
+
+Igual que en el CRM, **no hace falta que generes ni subas ningún certificado**. BigSys tiene uno propio y factura en nombre de tu empresa, con tu CUIT, tu punto de venta y tu numeración. Vos sólo lo autorizás una vez en ARCA.
+
+En **Configuración → Puntos de venta y ARCA** está la guía con los cuatro pasos:
+
+1. **Datos fiscales**: el CUIT de la empresa cargado en Configuración → Empresa.
+2. **Punto de venta para Web Services**: en ARCA → «Administración de puntos de venta y domicilios» → Agregar, y en «Sistema» elegí **«RECE para aplicativo y web services»**. El de «Comprobantes en línea» (el de facturar a mano en la web de ARCA) **no sirve**.
+3. **Autorizá a BigSys**: en ARCA, con clave fiscal nivel 3 → **«Administrador de Relaciones de Clave Fiscal»** → **Nueva relación** → Buscar → ARCA → WebServices → **«Facturación Electrónica»** → en Representante poné el CUIT de BigSys que muestra la pantalla (tocalo para copiarlo) → Confirmar.
+4. **Verificá y activá**: el botón **Verificar en ARCA** le pregunta a ARCA si los dos trámites quedaron bien (no emite ni reserva nada) y te dice qué puntos de venta tenés habilitados. Si alguno está en ARCA y no en el sistema, lo agregás con un toque. Cuando ARCA confirma la autorización, tocás **Activar la facturación por BigSys**.
+
+Listo: desde ahí las facturas salen con CAE. **Probar conexión con ARCA** hace una consulta de punta a punta sin emitir nada.
+
+Lo que conviene saber:
+- Si ya facturabas por web services con otro sistema y tenés tu certificado, podés seguir usándolo: está en «Tengo mi propio certificado (avanzado)». Si cargás uno, se usa ese.
+- La **factura de exportación (E)** y la **consulta de padrón** para completar fichas por CUIT por ahora necesitan certificado propio.
+- Si una **sucursal tiene CUIT propio**, ese CUIT hace su propia autorización en ARCA (entrando con su clave fiscal) y se activa en la misma pantalla, en «Sucursales con CUIT propio».
+- Si un día revocás la autorización en ARCA, ARCA rechaza las facturas con el aviso «todavía no autorizó a BigSys a facturar en su nombre».
+
 ## Si ARCA no responde
 
 La factura queda **pendiente de CAE**: ya impactó en cuenta corriente y stock, y el sistema reintenta solo cada cinco minutos. No es válida como factura hasta tener CAE, y así lo dice el impreso.

@@ -22,7 +22,7 @@
         </div>
         <div v-if="s.cuit" class="mt-3 text-xs rounded-xl bg-marca-fondo p-3 space-y-0.5">
           <p><b>{{ s.razon_social }}</b> · CUIT {{ s.cuit }} · {{ s.condicion_iva }}</p>
-          <p :class="s.cert && s.key ? 'text-emerald-700' : 'text-amber-700'">{{ s.cert && s.key ? 'Certificado ARCA cargado' : 'Falta el certificado ARCA: factura en modo simulado' }} · {{ s.afip_produccion ? 'producción' : 'homologación' }}</p>
+          <p :class="(s.cert && s.key) || s.arca_bigsys ? 'text-emerald-700' : 'text-amber-700'">{{ s.cert && s.key ? `Certificado ARCA propio · ${s.afip_produccion ? 'producción' : 'homologación'}` : (s.arca_bigsys ? 'Factura a través de BigSys' : 'Sin factura electrónica: modo simulado (activala en Puntos de venta y ARCA)') }}</p>
           <p :class="s.puntos_venta.length ? '' : 'text-amber-700'">Puntos de venta: {{ s.puntos_venta.length ? s.puntos_venta.map(n => String(n).padStart(4, '0')).join(', ') : 'ninguno (crealo en Puntos de venta y asignalo a esta sucursal)' }}</p>
         </div>
         <p v-else class="mt-3 text-xs text-marca-muted">Factura con el CUIT de la empresa ({{ empresa.cuit ?? 'sin CUIT' }}).</p>

@@ -155,6 +155,53 @@
       <div class="flex justify-end gap-2"><button v-if="config.voz_api_key_set" type="button" class="btn-ghost text-xs text-carmin" @click="borrar('voz_api_key')">Borrar clave</button><button class="btn-primary" :disabled="form.processing">Guardar</button></div>
     </form>
 
+    <!-- Fase 121: facturación electrónica de las empresas a través de BigSys (como el CRM) -->
+    <div class="card space-y-3 mt-4" data-e2e="arca-bigsys">
+      <h2 class="font-bold">Facturación electrónica: certificado de BigSys (ARCA)</h2>
+      <p class="text-sm text-marca-muted">Igual que en el CRM: con <b>un solo certificado de BigSys</b>, cada empresa factura sin cargar nada; sólo le delega a BigSys el servicio «Facturación Electrónica» desde su Administrador de Relaciones de Clave Fiscal. Las delegaciones son al <b>CUIT</b> de BigSys, así que las que ya hicieron los clientes del CRM sirven también acá.</p>
+      <div class="p-3 rounded-xl text-sm" :class="arca.lista && !arca.vencido ? (arca.produccion ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800') : 'bg-amber-50 text-amber-800'" data-e2e="arca-bigsys-estado">
+        <template v-if="arca.lista"><b>Estado:</b> certificado <b>{{ arca.alias }}</b> · CUIT {{ arca.cuit }}{{ arca.razon ? ' · ' + arca.razon : '' }} · vence el {{ arca.vence }}<span v-if="arca.vencido" class="text-carmin font-bold"> (VENCIDO)</span><span v-else-if="arca.vence_pronto" class="font-bold"> (vence pronto)</span> · <b>{{ arca.produccion ? 'PRODUCCIÓN' : 'homologación (prueba)' }}</b> · {{ arca.empresas }} empresa(s) facturando por BigSys.</template>
+        <template v-else><b>Estado:</b> sin certificado. Las empresas ven la guía pero no pueden activar la facturación por BigSys.</template>
+      </div>
+      <p class="text-xs px-3 py-2 rounded-lg bg-violeta-light/50 text-violeta-dark"><b>Importante:</b> conviene que el ERP tenga <b>su propio certificado</b> (mismo CUIT de BigSys, otro alias), y no el mismo archivo del CRM. ARCA entrega un solo ticket de acceso vigente por certificado: si los dos sistemas usan el mismo, se lo pisan y uno se queda sin facturar hasta 12 horas.</p>
+
+      <details class="rounded-xl border border-marca-borde p-3" :open="!arca.lista">
+        <summary class="cursor-pointer font-semibold text-sm">1 · Generar el pedido de certificado (la clave queda en el servidor)</summary>
+        <form @submit.prevent="pedido.post('/admin/sistema/arca/pedido', { preserveScroll: true })" class="grid sm:grid-cols-3 gap-3 mt-3">
+          <div><label class="label">CUIT de BigSys</label><input v-model="pedido.cuit" class="input font-mono" placeholder="30-xxxxxxxx-x" /><p v-if="pedido.errors.cuit" class="text-carmin text-xs mt-1">{{ pedido.errors.cuit }}</p></div>
+          <div><label class="label">Razón social</label><input v-model="pedido.razon" class="input" /></div>
+          <div><label class="label">Alias (sin espacios)</label><input v-model="pedido.alias" class="input font-mono" /><p v-if="pedido.errors.alias" class="text-carmin text-xs mt-1">{{ pedido.errors.alias }}</p></div>
+          <div class="sm:col-span-3 flex justify-end"><button class="btn-secondary" :disabled="pedido.processing">{{ arca.pedido ? 'Generar otro pedido' : 'Generar pedido' }}</button></div>
+        </form>
+        <div v-if="arca.pedido" class="mt-3 text-sm space-y-2" data-e2e="arca-pedido">
+          <p>Pedido listo para el alias <b>{{ arca.pedido.alias }}</b>. <a href="/admin/sistema/arca/pedido.csr" class="underline font-semibold">Bajar el pedido (.csr)</a></p>
+          <ol class="list-decimal pl-5 text-marca-muted space-y-1 text-xs">
+            <li>Entrá a ARCA con la clave fiscal de BigSys → <b>«Administración de Certificados Digitales»</b> (para homologación: «WSASS – Autogestión Certificados Homologación»).</li>
+            <li>Agregá el alias <b>{{ arca.pedido.alias }}</b>, subí el pedido (.csr) y bajá el certificado (.crt).</li>
+            <li>En <b>«Administrador de Relaciones de Clave Fiscal»</b> → Nueva relación → ARCA → WebServices → <b>«Facturación Electrónica»</b> → Representante: el computador fiscal <b>{{ arca.pedido.alias }}</b>.</li>
+            <li>Volvé acá y subí el .crt en el paso 2 (sin clave: ya está en el servidor).</li>
+          </ol>
+        </div>
+      </details>
+
+      <details class="rounded-xl border border-marca-borde p-3" :open="!!arca.pedido">
+        <summary class="cursor-pointer font-semibold text-sm">2 · Cargar el certificado</summary>
+        <form @submit.prevent="certArca.post('/admin/sistema/arca/certificado', { forceFormData: true, preserveScroll: true, onSuccess: () => certArca.reset() })" class="grid sm:grid-cols-3 gap-3 mt-3">
+          <div><label class="label">Certificado (.crt)</label><input type="file" class="input !py-1.5 text-xs" @change="certArca.cert = $event.target.files[0]" /><p v-if="certArca.errors.cert" class="text-carmin text-xs mt-1">{{ certArca.errors.cert }}</p></div>
+          <div><label class="label">Clave privada (.key) <span class="font-normal text-marca-muted">· sólo si el pedido NO se generó acá</span></label><input type="file" class="input !py-1.5 text-xs" @change="certArca.key = $event.target.files[0]" /></div>
+          <div><label class="label">Ambiente</label><select v-model="certArca.produccion" class="input"><option :value="null">Según el certificado</option><option :value="true">Producción</option><option :value="false">Homologación (prueba)</option></select></div>
+          <div class="sm:col-span-3 flex justify-end"><button class="btn-primary" :disabled="certArca.processing || !certArca.cert">Cargar certificado</button></div>
+        </form>
+      </details>
+
+      <p v-if="prueba?.que === 'arca'" class="whitespace-pre-line text-sm px-3 py-2 rounded-lg" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="arca-bigsys-prueba">{{ prueba.texto }}</p>
+      <div v-if="arca.lista" class="flex flex-wrap justify-end gap-2">
+        <button type="button" class="btn-ghost text-xs text-carmin" @click="borrarArca">Borrar certificado</button>
+        <button type="button" class="btn-secondary" @click="router.post('/admin/sistema/arca/ambiente', { produccion: !arca.produccion }, { preserveScroll: true })">Pasar a {{ arca.produccion ? 'homologación' : 'producción' }}</button>
+        <Link href="/admin/sistema/arca/probar" method="post" as="button" preserve-scroll class="btn-primary" data-e2e="arca-bigsys-probar">Probar</Link>
+      </div>
+    </div>
+
     <!-- Fase 120.3: la casilla adonde llegan las facturas de compra por mail -->
     <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="casilla-facturas">
       <h2 class="font-bold">Casilla de facturas (para todas las empresas)</h2>
@@ -244,7 +291,7 @@ import { ref, computed } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Icono from '@/Components/Icono.vue'
-const props = defineProps({ aprobacion: { type: Object, default: () => ({}) }, google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const props = defineProps({ arca: { type: Object, default: () => ({ lista: false }) }, aprobacion: { type: Object, default: () => ({}) }, google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
 const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
@@ -253,6 +300,10 @@ const host = location.host
 const duenos = useForm({ ids: [...(props.aprobacion.duenos ?? [])] }) // Fase 106
 const form = useForm({ ...props.config, horas_provisional: props.aprobacion.horas ?? 72, clave_aprobacion: '', aviso_registros_emails: props.aprobacion.emails ?? '', aviso_registros_whatsapp: props.aprobacion.whatsapp ?? '', clave_actual: '', mp_access_token: '', ia_api_key: '', mail_password: '', ml_app_secret: '', tn_app_secret: '', mp_app_secret: '', meta_app_secret: '', voz_api_key: '', casilla_clave: '', casilla_puerto: props.config.casilla_puerto ?? 993, voz_proveedor: props.config.voz_proveedor ?? 'openai', voz_nombre: props.config.voz_nombre ?? null, meta_app_id: props.config.meta_app_id ?? '', meta_config_id: props.config.meta_config_id ?? '', mail_encryption: props.config.mail_encryption || 'tls', fcm_service_account: '', google_client_id: props.google?.client_id ?? '', google_client_secret: '', app_android_url: props.movil?.app_android_url ?? '', app_ios_url: props.movil?.app_ios_url ?? '', android_sha256: props.movil?.android_sha256 ?? '', apple_team_id: props.movil?.apple_team_id ?? '' })
 const pruebaA = ref('')
+// Fase 121: certificado de BigSys para ARCA
+const pedido = useForm({ cuit: props.arca?.sugerido?.cuit ?? '', razon: props.arca?.sugerido?.razon ?? '', alias: props.arca?.pedido?.alias ?? props.arca?.sugerido?.alias ?? 'bigsyserp' })
+function borrarArca() { if (confirm('¿Borrar el certificado de BigSys? Las empresas que facturan por BigSys van a emitir simulado.')) router.post('/admin/sistema/arca/borrar', {}, { preserveScroll: true }) }
+const certArca = useForm({ cert: null, key: null, produccion: null })
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
 </script>
