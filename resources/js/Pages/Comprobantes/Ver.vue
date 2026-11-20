@@ -13,7 +13,7 @@
             <span v-if="c.es_acopio" class="badge bg-violeta-light text-violeta">Acopio</span>
             <span v-if="c.interno" class="badge bg-amber-50 text-amber-700">Interno · no informado a ARCA</span>
             <span v-if="c.manual" class="badge bg-violeta/10 text-violeta" data-badge-manual>Manual de talonario<template v-if="c.cai"> · CAI {{ c.cai }}<template v-if="c.cai_vto"> vto. {{ c.cai_vto }}</template></template></span>
-            <span v-else-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">CAE {{ c.cae }}</span>
+            <span v-else-if="c.afip_estado === 'aprobado'" class="badge bg-emerald-50 text-emerald-700">{{ c.cae_tipo === 'CAEA' ? 'CAEA' : 'CAE' }} {{ c.cae }}</span>
             <span v-else-if="c.afip_estado === 'simulado'" class="badge bg-amber-50 text-amber-700">Sin CAE · simulado</span>
             <span v-else-if="c.afip_estado === 'pendiente'" class="badge bg-carmin-light text-carmin">Pendiente de CAE</span>
             <span v-if="c.entrega_pendiente && c.pendiente_entrega > 0" class="badge bg-amber-50 text-amber-700">Entrega pendiente</span>
@@ -162,7 +162,13 @@
 
         <div v-if="c.afip_estado === 'aprobado'" class="card text-sm">
           <h2 class="font-bold mb-2">ARCA</h2>
-          <p>CAE <b class="tabular-nums">{{ c.cae }}</b></p><p class="text-marca-muted">Vence {{ c.cae_vto }}</p>
+          <p>{{ c.cae_tipo === 'CAEA' ? 'CAEA' : 'CAE' }} <b class="tabular-nums">{{ c.cae }}</b></p><p class="text-marca-muted">Vence {{ c.cae_vto }}</p>
+          <p v-if="c.cae_tipo === 'CAEA'" class="text-xs mt-2 rounded-lg p-2" :class="c.caea_informado ? 'bg-emerald-50 text-emerald-800' : (c.caea_error ? 'bg-carmin-light text-carmin' : 'bg-amber-50 text-amber-800')" data-e2e="caea-estado">
+            Emitido con CAEA porque ARCA no respondía. Es válido desde que salió.
+            <template v-if="c.caea_informado"> Informado a ARCA el {{ c.caea_informado }}.</template>
+            <template v-else-if="c.caea_error"> ARCA rechazó informarlo: {{ c.caea_error }}</template>
+            <template v-else> Falta informarlo a ARCA: se hace solo apenas ARCA responda.</template>
+          </p>
           <button class="btn-secondary !py-1 text-xs mt-2" :disabled="verificando" @click="verificarArca">{{ verificando ? 'Consultando…' : 'Verificar en ARCA' }}</button>
           <p v-if="verificacion" class="text-xs mt-2 rounded-lg p-2" :class="verificacion.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-carmin-light text-carmin'">{{ verificacion.detalle }}</p>
         </div>

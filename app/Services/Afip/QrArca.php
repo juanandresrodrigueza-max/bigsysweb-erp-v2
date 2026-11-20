@@ -26,7 +26,7 @@ class QrArca
             'ctz' => 1,
             'tipoDocRec' => $cuitCli ? 80 : 99,
             'nroDocRec' => $cuitCli ? (int) $cuitCli : 0,
-            'tipoCodAut' => 'E',
+            'tipoCodAut' => $c->cae_tipo === 'CAEA' ? 'A' : 'E', // A = CAEA (Fase 126)
             'codAut' => (int) $c->cae,
         ];
     }

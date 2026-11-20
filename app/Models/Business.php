@@ -15,7 +15,7 @@ class Business extends Model
         'name', 'slug', 'email', 'phone', 'logo', 'currency', 'country',
         'timezone', 'locale', 'date_format', 'time_format', 'financial_year_start_month',
         'cuit', 'razon_social', 'condicion_iva', 'afip_punto_venta',
-        'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id', 'arca_bigsys', 'arca_verificada_en',
+        'afip_cert_path', 'afip_key_path', 'afip_produccion', 'is_active', 'owner_id', 'arca_bigsys', 'arca_verificada_en', 'arca_caea',
         'mercadopago_settings', 'tiendanube_settings', 'recordatorios', 'whatsapp_settings', 'cbu_fce', 'impuestos', 'cierre_ejercicio_mes', 'vertical', 'suspended_at', 'suspension_motivo', 'notas_internas', 'alta_por', 'onboarding_completado_en', 'aprobacion', 'aprobacion_pedida_por', 'aprobada_en', 'aprobada_por', 'aprobacion_avisos', 'agentes', 'onboarding', 'induccion', 'modulos_ocultos', 'gastronomia_config', 'backup_auto', 'tienda', 'fidelizacion', 'pos', 'avisos', 'verticales_extra', 'modulos_contratados', 'bigconnect', 'lotes_config', 'sueldos', 'rentabilidad', 'tarjetas', 'arba_settings', 'crm_settings', 'ventas_config', 'compras_config', 'conciliacion', 'servicios_config', 'estudio', 'address', 'city', 'province', 'iibb', 'inicio_actividades', 'marca',
     ];
 
@@ -45,6 +45,7 @@ class Business extends Model
         'aprobada_en'          => 'datetime', 'aprobacion_avisos' => 'array', // Fase 106
         'afip_produccion'      => 'boolean',
         'arca_bigsys'          => 'boolean', // Fase 121
+        'arca_caea'            => 'boolean', // Fase 126
         'arca_verificada_en'   => 'datetime',
         'mercadopago_settings' => 'encrypted:array',
         'arba_settings'        => 'encrypted:array',

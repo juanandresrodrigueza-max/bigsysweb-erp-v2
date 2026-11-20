@@ -48,7 +48,19 @@ Controles antes de pedir el CAE: la A exige CUIT (DocTipo 80); la B o C a consum
 - Cada 5 minutos `afip:reintentar` vuelve a pedir el CAE; también hay un botón *Reintentar ahora* en el comprobante. Al autorizarse recibe su número fiscal (el que ARCA asigna en ese momento) y el CAE.
 - Si pasa más de una hora pendiente, se genera un aviso para el dueño.
 - Si ARCA responde que el número ya existe (la conexión se cortó después de autorizar), el ERP consulta ese comprobante en ARCA y adopta el CAE siempre que el total coincida.
-- Alternativa legal para cortes largos: cambiar el punto de venta a *manual / talonario* y facturar con comprobantes preimpresos (o usar CAEA, que el ERP no gestiona).
+- Alternativa legal para cortes largos: cambiar el punto de venta a *manual / talonario* y facturar con comprobantes preimpresos, o la contingencia con CAEA (abajo).
+
+### Contingencia con CAEA (fase 126)
+
+- Se activa por empresa (`businesses.arca_caea`) y necesita un punto de venta con modo `caea`, dado de alta en ARCA para CAEA. Una sucursal con CUIT propio usa el suyo.
+- `arca:caea`, todos los días a las 06:40:
+  - pide con `FECAEASolicitar` el CAEA de la quincena en curso y, desde 5 días antes, el de la próxima. Si ARCA dice que ya está otorgado, lo trae con `FECAEAConsultar`. Quedan en `arca_caeas`, por CUIT, ambiente, período y orden;
+  - informa lo pendiente;
+  - para las quincenas terminadas, manda `FECAEASinMovimientoInformar` por cada punto de venta CAEA que no se usó.
+- Al emitir, si falla la conexión y hay CAEA vigente para la fecha del comprobante, `CaeaService::contingencia` numera en el punto CAEA con la numeración propia. El comprobante queda `aprobado`, con `cae_tipo = 'CAEA'`, y en `afip_respuesta` se guardan el detalle armado y `generado` (AAAAMMDDhhmmss).
+- `afip:reintentar` (cada 5 minutos) también informa con `FECAEARegInformativo` (el detalle más `CAEA` y `CbteFchHsGen`) y marca `caea_informado_en`. Un rechazo deja `error_informe` y una alerta crítica para la empresa. A 2 días de `FchTopeInf` también hay alerta crítica. Salud tiene el control `caea`.
+- Impreso, pantalla y QR: «CAEA» y `tipoCodAut = 'A'`.
+- **Sin verificar contra el manual oficial** (el de ARCA no se pudo bajar desde el entorno de desarrollo): los códigos de error exactos de «CAEA ya otorgado» y de «ya informado sin movimiento», y si en contingencia hay validaciones nuevas (RG 5782/5785/5852). Probarlo en homologación antes del primer cliente.
 
 ## Errores típicos, traducidos
 
@@ -75,5 +87,4 @@ El ERP traduce los códigos de ARCA a una explicación y una acción (`App\Servi
 ## Lo que todavía no hace
 
 - Factura E de exportación (WSFEX): se emite sin CAE. Si una empresa exporta, hay que integrar WSFEX.
-- CAEA (autorización anticipada para contingencia larga).
 - Comprobantes en moneda extranjera informados en esa moneda (se informan en pesos).

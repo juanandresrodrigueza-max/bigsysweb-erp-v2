@@ -91,6 +91,20 @@ Lo que conviene saber:
 
 La factura queda **pendiente de CAE**: ya impactó en cuenta corriente y stock, y el sistema reintenta solo cada cinco minutos. No es válida como factura hasta tener CAE, y así lo dice el impreso.
 
+### Con la contingencia con CAEA, la factura sale igual (fase 126)
+
+El **CAEA** es un código que ARCA da por adelantado para cada quincena (del 1 al 15 y del 16 a fin de mes). Si la empresa activa la contingencia y ARCA no responde al facturar, la factura **sale igual, válida**, con el CAEA en lugar del CAE. Sale con otro número de punto de venta, el que la empresa dio de alta en ARCA para CAEA. Cuando ARCA vuelve, el sistema se la informa solo (con la fecha y la hora en que se hizo). En la factura dice «CAEA» y el QR va con el código anticipado. En la pantalla del comprobante se ve si ya se informó.
+
+**Cómo se activa** (Configuración → Puntos de venta y ARCA, recuadro «Si ARCA se cae»):
+
+1. En ARCA → **Administración de puntos de venta y domicilios**, dá de alta un punto de venta nuevo para **CAEA**, con el mismo domicilio que el que usás siempre.
+2. En el ERP, **Nuevo punto de venta** con ese número y modo **CAEA (contingencia)**. Ese punto no aparece para elegir en las facturas comunes: sólo se usa cuando ARCA está caído.
+3. Tildá **Activa**. El sistema le pide a ARCA el CAEA de la quincena en curso y, desde 5 días antes, el de la próxima. Lo hace solo todos los días.
+
+**Lo que se informa solo**: cada factura hecha con CAEA, apenas ARCA responde. Al terminar la quincena, si el punto de venta CAEA no se usó, se le avisa a ARCA que no tuvo movimiento. Si ARCA rechaza el informe, aparece un aviso rojo en Avisos y hay que resolverlo antes de la fecha tope (también se ve en la pantalla).
+
+Desde 2026, ARCA deja el CAEA sólo para contingencias (RG 5782/2025 y RG 5785/2025): no sirve para facturar siempre con él. Sin la contingencia activa, la factura queda pendiente de CAE como antes.
+
 ## Factura manual de talonario
 
 Para cargar una factura que ya se hizo en papel: un talonario preimpreso con CAI, o la factura manual de respaldo del día que ARCA no respondió por horas.

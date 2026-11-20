@@ -246,6 +246,23 @@ class ArcaDirecto
     // CbteTipo y los campos del detalle; Iva, Tributos, CbtesAsoc, Opcionales como listas; PeriodoAsoc como FchDesde/FchHasta.
     public function solicitarCae(string $cuit, array $d): array
     {
+        $det = self::detalle($d);
+        $cuerpo = '<ar:FeCAEReq><ar:FeCabReq><ar:CantReg>' . (int) ($d['CantReg'] ?? 1) . '</ar:CantReg><ar:PtoVta>' . (int) $d['PtoVta'] . '</ar:PtoVta><ar:CbteTipo>' . (int) $d['CbteTipo'] . '</ar:CbteTipo></ar:FeCabReq>'
+            . "<ar:FeDetReq><ar:FECAEDetRequest>{$det}</ar:FECAEDetRequest></ar:FeDetReq></ar:FeCAEReq>";
+        $xml = $this->wsfe($cuit, 'FECAESolicitar', $cuerpo);
+
+        $det = (string) (self::tag($xml, 'FECAEDetResponse') ?? $xml);
+        $lista = self::tags((string) (self::tag($det, 'Observaciones') ?? ''), 'Obs');
+        $obs = array_map(fn($o) => '(' . trim((string) self::tag($o, 'Code')) . ') ' . html_entity_decode(trim((string) self::tag($o, 'Msg'))), $lista);
+        $resultado = trim((string) self::tag($det, 'Resultado')); $cae = trim((string) self::tag($det, 'CAE'));
+        // «R» = rechazado. Las observaciones son el ÚNICO lugar donde ARCA dice por qué, así que van completas.
+        if ($resultado === 'R' || $cae === '') throw new ArcaError('ARCA rechazó el comprobante.' . ($obs ? ' ' . implode(' | ', $obs) : ''), $lista ? trim((string) self::tag($lista[0], 'Code')) : null);
+        return ['CAE' => $cae, 'CAEFchVto' => trim((string) self::tag($det, 'CAEFchVto')), 'Resultado' => $resultado, 'Observaciones' => $obs, 'CbteDesde' => (int) self::tag($det, 'CbteDesde')];
+    }
+
+    // El detalle de un comprobante en el orden del WSDL (el mismo para FECAESolicitar y FECAEARegInformativo).
+    private static function detalle(array $d): string
+    {
         $det = '';
         foreach (self::ORDEN_DETALLE as $campo) {
             if (! array_key_exists($campo, $d) || $d[$campo] === null || $d[$campo] === '' || $d[$campo] === []) continue;
@@ -261,17 +278,53 @@ class ArcaDirecto
                 $det .= "<ar:{$campo}>" . self::valor($campo, $v) . "</ar:{$campo}>";
             }
         }
-        $cuerpo = '<ar:FeCAEReq><ar:FeCabReq><ar:CantReg>' . (int) ($d['CantReg'] ?? 1) . '</ar:CantReg><ar:PtoVta>' . (int) $d['PtoVta'] . '</ar:PtoVta><ar:CbteTipo>' . (int) $d['CbteTipo'] . '</ar:CbteTipo></ar:FeCabReq>'
-            . "<ar:FeDetReq><ar:FECAEDetRequest>{$det}</ar:FECAEDetRequest></ar:FeDetReq></ar:FeCAEReq>";
-        $xml = $this->wsfe($cuit, 'FECAESolicitar', $cuerpo);
+        return $det;
+    }
 
-        $det = (string) (self::tag($xml, 'FECAEDetResponse') ?? $xml);
+    // ─── CAEA (Fase 126): el código anticipado de cada quincena, para cuando ARCA no responde ─────────────────────────────
+    // Periodo AAAAMM, orden 1 (del 1 al 15) o 2 (del 16 a fin de mes). Devuelve el CAEA con sus fechas.
+    public function caeaSolicitar(string $cuit, int $periodo, int $orden): array
+    {
+        return self::caeaResultado($this->wsfe($cuit, 'FECAEASolicitar', "<ar:Periodo>{$periodo}</ar:Periodo><ar:Orden>{$orden}</ar:Orden>"));
+    }
+
+    // El CAEA ya otorgado para esa quincena (ARCA no da dos: si ya se pidió, se consulta). null si no hay.
+    public function caeaConsultar(string $cuit, int $periodo, int $orden): ?array
+    {
+        try { return self::caeaResultado($this->wsfe($cuit, 'FECAEAConsultar', "<ar:Periodo>{$periodo}</ar:Periodo><ar:Orden>{$orden}</ar:Orden>")); }
+        catch (ArcaError $e) { if ($e->codigo === '602') return null; throw $e; }
+    }
+
+    private static function caeaResultado(string $xml): array
+    {
+        $rg = (string) (self::tag($xml, 'ResultGet') ?? '');
+        $caea = trim((string) self::tag($rg, 'CAEA'));
+        if ($caea === '') throw new ArcaError('ARCA no devolvió el CAEA.');
+        $f = fn($t) => ($v = trim((string) self::tag($rg, $t))) !== '' ? $v : null;
+        return ['CAEA' => $caea, 'Periodo' => (int) $f('Periodo'), 'Orden' => (int) $f('Orden'), 'FchVigDesde' => $f('FchVigDesde'), 'FchVigHasta' => $f('FchVigHasta'), 'FchTopeInf' => $f('FchTopeInf'), 'FchProceso' => $f('FchProceso')];
+    }
+
+    // Informa un comprobante emitido con CAEA. `$d` es el mismo detalle que para pedir el CAE, más CAEA y CbteFchHsGen
+    // (fecha y hora en que se generó, AAAAMMDDhhmmss). «R» = rechazado, con las observaciones de ARCA.
+    public function caeaInformar(string $cuit, array $d): array
+    {
+        $det = self::detalle($d) . '<ar:CAEA>' . self::esc($d['CAEA']) . '</ar:CAEA>' . (! empty($d['CbteFchHsGen']) ? '<ar:CbteFchHsGen>' . self::esc($d['CbteFchHsGen']) . '</ar:CbteFchHsGen>' : '');
+        $cuerpo = '<ar:FeCAEARegInfReq><ar:FeCabReq><ar:CantReg>1</ar:CantReg><ar:PtoVta>' . (int) $d['PtoVta'] . '</ar:PtoVta><ar:CbteTipo>' . (int) $d['CbteTipo'] . '</ar:CbteTipo></ar:FeCabReq>'
+            . "<ar:FeDetReq><ar:FECAEADetRequest>{$det}</ar:FECAEADetRequest></ar:FeDetReq></ar:FeCAEARegInfReq>";
+        $xml = $this->wsfe($cuit, 'FECAEARegInformativo', $cuerpo);
+        $det = (string) (self::tag($xml, 'FECAEADetResponse') ?? $xml);
         $lista = self::tags((string) (self::tag($det, 'Observaciones') ?? ''), 'Obs');
         $obs = array_map(fn($o) => '(' . trim((string) self::tag($o, 'Code')) . ') ' . html_entity_decode(trim((string) self::tag($o, 'Msg'))), $lista);
-        $resultado = trim((string) self::tag($det, 'Resultado')); $cae = trim((string) self::tag($det, 'CAE'));
-        // «R» = rechazado. Las observaciones son el ÚNICO lugar donde ARCA dice por qué, así que van completas.
-        if ($resultado === 'R' || $cae === '') throw new ArcaError('ARCA rechazó el comprobante.' . ($obs ? ' ' . implode(' | ', $obs) : ''), $lista ? trim((string) self::tag($lista[0], 'Code')) : null);
-        return ['CAE' => $cae, 'CAEFchVto' => trim((string) self::tag($det, 'CAEFchVto')), 'Resultado' => $resultado, 'Observaciones' => $obs, 'CbteDesde' => (int) self::tag($det, 'CbteDesde')];
+        $resultado = trim((string) self::tag($det, 'Resultado'));
+        if ($resultado === 'R') throw new ArcaError('ARCA rechazó el comprobante informado con CAEA.' . ($obs ? ' ' . implode(' | ', $obs) : ''), $lista ? trim((string) self::tag($lista[0], 'Code')) : null);
+        return ['Resultado' => $resultado, 'Observaciones' => $obs];
+    }
+
+    // Un punto de venta que no usó el CAEA de la quincena se informa «sin movimiento».
+    public function caeaSinMovimiento(string $cuit, int $pv, string $caea): array
+    {
+        $xml = $this->wsfe($cuit, 'FECAEASinMovimientoInformar', "<ar:PtoVta>{$pv}</ar:PtoVta><ar:CAEA>" . self::esc($caea) . '</ar:CAEA>');
+        return ['Resultado' => trim((string) self::tag($xml, 'Resultado')), 'FchProceso' => trim((string) self::tag($xml, 'FchProceso'))];
     }
 
     private static function valor(string $campo, $v): string

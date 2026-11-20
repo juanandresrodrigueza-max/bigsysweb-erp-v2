@@ -46,7 +46,7 @@ class Comprobante extends Model
         'fecha' => 'date', 'fecha_vto' => 'date', 'cae_vto' => 'date', 'emitido_en' => 'datetime', 'anulado_en' => 'datetime',
         'afip_respuesta' => 'array', 'es_acopio' => 'boolean', 'stock_impactado' => 'boolean', 'entrega_pendiente' => 'boolean', 'fce' => 'boolean', 'fce_vto_pago' => 'date', 'aprobado_en' => 'datetime', 'rechazado_en' => 'datetime', 'entregado_at' => 'datetime', 'solo_stock' => 'boolean', 'solo_contable' => 'boolean',
         'neto' => 'decimal:2', 'exento' => 'decimal:2', 'iva' => 'decimal:2', 'percepciones' => 'decimal:2',
-        'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4', 'sin_arca' => 'boolean', 'exportacion' => 'array', 'manual' => 'boolean', 'cai_vto' => 'date',
+        'descuento' => 'decimal:2', 'total' => 'decimal:2', 'saldo' => 'decimal:2', 'cotizacion' => 'decimal:4', 'sin_arca' => 'boolean', 'exportacion' => 'array', 'manual' => 'boolean', 'cai_vto' => 'date', 'caea_informado_en' => 'datetime',
     ];
 
     public function contact(): BelongsTo { return $this->belongsTo(Contact::class); }

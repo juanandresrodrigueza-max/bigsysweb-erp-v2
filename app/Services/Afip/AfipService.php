@@ -41,6 +41,11 @@ class AfipService
     public function getServerStatus(): array { return $this->directo->dummy(); }
     public function puntosVenta(): array { return $this->directo->puntosVenta($this->cuit); }
     public function produccion(): bool { return $this->directo->produccion(); }
+    // Fase 126: CAEA (contingencia).
+    public function caeaSolicitar(int $periodo, int $orden): array { return $this->directo->caeaSolicitar($this->cuit, $periodo, $orden); }
+    public function caeaConsultar(int $periodo, int $orden): ?array { return $this->directo->caeaConsultar($this->cuit, $periodo, $orden); }
+    public function caeaInformar(array $data): array { return $this->directo->caeaInformar($this->cuit, $data); }
+    public function caeaSinMovimiento(int $pv, string $caea): array { return $this->directo->caeaSinMovimiento($this->cuit, $pv, $caea); }
 
     // ─── Con certificado propio: librería para padrón y exportación ───
     private function libreria(): Afip
