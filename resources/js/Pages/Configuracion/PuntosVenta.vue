@@ -24,7 +24,7 @@
         <div class="flex items-start gap-2 mb-3" data-e2e="arca-estado">
           <span class="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0" :class="afip.configurado ? 'bg-emerald-500' : 'bg-amber-500'"></span>
           <span class="text-sm">
-            <template v-if="afip.modo === 'bigsys'"><b>Factura a través de BigSys</b> · CUIT {{ arca.cuit }} · {{ arca.produccion ? 'Producción' : 'Homologación (prueba)' }}<span v-if="arca.verificada" class="text-marca-muted"> · verificada el {{ arca.verificada }}</span></template>
+            <template v-if="afip.modo === 'bigsys'"><b>{{ arca.titular ? 'Factura con el certificado de BigSys' : 'Factura a través de BigSys' }}</b> · CUIT {{ arca.cuit }} · {{ arca.produccion ? 'Producción' : 'Homologación (prueba)' }}<span v-if="arca.verificada" class="text-marca-muted"> · verificada el {{ arca.verificada }}</span></template>
             <template v-else-if="afip.modo === 'propio'"><b>Certificado propio</b> · CUIT {{ afip.cuit }} · {{ afip.produccion ? 'Producción' : 'Homologación' }}</template>
             <template v-else>Sin configurar: las facturas se emiten simuladas (sin CAE).</template>
           </span>
@@ -65,9 +65,11 @@
           </div>
           <div v-if="verif" class="mt-3 rounded-xl p-2.5 text-xs" :class="verif.delegacion === 'ok' ? 'bg-emerald-50 text-emerald-800' : verif.delegacion === 'falta' ? 'bg-amber-50 text-amber-800' : 'bg-carmin-light text-carmin-dark'" data-e2e="arca-verificacion">
             <template v-if="verif.delegacion === 'ok'">
-              ✓ ARCA confirma la autorización a BigSys.<span v-if="verif.puntos.length"> Puntos de venta para web services: <b>{{ verif.puntos.map(n => String(n).padStart(4, '0')).join(', ') }}</b>.</span>
+              ✓ {{ arca.titular ? 'ARCA acepta el certificado de BigSys para este CUIT.' : 'ARCA confirma la autorización a BigSys.' }}<span v-if="verif.puntos.length"> Puntos de venta para web services: <b>{{ verif.puntos.map(n => String(n).padStart(4, '0')).join(', ') }}</b>.</span>
               <p v-if="verif.faltan_en_arca?.length" class="mt-1 text-carmin">Ojo: acá tenés como electrónico el {{ verif.faltan_en_arca.map(n => String(n).padStart(4, '0')).join(', ') }}, que en ARCA no está para web services: las facturas de ese punto van a rebotar.</p>
-              <p v-if="verif.faltan_aca?.length" class="mt-1">En ARCA tenés {{ verif.faltan_aca.map(n => String(n).padStart(4, '0')).join(', ') }} y acá no. <button type="button" class="underline font-semibold" @click="traer(verif.faltan_aca)" data-e2e="arca-traer">Agregarlos</button></p>
+              <p v-if="verif.faltan_aca?.length" class="mt-1" data-e2e="arca-faltan-aca">En ARCA también figuran {{ verif.faltan_aca.map(n => String(n).padStart(4, '0')).join(', ') }}, que acá no se usan. <b>Sumalos sólo si los vas a usar desde el ERP:</b> si alguno lo usa otro sistema (otro programa de facturación, el CRM), dos sistemas sobre el mismo punto de venta se pisan la numeración y ARCA rechaza facturas.
+                <button v-if="!arca.titular" type="button" class="underline font-semibold" @click="traer(verif.faltan_aca)" data-e2e="arca-traer">Sumarlos al ERP</button>
+                <span v-else class="block mt-0.5">Esta es la empresa de BigSys: esos puntos de venta son del CRM y de otros sistemas, así que no se ofrecen para sumar.</span></p>
             </template>
             <template v-else-if="verif.delegacion === 'falta'">Falta el paso 3: la autorización a BigSys en el Administrador de Relaciones de ARCA.</template>
             <template v-else>No se pudo consultar a ARCA: {{ verif.mensaje }}</template>
@@ -151,7 +153,7 @@ function activar(activo, locationId = null) {
   errorAcepto.value = null
   router.post('/configuracion/afip/bigsys', { activo, location_id: locationId, acepto: activo ? acepto.value : null, version: props.arca.autorizacion?.version }, { preserveScroll: true, onError: (e) => (errorAcepto.value = e.acepto ?? null), onSuccess: () => (acepto.value = false) })
 }
-function traer(numeros) { router.post('/configuracion/afip/traer-puntos', { numeros }, { preserveScroll: true, onSuccess: () => verificar() }) }
+function traer(numeros) { if (!confirm(`¿Sumar al ERP los puntos de venta ${numeros.map(n => String(n).padStart(4, '0')).join(', ')}? Hacelo sólo si ningún otro sistema factura con ellos.`)) return; router.post('/configuracion/afip/traer-puntos', { numeros }, { preserveScroll: true, onSuccess: () => verificar() }) }
 async function copiar(t) { try { await navigator.clipboard.writeText(t.replace(/\D/g, '')); copiado.value = true; setTimeout(() => (copiado.value = false), 2000) } catch (e) { window.prompt('Copiá el CUIT', t) } }
 const probando = ref(false)
 function probar() { probando.value = true; router.post('/configuracion/afip/probar', {}, { preserveScroll: true, onFinish: () => (probando.value = false) }) }
