@@ -256,4 +256,12 @@ class Fase121Test extends ErpTestCase
         $this->artisan('arca:certificado', ['cert' => "{$dir}/no-existe.crt"])->assertFailed();
         array_map('unlink', glob("{$dir}/*")); rmdir($dir);
     }
+
+    // Producción: servicios1.afip.gov.ar negocia con una clave DH vieja que OpenSSL 3 rechaza; sólo ahí se baja el nivel.
+    public function test_servicios1_baja_el_nivel_de_openssl_y_el_resto_no(): void
+    {
+        $this->assertSame(['curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1']], \App\Services\Afip\ArcaDirecto::opcionesConexion(\App\Services\Afip\ArcaDirecto::URLS['wsfe']['prod']));
+        $this->assertNotEmpty(\App\Services\Afip\ArcaDirecto::opcionesConexion('https://servicios1.afip.gov.ar/wsfexv1/service.asmx'));
+        foreach (['https://wsaa.afip.gov.ar/ws/services/LoginCms', 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx', 'https://servicios1.afip.gov.ar.otro.com/x'] as $u) $this->assertSame([], \App\Services\Afip\ArcaDirecto::opcionesConexion($u), $u);
+    }
 }

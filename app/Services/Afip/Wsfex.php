@@ -25,7 +25,8 @@ class Wsfex
     public function llamar(string $operacion, string $cuerpo = '', bool $conAuth = true): \SimpleXMLElement
     {
         $xml = '<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><' . $operacion . ' xmlns="' . self::NS . '">' . ($conAuth ? $this->auth() : '') . $cuerpo . '</' . $operacion . '></soap:Body></soap:Envelope>';
-        $r = Http::withHeaders(['Content-Type' => 'text/xml; charset=utf-8', 'SOAPAction' => self::NS . $operacion])->timeout(40)->withBody($xml, 'text/xml')->post($this->produccion ? self::URL_PROD : self::URL_HOMO);
+        $url = $this->produccion ? self::URL_PROD : self::URL_HOMO;
+        $r = Http::withOptions(ArcaDirecto::opcionesConexion($url))->withHeaders(['Content-Type' => 'text/xml; charset=utf-8', 'SOAPAction' => self::NS . $operacion])->timeout(40)->withBody($xml, 'text/xml')->post($url);
         if (! $r->successful()) throw new \RuntimeException("WSFEX HTTP {$r->status()}: " . mb_substr(strip_tags($r->body()), 0, 200));
         $doc = @simplexml_load_string(preg_replace('/(<\/?)(\w+):([^>]*>)/', '$1$3', $r->body())); // sin prefijos de namespace
         if (! $doc) throw new \RuntimeException('WSFEX: respuesta ilegible.');

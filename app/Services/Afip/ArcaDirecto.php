@@ -123,7 +123,7 @@ class ArcaDirecto
         $sobre = '<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsaa="http://wsaa.view.sua.dvadac.desein.afip.gov">'
             . "<soapenv:Header/><soapenv:Body><wsaa:loginCms><wsaa:in0>{$cms}</wsaa:in0></wsaa:loginCms></soapenv:Body></soapenv:Envelope>";
         try {
-            $r = Http::timeout(30)->withHeaders(['SOAPAction' => '""'])->withBody($sobre, 'text/xml; charset=utf-8')->post($url);
+            $r = Http::timeout(30)->withOptions(self::opcionesConexion($url))->withHeaders(['SOAPAction' => '""'])->withBody($sobre, 'text/xml; charset=utf-8')->post($url);
         } catch (\Throwable $e) {
             throw new ArcaError('No se pudo conectar con ARCA (WSAA): ' . $e->getMessage());
         }
@@ -167,6 +167,17 @@ class ArcaDirecto
         }
     }
 
+    // El servidor de Facturación Electrónica de producción (servicios1.afip.gov.ar) todavía negocia TLS con una clave DH
+    // chica que OpenSSL 3 rechaza por defecto («dh key too small»). Sólo para ese host se baja el nivel de seguridad de
+    // OpenSSL a 1, como hace el CRM; el resto de las conexiones quedan con el nivel normal.
+    public const HOSTS_DH_VIEJO = ['servicios1.afip.gov.ar'];
+
+    public static function opcionesConexion(string $url): array
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        return in_array($host, self::HOSTS_DH_VIEJO, true) ? ['curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1']] : [];
+    }
+
     private function llamarWsfe(string $cuit, string $metodo, string $cuerpo, bool $auth): string
     {
         $url = self::URLS['wsfe'][$this->produccion ? 'prod' : 'homo'];
@@ -175,7 +186,7 @@ class ArcaDirecto
         $sobre = '<?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ar="' . self::NS . '">'
             . "<soapenv:Header/><soapenv:Body><ar:{$metodo}>{$a}{$cuerpo}</ar:{$metodo}></soapenv:Body></soapenv:Envelope>";
         try {
-            $r = Http::timeout(60)->withHeaders(['SOAPAction' => self::NS . $metodo])->withBody($sobre, 'text/xml; charset=utf-8')->post($url);
+            $r = Http::timeout(60)->withOptions(self::opcionesConexion($url))->withHeaders(['SOAPAction' => self::NS . $metodo])->withBody($sobre, 'text/xml; charset=utf-8')->post($url);
         } catch (\Throwable $e) {
             throw new ArcaError('No se pudo conectar con ARCA (WSFE): ' . $e->getMessage());
         }
