@@ -170,3 +170,6 @@ responde con los permisos de esa persona y audita a su nombre.
 - Pendiente del lado CRM: `PUT /api/v1/tasks/:id` acepta un estado inválido sin quejarse; el cobro desde el CRM debería ir al vendedor dueño
   del contacto aunque lo registre un admin.
 - Los porcentajes de comisión de una ficha de vendedor creada automáticamente al cobrar desde el CRM nacen en 0 %: se cargan en Clientes → Vendedores.
+
+### Fase 121.3 · Conexión con el servidor de facturación de producción
+- Al actualizar producción, el CRM detectó que `servicios1.afip.gov.ar` (WSFE y WSFEX de producción) negocia TLS con una clave DH vieja que el OpenSSL 3 del servidor rechaza («dh key too small»). `ArcaDirecto::opcionesConexion($url)` baja el nivel de OpenSSL a `DEFAULT@SECLEVEL=1` **sólo para ese host** (`HOSTS_DH_VIEJO`); WSAA, homologación y el resto quedan con el nivel normal. Lo usan `ArcaDirecto` (WSAA y WSFE) y `Wsfex`. Test en `Fase121Test`.
