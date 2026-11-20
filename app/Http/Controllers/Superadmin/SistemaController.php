@@ -101,6 +101,7 @@ class SistemaController extends Controller
             'bigsys' => ($b = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual()) ? ['id' => $b->id, 'nombre' => $b->name] : null,
             'empresasParaBigsys' => Business::whereNull('suspended_at')->orderBy('name')->get(['id', 'name']),
             // Fase 121: el certificado de BigSys para facturar en nombre de las empresas (como el CRM).
+            'copia' => \App\Services\Migracion\CopiaCompletaService::estado(),
             'arca' => \App\Services\Afip\ArcaPlataforma::estado() + ['sugerido' => (function () { $bs = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual(); return ['cuit' => $bs?->cuit, 'razon' => $bs?->razon_social ?: $bs?->name, 'alias' => 'bigsyserp']; })()],
             'version' => ['php' => PHP_VERSION, 'laravel' => app()->version(), 'db' => config('database.default')],
         ]);
@@ -211,6 +212,23 @@ class SistemaController extends Controller
     {
         $r = \App\Services\Afip\ArcaPlataforma::probar();
         return back()->with('prueba', ['que' => 'arca', 'ok' => $r['ok'], 'texto' => collect($r['pasos'])->map(fn($p) => ($p['ok'] ? '✓ ' : '✗ ') . "{$p['nombre']}: {$p['detalle']}")->implode("\n")]);
+    }
+
+    // Fase 123: copia completa de la base. La clave se muestra UNA vez: el dueño la guarda fuera del sistema.
+    public function copiaClave()
+    {
+        $nueva = ! \App\Services\Migracion\CopiaCompletaService::clave();
+        $k = \App\Services\Migracion\CopiaCompletaService::generarClave();
+        \App\Models\AuditLog::registrar('editar', null, $nueva ? 'Generó la clave de las copias completas' : 'Cambió la clave de las copias completas');
+        return back()->with('prueba', ['que' => 'copia_clave', 'ok' => true, 'texto' => $k]);
+    }
+
+    public function copiaAhora(\App\Services\Migracion\CopiaCompletaService $svc)
+    {
+        @set_time_limit(0);
+        try { $c = $svc->crear('manual'); }
+        catch (\Throwable $e) { return back()->with('prueba', ['que' => 'copia', 'ok' => false, 'texto' => $e->getMessage()]); }
+        return back()->with('prueba', ['que' => 'copia', 'ok' => true, 'texto' => 'Copia completa hecha: ' . round($c->bytes / 1048576, 2) . " MB, {$c->tablas} tablas, comprobada" . ($c->remoto ? ' y subida fuera del servidor.' : ' (sin disco externo: quedó sólo en el servidor).')]);
     }
 
     public function arcaBorrar()

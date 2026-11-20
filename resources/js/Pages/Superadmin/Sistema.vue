@@ -202,6 +202,40 @@
       </div>
     </div>
 
+    <!-- Fase 123: copia completa de la base, cifrada y fuera del servidor -->
+    <div class="card space-y-3 mt-4" data-e2e="copia-completa">
+      <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold">Copia completa de la base de datos</h2>
+        <span class="badge" :class="copia.clave && copia.disco && copia.ultima && copia.ultima.hace_horas <= 30 && copia.ultima.remoto && !copia.fallo ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'">{{ !copia.clave ? 'Falta la clave' : (copia.fallo ? 'La última falló' : (copia.ultima ? `Última: ${copia.ultima.fecha}` : 'Todavía ninguna')) }}</span></div>
+      <p class="text-sm text-marca-muted">Para recuperar el ERP <b>entero</b> si se pierde el servidor: todas las empresas, los superadmins, los planes, el certificado de ARCA y las claves de esta pantalla, más la configuración del servidor (con la llave que descifra los datos guardados cifrados). Cada noche a las 03:20 se hace, se cifra con <b>tu clave</b>, se comprueba descifrándola y se sube a <b>{{ copia.disco ?? 'un disco externo' }}</b>, fuera de Hostinger. Afuera quedan las de los últimos 14 días y la primera de cada mes durante un año. Las copias por empresa siguen como siempre.</p>
+      <div v-if="!copia.disco" class="p-3 rounded-xl bg-amber-50 text-amber-800 text-sm">No hay disco externo configurado (BACKUP_DISK / OFFSITE_S3_*): la copia quedaría sólo en el servidor.</div>
+      <div class="p-3 rounded-xl text-sm" :class="copia.clave ? 'bg-marca-fondo' : 'bg-amber-50 text-amber-800'">
+        <template v-if="copia.clave"><b>Clave de las copias:</b> generada el {{ copia.clave_en }}. No se vuelve a mostrar: tiene que estar guardada fuera del sistema (gestor de contraseñas o papel). Sin ella, las copias no se pueden abrir.</template>
+        <template v-else><b>Falta la clave de las copias.</b> Generala acá, anotala fuera de la compu y recién ahí las copias empiezan a hacerse.</template>
+      </div>
+      <div v-if="prueba?.que === 'copia_clave'" class="p-3 rounded-xl border-2 border-carmin/50 bg-white text-sm" data-e2e="copia-clave-nueva">
+        <p class="font-bold text-carmin">Anotá esta clave AHORA. No se vuelve a mostrar.</p>
+        <p class="font-mono text-lg tracking-wider my-2 select-all">{{ prueba.texto }}</p>
+        <p class="text-xs text-marca-muted">Guardala en tu gestor de contraseñas y en un papel en un lugar seguro. No la mandes por chat ni por mail. Sin esta clave no se puede restaurar ninguna copia completa.</p>
+      </div>
+      <div v-if="prueba?.que === 'copia'" class="p-3 rounded-xl text-sm whitespace-pre-line" :class="prueba.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'">{{ prueba.texto }}</div>
+      <div v-if="copia.fallo" class="p-3 rounded-xl bg-red-50 text-red-700 text-sm"><b>La última ({{ copia.fallo.fecha }}) falló:</b> {{ copia.fallo.error }}</div>
+      <div v-if="copia.lista.length" class="overflow-x-auto"><table class="w-full text-xs">
+        <thead class="text-marca-muted text-left"><tr><th class="py-1 pr-3">Fecha</th><th class="pr-3">Tipo</th><th class="pr-3">Estado</th><th class="pr-3">Tamaño</th><th class="pr-3">Tablas</th><th>Fuera del servidor</th></tr></thead>
+        <tbody><tr v-for="c in copia.lista" :key="c.id" class="border-t border-marca-borde/60"><td class="py-1 pr-3 tabular-nums">{{ c.fecha }}</td><td class="pr-3">{{ c.origen === 'auto' ? 'automática' : 'a mano' }}</td><td class="pr-3" :class="c.estado === 'ok' ? 'text-emerald-700' : (c.estado === 'error' ? 'text-red-700' : '')" :title="c.error ?? ''">{{ c.estado === 'ok' ? 'comprobada ✓' : (c.estado === 'error' ? 'falló' : 'haciéndose…') }}</td><td class="pr-3 tabular-nums">{{ c.mb !== null ? c.mb + ' MB' : '—' }}</td><td class="pr-3 tabular-nums">{{ c.tablas ?? '—' }}</td><td>{{ c.remoto ? '✓' : '—' }}</td></tr></tbody>
+      </table></div>
+      <details class="rounded-xl border border-marca-borde p-3 text-sm"><summary class="cursor-pointer font-semibold">Cómo se restaura</summary>
+        <ol class="list-decimal pl-5 mt-2 space-y-1 text-marca-muted">
+          <li>Bajá de {{ copia.disco ?? 'el disco externo' }} los dos archivos de la fecha que quieras (carpeta <code>completa/AAAA/MM/</code>): <code>…dump.enc</code> y <code>…env.enc</code>.</li>
+          <li>En el servidor nuevo, con la clave: <code>openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in ARCHIVO.dump.enc -out erp.dump</code> (y lo mismo con el .env.enc → .env).</li>
+          <li>Instalá el ERP con el script de siempre, poné ese .env y restaurá la base: <code>pg_restore --clean --if-exists --no-owner -d BASE erp.dump</code>.</li>
+          <li>El paso a paso completo está en <code>docs/MANUAL-DATOS-Y-RESTAURACION.md</code> del repositorio.</li>
+        </ol></details>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button type="button" class="btn-secondary" @click="claveCopia" data-e2e="copia-generar-clave">{{ copia.clave ? 'Cambiar la clave' : 'Generar la clave' }}</button>
+        <Link v-if="copia.clave" href="/admin/sistema/copia/ahora" method="post" as="button" preserve-scroll class="btn-primary" data-e2e="copia-ahora">Hacer una copia ahora</Link>
+      </div>
+    </div>
+
     <!-- Fase 120.3: la casilla adonde llegan las facturas de compra por mail -->
     <form @submit.prevent="form.post('/admin/sistema', { preserveScroll: true })" class="card space-y-3 mt-4" data-e2e="casilla-facturas">
       <h2 class="font-bold">Casilla de facturas (para todas las empresas)</h2>
@@ -291,7 +325,7 @@ import { ref, computed } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Icono from '@/Components/Icono.vue'
-const props = defineProps({ arca: { type: Object, default: () => ({ lista: false }) }, aprobacion: { type: Object, default: () => ({}) }, google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
+const props = defineProps({ copia: { type: Object, default: () => ({ clave: false, disco: null, lista: [], ultima: null, fallo: null }) }, arca: { type: Object, default: () => ({ lista: false }) }, aprobacion: { type: Object, default: () => ({}) }, google: { type: Object, default: () => ({}) }, movil: { type: Object, default: () => ({}) }, bigsys: Object, empresasParaBigsys: { type: Array, default: () => [] }, config: Object, ia: Boolean, version: Object, mantenimiento: Object, novedades: { type: Array, default: () => [] }, intereses: { type: Array, default: () => [] } })
 const eb = useForm({ nombre: '', business_id: null })
 const nov = useForm({ titulo: '', texto: '', url: '', modulo: '', push: false })
 const mt = useForm({ activo: !!props.mantenimiento?.activo, mensaje: props.mantenimiento?.mensaje ?? '', hasta: props.mantenimiento?.hasta ?? '' })
@@ -305,5 +339,6 @@ const pedido = useForm({ cuit: props.arca?.sugerido?.cuit ?? '', razon: props.ar
 function borrarArca() { if (confirm('¿Borrar el certificado de BigSys? Las empresas que facturan por BigSys van a emitir simulado.')) router.post('/admin/sistema/arca/borrar', {}, { preserveScroll: true }) }
 const certArca = useForm({ cert: null, key: null, produccion: null })
 const prueba = computed(() => usePage().props.flash?.prueba) // resultado de "Probar", dentro de su tarjeta
+function claveCopia() { if (props.copia.clave && !confirm('¿Generar una clave nueva? Las copias nuevas usan la nueva; las anteriores se siguen abriendo SOLO con la clave vieja (no la tires).')) return; router.post('/admin/sistema/copia/clave', {}, { preserveScroll: true }) }
 function borrar(clave) { router.post('/admin/sistema/clave/borrar', { clave }, { preserveScroll: true }) }
 </script>

@@ -71,6 +71,20 @@ class SaludService
             $remoto = \App\Services\Migracion\BackupService::remotoConfigurado(); $sinRemoto = $remoto ? $est->where('remoto', false) : collect();
             $c[] = $this->item('copias_remotas', 'Copias fuera del servidor', ! $remoto ? 'aviso' : ($sinRemoto->count() ? 'critico' : 'ok'), ! $remoto ? 'Sin disco externo (BACKUP_DISK): las copias viven en el mismo disco del servidor.' : ($sinRemoto->count() ? "{$sinRemoto->count()} copia(s) no se subieron: " . $sinRemoto->pluck('empresa')->implode(', ') : 'Todas las copias están también en ' . config('services.backups.disk') . '.'));
         } catch (\Throwable $e) { $c[] = $this->item('copias_verificadas', 'Copias verificadas', 'aviso', $e->getMessage()); }
+        // Fase 123: la copia completa de la base (para recuperar el ERP entero si se pierde el servidor).
+        try {
+            $cc = \App\Services\Migracion\CopiaCompletaService::estado(); $h = $cc['ultima']['hace_horas'] ?? null;
+            [$est, $det] = match (true) {
+                ! $cc['clave'] => ['aviso', 'Falta la clave de las copias completas: generala en Panel → Sistema.'],
+                ! $cc['disco'] => ['aviso', 'Sin disco externo (BACKUP_DISK): la copia completa queda sólo en el servidor.'],
+                $cc['fallo'] !== null => ['critico', "La última copia completa falló ({$cc['fallo']['fecha']}): " . mb_substr((string) $cc['fallo']['error'], 0, 160)],
+                $h === null => ['aviso', 'Todavía no se hizo ninguna copia completa (corre a las 03:20).'],
+                $h > 30 => ['critico', "La última copia completa es de hace {$h} h."],
+                ! $cc['ultima']['remoto'] => ['critico', 'La última copia completa no se pudo subir fuera del servidor.'],
+                default => ['ok', "Última hace {$h} h ({$cc['ultima']['mb']} MB, {$cc['ultima']['tablas']} tablas), cifrada y en {$cc['disco']}. Afuera hay {$cc['fuera']}."],
+            };
+            $c[] = $this->item('copia_completa', 'Copia completa de la base', $est, $det);
+        } catch (\Throwable $e) { $c[] = $this->item('copia_completa', 'Copia completa de la base', 'aviso', $e->getMessage()); }
         // ARCA pendientes
         $pendArca = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->count();
         $viejos = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->where('emitido_en', '<', now()->subHours(2))->count();

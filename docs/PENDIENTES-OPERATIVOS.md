@@ -60,6 +60,7 @@ Todo esto se carga en **Panel → Sistema**. Queda cifrado y no se vuelve a most
 
 Y en el servidor (sesión «CRM Producción», archivo `.env` de `/opt/bigsysweb`):
 
+- [ ] **Copia completa de la base (Fase 123)**: después de actualizar producción, en Panel → Sistema → «Copia completa de la base de datos» → **Generar la clave** → anotarla en el gestor de contraseñas y en papel (nunca por chat) → **Hacer una copia ahora** → tiene que decir «comprobada y subida fuera del servidor». Si dice que falló `pg_dump`, la sesión del CRM tiene que instalar en el servidor el cliente de PostgreSQL de la misma versión que la base (16). Después, el ensayo de la sección 5 de `docs/MANUAL-DATOS-Y-RESTAURACION.md` desde una compu.
 - [x] **Copias fuera del servidor**: hecho (Panel → Salud el 19/11: «Todas las copias están también en backblaze», ensayo de restauración ✓).
 - [x] **SPF, DKIM y DMARC de bigsysweb.com**: verificados el 18/11 en el DNS de Hostinger (TXT `v=spf1 include:_spf.mail.hostinger.com ~all`, CNAME `hostingermail-a/b/c._domainkey`, TXT `_dmarc` `v=DMARC1; p=none`). La prueba del 18/11 cayó en Spam de Gmail por reputación de dominio nuevo, no por DNS: marcar «No es spam» y agregar `soporte@bigsysweb.com` a contactos; mejora sola con el uso.
 - [x] **Mails de monitoreo**: cargados (Panel → Salud: juanandresrodriguez.a@gmail.com y gerencia@bigsys.com.ar reciben error nuevo, salud crítica y resumen semanal).

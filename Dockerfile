@@ -10,7 +10,7 @@ RUN npm run build
 
 FROM php:8.2-fpm-alpine
 
-RUN apk add --no-cache bash curl git libpng-dev libjpeg-turbo-dev libwebp-dev libzip-dev oniguruma-dev postgresql-dev unzip zip
+RUN apk add --no-cache bash curl git libpng-dev libjpeg-turbo-dev libwebp-dev libzip-dev oniguruma-dev postgresql-dev postgresql16-client openssl unzip zip
 
 RUN docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install bcmath exif gd mbstring opcache pdo pdo_pgsql pcntl zip
