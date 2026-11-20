@@ -75,6 +75,16 @@ class SaludService
         $pendArca = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->count();
         $viejos = Comprobante::withoutGlobalScopes()->where('estado', 'emitido')->where('afip_estado', 'pendiente')->where('emitido_en', '<', now()->subHours(2))->count();
         $c[] = $this->item('arca', 'Comprobantes pendientes de CAE', $viejos > 0 ? 'critico' : ($pendArca > 0 ? 'aviso' : 'ok'), $pendArca ? "{$pendArca} pendientes" . ($viejos ? ", {$viejos} desde hace más de 2 h" : '') : 'Ninguno');
+        // Fase 121.1: el certificado de BigSys con el que se factura en nombre de las empresas. Vencido o por vencer, nadie factura.
+        try {
+            $ae = \App\Services\Afip\ArcaPlataforma::estado(); $usan = (int) $ae['empresas'] + (int) \App\Models\BusinessLocation::withoutGlobalScopes()->where('arca_bigsys', true)->count();
+            $info = ($cert = \App\Models\SistemaConfig::get('arca_cert')) ? \App\Services\Afip\ArcaPlataforma::leerCertificado($cert) : null;
+            $dias = $info ? (int) floor(now()->diffInDays($info['vence'], false)) : null;
+            if (! $ae['lista']) $c[] = $this->item('arca_certificado', 'Certificado de BigSys para ARCA', $usan ? 'critico' : 'ok', $usan ? "Falta el certificado y hay {$usan} empresa(s) o sucursal(es) que facturan por BigSys: emiten simulado." : 'Sin cargar (ninguna empresa factura a través de BigSys).');
+            else $c[] = $this->item('arca_certificado', 'Certificado de BigSys para ARCA', $dias < 15 ? 'critico' : ($dias < 30 || (! $ae['produccion'] && $usan) ? 'aviso' : 'ok'),
+                ($dias < 0 ? 'VENCIDO el ' . $ae['vence'] . ': nadie puede facturar por BigSys. Renovalo en ARCA y cargalo en Panel → Sistema.' : "Alias {$ae['alias']} · vence el {$ae['vence']} (en {$dias} días)" . ($dias < 30 ? ': renovalo en ARCA y cargalo en Panel → Sistema.' : ''))
+                . ' · ' . ($ae['produccion'] ? 'producción' : 'homologación: los CAE no valen fiscalmente') . " · {$usan} empresa(s)/sucursal(es) lo usan.");
+        } catch (\Throwable $e) { $c[] = $this->item('arca_certificado', 'Certificado de BigSys para ARCA', 'aviso', $e->getMessage()); }
         // Cotización
         $cot = Cotizacion::withoutGlobalScopes()->whereNull('business_id')->where('tipo', 'oficial')->max('fecha');
         $dias = $cot ? (int) abs(today()->diffInDays(\Carbon\Carbon::parse($cot))) : null;

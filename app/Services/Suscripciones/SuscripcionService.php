@@ -211,6 +211,8 @@ class SuscripcionService
             $empresa->forceFill(['is_active' => false, 'suspended_at' => now(), 'suspension_motivo' => $motivo])->save();
             $empresa->subscription?->update(['status' => 'cancelled', 'cancelled_at' => now()]);
             $empresa->users()->update(['status' => 'inactive']);
+            // Fase 121.1: si facturaba a través de BigSys, se apaga y al dueño le llega cómo revocar la relación en ARCA.
+            \App\Services\Afip\ArcaAutorizaciones::alDarDeBaja($empresa, $motivo);
             AuditLog::registrar('baja_empresa', $empresa, "Baja de empresa: {$motivo}");
             \App\Services\Integraciones\CrmService::avisarPlan($empresa);
             $empresa->delete();

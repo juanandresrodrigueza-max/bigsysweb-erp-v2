@@ -71,6 +71,8 @@ class EliminarEmpresaService
         if (($propia = app(\App\Services\Suscripciones\EmpresaBigSysService::class)->actual()) && $propia->id === $b->id) throw ValidationException::withMessages(['empresa' => 'Esa es la empresa de BigSys: no se elimina desde acá.']);
         if ($por->business_id === $b->id) throw ValidationException::withMessages(['empresa' => 'No podés eliminar la empresa en la que estás.']);
 
+        // Fase 121.1: si facturaba a través de BigSys, antes de borrar se le avisa al dueño cómo revocar la relación en ARCA.
+        try { \App\Services\Afip\ArcaAutorizaciones::alDarDeBaja($b, 'eliminación definitiva'); } catch (\Throwable $e) { report($e); }
         $m = $this->mapa(); $ids = []; $borrado = [];
         // Primero se juntan los ids (de referenciadas a referenciantes); después se borra al revés, en una sola transacción.
         foreach (array_reverse($m['orden']) as $t) if ($m['tiene_id'][$t]) $ids[$t] = $this->consulta($t, $m['mapa'][$t], $b->id, $ids)->pluck('id')->all();

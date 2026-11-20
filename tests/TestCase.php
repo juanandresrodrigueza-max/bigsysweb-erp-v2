@@ -11,5 +11,6 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         $this->withoutVite();
+        \App\Models\SistemaConfig::olvidar(); // la configuración leída en una prueba no se arrastra a la siguiente
     }
 }

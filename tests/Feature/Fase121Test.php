@@ -165,7 +165,7 @@ class Fase121Test extends ErpTestCase
         // 600: falta la delegación. No se puede activar.
         $this->delegada = false;
         $this->postJson('/configuracion/afip/verificar')->assertOk()->assertJson(['delegacion' => 'falta']);
-        $this->post('/configuracion/afip/bigsys', ['activo' => true])->assertSessionHas('error', fn($m) => str_contains($m, 'todavía no autorizó a BigSys'));
+        $this->post('/configuracion/afip/bigsys', ['activo' => true, 'acepto' => true, 'version' => \App\Services\Afip\ArcaAutorizaciones::VERSION])->assertSessionHas('error', fn($m) => str_contains($m, 'todavía no autorizó a BigSys'));
         $this->assertFalse($this->empresa->fresh()->arca_bigsys);
         // Delegó, pero no dio de alta ningún punto de venta para web services.
         $this->delegada = true; $this->ptos = [];
@@ -176,7 +176,7 @@ class Fase121Test extends ErpTestCase
         $this->assertSame(['delegacion' => 'ok', 'alta_punto_venta' => 'ok', 'puntos' => [1, 3], 'faltan_en_arca' => [], 'faltan_aca' => [3]], $r);
         $this->post('/configuracion/afip/traer-puntos', ['numeros' => [3]])->assertSessionHas('success');
         $this->assertSame('electronico', PuntoVenta::where('numero', 3)->value('modo'));
-        $this->post('/configuracion/afip/bigsys', ['activo' => true])->assertSessionHas('success');
+        $this->post('/configuracion/afip/bigsys', ['activo' => true, 'acepto' => true, 'version' => \App\Services\Afip\ArcaAutorizaciones::VERSION])->assertSessionHas('success');
         $b = $this->empresa->fresh(); $this->assertTrue($b->arca_bigsys); $this->assertNotNull($b->arca_verificada_en);
         $this->assertSame('bigsys', app(\App\Services\Comprobantes\AfipEmisor::class)->modo($b));
         // La consulta va con el CUIT de la empresa.

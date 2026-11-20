@@ -102,6 +102,9 @@ class SistemaConfig extends Model
 
     private static ?array $memo = null; // Fase 94.2: dentro de un mismo pedido se lee una sola vez
 
+    // Para las pruebas: cada prueba arranca con la base limpia, y lo leído en la anterior no tiene que sobrevivir.
+    public static function olvidar(): void { static::$memo = null; }
+
     public static function todo(): array
     {
         return static::$memo ??= Cache::remember('sistema_config', 300, function () {

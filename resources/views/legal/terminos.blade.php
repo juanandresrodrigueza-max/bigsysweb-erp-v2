@@ -24,6 +24,17 @@
   <li>Que tus datos sean tuyos: los exportás cuando quieras, a Excel o por API, y los borramos si lo pedís.</li>
 </ul>
 
+<h2 id="facturacion">Factura electrónica a través de BigSys</h2>
+<p>Si la empresa lo elige, BigSys S.R.L. emite y consulta sus comprobantes electrónicos ante ARCA en su nombre, con un certificado digital de BigSys. Para eso la empresa le delega el servicio «Facturación Electrónica» desde el Administrador de Relaciones de Clave Fiscal de ARCA y acepta, dentro del sistema, la autorización correspondiente. Queda registrado quién la aceptó, cuándo, desde dónde y con qué texto.</p>
+<ul>
+  <li><b>La empresa sigue siendo el emisor.</b> Los comprobantes salen con su CUIT, su punto de venta y su numeración. BigSys es el medio técnico: emite sólo lo que generan los usuarios de la empresa en el sistema, con los datos que ellos cargan, y no emite nada por su cuenta.</li>
+  <li><b>Los datos y las obligaciones fiscales son de la empresa.</b> Es responsable de que los datos de cada comprobante sean correctos (cliente, importes, alícuotas, condición frente al IVA) y de cumplir sus obligaciones ante ARCA y los demás organismos.</li>
+  <li><b>Lo que depende de ARCA.</b> BigSys no responde por rechazos, demoras o caídas de los servicios de ARCA. Si ARCA no responde, el comprobante queda pendiente y el sistema lo reintenta solo; si lo rechaza, el sistema muestra el motivo para corregirlo.</li>
+  <li><b>El certificado de BigSys.</b> BigSys lo guarda cifrado, no lo comparte y lo usa sólo para emitir y consultar comprobantes de las empresas que lo autorizaron. Si sospecha que fue comprometido, lo revoca ante ARCA y avisa a las empresas.</li>
+  <li><b>Cómo se deja sin efecto.</b> La empresa puede apagar la facturación a través de BigSys cuando quiera, desde Configuración → Puntos de venta y ARCA, y revocar la relación en ARCA. Si la empresa se da de baja, BigSys la apaga y le explica al dueño cómo revocar la relación en ARCA.</li>
+  <li><b>Lo emitido queda.</b> Los comprobantes emitidos son de la empresa: los puede consultar y descargar mientras tenga la cuenta, y también están en ARCA.</li>
+</ul>
+
 <h2>Lo que no se puede</h2>
 <p>Usar el sistema para actividades ilegales, intentar acceder a datos de otras empresas, revender el servicio sin acuerdo, o sobrecargarlo con uso automatizado abusivo. En esos casos podemos suspender la cuenta.</p>
 

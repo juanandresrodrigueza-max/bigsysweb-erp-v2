@@ -54,8 +54,8 @@ Route::get('/csrf-renovar', fn () => response()->json(['ok' => true]))->name('cs
 Route::get('/', fn() => auth()->check() ? redirect(auth()->user()->is_superadmin && ! auth()->user()->business_id ? '/admin' : '/dashboard') : app(\App\Http\Controllers\ConocerController::class)->index()); // Fase 115: el superadmin cae en su empresa
 
 // Fase 93.1: privacidad y términos (públicos; las tiendas de apps los exigen) y los archivos de deep links de la app.
-Route::view('/privacidad', 'legal.privacidad', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
-Route::view('/terminos', 'legal.terminos', ['actualizado' => '13/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
+Route::view('/privacidad', 'legal.privacidad', ['actualizado' => '20/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
+Route::view('/terminos', 'legal.terminos', ['actualizado' => '20/11/2026', 'email' => 'privacidad@bigsys.com.ar']);
 Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\MovilController::class, 'assetlinks']);
 Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\MovilController::class, 'appleAppSiteAssociation']);
 // Tienda propia, menú QR, reservas y portal del cliente (públicos, sin login).

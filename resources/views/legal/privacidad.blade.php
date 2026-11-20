@@ -1,7 +1,7 @@
 @extends('legal.pagina', ['seccion' => 'privacidad', 'kicker' => 'Tus datos son tuyos', 'titulo' => 'Política de privacidad', 'bajada' => 'Qué datos guarda BigSys Web, para qué los usa, con quién los comparte y cómo los sacás cuando quieras. Vale para la web y para la app de iPhone y Android.'])
 @section('contenido')
 <h2>Quién es responsable</h2>
-<p>BigSys S.R.L. (Mendoza, Argentina) es responsable del tratamiento de los datos de BigSys Web, el sistema de gestión para PyMEs, y de su app para celulares. Cumplimos la Ley 25.326 de Protección de Datos Personales de la República Argentina; la Agencia de Acceso a la Información Pública (AAIP) es el órgano de control.</p>
+<p>BigSys S.R.L. (Mendoza, Argentina) es responsable del tratamiento de los datos de las cuentas de BigSys Web, el sistema de gestión para PyMEs, y de su app para celulares. Los datos que cada empresa carga sobre sus clientes, proveedores y empleados son de esa empresa, que es la responsable de esa base; BigSys los trata sólo por cuenta y orden de ella, para prestarle el servicio, como prestador de servicios de tratamiento de datos (artículo 25 de la Ley 25.326), y no los usa para ningún otro fin. Cumplimos la Ley 25.326 de Protección de Datos Personales de la República Argentina; la Agencia de Acceso a la Información Pública (AAIP) es el órgano de control.</p>
 
 <h2>Qué datos guardamos</h2>
 <ul>
@@ -21,7 +21,7 @@
 <h2>Con quién se comparten</h2>
 <p>Sólo con los servicios necesarios para que el sistema haga lo que le pedís, y sólo los datos que cada uno necesita:</p>
 <ul>
-  <li><b>ARCA (ex AFIP)</b> para emitir comprobantes electrónicos, con tu propio certificado.</li>
+  <li><b>ARCA (ex AFIP)</b> para emitir y consultar comprobantes electrónicos: con el certificado de BigSys, si autorizaste a BigSys a facturar en tu nombre, o con tu propio certificado. Se envían los datos que exige el comprobante (por ejemplo, CUIT o DNI del cliente e importes).</li>
   <li><b>Mercado Pago, Mercado Libre y Tienda Nube</b> si los conectás, para cobrar y vender por esos canales.</li>
   <li><b>Meta (WhatsApp Business)</b> si lo conectás, para mandar y recibir mensajes con tus clientes.</li>
   <li><b>Proveedores de inteligencia artificial</b> (Anthropic u OpenAI) para Bigcito, con la clave que carga cada empresa: se les envía lo justo para responder la consulta y no entrenan modelos con tus datos.</li>

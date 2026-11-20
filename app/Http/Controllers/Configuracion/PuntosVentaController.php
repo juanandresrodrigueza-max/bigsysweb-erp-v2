@@ -20,6 +20,10 @@ class PuntosVentaController extends Controller
             'sucursales' => $b->locations()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'cuit']),
             // Fase 121: facturar a través de BigSys (como el CRM): la empresa delega el servicio en ARCA y no carga certificado.
             'arca' => ['plataforma' => \App\Services\Afip\ArcaPlataforma::configurada(), 'representante' => \App\Services\Afip\ArcaPlataforma::representante(), 'produccion' => (bool) \App\Models\SistemaConfig::get('arca_produccion'),
+                // Fase 121.1: el texto que se acepta al activar, y la constancia de la última aceptación.
+                'autorizacion' => ['version' => \App\Services\Afip\ArcaAutorizaciones::VERSION, 'texto' => \App\Services\Afip\ArcaAutorizaciones::texto($b->razon_social ?: $b->name, \App\Support\Cuit::formatear(preg_replace('/\D/', '', (string) $b->cuit)) ?? (string) $b->cuit),
+                    'ultima' => ($u = \App\Services\Afip\ArcaAutorizaciones::ultima($b)) ? ['usuario' => $u->usuario, 'fecha' => $u->aceptada_en->format('d/m/Y H:i'), 'version' => $u->version, 'revocada' => $u->revocada_en?->format('d/m/Y H:i')] : null],
+                'revocar' => session('arca_revocar'), 'puede_aceptar' => $request->user()->esDueno(),
                 'modo' => $afip->modo($b), 'bigsys' => (bool) $b->arca_bigsys, 'verificada' => $b->arca_verificada_en?->format('d/m/Y H:i'), 'cuit' => $b->cuit, 'cuit_ok' => strlen(preg_replace('/\D/', '', (string) $b->cuit)) === 11,
                 'sucursales' => $b->locations()->where('is_active', true)->whereNotNull('cuit')->where('cuit', '!=', '')->orderBy('name')->get()->map(fn($l) => ['id' => $l->id, 'nombre' => $l->name, 'cuit' => $l->cuit, 'bigsys' => (bool) $l->arca_bigsys, 'propio' => (bool) ($l->afip_cert_path && $l->afip_key_path)])->values()],
             'afip' => ['configurado' => $afip->configurado($b), 'modo' => $afip->modo($b), 'cuit' => $b->cuit, 'produccion' => $b->afip_produccion, 'cert' => (bool) $b->afip_cert_path, 'key' => (bool) $b->afip_key_path, 'pendientes' => \App\Models\Comprobante::where('estado', 'emitido')->where('afip_estado', 'pendiente')->count()],
@@ -98,26 +102,29 @@ class PuntosVentaController extends Controller
             'faltan_en_arca' => array_values(array_diff($locales, $usables)), 'faltan_aca' => array_values(array_diff($usables, $locales))]);
     }
 
-    // Activa (o apaga) la facturación por BigSys. Para activarla ARCA tiene que confirmar la delegación en ese momento.
+    // Activa (o apaga) la facturación por BigSys. Para activarla: ARCA tiene que confirmar la delegación en ese momento y la
+    // empresa tiene que aceptar el texto de autorización (queda constancia de quién, cuándo, desde dónde y con qué texto).
     public function bigsys(Request $request)
     {
-        $d = $request->validate(['activo' => 'required|boolean', 'location_id' => 'nullable|integer']);
+        $d = $request->validate(['activo' => 'required|boolean', 'location_id' => 'nullable|integer', 'acepto' => 'nullable|boolean', 'version' => 'nullable|string|max:20']);
         [$b, $loc, $cuit] = $this->cuitDe($request);
-        $quien = $loc ?? $b;
+        $quien = $loc ?? $b; $donde = $loc ? "la sucursal {$loc->name}" : 'la empresa';
         if ($d['activo']) {
             if (strlen($cuit) !== 11) return back()->with('error', 'Primero cargá el CUIT (Configuración → Empresa).');
+            if (! $request->user()->esDueno()) return back()->withErrors(['acepto' => 'La autorización a BigSys la acepta el dueño de la cuenta: pedile que entre y la active.']);
+            if (empty($d['acepto'])) return back()->withErrors(['acepto' => 'Para activarla tenés que aceptar la autorización a BigSys.']);
+            if (($d['version'] ?? null) !== \App\Services\Afip\ArcaAutorizaciones::VERSION) return back()->withErrors(['acepto' => 'El texto de la autorización cambió: recargá la página, leelo y volvé a aceptarlo.']);
             try { \App\Services\Afip\ArcaPlataforma::cliente()->puntosVenta($cuit); }
             catch (\App\Services\Afip\ArcaError $e) {
                 $ex = \App\Services\Afip\AfipErrores::explicar($e->getMessage());
                 return back()->with('error', "Todavía no se puede activar: {$ex['que']} {$ex['como']}");
             }
-            $quien->forceFill(['arca_bigsys' => true, 'arca_verificada_en' => now()])->save();
-            AuditLog::registrar('editar', $b, 'Activó la factura electrónica a través de BigSys' . ($loc ? " para la sucursal {$loc->name}" : ''));
-            return back()->with('success', 'Listo: ' . ($loc ? "la sucursal {$loc->name}" : 'la empresa') . ' ya factura electrónicamente a través de BigSys.' . ($quien->afip_cert_path ? ' Ojo: como también tiene certificado propio cargado, se sigue usando ese.' : ''));
+            \App\Services\Afip\ArcaAutorizaciones::aceptar($b, $loc, $request->user(), $request->ip(), $request->userAgent());
+            return back()->with('success', "Listo: {$donde} ya factura electrónicamente a través de BigSys." . ($quien->afip_cert_path ? ' Ojo: como también tiene certificado propio cargado, se sigue usando ese.' : ''));
         }
-        $quien->forceFill(['arca_bigsys' => false])->save();
-        AuditLog::registrar('editar', $b, 'Apagó la factura electrónica a través de BigSys' . ($loc ? " para la sucursal {$loc->name}" : ''));
-        return back()->with('success', 'Se apagó la facturación a través de BigSys.');
+        \App\Services\Afip\ArcaAutorizaciones::revocar($b, $loc, $request->user(), 'Apagada desde Configuración → Puntos de venta y ARCA');
+        AuditLog::registrar('editar', $b, "Apagó la factura electrónica a través de BigSys para {$donde}");
+        return back()->with('success', "Se apagó la facturación a través de BigSys para {$donde}.")->with('arca_revocar', \App\Services\Afip\ArcaAutorizaciones::pasosRevocar());
     }
 
     // Crea acá los puntos de venta que ARCA tiene dados de alta para web services y todavía no estaban.
