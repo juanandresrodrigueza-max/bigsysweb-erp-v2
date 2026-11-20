@@ -141,7 +141,7 @@ class AprobacionService
     // Mail + WhatsApp + celular de los superadmins. Nunca tira: el registro no espera esto.
     public function avisar(string $asunto, string $texto, string $url = '/admin/pendientes'): array
     {
-        $url = url($url); $r = ['mail' => null, 'whatsapp' => null, 'celular' => null];
+        $ruta = $url; $url = url($url); $r = ['mail' => null, 'whatsapp' => null, 'celular' => null];
         // Fase 113.2: cada canal dice qué pasó (para el botón «Enviar aviso de prueba» y el log); el registro nunca espera esto.
         try {
             if (! ($to = $this->destinatarios())) $r['mail'] = ['ok' => false, 'texto' => 'No hay a quién mandarlo.'];
@@ -160,7 +160,7 @@ class AprobacionService
         } catch (\Throwable $e) { Log::warning('Aviso de aprobación (WhatsApp): ' . $e->getMessage()); $r['whatsapp'] = ['ok' => false, 'texto' => 'WhatsApp falló: ' . mb_substr($e->getMessage(), 0, 160)]; }
         try {
             $cel = app(\App\Services\Avisos\CelularService::class); $n = 0;
-            foreach (User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->get() as $u) $n += (int) $cel->enviar($u, $asunto, \Illuminate\Support\Str::limit($texto, 160), '/admin/pendientes');
+            foreach (User::withoutGlobalScopes()->where('is_superadmin', true)->where('status', 'active')->get() as $u) $n += (int) $cel->enviar($u, $asunto, \Illuminate\Support\Str::limit($texto, 160), $ruta); // el toque lleva a la pantalla del aviso
             $r['celular'] = ['ok' => $n > 0, 'texto' => $n ? "Aviso al celular en {$n} dispositivo(s) de superadmins." : 'Ningún superadmin tiene la app o el navegador suscripto a los avisos (Panel → Sistema → App del celular, o la campanita del navegador).'];
         } catch (\Throwable $e) { Log::warning('Aviso de aprobación (celular): ' . $e->getMessage()); $r['celular'] = ['ok' => false, 'texto' => 'Celular falló: ' . mb_substr($e->getMessage(), 0, 160)]; }
         return $r;
