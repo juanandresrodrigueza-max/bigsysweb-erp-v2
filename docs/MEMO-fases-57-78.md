@@ -225,3 +225,7 @@ responde con los permisos de esa persona y audita a su nombre.
 - La tarjeta del panel muestra las direcciones de cada plataforma, listas para copiar.
 - De paso: el aviso viejo `/api/tiendanube/webhook` usaba `Log` sin importarlo (daba error 500).
 - Tests en `Fase125Test`.
+
+### Borrador de la inscripción ante la AAIP (sin fase, sólo documentos)
+- `docs/LEGAL-inscripcion-AAIP.md`: qué va en cada campo de TAD para el responsable (BIGSYS S.R.L.) y para la base «Clientes y usuarios de BigSys Web». Sale del código: tablas, proveedores, medidas de seguridad, conservación. Las otras bases posibles (CRM, personal, proveedores) quedan para que decida el abogado.
+- Hallazgos para el abogado: los proveedores en Estados Unidos (art. 12 y Disposición 60-E/2016) y los plazos de la política de privacidad. La política dice 10 días hábiles para todo; la ley da 10 corridos para el acceso y 5 hábiles para rectificar o suprimir.
