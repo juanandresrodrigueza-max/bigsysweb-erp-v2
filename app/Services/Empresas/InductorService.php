@@ -18,6 +18,8 @@ class InductorService
         $sn = ['si' => 'Sí', 'no' => 'No'];
         return [
             'rubro' => ['texto' => '¡Hola! Soy Bigcito. Para dejarte el sistema a medida, contame: ¿a qué se dedica tu negocio?', 'opciones' => Business::VERTICALES, 'rubros' => null],
+            // Fase 122: de dónde viene. Si es BigSys de escritorio, traer los datos con BIG Connect pasa a ser un paso obligatorio.
+            'origen' => ['texto' => '¿Con qué trabajabas hasta ahora?', 'opciones' => ['bigsys' => 'Con BigSys de escritorio', 'otro' => 'Con otro sistema o con planillas de Excel', 'cero' => 'Arranco de cero'], 'rubros' => null],
             'como_vende' => ['texto' => '¿Cómo vendés casi siempre?', 'opciones' => ['mostrador' => 'En el mostrador, cobro en el momento', 'cuenta' => 'Con presupuestos y facturas, muchos a cuenta corriente', 'ambos' => 'Las dos cosas'], 'rubros' => null],
             'arca' => ['texto' => '¿Hacés factura electrónica con ARCA?', 'opciones' => ['si' => 'Sí, ya facturo electrónicamente', 'sin_cert' => 'Sí, quiero empezar (BigSys factura por mí, sin certificado)', 'no' => 'No por ahora (solo comprobantes internos)'], 'rubros' => null],
             'stock' => ['texto' => '¿Querés controlar el stock de lo que vendés?', 'opciones' => ['si' => 'Sí, de todo', 'algunos' => 'Solo de algunos artículos', 'no' => 'No, vendo servicios o no lo necesito'], 'rubros' => null],

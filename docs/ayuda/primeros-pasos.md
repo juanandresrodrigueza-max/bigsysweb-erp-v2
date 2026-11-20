@@ -6,31 +6,25 @@ orden: 1
 resumen: Qué configurar el primer día para empezar a facturar y cobrar, y cómo moverse por el sistema.
 ---
 
-BigSysWeb se configura en una tarde. Este es el orden que recomendamos.
+BigSysWeb se configura en una tarde. La pantalla **Primeros pasos** te lleva en cuatro etapas y arriba siempre muestra el **Siguiente paso**: qué es, para qué sirve, cuánto lleva y un botón para empezar. La barra de arriba de todas las pantallas también dice qué sigue. El detalle de cada paso está en la *Guía de implementación*.
 
-## 1. Datos de la empresa
+## 1. Tu empresa
 
-En **Configuración → Empresa** cargá razón social, CUIT, condición frente al IVA y el logo. Todo eso sale impreso en las facturas. Si sos responsable inscripto, el sistema emite A o B según el cliente; si sos monotributista, emite C.
+En **Configuración → Empresa** cargá razón social, CUIT, condición frente al IVA, domicilio, Ingresos Brutos y logo: todo eso sale impreso en las facturas. Si sos responsable inscripto, el sistema emite A o B según el cliente; si sos monotributista, emite C.
 
-## 2. Punto de venta y ARCA
+En **Configuración → Puntos de venta y ARCA** creá el punto de venta con el mismo número que tenés en ARCA para web services. Para la factura electrónica no hace falta certificado: le das permiso a BigSys en ARCA con tu clave fiscal, lo verificás desde esa pantalla y lo activás. Hasta entonces las facturas salen **simuladas** (sin CAE) y sirven para probar.
 
-En **Configuración → Puntos de venta y ARCA** creá el punto de venta con el mismo número que tenés dado de alta en ARCA. Sin certificado, las facturas salen **simuladas** (sin CAE): sirven para probar. Cuando subas el certificado, salen con CAE real. La guía técnica está en *Ayuda → Guías → ARCA*.
+## 2. Tus datos
 
-## 3. Caja y banco
+Si venís de **BigSys de escritorio**, en **Configuración → Importar → Traer todo desde BIG Connect** se traen clientes, proveedores, artículos, saldos, cajas y cheques. Primero lo probás sin guardar. Si venís de otro sistema o de Excel, importalos con las plantillas de la misma pantalla, con los saldos de cuenta corriente para arrancar con las deudas al día.
 
-En **Fondos** tenés que tener al menos una caja (efectivo) y una cuenta bancaria. Cada cobro entra en una de ellas; sin cuentas no hay dónde registrar el dinero.
+## 3. La plata y el equipo
 
-## 4. Artículos, clientes y proveedores
+En **Plata** tenés que tener al menos una caja (efectivo) y una cuenta bancaria: cada cobro entra en una de ellas. En **Configuración → Usuarios** va un usuario por persona, cada uno con su rol (vendedor, cajero, depósito, contador…). Si querés, conectá el **WhatsApp** de la empresa escaneando un QR en **Configuración → Tienda y canales**.
 
-Cargalos a mano o importalos desde Excel en **Configuración → Importar datos**. Si venís de otro sistema, importá también los saldos de cuenta corriente: arrancás con las deudas al día.
+## 4. A vender
 
-## 5. Usuarios y roles
-
-Un usuario por persona, cada uno con su rol (vendedor, cajero, depósito, contador…). Los roles definen qué pantallas ve cada uno y qué puede hacer. Se configuran en **Configuración → Usuarios** y **Roles y permisos**.
-
-## 6. Primera factura
-
-Hacé una de prueba desde **Vender → Nueva factura**. Se puede anular después. Vas a ver cómo impacta en cuenta corriente, stock y contabilidad.
+Hacé una factura de prueba desde **Vender → Nueva factura**. Se puede anular después. Vas a ver cómo impacta en cuenta corriente, stock, caja y contabilidad.
 
 ## Cómo moverse
 

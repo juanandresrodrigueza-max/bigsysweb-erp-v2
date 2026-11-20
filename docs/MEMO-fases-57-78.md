@@ -173,3 +173,10 @@ responde con los permisos de esa persona y audita a su nombre.
 
 ### Fase 121.3 · Conexión con el servidor de facturación de producción
 - Al actualizar producción, el CRM detectó que `servicios1.afip.gov.ar` (WSFE y WSFEX de producción) negocia TLS con una clave DH vieja que el OpenSSL 3 del servidor rechaza («dh key too small»). `ArcaDirecto::opcionesConexion($url)` baja el nivel de OpenSSL a `DEFAULT@SECLEVEL=1` **sólo para ese host** (`HOSTS_DH_VIEJO`); WSAA, homologación y el resto quedan con el nivel normal. Lo usan `ArcaDirecto` (WSAA y WSFE) y `Wsfex`. Test en `Fase121Test`.
+
+### Fase 122 · Primeros pasos predecibles: etapas y «Siguiente paso»
+- `OnboardingController::ETAPAS` (empresa, datos, plata, arranque, negocio, tranquilo). Cada paso trae `etapa`, `porque` (para qué) y `minutos`. `siguiente($pasos)` = primer obligatorio sin hacer; si no queda, primer opcional; si no, null. `resumen($b)` alimenta la barra de arriba (`onboarding.siguiente` con título y URL); la caché `onboarding_resumen_{id}` se borra al abrir /primeros-pasos.
+- Pasos nuevos: `migrar` (traer datos de BigSys de escritorio con BIG Connect; hecho cuando `bigconnect.ultima`; obligatorio si Bigcito anotó `origen = bigsys`, opcional si no se sabe, oculto si `otro`/`cero`) y `whatsapp` (opcional; hecho con token + phone_id). Si migró, Artículos y Clientes llevan a revisar en vez de importar.
+- Pregunta nueva del inductor: `origen` («¿Con qué trabajabas hasta ahora?»).
+- Pantalla: tarjeta «Siguiente paso» (Empezar / ¿Cómo se hace? / Ya lo hice), «Cómo funciona BigSys Web, en un minuto» (abierta mientras no hay nada hecho) y los pasos agrupados por etapa con su avance. Barra de arriba: «Primeros pasos: X de Y · Sigue: …».
+- Ayuda: `implementacion.md` reescrita con el mismo orden (sin certificados; BIG Connect primero; WhatsApp por QR; corte con Control de cierre) y `primeros-pasos.md` al día. Novedad `2027_02_23_000001`. Tests en `Fase122Test`.
