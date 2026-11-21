@@ -62,6 +62,7 @@ Los pasos exactos de cada portal cambian seguido. Cuando arranques uno, mandame 
 
 - [ ] ⏳ **Prueba completa en un local**: mesas y salón, comandas a cocina, pedido por QR desde la mesa, cobro y cierre de caja. Si hay impresora de comandas, probarla con la del local.
 - [ ] ⏳ **Carta con opciones** (guarniciones, puntos de cocción): armarla una vez y revisar que salga bien en el QR y en las plataformas de delivery.
+- [ ] ⏳ **Carta vitrina** (Fase 127): con un local de verdad, subir las fotos de los platos desde el celular (las pizzas, sacadas desde arriba), cargar ingredientes y alérgenos, la foto del local y la historia, y mirarla desde el QR de una mesa.
 
 ## 6 · App del celular (Android y iPhone)
 

@@ -285,6 +285,8 @@ class GastronomiaController extends Controller
     {
         return Inertia::render('Gastronomia/Carta', [
             'productos' => Product::where('active', true)->where('tipo', '!=', 'insumo')->with('rubro:id,nombre')->orderBy('name')->get()->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'price' => $this->precioFinal($p), 'rubro' => $p->rubro?->nombre, 'va_cocina' => (bool) $p->va_cocina, 'estacion' => $p->estacion, 'horario' => $p->horario, 'modificadores' => $p->modificadores ?? [], 'agotado' => $p->agotadoHoy(),
+                // Fase 127: lo que muestra la carta vitrina.
+                'ingredientes' => $p->ingredientes, 'alergenos' => $p->alergenos ?? [], 'foto' => $p->imagen, 'foto_propia' => (bool) $p->foto_carta, 'foto_gira' => (bool) $p->foto_gira, 'descripcion' => $p->descripcion_tienda ?: $p->description,
                 // Fase 53: costo (de la receta si tiene), margen sobre el precio neto y la receta para editarla acá mismo.
                 'precio_neto' => (float) $p->price, 'costo' => \App\Services\Gastronomia\RecetaVentaService::costo($p), 'margen' => \App\Services\Gastronomia\RecetaVentaService::margen($p), 'margen_objetivo' => $p->margen_objetivo !== null ? (float) $p->margen_objetivo : null,
                 'receta' => ($r = \App\Services\Gastronomia\RecetaVentaService::receta($p)) ? ['id' => $r->id, 'yield' => (float) $r->yield_quantity, 'items' => $r->items->map(fn($i) => ['product_id' => $i->product_id, 'nombre' => $i->product?->name, 'quantity' => (float) $i->quantity, 'unit' => $i->unit, 'costo' => round((float) $i->quantity * (float) ($i->product?->cost ?? 0), 2)])->values()] : null]),
@@ -292,16 +294,20 @@ class GastronomiaController extends Controller
             'recetaAlVender' => \App\Services\Gastronomia\RecetaVentaService::activo(auth()->user()->business), 'whatsappAResto' => (bool) (auth()->user()->business->gastronomia_config['whatsapp_a_resto'] ?? true), 'ia' => \App\Support\Ia::tiene(auth()->user()->business),
             'happyHours' => auth()->user()->business->gastronomia_config['happy_hours'] ?? [], 'rubros' => \App\Models\Rubro::orderBy('nombre')->get(['id', 'nombre']),
             'estaciones' => auth()->user()->business->estacionesCocina(), 'qrConfirma' => (bool) (auth()->user()->business->gastronomia_config['qr_confirma'] ?? false),
+            'vitrina' => (function () { $b = auth()->user()->business; $c = app(\App\Services\Canales\TiendaService::class)->config($b);
+                return ['estilo' => $c['menu_estilo'], 'titulo' => $c['menu_historia_titulo'], 'historia' => $c['menu_historia'], 'horario' => $c['menu_horario'], 'portada' => \App\Services\Gastronomia\CartaVitrinaService::urlPortada($b), 'url' => url('/m/' . $c['slug']), 'activa' => (bool) $c['menu_activo']]; })(),
+            'alergenosLista' => \App\Services\Gastronomia\CartaVitrinaService::ALERGENOS,
         ]);
     }
 
     public function guardarCarta(Request $request, int $id)
     {
         $d = $request->validate(['margen_objetivo' => 'nullable|numeric|min:0|max:99', 'horario' => 'nullable|array', 'horario.dias' => 'nullable|array', 'horario.dias.*' => 'integer|between:1,7', 'horario.desde' => 'nullable|date_format:H:i', 'horario.hasta' => 'nullable|date_format:H:i', 'va_cocina' => 'boolean', 'estacion' => 'nullable|string|max:30', 'modificadores' => 'nullable|array|max:10', 'modificadores.*.nombre' => 'required|string|max:40', 'modificadores.*.obligatorio' => 'boolean', 'modificadores.*.multiple' => 'boolean',
-            'modificadores.*.opciones' => 'required|array|min:1|max:30', 'modificadores.*.opciones.*.nombre' => 'required|string|max:40', 'modificadores.*.opciones.*.precio' => 'nullable|numeric|min:0']);
+            'modificadores.*.opciones' => 'required|array|min:1|max:30', 'modificadores.*.opciones.*.nombre' => 'required|string|max:40', 'modificadores.*.opciones.*.precio' => 'nullable|numeric|min:0',
+            'ingredientes' => 'nullable|string|max:500', 'alergenos' => 'nullable|array', 'alergenos.*' => 'in:' . implode(',', array_keys(\App\Services\Gastronomia\CartaVitrinaService::ALERGENOS)), 'foto_gira' => 'boolean']);
         $p = Product::findOrFail($id);
         $mods = collect($d['modificadores'] ?? [])->map(fn($g) => ['nombre' => trim($g['nombre']), 'obligatorio' => (bool) ($g['obligatorio'] ?? false), 'multiple' => (bool) ($g['multiple'] ?? false), 'opciones' => collect($g['opciones'])->map(fn($o) => ['nombre' => trim($o['nombre']), 'precio' => round((float) ($o['precio'] ?? 0), 2)])->values()->all()])->values()->all();
-        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('margen_objetivo', $d) ? ['margen_objetivo' => $d['margen_objetivo']] : []) + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []) + (array_key_exists('horario', $d) ? ['horario' => ! empty($d['horario']['desde']) && ! empty($d['horario']['hasta']) ? ['dias' => array_values(array_map('intval', $d['horario']['dias'] ?? [])), 'desde' => $d['horario']['desde'], 'hasta' => $d['horario']['hasta']] : null] : []))->save();
+        $p->forceFill(['modificadores' => $mods ?: null] + (array_key_exists('margen_objetivo', $d) ? ['margen_objetivo' => $d['margen_objetivo']] : []) + (array_key_exists('va_cocina', $d) ? ['va_cocina' => $d['va_cocina']] : []) + (array_key_exists('estacion', $d) ? ['estacion' => $d['estacion'] ?: null] : []) + (array_key_exists('ingredientes', $d) ? ['ingredientes' => trim((string) $d['ingredientes']) ?: null] : []) + (array_key_exists('alergenos', $d) ? ['alergenos' => array_values(array_unique($d['alergenos'] ?? [])) ?: null] : []) + (array_key_exists('foto_gira', $d) ? ['foto_gira' => $d['foto_gira']] : []) + (array_key_exists('horario', $d) ? ['horario' => ! empty($d['horario']['desde']) && ! empty($d['horario']['hasta']) ? ['dias' => array_values(array_map('intval', $d['horario']['dias'] ?? [])), 'desde' => $d['horario']['desde'], 'hasta' => $d['horario']['hasta']] : null] : []))->save();
         return back()->with('success', "{$p->name}: carta guardada.");
     }
 

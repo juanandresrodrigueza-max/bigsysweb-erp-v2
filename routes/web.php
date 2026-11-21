@@ -75,6 +75,8 @@ Route::post('/m/{slug}/pedir',             [\App\Http\Controllers\TiendaPublicaC
 Route::post('/m/{slug}/codigo',            [\App\Http\Controllers\TiendaPublicaController::class, 'codigoMesa'])->middleware('throttle:10,1'); // Fase 95: sumarse a la mesa con el código
 Route::get('/m/{slug}/pedido',             [\App\Http\Controllers\TiendaPublicaController::class, 'pedidoMesa'])->middleware('throttle:publico'); // Fase 95: lo que pidieron, en vivo
 Route::get('/r/{slug}',                    [\App\Http\Controllers\TiendaPublicaController::class, 'reservar'])->middleware('throttle:publico');
+Route::get('/fotos/plato/{id}',            [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'verPlato'])->whereNumber('id'); // Fase 127
+Route::get('/fotos/portada/{id}',          [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'verPortada'])->whereNumber('id');
 // Fase 37: el chofer y el cliente siguen el viaje sin usuario; el pase entre sucursales en PDF por link.
 Route::get('/reparto/{token}',                       [\App\Http\Controllers\Comprobantes\RepartoController::class, 'chofer'])->middleware('throttle:publico');
 Route::post('/reparto/{token}/salir',                [\App\Http\Controllers\Comprobantes\RepartoController::class, 'salir'])->middleware('throttle:publico');
@@ -919,6 +921,11 @@ Route::middleware(['auth', 'suscripcion'])->group(function () {
         Route::post('/carta/importar',                [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'importarCarta'])->middleware('permiso:gastronomia,editar');
         Route::post('/carta/traducir',                 [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'traducir'])->middleware(['permiso:gastronomia,editar', 'throttle:6,1']);
         Route::post('/carta/menu-del-dia',             [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'menuDelDia'])->middleware(['permiso:gastronomia,editar', 'throttle:10,1']);
+        Route::post('/carta/vitrina',                 [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'guardar'])->middleware('permiso:gastronomia,editar'); // Fase 127
+        Route::post('/carta/portada',                 [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'portada'])->middleware(['permiso:gastronomia,editar', 'throttle:20,1']);
+        Route::delete('/carta/portada',               [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'quitarPortada'])->middleware('permiso:gastronomia,editar');
+        Route::post('/carta/{id}/foto',               [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'foto'])->middleware(['permiso:gastronomia,editar', 'throttle:60,1'])->whereNumber('id');
+        Route::delete('/carta/{id}/foto',             [\App\Http\Controllers\Gastronomia\CartaVitrinaController::class, 'quitarFoto'])->middleware('permiso:gastronomia,editar')->whereNumber('id');
         Route::get('/carta',                          [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'carta']);
         Route::post('/carta/{id}',                    [\App\Http\Controllers\Gastronomia\GastronomiaController::class, 'guardarCarta'])->middleware('permiso:gastronomia,editar');
         Route::get('/reservas',                       [\App\Http\Controllers\Gastronomia\ReservasController::class, 'index']);
