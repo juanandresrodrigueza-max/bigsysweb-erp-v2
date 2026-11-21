@@ -1,6 +1,9 @@
 @extends('tienda._layout', ['titulo' => 'Carta · ' . $cfg['nombre']])
 @section('cuerpo')
 @php $fmt = fn($n) => '$ ' . number_format((float) $n, 0, ',', '.'); @endphp
+@if (($cfg['menu_estilo'] ?? 'lista') === 'vitrina')
+@include('tienda._vitrina')
+@else
 <div class="top"><div class="in"><div><h1>{{ $cfg['nombre'] }}</h1><p>@if ($mesa) {{ $mesa->nombre }} · elegí y pedí desde acá, llega directo a cocina. @else Nuestra carta. Para pedir, escaneá el QR de tu mesa. @endif </p></div><div style="display:flex;gap:6px;align-items:center">@if (! empty($idiomas))<span style="display:flex;gap:4px">@foreach (['es' => 'ES'] + array_map(fn($x) => strtoupper($x), array_combine(array_keys($idiomas), array_keys($idiomas))) as $k => $lbl)<a href="?{{ http_build_query(array_filter(['mesa' => $mesaRef, 'lang' => $k === 'es' ? null : $k])) }}" class="btn s" style="padding:6px 10px;font-size:12px;{{ $lang === $k ? 'background:#fff3;color:#fff;border-color:#fff' : '' }}">{{ $lbl }}</a>@endforeach</span>@endif
 @if ($cfg['reservas_activas'])<a class="btn s" href="/r/{{ $cfg['slug'] }}">Reservar</a>@endif</div></div></div>
 <div class="wrap">
@@ -21,6 +24,7 @@
     <div class="card">La carta todavía no está cargada.</div>
   @endforelse
 </div>
+@endif
 @if ($mesa)
 @if ($errors->any())<div class="wrap" style="padding-top:0"><div class="bad" data-error>{{ $errors->first() }}</div></div>@endif
 @if (session('success'))<div class="wrap" style="padding-top:0"><div class="ok">{{ session('success') }}</div></div>@endif

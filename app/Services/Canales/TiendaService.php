@@ -23,6 +23,8 @@ class TiendaService
         'retiro' => true, 'envio' => true, 'costo_envio' => 0, 'envio_gratis_desde' => 0, 'zona_envio' => null,
         'pagos' => ['link' => true, 'transferencia' => true, 'efectivo' => true], 'cbu' => null, 'alias' => null,
         'lista_precios' => 1, 'iva_incluido' => true, 'minimo_pedido' => 0, 'rubros' => [], 'mostrar_stock' => false, 'menu_activo' => false, 'reservas_activas' => false, 'reservas_horario' => '12:00-15:00, 20:00-00:00', 'reservas_capacidad' => 40,
+        // Fase 127: la carta vitrina (estilo de la carta del QR, la historia del local y su foto, el horario que se muestra).
+        'menu_estilo' => 'lista', 'menu_historia_titulo' => null, 'menu_historia' => null, 'menu_portada' => null, 'menu_horario' => null,
     ];
 
     public function __construct(private ComprobanteService $comprobantes, private LinkPagoService $links) {}
@@ -50,7 +52,7 @@ class TiendaService
         $items = $q->get()->map(function ($p) use ($lista, $ri, $cfg) {
             $precio = $p->precioLista($lista);
             if ($cfg['iva_incluido'] && $ri) $precio = round($precio * (1 + (float) $p->iva / 100), 2);
-            return ['id' => $p->id, 'modificadores' => $p->modificadores ?? [], 'nombre' => $p->name, 'sku' => $p->sku, 'descripcion' => $p->descripcion_tienda ?: $p->description, 'precio' => $precio, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre ?? 'Otros', 'rubro_orden' => $p->rubro?->orden ?? 999, 'rubro_imagen' => $p->rubro?->imagen, 'imagen' => $p->imagen, 'stock' => (float) $p->stock, 'sin_stock' => $p->controla_stock && (float) $p->stock <= 0, 'favorito' => $p->favorito_pos, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct];
+            return ['id' => $p->id, 'modificadores' => $p->modificadores ?? [], 'nombre' => $p->name, 'sku' => $p->sku, 'descripcion' => $p->descripcion_tienda ?: $p->description, 'precio' => $precio, 'unit' => $p->unit, 'rubro' => $p->rubro?->nombre ?? 'Otros', 'rubro_orden' => $p->rubro?->orden ?? 999, 'rubro_imagen' => $p->rubro?->imagen, 'imagen' => $p->imagen, 'ingredientes' => $p->ingredientes, 'alergenos' => $p->alergenos ?? [], 'foto_gira' => (bool) $p->foto_gira, 'stock' => (float) $p->stock, 'sin_stock' => $p->controla_stock && (float) $p->stock <= 0, 'favorito' => $p->favorito_pos, 'desc_cant_min' => (float) $p->desc_cant_min, 'desc_cant_pct' => (float) $p->desc_cant_pct, 'desc_cant2_min' => (float) $p->desc_cant2_min, 'desc_cant2_pct' => (float) $p->desc_cant2_pct];
         });
         return ['config' => $cfg, 'rubros' => $items->groupBy('rubro')->map(fn($g, $r) => ['nombre' => $r, 'orden' => $g->first()['rubro_orden'], 'imagen' => $g->first()['rubro_imagen'], 'items' => $g->values()->all()])->sortBy('orden')->values()->all(), 'total' => $items->count()];
     }

@@ -3,7 +3,7 @@ titulo: Big Restó: salón, cocina, mozo de bolsillo, reservas y delivery
 modulo: gastronomia
 rutas: /gastronomia
 orden: 6
-resumen: Plano del salón, comandas por asiento, pantalla de cocina, mozo de bolsillo en el celular, cortesías y mermas, reservas por la web y por WhatsApp con lista de espera, delivery propio con zonas de envío, pedidos desde el QR de la mesa.
+resumen: Plano del salón, comandas por asiento, pantalla de cocina, mozo de bolsillo en el celular, cortesías y mermas, reservas por la web y por WhatsApp con lista de espera, delivery propio con zonas de envío, pedidos desde el QR de la mesa y carta vitrina con fotos, ingredientes y alérgenos.
 ---
 
 **Big Restó** es el sistema de gastronomía de BigSys web ERP, para bares, restaurantes, cafeterías y rotiserías. Vive en el menú como «Big Restó» y usa el mismo stock, la misma caja, la misma facturación y la misma contabilidad que el resto del sistema.
@@ -97,6 +97,21 @@ A Bigcito se le pregunta «¿cómo vino el costo de la milanesa?» o «¿qué pa
 - **Parte del dueño:** el resumen diario por WhatsApp suma el bloque de Big Restó: lo vendido en el salón, el ticket, los cubiertos, las propinas, el plato estrella, la estación más lenta, las opiniones del día y, con IA, una línea con qué conviene cambiar mañana.
 - **Ingeniería de menú:** cada plato por popularidad y margen (precio neto menos el costo de la receta): **estrellas** (destacalos), **caballitos** (salen pero dejan poco: subí el precio o cambiá la receta), **rompecabezas** (rinden pero pocos los piden: ponelos arriba, con foto) y **perros** (sacalos o rehacelos). Con IA, «✦ 3 acciones para esta semana» con números concretos.
 - **Carta QR que vende mejor:** al agregar un plato, el QR sugiere el acompañante que más se pide con él («Va bien con Coca Cola +$2.500»), según los últimos 90 días. Y con «🌐 Traducir carta» en Big Restó → Carta, la carta queda en inglés o portugués y el QR muestra el botón para cambiar de idioma.
+
+## Carta vitrina: la carta del QR plato por plato, con fotos grandes (Fase 127)
+
+La carta del QR puede verse de dos formas: **lista** (la de siempre) o **vitrina**. En vitrina, arriba aparece el local: la foto (el horno, el salón), un título, la historia y el horario, con los botones **Ver la carta** y **Reservar mesa**. Debajo, cada rubro muestra un plato por pantalla. Cada plato lleva la foto grande, el nombre, la descripción, los **ingredientes**, los **alérgenos**, las opciones (por ejemplo los tamaños, con su precio extra) y el precio. Se pasa de un plato al otro con el dedo, o con las flechas en la compu. Desde la mesa se pide igual que antes: «+» suma el plato, y si tiene opciones obligatorias las pregunta.
+
+**Cómo se arma** (Big Restó → Carta):
+
+1. **✨ Carta vitrina**: elegís «Vitrina» y cargás la foto del local, el título («Leña de espinillo. Noventa segundos.»), la historia en dos o tres líneas y el horario que se muestra. Abajo está el link a tu carta para mirarla.
+2. En cada plato, **Opciones y foto** → «En la carta del QR»:
+   - **Subir foto**: desde el celular o la compu, hasta 8 MB. Se achica sola a 1200 px y se endereza si vino girada.
+   - **La foto es el plato visto desde arriba**: tildalo con una pizza o un bowl sacados desde arriba. En la vitrina la foto se ve redonda y gira despacio. Si la foto es un PNG con el fondo recortado, se respeta la transparencia.
+   - **Ingredientes**: separados por coma. Si el plato tiene receta, «Traer de la receta» los completa con los insumos.
+   - **Alérgenos**: tocás los que lleva (gluten/TACC, leche, huevo, maní, frutos secos, soja, pescado, crustáceos, sulfitos, que son los del Código Alimentario). Los marca el local: el sistema no los deduce.
+
+Los platos sin foto se muestran igual, con la inicial. La vitrina también se ve en inglés y portugués si traducís la carta. La carta tiene que estar prendida en Big Restó → Reservas y QR.
 
 ## Plano del salón, asientos y cortesías (Fase 89)
 

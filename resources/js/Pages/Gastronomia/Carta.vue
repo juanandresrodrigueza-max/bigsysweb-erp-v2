@@ -6,7 +6,7 @@
         <h1 class="page-title">Carta</h1>
         <p class="page-subtitle">Qué va a cocina y las opciones de cada plato: el punto de la carne, la guarnición, los extras con precio. El mozo las elige al pedir y salen en la comanda.</p>
       </div>
-      <div class="flex items-center gap-2"><button v-if="puede('gastronomia','editar') && ia" class="btn-secondary" @click="traducir" data-e2e="traducir">🌐 Traducir carta</button><button v-if="puede('gastronomia','editar')" class="btn-secondary" :disabled="mdCargando" @click="menuDelDia" data-e2e="menu-del-dia">{{ mdCargando ? 'Pensando…' : '✦ Menú del día' }}</button><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
+      <div class="flex flex-wrap items-center gap-2"><button v-if="puede('gastronomia','editar')" class="btn-secondary" @click="abrirVitrina" data-e2e="vitrina">✨ Carta vitrina</button><button v-if="puede('gastronomia','editar') && ia" class="btn-secondary" @click="traducir" data-e2e="traducir">🌐 Traducir carta</button><button v-if="puede('gastronomia','editar')" class="btn-secondary" :disabled="mdCargando" @click="menuDelDia" data-e2e="menu-del-dia">{{ mdCargando ? 'Pensando…' : '✦ Menú del día' }}</button><label v-if="puede('gastronomia','editar') && ia" class="btn-primary cursor-pointer" data-e2e="carta-foto">{{ leyendo ? 'Leyendo…' : '📷 Cargar carta desde foto' }}<input type="file" accept="image/*,application/pdf" class="hidden" @change="leerCarta" /></label><input v-model="q" class="input w-60" placeholder="Buscar plato…" /></div>
     </div>
     <div class="card mb-4" data-e2e="config-estaciones">
       <div class="flex flex-wrap items-center gap-2"><p class="font-bold text-sm mr-2">Estaciones</p>
@@ -34,7 +34,8 @@
     </div>
     <div class="card p-0">
       <div v-for="p in visibles" :key="p.id" class="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b border-marca-borde/60 text-sm">
-        <div class="flex-1 min-w-[180px]"><p class="font-semibold">{{ p.name }}</p><p class="text-xs text-marca-muted">{{ p.rubro ?? 'Sin rubro' }} · {{ moneda(p.price, 0) }}</p>
+        <img v-if="p.foto" :src="p.foto" alt="" class="w-10 h-10 object-cover shrink-0" :class="p.foto_gira ? 'rounded-full' : 'rounded-lg'" />
+        <div class="flex-1 min-w-[180px]"><p class="font-semibold">{{ p.name }}<span v-if="p.alergenos?.length" class="ml-1 text-[10px] font-normal text-amber-700" :title="p.alergenos.map(a => alergenosLista[a]).join(', ')">· {{ p.alergenos.length }} alérgeno{{ p.alergenos.length > 1 ? 's' : '' }}</span></p><p class="text-xs text-marca-muted">{{ p.rubro ?? 'Sin rubro' }} · {{ moneda(p.price, 0) }}</p>
           <p class="text-xs" :data-margen="p.id"><span class="text-marca-muted">costo {{ moneda(p.costo, 0) }}{{ p.receta ? ' (receta)' : '' }} · margen </span><b :class="p.margen === null ? 'text-marca-muted' : p.margen < (p.margen_objetivo ?? 30) ? 'text-carmin' : 'text-emerald-700'">{{ p.margen === null ? '—' : p.margen + ' %' }}</b><span v-if="p.margen_objetivo !== null" class="text-marca-muted"> / objetivo {{ p.margen_objetivo }} %</span></p></div>
         <button class="btn-ghost !py-1 text-xs" @click="verHistoria(p)" :data-historia="p.id" title="Cómo fue cambiando el costo, el precio y el margen mes a mes">Historia</button>
         <button v-if="puede('gastronomia','editar')" class="btn-ghost !py-1 text-xs" @click="editarReceta(p)" :data-receta="p.id">{{ p.receta ? 'Receta' : '+ Receta' }}</button>
@@ -43,7 +44,7 @@
         <select v-if="p.va_cocina" class="input !py-0.5 !text-xs !w-28" :value="p.estacion ?? estaciones[0].nombre" :disabled="!puede('gastronomia','editar')" @change="router.post(`/gastronomia/carta/${p.id}`, { estacion: $event.target.value, modificadores: p.modificadores }, { preserveScroll: true })" :data-estacion="p.id"><option v-for="e in estaciones" :key="e.nombre" :value="e.nombre">{{ e.nombre }}</option></select>
         <!-- Fase 95: "se acabó": sale de la carta QR y del salón al instante; vuelve solo mañana o con este mismo botón -->
         <button v-if="puede('gastronomia','editar')" class="!py-1 text-xs" :class="p.agotado ? 'btn-primary !bg-none !bg-carmin' : 'btn-ghost text-marca-muted'" :title="p.agotado ? 'Agotado por hoy: tocá para volver a ofrecerlo' : 'Marcar agotado por hoy'" @click="router.post(`/gastronomia/carta/${p.id}/agotado`, { agotado: !p.agotado }, { preserveScroll: true })" :data-agotado="p.id">{{ p.agotado ? 'Agotado hoy' : 'Se acabó' }}</button>
-        <button v-if="puede('gastronomia','editar')" class="btn-secondary !py-1 text-xs" @click="editar(p)" :data-opciones="p.id">Opciones</button>
+        <button v-if="puede('gastronomia','editar')" class="btn-secondary !py-1 text-xs" @click="editar(p)" :data-opciones="p.id">Opciones y foto</button>
       </div>
       <p v-if="!visibles.length" class="text-center text-marca-muted text-sm py-10">No hay platos con ese nombre.</p>
     </div>
@@ -72,6 +73,27 @@
           <div v-if="ed.conHorario" class="flex flex-wrap items-center gap-2 mt-2 text-xs"><input v-model="ed.horario.desde" type="time" class="input !py-0.5 !text-xs !w-auto" /> a <input v-model="ed.horario.hasta" type="time" class="input !py-0.5 !text-xs !w-auto" />
             <span class="flex gap-0.5"><button v-for="(d, k) in dias" :key="k" type="button" class="w-6 h-6 rounded-full border text-[11px] font-bold" :class="ed.horario.dias.includes(k + 1) ? 'bg-carmin text-white border-carmin' : 'border-marca-borde'" @click="ed.horario.dias = ed.horario.dias.includes(k + 1) ? ed.horario.dias.filter(x => x !== k + 1) : [...ed.horario.dias, k + 1]">{{ d }}</button></span></div>
           <p class="text-xs text-marca-muted mt-1">Fuera de ese horario no aparece ni para el mozo ni en el QR.</p>
+        </div>
+        <div class="rounded-xl border border-marca-borde p-3 text-sm space-y-2" data-e2e="carta-vitrina-plato">
+          <p class="font-semibold">En la carta del QR</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <img v-if="ed.foto" :src="ed.foto" alt="" class="w-20 h-20 object-cover" :class="ed.foto_gira ? 'rounded-full' : 'rounded-xl'" />
+            <div class="space-y-1">
+              <label class="btn-secondary !py-1 text-xs cursor-pointer">{{ subiendo ? 'Subiendo…' : (ed.foto ? 'Cambiar la foto' : '📷 Subir foto') }}<input type="file" accept="image/*" class="hidden" @change="subirFoto" data-e2e="foto-plato" /></label>
+              <button v-if="ed.foto_propia" type="button" class="btn-ghost !py-1 text-xs text-marca-muted" @click="quitarFoto">Quitar</button>
+              <p v-if="errorFoto" class="text-xs text-carmin">{{ errorFoto }}</p>
+            </div>
+          </div>
+          <label class="flex items-center gap-2 text-xs"><input v-model="ed.foto_gira" type="checkbox" class="accent-carmin" /> La foto es el plato visto desde arriba (en la vitrina se ve redonda y gira despacio)</label>
+          <div>
+            <div class="flex items-center justify-between"><span class="label !mb-0">Ingredientes</span><button v-if="ed.receta?.length" type="button" class="btn-ghost !py-0 text-xs" @click="ed.ingredientes = ed.receta.join(', ')">Traer de la receta</button></div>
+            <textarea v-model="ed.ingredientes" rows="2" maxlength="500" class="input text-sm" placeholder="Tomate San Marzano, mozzarella fior di latte, albahaca, aceite de oliva" />
+          </div>
+          <div>
+            <span class="label">Alérgenos</span>
+            <div class="flex flex-wrap gap-1"><button v-for="(n, k) in alergenosLista" :key="k" type="button" class="px-2 py-0.5 rounded-full border text-xs" :class="ed.alergenos.includes(k) ? 'bg-amber-100 border-amber-400 text-amber-800 font-semibold' : 'border-marca-borde text-marca-muted'" @click="ed.alergenos = ed.alergenos.includes(k) ? ed.alergenos.filter(x => x !== k) : [...ed.alergenos, k]" :data-alergeno="k">{{ n }}</button></div>
+            <p class="text-xs text-marca-muted mt-1">Los que lleva el plato, según el Código Alimentario. Lo marca el local: el sistema no los deduce.</p>
+          </div>
         </div>
       </div>
       <template #pie><button class="btn-secondary" @click="ed = null">Cancelar</button><button class="btn-primary" @click="guardar" data-e2e="carta-guardar">Guardar</button></template>
@@ -158,6 +180,27 @@
       </div>
       <template #pie><button class="btn-secondary" @click="rc = null">Cancelar</button><button class="btn-primary" @click="guardarReceta" data-e2e="receta-guardar">Guardar receta</button></template>
     </Modal>
+    <!-- Fase 127: la carta vitrina -->
+    <Modal :abierto="!!vt" titulo="Carta vitrina" ancho="max-w-2xl" @cerrar="vt = null">
+      <div v-if="vt" class="space-y-3 text-sm">
+        <p class="text-marca-muted">Cómo se ve la carta cuando el cliente escanea el QR. En <b>vitrina</b>, arriba aparece tu local (la foto, la historia y el horario) y después un plato por pantalla, con la foto grande, los ingredientes, los alérgenos, los tamaños y el precio. Se pasa de un plato al otro con el dedo. El pedido desde la mesa funciona igual en las dos.</p>
+        <div class="flex gap-2"><label v-for="o in [['lista', 'Lista (la de siempre)'], ['vitrina', 'Vitrina']]" :key="o[0]" class="flex-1 rounded-xl border p-2 cursor-pointer" :class="vt.menu_estilo === o[0] ? 'border-carmin bg-carmin-light/40 font-semibold' : 'border-marca-borde'"><input v-model="vt.menu_estilo" type="radio" :value="o[0]" class="accent-carmin mr-1" :data-estilo="o[0]" />{{ o[1] }}</label></div>
+        <template v-if="vt.menu_estilo === 'vitrina'">
+          <div class="flex flex-wrap items-center gap-3">
+            <img v-if="vitrina.portada" :src="vitrina.portada" alt="" class="w-28 h-20 object-cover rounded-xl" />
+            <label class="btn-secondary !py-1 text-xs cursor-pointer">{{ subiendo ? 'Subiendo…' : (vitrina.portada ? 'Cambiar la foto del local' : '📷 Foto del local (el horno, el salón)') }}<input type="file" accept="image/*" class="hidden" @change="subirPortada" /></label>
+            <button v-if="vitrina.portada" type="button" class="btn-ghost !py-1 text-xs text-marca-muted" @click="router.delete('/gastronomia/carta/portada', { preserveScroll: true })">Quitar</button>
+            <p v-if="errorFoto" class="text-xs text-carmin w-full">{{ errorFoto }}</p>
+          </div>
+          <div><label class="label">Título de la historia</label><input v-model="vt.menu_historia_titulo" maxlength="80" class="input" placeholder="Leña de espinillo. Noventa segundos." /></div>
+          <div><label class="label">La historia del local</label><textarea v-model="vt.menu_historia" rows="4" maxlength="1200" class="input" placeholder="Qué hacen distinto: la masa, el horno, de dónde viene la receta. Dos o tres líneas alcanzan." /></div>
+          <div><label class="label">Horario que se muestra</label><input v-model="vt.menu_horario" maxlength="160" class="input" placeholder="Martes a domingo · 12 a 16 y 20 a 24" /></div>
+          <p class="text-xs text-marca-muted">Los platos sin foto se muestran igual, con su nombre en grande. Las fotos se suben en «Opciones y foto» de cada plato.</p>
+        </template>
+        <p class="text-xs">Tu carta: <a :href="vitrina.url" target="_blank" class="text-violeta underline">{{ vitrina.url }}</a><span v-if="!vitrina.activa" class="text-carmin"> · la carta del QR está apagada: se prende en Big Restó → Reservas y QR.</span></p>
+      </div>
+      <template #pie><button class="btn-secondary" @click="vt = null">Cancelar</button><button class="btn-primary" @click="router.post('/gastronomia/carta/vitrina', vt, { preserveScroll: true, onSuccess: () => (vt = null) })" data-e2e="vitrina-guardar">Guardar</button></template>
+    </Modal>
   </AppLayout>
 </template>
 
@@ -168,7 +211,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import { moneda } from '@/util/formato'
 import { usePermisos } from '@/util/permisos'
-const props = defineProps({ productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, whatsappAResto: Boolean, ia: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
+const props = defineProps({ vitrina: { type: Object, default: () => ({ estilo: 'lista', url: '' }) }, alergenosLista: { type: Object, default: () => ({}) }, productos: Array, estaciones: { type: Array, default: () => [{ nombre: 'Cocina', alerta: 20 }] }, qrConfirma: Boolean, recetaAlVender: Boolean, whatsappAResto: Boolean, ia: Boolean, insumos: { type: Array, default: () => [] }, happyHours: { type: Array, default: () => [] }, rubros: { type: Array, default: () => [] } })
 const est = ref(JSON.parse(JSON.stringify(props.estaciones)))
 const qrc = ref(props.qrConfirma), rav = ref(props.recetaAlVender), war = ref(props.whatsappAResto)
 // Fase 56: carta traducida para el QR
@@ -215,11 +258,28 @@ function guardarReceta() {
   const items = rc.value.items.filter(i => i.product_id && Number(i.quantity) > 0)
   router.post(`/gastronomia/carta/${rc.value.id}/receta`, { items }, { preserveScroll: true, onSuccess: () => { if (rc.value.margen_objetivo !== null && rc.value.margen_objetivo !== '') router.post(`/gastronomia/carta/${rc.value.id}`, { margen_objetivo: rc.value.margen_objetivo, modificadores: props.productos.find(p => p.id === rc.value.id)?.modificadores ?? [] }, { preserveScroll: true }); rc.value = null } })
 }
-function editar(p) { ed.value = { id: p.id, name: p.name, va_cocina: p.va_cocina, grupos: JSON.parse(JSON.stringify(p.modificadores ?? [])), conHorario: !!p.horario, horario: p.horario ? { ...p.horario, dias: [...(p.horario.dias ?? [])] } : { desde: '12:00', hasta: '16:00', dias: [1, 2, 3, 4, 5] } } }
+function editar(p) { errorFoto.value = ''; ed.value = { foto: p.foto, foto_propia: p.foto_propia, foto_gira: p.foto_gira, ingredientes: p.ingredientes ?? '', alergenos: [...(p.alergenos ?? [])], receta: (p.receta?.items ?? []).map(i => i.nombre).filter(Boolean), id: p.id, name: p.name, va_cocina: p.va_cocina, grupos: JSON.parse(JSON.stringify(p.modificadores ?? [])), conHorario: !!p.horario, horario: p.horario ? { ...p.horario, dias: [...(p.horario.dias ?? [])] } : { desde: '12:00', hasta: '16:00', dias: [1, 2, 3, 4, 5] } } }
 const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const hhs = ref(JSON.parse(JSON.stringify(props.happyHours ?? [])))
 function guardar() {
   const grupos = ed.value.grupos.map(g => ({ ...g, opciones: g.opciones.filter(o => o.nombre.trim()) })).filter(g => g.nombre.trim() && g.opciones.length)
-  router.post(`/gastronomia/carta/${ed.value.id}`, { va_cocina: ed.value.va_cocina, modificadores: grupos, horario: ed.value.conHorario ? ed.value.horario : {} }, { preserveScroll: true, onSuccess: () => (ed.value = null) })
+  router.post(`/gastronomia/carta/${ed.value.id}`, { va_cocina: ed.value.va_cocina, modificadores: grupos, horario: ed.value.conHorario ? ed.value.horario : {}, ingredientes: ed.value.ingredientes, alergenos: ed.value.alergenos, foto_gira: !!ed.value.foto_gira }, { preserveScroll: true, onSuccess: () => (ed.value = null) })
+}
+// Fase 127: la carta vitrina y las fotos de los platos.
+const vt = ref(null), subiendo = ref(false), errorFoto = ref('')
+function abrirVitrina() { errorFoto.value = ''; vt.value = { menu_estilo: props.vitrina.estilo ?? 'lista', menu_historia_titulo: props.vitrina.titulo ?? '', menu_historia: props.vitrina.historia ?? '', menu_horario: props.vitrina.horario ?? '' } }
+const errorDe = e => Object.values(e ?? {})[0] ?? 'No se pudo subir la foto.'
+function subirFoto(ev) {
+  const f = ev.target.files?.[0]; ev.target.value = ''; if (!f || !ed.value) return
+  subiendo.value = true; errorFoto.value = ''; const id = ed.value.id
+  router.post(`/gastronomia/carta/${id}/foto`, { foto: f }, { forceFormData: true, preserveScroll: true,
+    onSuccess: () => { const p = props.productos.find(x => x.id === id); if (ed.value && p) { ed.value.foto = p.foto; ed.value.foto_propia = p.foto_propia } },
+    onError: e => (errorFoto.value = errorDe(e)), onFinish: () => (subiendo.value = false) })
+}
+function quitarFoto() { const id = ed.value.id; router.delete(`/gastronomia/carta/${id}/foto`, { preserveScroll: true, onSuccess: () => { if (ed.value) { ed.value.foto = null; ed.value.foto_propia = false; ed.value.foto_gira = false } } }) }
+function subirPortada(ev) {
+  const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return
+  subiendo.value = true; errorFoto.value = ''
+  router.post('/gastronomia/carta/portada', { foto: f }, { forceFormData: true, preserveScroll: true, onError: e => (errorFoto.value = errorDe(e)), onFinish: () => (subiendo.value = false) })
 }
 </script>

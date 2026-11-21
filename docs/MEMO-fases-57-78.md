@@ -240,3 +240,14 @@ responde con los permisos de esa persona y audita a su nombre.
   - Pantalla: un recuadro «Si ARCA se cae» en Configuración → Puntos de venta y ARCA.
 - **Lo que no pude verificar**: el manual oficial del WSFEv1 no se pudo bajar desde el entorno (DNS de arca.gob.ar). Los nombres de los métodos y campos son los conocidos del WSFEv1; quedan por confirmar los códigos de error exactos y las validaciones nuevas de las RG de 2025 y 2026. **Probar en homologación antes del primer uso real.**
 - Ayuda en `facturar.md` y técnica en `docs/arca.md`. Novedad. Tests en `Fase126Test` (9 pruebas, incluido el sobre SOAP de los cuatro métodos).
+
+### Fase 127 · Carta vitrina de Big Restó
+- **Para qué**: Juan mandó un reel de una carta web de pizzería («tu carta en PDF no la abre nadie»: plato por pantalla, la pizza girando, ingredientes, alérgenos, tamaños, la historia del horno y la reserva). Big Restó ya tenía el QR, las opciones, el pedido a la comanda y las reservas; faltaba esa forma de mostrarla. Se hizo con diseño propio, no una copia del reel.
+- **Cómo**:
+  - `products` suma `ingredientes`, `alergenos` (los 9 del art. 235 séptimo del CAA), `foto_carta` y `foto_gira`.
+  - `CartaVitrinaService`: sube la foto, la achica con GD a 1200 px, la endereza según el EXIF y respeta el PNG transparente. La guarda en el disco local y `imagen` apunta a `/fotos/plato/{id}`, pública, con caché de una semana. Así la foto sirve también en la tienda y en el POS. La portada va en `/fotos/portada/{business}`.
+  - La configuración vive en `businesses.tienda`: `menu_estilo`, `menu_historia_titulo`, `menu_historia`, `menu_portada` y `menu_horario`.
+  - `tienda/_vitrina.blade.php`: carrusel con *scroll snap*, flechas y puntitos. La foto gira con CSS y se respeta *prefers-reduced-motion*. Textos en ES, EN y PT. El pedido usa las mismas funciones JS que la lista, así que lo de la mesa no se tocó.
+  - En Big Restó → Carta: el botón «✨ Carta vitrina» y, en «Opciones y foto» de cada plato, la foto, el giro, los ingredientes (con «Traer de la receta») y los alérgenos.
+- Probado con capturas en un iPhone emulado y en escritorio. Encontré y corregí el título de la ventana de opciones, que quedaba blanco sobre blanco.
+- Ayuda en `gastronomia.md`, novedad y pruebas en `Fase127Test` (6).
